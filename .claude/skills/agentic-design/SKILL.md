@@ -53,6 +53,22 @@ their answer. That is fine for a draft they will edit; it is corrosive for
 a binary judgement. For gates and yes/no decisions, prefer showing patterns
 *after* the answer as a check, not before as a prompt (§22.4.3).
 
+## Policy-grounded features specifically
+
+An internal policy is the **one legitimate exception** to the evidence line
+(§22.5) — but only for part of the chain:
+
+- The policy defines **what a term means** and **what is required**.
+- The requester supplies **the facts about their project**.
+- Their **confirmation** is the answer's evidence.
+
+A design that lets a policy assert a project fact ("the standard says
+systems like this store PII, so we recorded Yes") has broken the chain as
+badly as a web-grounded one. Quote **verbatim or not at all**, always with
+policy, clause, and version. Version policies like the instrument: a
+revision raises a finding against a current assessment, it never rewrites a
+historical one.
+
 ## Precedent features specifically
 
 Anything that learns from other assessments obeys §22.4:
