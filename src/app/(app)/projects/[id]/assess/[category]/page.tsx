@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CATEGORIES, categoryByKey, gateStates, unansweredCount } from "@/lib/instrument";
 import { intakeValuesFrom } from "@/lib/intake-values";
-import { answerStore, projectStore } from "@/lib/repo";
+import { openProject } from "@/lib/project-access";
+import { NotYourAssessment } from "../../not-yours";
+import { answerStore } from "@/lib/repo";
 import { ProjectHeader } from "../../project-header";
 import { GateForm } from "../gate-form";
 import { GateRail } from "../gate-rail";
@@ -18,8 +20,10 @@ export default async function GatePage({
   const category = categoryByKey(key);
   if (!category) notFound();
 
-  const project = await projectStore().get(id);
-  if (!project) notFound();
+  // Authority is checked on the object, not only on the listing (N1).
+  const access = await openProject(id);
+  if (!access.ok) return <NotYourAssessment person={access.person} />;
+  const project = access.project;
 
   const intake = intakeValuesFrom(project as unknown as Record<string, unknown>);
   const stored = await answerStore().current(id);

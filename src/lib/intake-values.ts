@@ -45,7 +45,12 @@ export function intakePatchFrom(entries: SubmittedEntries): IntakePatch {
     if (scope && !scope.has(field.id)) continue; // not this submission's business
     const submitted = entries[field.id];
     if (field.type === "multi") {
-      patch[field.id] = submitted ?? [];
+      // Inside a declared scope, an absent multi-select means "cleared" and
+      // must persist. With no scope declared we cannot tell "cleared" from
+      // "not part of this form", so we leave it alone — the safe reading.
+      // The unsafe reading is what erased whole sections (G-28, N8).
+      if (scope) patch[field.id] = submitted ?? [];
+      else if (submitted !== undefined) patch[field.id] = submitted;
       continue;
     }
     if (submitted === undefined) continue;

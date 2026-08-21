@@ -13,6 +13,7 @@ import {
   NotPermitted,
   ROLES,
   ROLE_LABEL,
+  mayOpenAssessment,
   ROLE_SUMMARY,
   type Role,
 } from "../../src/lib/people";
@@ -77,5 +78,33 @@ describe("what each role may see and start (§2, F2)", () => {
     // which made the role a label rather than a role.
     const distinct = new Set(ROLES.map(powers));
     expect(distinct.size).toBe(ROLES.length);
+  });
+});
+
+describe("opening one particular assessment (§2, N1)", () => {
+  it("lets a requester open their own and nobody else's", () => {
+    expect(mayOpenAssessment("requester", "p.requester", "p.requester")).toBe(true);
+    expect(mayOpenAssessment("requester", "p.requester", "p.admin")).toBe(false);
+  });
+
+  it("lets a Risk Assessor and an administrator open any of them", () => {
+    expect(mayOpenAssessment("assessor", "p.assessor", "p.requester")).toBe(true);
+    expect(mayOpenAssessment("admin", "p.admin", "p.requester")).toBe(true);
+  });
+
+  it("closes an assessment with no recorded owner to a requester", () => {
+    // Pre-attribution pilot rows belong to nobody. Inventing an owner would
+    // be worse than leaving them closed.
+    expect(mayOpenAssessment("requester", "p.requester", null)).toBe(false);
+    expect(mayOpenAssessment("assessor", "p.assessor", null)).toBe(true);
+  });
+
+  it("agrees with the listing rule — the list and the object cannot disagree", () => {
+    // N1 was exactly this disagreement: the list filtered, the URL did not.
+    for (const role of ROLES) {
+      expect(mayOpenAssessment(role, "someone", "someone-else")).toBe(
+        seesEveryAssessment(role),
+      );
+    }
   });
 });

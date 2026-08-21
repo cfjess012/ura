@@ -37,7 +37,7 @@ describe("§24.1 never re-ask what someone said they don't know", () => {
   });
 });
 
-describe("§24.6 the system absorbs complexity", () => {
+describe("§24.7 the system absorbs complexity", () => {
   it("no internal identifiers or acronym batteries in anything a person reads", () => {
     for (const f of ALL_FIELDS) {
       for (const text of [f.label, f.help ?? "", f.revealNote ?? "", f.body ?? ""]) {
@@ -48,7 +48,7 @@ describe("§24.6 the system absorbs complexity", () => {
   });
 });
 
-describe("§24.4 revealed content says why", () => {
+describe("§24.5 revealed content says why", () => {
   it("every conditional field carries a plain-language reason", () => {
     for (const f of ALL_FIELDS.filter((f) => f.conditional && f.type !== "note")) {
       expect(f.revealNote, f.id).toBeTruthy();

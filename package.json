@@ -10,6 +10,7 @@
     "db:up": "docker compose up -d db",
     "db:migrate": "node scripts/migrate.mjs",
     "e2e:db": "node scripts/prepare-e2e-db.mjs",
+    "db:reset": "node scripts/reset-dev-db.mjs",
     "test": "vitest run",
     "e2e": "pnpm e2e:db && playwright test",
     "test:unit": "vitest run test/unit",

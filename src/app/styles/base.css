@@ -66,3 +66,10 @@ body {
   line-height: 1.55;
 }
 
+
+/* Used by app-wide chrome (the persona switcher, live regions), so it
+   lives with the base rather than with one screen's stylesheet (N12). */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}

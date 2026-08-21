@@ -3,7 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import { CATEGORIES } from "@/lib/instrument";
 import { INTAKE_SECTIONS, sectionByKey, sectionKey, sectionProgress } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
+import { openProject } from "@/lib/project-access";
 import { projectStore } from "@/lib/repo";
+import { NotYourAssessment } from "../../not-yours";
 import { ProjectHeader } from "../../project-header";
 import { IntakeRail } from "../intake-rail";
 import { SectionForm } from "../section-form";
@@ -19,8 +21,10 @@ export default async function IntakeSectionPage({
   const section = sectionByKey(key);
   if (!section) notFound();
 
-  const project = await projectStore().get(id);
-  if (!project) notFound();
+  // Authority is checked on the object, not only on the listing (N1).
+  const access = await openProject(id);
+  if (!access.ok) return <NotYourAssessment person={access.person} />;
+  const project = access.project;
   // Intake changes are attributed and kept (F5); the most recent one is
   // shown so the person can see the record exists rather than take it on
   // trust.
@@ -72,7 +76,7 @@ export default async function IntakeSectionPage({
 
           {lastChange && (
             <p className="attribution">
-              Last change to this intake:{" "}
+              Last change saved by{" "}
               <strong>{lastChange.byName ?? "recorded before attribution existed"}</strong>
               {" · "}
               {lastChange.at.toLocaleString()}

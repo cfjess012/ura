@@ -12,7 +12,7 @@
  * store with a different query model still needs a real implementation —
  * what this guarantees is that only this file and its wiring change.
  */
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDb, schema } from "./db";
 import type { IntakeChange, IntakePatch } from "./intake-values";
 import type { Person, Role } from "./people";
@@ -66,6 +66,13 @@ export interface ProjectStore {
   list(scope: ProjectScope): Promise<ProjectSummary[]>;
   /** How many assessments the same scope covers, ignoring any limit. */
   count(scope: ProjectScope): Promise<number>;
+  /**
+   * How many assessments exist with no recorded owner. They predate
+   * attribution and belong to nobody, so a scoped list cannot show them —
+   * but omitting them silently makes a person's earlier work vanish with no
+   * explanation (N11).
+   */
+  countUnattributed(): Promise<number>;
   get(id: string): Promise<ProjectRecord | null>;
   create(projectName: string, createdBy: string | null): Promise<{ id: string }>;
   /**
@@ -107,6 +114,13 @@ export function postgresProjectStore(): ProjectStore {
         .select({ total: sql<number>`count(*)::int` })
         .from(schema.projects)
         .where(scope.createdBy ? eq(schema.projects.createdBy, scope.createdBy) : undefined);
+      return row?.total ?? 0;
+    },
+    async countUnattributed() {
+      const [row] = await db
+        .select({ total: sql<number>`count(*)::int` })
+        .from(schema.projects)
+        .where(isNull(schema.projects.createdBy));
       return row?.total ?? 0;
     },
     async get(id) {

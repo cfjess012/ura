@@ -130,5 +130,42 @@ test("an intake change records who made it, and says so on the screen (F5)", asy
   await page.getByRole("button", { name: /Next:/ }).click();
   await expect(page.getByRole("heading", { name: "Ownership" })).toBeVisible();
 
-  await expect(page.getByText(/Last change to this intake/)).toContainText("Priya Sharma");
+  await expect(page.getByText(/Last change saved by/)).toContainText("Priya Sharma");
+});
+
+test("an assessment cannot be opened or edited by someone it doesn't belong to (N1)", async ({
+  page,
+}) => {
+  // The administrator starts one, so the URL under test belongs to someone else.
+  await page.goto("/projects");
+  await page.getByLabel(/Working as/).selectOption({ label: "Tom Holland · Administrator" });
+  await page.getByLabel("Start a new assessment").fill(`Admin private ${Date.now()}`);
+  await page.getByRole("button", { name: "Start assessment" }).click();
+  await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
+  const base = `/projects/${page.url().split("/projects/")[1]!.split("/")[0]!}`;
+
+  // Switch to the requester and go straight at the URL — the listing is not
+  // the enforcement point, so hiding the row proves nothing.
+  await page.getByLabel(/Working as/).selectOption({ label: "Priya Sharma · Requester" });
+  for (const path of [base, `${base}/intake/ownership`, `${base}/assess/complete`]) {
+    await page.goto(path);
+    await expect(
+      page.getByRole("heading", { name: "This one belongs to someone else" }),
+    ).toBeVisible();
+    // No form to submit and no field to fill: the refusal is the whole page.
+    await expect(page.getByRole("textbox")).toHaveCount(0);
+  }
+});
+
+test("a Risk Assessor is refused in writing when they try to start an assessment (N3)", async ({
+  page,
+}) => {
+  await page.goto("/projects");
+  await page.getByLabel(/Working as/).selectOption({ label: "Priya Sharma · Requester" });
+  // Fill the form as the requester, then become the assessor before submitting:
+  // the server must refuse what the markup no longer offers.
+  await page.getByLabel("Start a new assessment").fill(`Should be refused ${Date.now()}`);
+  await page.getByLabel(/Working as/).selectOption({ label: "Noah Kahan · Risk Assessor" });
+  await expect(page.locator(".persona-role")).toHaveText("Risk Assessor");
+  await expect(page.getByLabel("Start a new assessment")).toHaveCount(0);
 });

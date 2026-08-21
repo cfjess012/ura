@@ -41,10 +41,13 @@ describe("intakePatchFrom (pure)", () => {
     expect(cleared.dataElements).toEqual(["Employee personal information"]);
   });
 
-  it("with no declared scope, behaves as a whole-instrument submission", () => {
+  it("with no declared scope, still refuses to clear what it was not given (N8)", () => {
+    // The scope-less path is the one a future caller will reach for without
+    // thinking. It must not be the dangerous one: writing [] over every
+    // unmentioned multi-select is what erased whole sections (G-28).
     const everything = intakePatchFrom({ dataClassification: ["Internal"] });
     expect(everything.dataClassification).toEqual(["Internal"]);
-    expect(everything.dataElements).toEqual([]);
+    expect(everything).not.toHaveProperty("dataElements");
   });
 
   it("never stores notes — they ask nothing and hold nothing", () => {

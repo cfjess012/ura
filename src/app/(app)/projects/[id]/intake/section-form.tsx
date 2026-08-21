@@ -39,7 +39,12 @@ export function SectionForm({
   const [values, setValues] = React.useState<IntakeValues>(initial);
   const [saving, setSaving] = React.useState(false);
   const [savedAt, setSavedAt] = React.useState<string | null>(null);
-  const [error, setError] = React.useState<{ message: string; ref: string } | null>(null);
+  const [error, setError] = React.useState<{
+    message: string;
+    ref: string;
+    /** False when trying again cannot possibly work (§25.4, N2). */
+    retryable: boolean;
+  } | null>(null);
 
   const set = (id: string, v: string | string[]) =>
     setValues((prev) => ({ ...prev, [id]: v }));
@@ -77,7 +82,7 @@ export function SectionForm({
       }
       const result = await saveIntake(projectId, formData);
       if (isFailure(result)) {
-        setError({ message: result.message, ref: result.ref });
+        setError({ message: result.message, ref: result.ref, retryable: result.retryable });
         return false;
       }
       setSavedAt(result.savedAt);
@@ -88,6 +93,7 @@ export function SectionForm({
         message:
           "The server couldn't be reached, so nothing was saved. Your answers are still on screen — try again in a moment.",
         ref: "OFFLINE",
+        retryable: true,
       });
       return false;
     } finally {
@@ -135,9 +141,18 @@ export function SectionForm({
               ""
             )}
           </span>
-          <button className="btn" type="submit" disabled={saving}>
-            {saving ? "Saving…" : error ? "Try again" : nextLabel}
-          </button>
+          {/* Never invite a retry that cannot work (§25.4, N2). When the
+              assessment is gone or isn't theirs, retrying is not the next
+              step — leaving with their answers intact is. */}
+          {error && !error.retryable ? (
+            <Link className="btn ghost" href="/projects">
+              Go to my assessments
+            </Link>
+          ) : (
+            <button className="btn" type="submit" disabled={saving}>
+              {saving ? "Saving…" : error ? "Try again" : nextLabel}
+            </button>
+          )}
         </span>
       </div>
 

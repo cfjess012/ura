@@ -121,6 +121,10 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 .btn.ghost:hover { background: var(--surface-1); border-color: var(--neutral-500); }
 
 /* ---------- save bar ---------- */
+/* The bar is sticky and is the form's last child, so at rest it lands on
+   top of the final field — and taller in the error state, hiding more (N5).
+   The field card reserves that height instead. */
+.assess-layout section > form > .card { padding-bottom: 5.5rem; }
 .savebar {
   position: sticky; bottom: 0; z-index: 5;
   background: rgba(252, 252, 252, 0.94);
@@ -131,7 +135,9 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
   display: flex; justify-content: space-between; align-items: center; gap: 1rem;
 }
 .saved { color: var(--success); font-weight: 700; font-size: 0.9rem; }
-.missing { color: var(--neutral-600); font-size: 0.88rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Wrap rather than truncate: "1 still needed here — Is this a new
+   initiative, or…" told the person nothing (N5). */
+.missing { color: var(--neutral-600); font-size: 0.88rem; min-width: 0; }
 .missing strong { color: var(--neutral-800); }
 
 /* ---------- project list ---------- */
@@ -175,6 +181,7 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 .note-body { margin: 0; font-size: 0.9rem; color: var(--neutral-700); }
 @media (prefers-reduced-motion: reduce) { .note { animation: none; } }
 .save-failed { color: var(--error); font-weight: 700; font-size: 0.9rem; max-width: 46rem; }
+.savebar { flex-wrap: wrap; row-gap: 0.5rem; }
 .err-ref { color: var(--neutral-600); font-weight: 600; white-space: nowrap; }
 
 .list-more {
@@ -189,3 +196,5 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
   margin: 1rem 0 0;
 }
 .attribution strong { color: var(--neutral-800); font-weight: 700; }
+.start-card { flex-wrap: wrap; }
+.start-card .save-failed { flex-basis: 100%; margin: 0.2rem 0 0; }

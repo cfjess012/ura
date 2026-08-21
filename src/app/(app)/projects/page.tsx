@@ -6,7 +6,7 @@ import {
   seesEveryAssessment,
 } from "@/lib/people";
 import { projectStore } from "@/lib/repo";
-import { createProject } from "@/app/actions";
+import { StartForm } from "./start-form";
 
 export const dynamic = "force-dynamic";
 
@@ -29,9 +29,10 @@ export default async function Projects({
   const scope = everyone ? {} : { createdBy: person.id };
   const showingAll = all === "1";
 
-  const [rows, total] = await Promise.all([
+  const [rows, total, unattributed] = await Promise.all([
     projectStore().list({ ...scope, limit: showingAll ? undefined : PAGE_SIZE }),
     projectStore().count(scope),
+    everyone ? Promise.resolve(0) : projectStore().countUnattributed(),
   ]);
 
   return (
@@ -54,18 +55,7 @@ export default async function Projects({
           <p className="help">
             A working name is enough — you can change it later.
           </p>
-          <form action={createProject} className="start-card">
-            <input
-              type="text"
-              id="new-project"
-              name="projectName"
-              placeholder="e.g. Cadenza workforce scheduling"
-              required
-            />
-            <button className="btn" type="submit">
-              Start assessment
-            </button>
-          </form>
+          <StartForm />
         </div>
       ) : (
         <div className="card card-upcoming">
@@ -112,6 +102,13 @@ export default async function Projects({
             <p className="list-more">
               Showing the {rows.length} most recently updated of {total}.{" "}
               <Link href="/projects?all=1">Show all {total}</Link>
+            </p>
+          )}
+          {unattributed > 0 && (
+            <p className="list-more">
+              {unattributed} earlier assessment{unattributed === 1 ? " has" : "s have"} no
+              recorded owner and can&rsquo;t be shown here — they were started before the
+              platform recorded who was working. A Risk Assessor can still open them.
             </p>
           )}
           {showingAll && total > PAGE_SIZE && (

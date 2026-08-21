@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { notFound } from "next/navigation";
 import { sectionProgress, INTAKE_SECTIONS, sectionKey } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
-import { projectStore } from "@/lib/repo";
+import { openProject } from "@/lib/project-access";
+import { NotYourAssessment } from "./not-yours";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +13,10 @@ export const dynamic = "force-dynamic";
  */
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const project = await projectStore().get(id);
-  if (!project) notFound();
+  // Authority is checked on the object, not only on the listing (N1).
+  const access = await openProject(id);
+  if (!access.ok) return <NotYourAssessment person={access.person} />;
+  const project = access.project;
 
   const values = intakeValuesFrom(project as unknown as Record<string, unknown>);
   const progress = sectionProgress(values);

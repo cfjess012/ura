@@ -20,7 +20,11 @@ export default defineConfig({
   webServer: {
     command: `next dev -p ${PORT}`,
     url: `http://localhost:${PORT}/projects`,
-    reuseExistingServer: !process.env.CI,
+    // Never reuse: the database binding lives in this block, so reusing a
+    // server someone else started would silently point the suite at the
+    // development database — the very thing this config exists to prevent
+    // (N9). Costs one cold start per run.
+    reuseExistingServer: false,
     timeout: 180_000,
     stdout: "ignore",
     stderr: "pipe",

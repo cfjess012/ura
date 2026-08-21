@@ -58,6 +58,27 @@ export function seesEveryAssessment(role: Role): boolean {
 }
 
 /**
+ * Whether this person may open a particular assessment (§2, N1).
+ *
+ * The list-scoping rule and the object-access rule must be the same rule,
+ * or the product shows one thing and permits another — which is exactly
+ * what independent verification found: every assessment was reachable by
+ * URL from every persona while the list claimed to be scoped.
+ *
+ * An assessment with no recorded owner belongs to nobody, so only the roles
+ * that see everything can open it. Those are pre-attribution pilot rows;
+ * inventing an owner for them would be worse than leaving them closed.
+ */
+export function mayOpenAssessment(
+  role: Role,
+  personId: string,
+  ownedBy: string | null,
+): boolean {
+  if (seesEveryAssessment(role)) return true;
+  return ownedBy !== null && ownedBy === personId;
+}
+
+/**
  * Who may start an assessment (§2). A Risk Assessor reviews activities; they
  * do not own them, so the platform does not offer them a way to start one —
  * and refuses server-side if the form is reached anyway (§2: the UI is never

@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { currentPerson, PERSON_COOKIE } from "@/lib/current-person";
-import { failure, type Result } from "@/lib/errors";
+import { failure, isFailure, type Failure, type Result } from "@/lib/errors";
 import { canAnswer, canStartAssessment, NotPermitted } from "@/lib/people";
 import {
   intakeChanges,
@@ -20,6 +20,7 @@ import {
 } from "@/lib/intake-values";
 import { INSTRUMENT, prefillFor } from "@/lib/instrument";
 import { intakeValuesFrom } from "@/lib/intake-values";
+import { editableProject } from "@/lib/project-access";
 import { answerStore, projectStore } from "@/lib/repo";
 
 /** FormData is a web detail; the logic layer takes a plain record. */
@@ -31,14 +32,35 @@ function entriesFrom(formData: FormData): SubmittedEntries {
   return entries;
 }
 
-export async function createProject(formData: FormData) {
+/**
+ * Start an assessment. Returns a typed result rather than throwing: a
+ * refusal is an ordinary outcome with a sentence of its own, not a crash
+ * that lands on the generic error boundary saying the page failed to draw
+ * (§25.1, N3). The redirect on success is the one thing that must throw —
+ * that is how `redirect` works.
+ */
+export async function createProject(
+  _previous: Failure | null,
+  formData: FormData,
+): Promise<Failure | null> {
   const name = projectNameOrNull(formData.get("projectName"));
-  if (!name) throw new Error("Give the assessment a project name to start.");
   const person = await currentPerson();
   // §2: a Risk Assessor reviews activities, they do not own them. Checked
   // here and not only in the markup — the UI is never the enforcement point.
   if (!canStartAssessment(person.role)) {
-    throw new NotPermitted("start an assessment", person.role);
+    return failure(
+      "createProject",
+      new NotPermitted("start an assessment", person.role),
+      "A Risk Assessor reviews assessments rather than starting them. Switch to the person who owns this activity to begin one.",
+      { retryable: false },
+    );
+  }
+  if (!name) {
+    return failure(
+      "createProject",
+      new Error("empty project name"),
+      "Give the assessment a name to start — a working name is fine.",
+    );
   }
   const { id } = await projectStore().create(name, person.id);
   redirect(`/projects/${id}`);
@@ -50,15 +72,14 @@ export async function saveIntake(
 ): Promise<Result<{ savedAt: string }>> {
   const patch = intakePatchFrom(entriesFrom(formData));
   try {
-    const person = await currentPerson();
-    const store = projectStore();
-    const before = await store.get(projectId);
+    // Whose assessment this is, decided before anything is written (N1).
+    const allowed = await editableProject(projectId, "saveIntake");
+    if (isFailure(allowed)) return allowed;
+    const { project: before, person } = allowed;
     // What moved, decided by pure logic, so the history is testable without
     // a database (F5).
-    const changes = before
-      ? intakeChanges(before as unknown as Record<string, unknown>, patch)
-      : [];
-    const existed = await store.updateIntake(projectId, patch, {
+    const changes = intakeChanges(before as unknown as Record<string, unknown>, patch);
+    const existed = await projectStore().updateIntake(projectId, patch, {
       changes,
       changedBy: person.id,
     });
@@ -96,8 +117,17 @@ export async function answerGate(
   value: "Yes" | "No",
 ): Promise<Result<{ recorded: true }>> {
   try {
-    const person = await currentPerson();
-    if (!canAnswer(person.role)) throw new NotPermitted("answer assessment questions", person.role);
+    const allowed = await editableProject(projectId, "answerGate");
+    if (isFailure(allowed)) return allowed;
+    const { person } = allowed;
+    if (!canAnswer(person.role)) {
+      return failure(
+        "answerGate",
+        new NotPermitted("answer assessment questions", person.role),
+        "This role doesn't answer assessment questions, so nothing was recorded. Switch to the person who owns this assessment.",
+        { retryable: false },
+      );
+    }
     const answers = answerStore();
     const versionId = await answers.activeVersionId(INSTRUMENT.slug);
     await answers.record({

@@ -13,8 +13,9 @@ implementation, stop on ambiguity.
 - S2.5 People — DONE (roles enforced server-side; persona switcher is a
   pilot device, NOT auth; every answer AND every intake change records who
   made it)
-- Independent verification of S1/S2/S2.5 ran 2026-08-21: FAIL, 14 findings,
-  all addressed (SPEC G-28..G-31; corrected rows in `uat/S*.md`).
+- Independent verification ran twice on 2026-08-21 — FAIL, then FAIL again
+  (N1: role scoping was list-only). All addressed; SPEC G-28..G-34.
+- S3.5 Destinations — SPEC'd not built (§27): ServiceNow AI Use Case Record.
 - S3..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
 
 Instrument data lives in `src/data/instrument/*.json`, imported at build
@@ -34,6 +35,8 @@ pnpm test         # vitest (PGlite applies REAL migrations — no docker needed)
 pnpm e2e          # playwright: its OWN server (:3101) + OWN database
                   #   (E2E_DATABASE_URL) — never the one you demo from
 pnpm e2e:db       # create + migrate + seed that database (pnpm e2e runs it)
+pnpm db:reset --yes  # DESTRUCTIVE: rebuild the dev database. The only way
+                  #   back to clean — answers are insert-only by design.
 pnpm typecheck
 pnpm agent-map     # regenerates docs/agent-map.html from the repo itself
 pnpm uat:new S3    # UAT record skeleton for a slice (rows from SPEC §17/§20)

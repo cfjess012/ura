@@ -36,6 +36,8 @@ export function GateForm({
   const [error, setError] = React.useState<{
     message: string;
     ref: string;
+    /** False when trying again cannot possibly work (§25.4, N2). */
+    retryable: boolean;
   } | null>(null);
 
   async function choose(value: "Yes" | "No") {
@@ -47,7 +49,7 @@ export function GateForm({
       const result = await answerGate(projectId, questionId, value);
       if (isFailure(result)) {
         setChoice(answer); // put it back: nothing was recorded
-        setError({ message: result.message, ref: result.ref });
+        setError({ message: result.message, ref: result.ref, retryable: result.retryable });
         return;
       }
       setAnnouncement(
@@ -63,6 +65,7 @@ export function GateForm({
         message:
           "The server couldn't be reached, so this answer wasn't recorded. Everything you answered before is safe. Try again in a moment.",
         ref: "OFFLINE",
+        retryable: true,
       });
     } finally {
       setSaving(null);
@@ -91,7 +94,7 @@ export function GateForm({
             key={value}
             type="button"
             aria-pressed={choice === value}
-            disabled={saving !== null}
+            disabled={saving !== null || (error !== null && !error.retryable)}
             onClick={() => void choose(value)}
             className={`gate-choice ${choice === value ? "chosen" : ""}`}
           >
