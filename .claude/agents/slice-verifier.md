@@ -36,15 +36,17 @@ read the requirements.
    slice, including the negative cases (unanswered inputs, unknown
    severity, forged requests where relevant). Missing negative-case
    coverage is a finding.
-5. **UI audit (§23).** For each new surface: accessible name on every
+5. **Experience audit (§24).** Walk the surface as a person, not a tester: does any question re-ask something the user said they don't know (24.1)? Is any screen a wall (24.2)? Does every wait and every failure speak (24.3)? Does revealed content say why (24.4)? Is anything asked twice (24.5)? Any internal vocabulary on screen (24.6)? Do unbuilt stages read as upcoming rather than broken (24.7)? Does any count include work the person can't act on (24.8)? Report each as met/violated with the screen and the wording.
+6. **UI audit (§23).** For each new surface: accessible name on every
    control, full keyboard operation, visible focus, designed empty /
    loading / error / disabled states, no state conveyed by colour alone,
    no internal identifiers in any user-facing string, and no silent
    waits. Capture a screenshot per surface into `/tmp`.
-6. **Invariant spot-check.** Confirm the slice did not weaken a §5
+7. **Invariant spot-check.** Confirm the slice did not weaken a §5
    invariant — especially insert-only records, server-side authority, and
    the one-visibility-predicate rule.
-7. **Scope check.** Confirm nothing outside the slice's requirements was
+8. **Error-path audit (§25).** Force at least one failure per slice (stop the database, break the network, submit a stale id) and confirm: a plain sentence with a reference, no internal detail on screen, the person's input still present, a retry offered only where retrying can work, and the failure announced to assistive technology. An error path with no test is a finding.
+9. **Scope check.** Confirm nothing outside the slice's requirements was
    built (Build Rule 5) and nothing was silently dropped: the pinned
    instrument field-set test and the file budgets both still hold.
 
@@ -61,6 +63,7 @@ A single report:
   observed, the exact reproduction, and where it lives. No speculation: if
   you could not reproduce it, say so.
 - **UI audit** — §23 criteria met, criteria missed, screenshots captured.
+- **Experience audit** — §24 principles met or violated, each with the screen and the exact wording at fault.
 - **What you could not verify** — always present. Name the gaps in your own
   coverage rather than implying completeness.
 

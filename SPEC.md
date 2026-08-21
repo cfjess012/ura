@@ -27,7 +27,7 @@ These rules bind any implementer, human or Claude Code, before a single line is 
 10. Do not change settled decisions (§13) without explicitly flagging the change and obtaining a governance-log entry.
 11. **Every slice ends with the review protocol (§21), and no slice begins until the prior slice's review is closed.** Silence is never approval — from either side.
 12. **Every slice plans its agentic opportunity** (§22) — designed and registered, not built. Phase 1 ships no agent; it may not ship anything that forecloses one.
-13. **Every slice ships demo-ready UI** (§23). A slice with working logic and unfinished interface is not done.
+13. **Every slice ships demo-ready UI** (§23) and obeys the experience principles (§24). A slice with working logic and unfinished interface is not done.
 14. **Every slice is independently verified before it advances** — the slice-verifier subagent (§15) runs UAT and regression, and its report is attached to the review. Self-certification is not verification.
 15. **Critique is owed, not optional.** The implementer must surface disagreements, weaknesses, and risks in the owner's instructions as readily as in its own work. Agreeable implementation of a flawed instruction is a failure of this specification, not a courtesy.
 
@@ -269,6 +269,8 @@ Composite scoring policy (§14) · framework crosswalks (planned; will anchor to
 - **G-5 (settled):** No runtime instrument authoring; seed-PR governance only (§8).
 - **G-6 (settled):** The agentic layer's contract (§7) is normative now, even while dormant — nothing may be built that would violate it later.
 - **G-7 (settled):** AWS is the deployment target and §6.4's tiered migration is the plan of record. Phase 1 builds AWS-ready by construction (the five firm obligations in §6.4); cloud execution itself is Phase-3 work. The Bedrock model-access request is the standing critical-path item and is owner-owned.
+- **G-15 (settled):** §25 error-handling standard adopted 2026-08-21 (NFR-13): expected failures are typed values not exceptions; the user gets a sentence and a quotable reference while the log keeps the detail; every message says what happened, whether their work is safe, and what to do next; input is never lost; error paths are tested.
+- **G-14 (settled):** §24 experience principles adopted 2026-08-21 — each derived from a defect found in this build, audited by the slice-verifier, and binding on every surface. The first two, in the owner's framing: never re-ask what someone said they don't know, and pace the journey rather than presenting a wall.
 - **G-13 (settled):** Independent verification is a Phase-1 capability, not a Phase-2 one: the slice-verifier subagent runs UAT and regression against every slice before it advances, cannot edit code, and its report is part of the slice review. Adopted 2026-08-21.
 - **G-12 (settled):** Every slice ships demo-ready UI to the §23 standard; a slice with working logic and unfinished interface is not done. Taste calls belong to the owner and are applied before the next slice begins.
 - **G-11 (settled):** Every slice registers its agentic opportunity (§22) as a designed, guard-railed Phase-2 feature. Phase 1 builds none of it and may foreclose none of it. First entry: the intake quality assistant (rubric grading, contradiction detection, opt-in rewrite of the requester's own words).
@@ -295,7 +297,7 @@ This repository is operated with Claude Code as a first-class tool; the operatin
   - *Stop gate* — the full chain (tests · coherence gate · eval when active · **file-budget check**) must pass before any session concludes work. The budget check enforces §11 mechanically.
 - **Skills** (`.claude/skills/`): `/instrument-change` — the governed seed-PR workflow end to end (edit → validate → parity → ground truth → four-eyes PR); `/full-gates` — the complete gate chain; `/uat-checkout` — generates a numbered, objective-pass-line test script for the current milestone. Procedures are commands, not lore.
 - **Subagents** (`.claude/agents/`): **slice-verifier** (mandatory — see below), *contract-guard* (before any seam-adjacent commit), *coherence-auditor* (after any instrument change), *provenance-auditor* (before any eval-baseline commit), *ontology-auditor* (sampling ratified relationships). Each definition states its trigger moment; using them at those moments is part of the definition of done for the relevant change.
-- **The slice-verifier is not optional.** Every slice is independently verified before its review is written: full gate chain, requirement-by-requirement UAT driven through the running app, **regression over every prior slice's journey**, acceptance criteria including negative cases, a §23 UI audit, an invariant spot-check, and a scope check. It may not edit code — it reports. **A FAIL blocks the slice; a PASS with findings means the findings are fixed and it is re-run.** Its report is attached to the slice review (§21).
+- **The slice-verifier is not optional.** Every slice is independently verified before its review is written: full gate chain, requirement-by-requirement UAT driven through the running app, **regression over every prior slice's journey**, acceptance criteria including negative cases, a §23 UI audit, a §24 experience audit, an invariant spot-check, and a scope check. It may not edit code — it reports. **A FAIL blocks the slice; a PASS with findings means the findings are fixed and it is re-run.** Its report is attached to the slice review (§21).
 - **Conventions the layer enforces**: file budgets; no parallel implementations (§11); generated docs only regenerated, never hand-edited; model access confined to the agent service.
 
 ## 16. Phase boundaries — what "build this" means
@@ -384,6 +386,7 @@ The register and the slices are **synced by construction**: every Phase-1 requir
 | NFR-5 | AWS-ready by construction: the five §6.4 obligations | §6.4, G-7 | S1 onward, review-enforced |
 | NFR-6 | File budgets (≤400 new / ≤800 hard) + dead-code gate | §11 | Every slice; gate on from S10 |
 | NFR-7 | Every slice gated: tests green before advance; E2E on rendered DOM only | §0, §10 | Every slice |
+| NFR-13 | Errors handled to the §25 standard: typed results, no internals on screen, referenced logs, input preserved, error paths tested | §25 | Every slice |
 | NFR-8 | Instrument entirely as versioned seed data; zero hardcoded content | §6.2 | S2 onward |
 | NFR-9 | No internal identifiers in any user-facing text | §9 | S1 onward |
 | NFR-10 | State never conveyed by color alone; reviewer flow fully keyboard-operable | §9 | S4, S8 |
@@ -508,6 +511,62 @@ Every slice ships an interface that could be shown to leadership without apology
 **The remaining 10%** is what legitimately depends on later slices — cross-slice navigation, the global progress model, final brand treatment, and polish that only makes sense once neighbouring surfaces exist. Deferrals are named in the slice review, not discovered later.
 
 **Taste is the owner's call.** The standard sets the floor; the owner's judgment sets the bar. Visual direction raised in a slice review is applied before the next slice starts (§21).
+
+
+## 24. Experience principles (how the product treats a person)
+
+§23 sets the visual floor; this section sets the behavioural one. Each principle below was written after a real defect found in this build — they are scar tissue, not taste. The slice-verifier audits them; a violation is a finding.
+
+**24.1 Never re-ask what someone just told you they don't know.**
+Uncertainty is absorbed by the system and routed to a human — never returned to the requester as another question. When a person answers "I'm not sure", the correct response is a *reassurance* that says who will find out, and confirmation that nothing is blocked while they do. Punishing honesty teaches people to guess, and a guess is worse for the assessment than an admitted unknown.
+*Origin: the AI question revealed "What does the AI do?" to someone who had just said they didn't know.*
+
+**24.2 One decision per screen; pace the journey.**
+A wall of fields is a worse instrument than the same fields in sequence — completion rates and answer quality both fall. Prefer stepped, carded progression over long scrolls; show where the person is and what remains.
+*Origin: S1 shipped its four intake sections as one long scroll.*
+
+**24.3 Every wait has a state; every failure has a cause and a next step.**
+No silent seconds. Pending, success, **and failure** are all designed states — failure says what happened, whether the person's work is safe, and exactly what to do now. A failure path that only stops spinning is not a state.
+*Origin: an 8-second silent submit read as broken; and a save with no error state at all.*
+
+**24.4 Reveal on evidence, and say why.**
+Conditional content always carries a plain-language reason for its appearance. Content that appears without explanation reads as a system malfunction.
+
+**24.5 Never make a person repeat themselves.**
+An answer given once is reused everywhere it applies, shown with its source, and remains changeable (FR-22). Asking twice both wastes time and manufactures contradictions.
+
+**24.6 The system absorbs complexity; the person answers in their own words.**
+Internal vocabulary — identifiers, acronym batteries, framework codes — stays inside the system. If a business user would need a glossary, the question is wrong, not the user.
+*Origin: the intake asked for "ARA, BIR, PIA, DPIA, AVA" by name.*
+
+**24.7 Show the whole journey honestly, including what isn't built.**
+Future stages appear as *upcoming*, never as broken or missing. A person should be able to see where this ends from the moment they start.
+
+**24.8 Progress is measured in what's left for the person**, not in internal counts. Never show a total that includes work the person cannot see or act on.
+*Origin: a review queue that claimed "274 to attest" on a 39-question assessment.*
+
+
+## 25. Error handling standard
+
+Failure is a designed state (§24.3). This section says how it is built, and applies to every action, route, and background job.
+
+**25.1 Expected failures are values, not exceptions.** Server actions return a typed result (`{ok:true, …} | Failure`) that the caller must branch on. A missing `catch` cannot silently swallow a failure, because there is nothing thrown to swallow.
+
+**25.2 Unexpected failures are caught at the boundary.** Every action wraps its work; nothing escapes to a stack-trace screen. Transport failures (offline, deploy mid-request) are caught client-side as their own case, because the action never ran.
+
+**25.3 The user gets a sentence; the log gets the truth.** No driver text, SQL, constraint name, or stack trace ever reaches a screen. The server logs the real error with a short **reference**, and the same reference is shown to the person so a support conversation starts with a fact.
+
+**25.4 Every user-facing error answers three questions**, in order: *what happened*, *is my work safe*, *what do I do now*. "Something went wrong" answers none of them and is not acceptable.
+
+**25.5 Distinguish retryable from permanent.** A retryable failure offers the action again ("Try again"); a permanent one tells the person what to do instead. Never invite a retry that cannot succeed.
+
+**25.6 Never lose the person's input.** A failed save leaves every answer on screen, unchanged and re-submittable. Work is never discarded to reach a clean state.
+
+**25.7 Errors are announced, not just displayed.** The failure lands in a live region so assistive technology reads it, with focus management that does not strand the keyboard user.
+
+**25.8 Validation is not error handling.** Preventable problems are caught before submission with inline guidance; the error path is for the unexpected.
+
+**25.9 Errors are tested.** Each error path has a test proving the message is safe (no internals), the reference is present, and the input survives. An untested error path is an untested feature.
 
 ---
 

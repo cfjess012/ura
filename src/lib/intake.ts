@@ -21,10 +21,12 @@ export type IntakeCondition =
 export type IntakeField = {
   id: string;
   label: string;
-  type: "text" | "textarea" | "select" | "multi" | "date";
+  type: "text" | "textarea" | "select" | "multi" | "date" | "note";
   required?: boolean;
   options?: string[];
   help?: string;
+  /** For type "note": the reassurance shown. Notes ask nothing and store nothing. */
+  body?: string;
   conditional?: IntakeCondition;
   /** Plain-language reason shown when a conditional field reveals. */
   revealNote?: string;
@@ -93,13 +95,19 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         id: "aiUseCase",
         label: "What does the AI do?",
         type: "textarea",
-        conditional: {
-          visibleWhen: "usesAi",
-          equalsAny: ["Yes", "I'm not sure"],
-        },
+        conditional: { visibleWhen: "usesAi", equalsAny: ["Yes"] },
         revealNote:
           "Shown because you told us this uses AI or machine learning.",
         help: "What it decides or produces, what data it uses, and how much a person reviews before anything happens.",
+      },
+      {
+        // Never re-ask what someone just told you they do not know (§24.1).
+        // Uncertainty is absorbed and routed, not returned to the requester.
+        id: "usesAiUnsure",
+        label: "We'll find out for you",
+        type: "note",
+        conditional: { visibleWhen: "usesAi", equalsAny: ["I'm not sure"] },
+        body: "No problem — you don't need to know. A Risk Assessor will confirm whether AI is involved, and until they do we'll treat this as if it might be. Nothing here is blocked while that's checked.",
       },
     ],
   },
@@ -169,6 +177,16 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         conditional: { visibleWhen: "vendorNames", hasValue: true },
         revealNote: "Shown because vendor name(s) were entered.",
         help: "If you don't have visibility into procurement, say so — a reviewer will check.",
+      },
+      {
+        id: "coupaUnsure",
+        label: "We'll check with Procurement",
+        type: "note",
+        conditional: {
+          visibleWhen: "coupaOnboarded",
+          equalsAny: ["I'm not sure"],
+        },
+        body: "That's the right answer if you don't know — a reviewer confirms this with Procurement rather than asking you to chase it.",
       },
     ],
   },

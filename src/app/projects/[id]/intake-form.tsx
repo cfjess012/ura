@@ -15,6 +15,7 @@ import {
   type IntakeValues,
 } from "@/lib/intake";
 import { saveIntake } from "@/app/actions";
+import { isFailure } from "@/lib/errors";
 
 export function IntakeForm({
   projectId,
@@ -26,6 +27,7 @@ export function IntakeForm({
   const [values, setValues] = React.useState<IntakeValues>(initial);
   const [saving, setSaving] = React.useState(false);
   const [savedAt, setSavedAt] = React.useState<string | null>(null);
+  const [saveError, setSaveError] = React.useState<{ message: string; ref: string } | null>(null);
 
   const set = (id: string, v: string | string[]) =>
     setValues((prev) => ({ ...prev, [id]: v }));
@@ -35,10 +37,12 @@ export function IntakeForm({
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
+    setSaveError(null);
     try {
       const formData = new FormData();
       for (const section of INTAKE_SECTIONS) {
         for (const field of section.fields) {
+          if (field.type === "note") continue; // asks nothing, stores nothing
           if (!isFieldVisible(field, values)) {
             if (field.type === "multi") continue; // absent = cleared server-side
             formData.set(field.id, "");
@@ -54,7 +58,21 @@ export function IntakeForm({
         }
       }
       const result = await saveIntake(projectId, formData);
-      setSavedAt(result.savedAt);
+      if (isFailure(result)) {
+        // Failure is a designed state: what happened, is their work safe,
+        // what to do now, and a reference they can quote (§24.3, §25).
+        setSaveError({ message: result.message, ref: result.ref });
+      } else {
+        setSavedAt(result.savedAt);
+      }
+    } catch (error) {
+      // The action itself never reached us (offline, deploy mid-request).
+      console.error("saveIntake transport", error);
+      setSaveError({
+        message:
+          "Couldn't reach the server — your answers are still on screen. Check your connection and try again.",
+        ref: "OFFLINE",
+      });
     } finally {
       setSaving(false);
     }
@@ -86,11 +104,26 @@ export function IntakeForm({
         </span>
         <span style={{ display: "flex", gap: "0.8rem", alignItems: "center" }}>
           {/* One unambiguous status region — never a silent second (SPEC §9). */}
-          <span role="status" aria-live="polite" className="saved">
-            {saving ? "Saving…" : savedAt ? "All changes stored" : ""}
+          <span
+            role="status"
+            aria-live="polite"
+            className={saveError ? "save-failed" : "saved"}
+          >
+            {saving ? (
+              "Saving…"
+            ) : saveError ? (
+              <>
+                {saveError.message}{" "}
+                <span className="err-ref">Reference {saveError.ref}</span>
+              </>
+            ) : savedAt ? (
+              "All changes stored"
+            ) : (
+              ""
+            )}
           </span>
           <button className="btn" type="submit" disabled={saving}>
-            {saving ? "Saving…" : "Save intake"}
+            {saving ? "Saving…" : saveError ? "Try again" : "Save intake"}
           </button>
         </span>
       </div>
@@ -107,6 +140,16 @@ function Field({
   values: IntakeValues;
   set: (id: string, v: string | string[]) => void;
 }) {
+  if (field.type === "note") {
+    return (
+      <div className="note" role="note">
+        <p className="note-title">
+          <span aria-hidden="true">✓</span> {field.label}
+        </p>
+        <p className="note-body">{field.body}</p>
+      </div>
+    );
+  }
   const body = <FieldControl field={field} values={values} set={set} />;
   // A checkbox group has no single control to point at: it is named by an
   // element id via aria-labelledby, not by <label for>. Without this the

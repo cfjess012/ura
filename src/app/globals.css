@@ -295,3 +295,26 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 .start-card { display: flex; gap: 0.6rem; align-items: center; }
 .start-card input { flex: 1; }
 .card-heading { font-size: 0.76rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--neutral-600); margin: 2rem 0 0.7rem; }
+
+/* Reassurance note — answers a worry, never asks a question (§24.1). */
+.note {
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  margin-top: 1rem;
+  animation: reveal 0.28s var(--ease);
+}
+.note-title {
+  margin: 0 0 0.15rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--link);
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+}
+.note-body { margin: 0; font-size: 0.9rem; color: var(--neutral-700); }
+@media (prefers-reduced-motion: reduce) { .note { animation: none; } }
+.save-failed { color: var(--error); font-weight: 700; font-size: 0.9rem; max-width: 46rem; }
+.err-ref { color: var(--neutral-600); font-weight: 600; white-space: nowrap; }

@@ -27,9 +27,9 @@ describe("intake structure (FR-1)", () => {
     // Changing the instrument is a deliberate act: update this list with it.
     const ids = INTAKE_SECTIONS.map((s) => [s.name, s.fields.map((f) => f.id)]);
     expect(ids).toEqual([
-      ["Description", ["projectName", "businessPurpose", "projectDescription", "techNonTech", "usesAi", "aiUseCase"]],
+      ["Description", ["projectName", "businessPurpose", "projectDescription", "techNonTech", "usesAi", "aiUseCase", "usesAiUnsure"]],
       ["Ownership", ["businessOwner", "technicalOwner", "collaborators", "initiativeType", "priorAssessmentRef"]],
-      ["Categorization", ["businessUnit", "otherUnits", "targetGoLive", "vendorNames", "coupaOnboarded"]],
+      ["Categorization", ["businessUnit", "otherUnits", "targetGoLive", "vendorNames", "coupaOnboarded", "coupaUnsure"]],
       ["Compliance & Data", ["dataClassification", "dataElements"]],
     ]);
   });
@@ -52,7 +52,7 @@ describe("intake structure (FR-1)", () => {
   });
 
   it("every conditional field carries a plain-language reveal reason (NFR-9/§9)", () => {
-    for (const f of ALL_FIELDS.filter((f) => f.conditional)) {
+    for (const f of ALL_FIELDS.filter((f) => f.conditional && f.type !== "note")) {
       expect(f.revealNote, f.id).toBeTruthy();
       expect(f.revealNote).not.toMatch(/C-\d/); // no instrument codes in user-facing text
     }
@@ -65,11 +65,31 @@ describe("conditional visibility (FR-1)", () => {
     expect(isFieldVisible(ai, {})).toBe(false);
     expect(isFieldVisible(ai, { usesAi: "No" })).toBe(false);
     expect(isFieldVisible(ai, { usesAi: "Yes" })).toBe(true);
-    // "Not sure" still gathers the detail — uncertainty is not a closed door.
-    expect(isFieldVisible(ai, { usesAi: "I'm not sure" })).toBe(true);
     const prior = byId("priorAssessmentRef");
     expect(isFieldVisible(prior, { initiativeType: "Brand new" })).toBe(false);
     expect(isFieldVisible(prior, { initiativeType: "A vendor renewal" })).toBe(true);
+  });
+
+  it("never re-asks what the person just said they don't know (§24.1)", () => {
+    // "I'm not sure" must NOT demand a description of the thing they don't
+    // know. It shows a reassurance instead, and the system routes it.
+    const detail = byId("aiUseCase");
+    const reassurance = byId("usesAiUnsure");
+    expect(isFieldVisible(detail, { usesAi: "I'm not sure" })).toBe(false);
+    expect(isFieldVisible(reassurance, { usesAi: "I'm not sure" })).toBe(true);
+    expect(isFieldVisible(reassurance, { usesAi: "Yes" })).toBe(false);
+    expect(reassurance.type).toBe("note");
+    expect(reassurance.body).toMatch(/Risk Assessor will confirm/);
+    // Same courtesy on procurement.
+    expect(isFieldVisible(byId("coupaUnsure"), { coupaOnboarded: "I'm not sure" })).toBe(true);
+  });
+
+  it("notes ask nothing: no required notes, and every note has a body (§24.1)", () => {
+    for (const f of ALL_FIELDS.filter((f) => f.type === "note")) {
+      expect(f.required, f.id).toBeUndefined();
+      expect(f.body, f.id).toBeTruthy();
+      expect(f.options, f.id).toBeUndefined();
+    }
   });
 
   it("hasValue conditions need a non-blank trigger", () => {
