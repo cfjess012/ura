@@ -525,3 +525,9 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 .persona-desc { display: block; font-size: 0.86rem; color: var(--neutral-600); margin-top: 0.15rem; }
 .persona-arrow { color: var(--neutral-500); font-size: 1.1rem; }
 .persona-card:hover .persona-arrow { color: var(--brand); }
+.appbar-leave {
+  font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+  background: none; border: 0; color: #cfe0f0; padding: 0.3rem 0;
+  border-bottom: 1px solid transparent;
+}
+.appbar-leave:hover { color: var(--neutral-0); border-bottom-color: var(--accent); }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { currentPerson } from "@/lib/current-person";
 import { canAdminister } from "@/lib/people";
 import { peopleStore } from "@/lib/repo";
+import { switchUser } from "@/app/actions";
 import { PersonSwitcher } from "../person-switcher";
 
 /**
@@ -24,6 +25,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               </Link>
             )}
             <PersonSwitcher people={people} current={current} />
+            {/* The pilot equivalent of signing out: back to the front door. */}
+            <form action={switchUser}>
+              <button type="submit" className="appbar-leave">
+                Switch user
+              </button>
+            </form>
           </span>
         </div>
       </header>

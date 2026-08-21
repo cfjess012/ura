@@ -1,0 +1,12 @@
+import { chromium } from "@playwright/test";
+const b = await chromium.launch();
+const c = await b.newContext();
+const p = await c.newPage();
+p.setDefaultTimeout(10000);
+await p.goto("http://localhost:3100/");
+await p.getByRole("button", { name: /Priya Sharma/ }).click();
+await p.waitForLoadState("networkidle");
+console.log("URL after choose:", p.url());
+console.log((await p.locator("body").innerText()).slice(0, 2500));
+await p.screenshot({ path: "/tmp/v-projects.png", fullPage: true });
+await b.close();

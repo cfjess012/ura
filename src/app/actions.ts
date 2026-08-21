@@ -145,6 +145,17 @@ export async function switchPerson(formData: FormData): Promise<void> {
   revalidatePath("/", "layout");
 }
 
+/**
+ * Leave the product and return to the front door — the pilot equivalent of
+ * signing out. Clears the chosen persona so the next person starts where
+ * the story starts.
+ */
+export async function switchUser(): Promise<void> {
+  const jar = await cookies();
+  jar.delete(PERSON_COOKIE);
+  redirect("/");
+}
+
 /** Choosing a persona on the front door, then into the product. */
 export async function choosePerson(formData: FormData): Promise<void> {
   const id = String(formData.get("personId") ?? "");

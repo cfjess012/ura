@@ -23,7 +23,9 @@ test("choosing a person switches immediately — no second click", async ({ page
   await page.getByLabel(/Working as/).selectOption({ label: "Noah Kahan · Risk Assessor" });
   // No further interaction: the interface must respond to the action taken.
   await expect(page.locator(".persona-role")).toHaveText("Risk Assessor");
-  await expect(page.getByRole("button", { name: "Switch" })).toHaveCount(0);
+  // No confirming button beside the chooser. ("Switch user" is a different
+  // control — it leaves the product entirely — so match exactly.)
+  await expect(page.getByRole("button", { name: "Switch", exact: true })).toHaveCount(0);
 });
 
 test("switching persona changes role, navigation, and what is permitted", async ({ page }) => {
@@ -60,6 +62,21 @@ test("switching persona changes role, navigation, and what is permitted", async 
   await page.getByLabel(/Working as/).selectOption({ label: "Noah Kahan · Risk Assessor" });
   await expect(page.locator(".persona-role")).toHaveText("Risk Assessor");
   await expect(page.getByRole("link", { name: "Agents" })).toBeHidden();
+});
+
+test("Switch user leaves the product and returns to the front door", async ({ page, context }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Tom Holland/ }).click();
+  await expect(page).toHaveURL(/\/projects$/);
+  await expect(page.locator(".persona-role")).toHaveText("Administrator");
+
+  await page.getByRole("button", { name: "Switch user" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { name: /One front door/ })).toBeVisible();
+
+  // The persona is genuinely cleared, not merely navigated away from.
+  const cookie = (await context.cookies()).find((c) => c.name === "ura_person");
+  expect(cookie?.value ?? "").toBe("");
 });
 
 test("an answer records who gave it", async ({ page }) => {
