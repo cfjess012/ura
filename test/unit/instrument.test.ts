@@ -13,6 +13,7 @@ import {
   prefillFor,
   unansweredCount,
 } from "../../src/lib/instrument";
+import { litPaths, litPathsFor, assessmentLookup, matchesAll } from "../../src/lib/engine";
 
 describe("the instrument is valid seed data (NFR-8)", () => {
   it("has eleven categories, each with one gate and a unique question id", () => {
@@ -182,5 +183,97 @@ describe("the progress headline tells the truth (F6)", () => {
 
   it("invites a start rather than reporting zero", () => {
     expect(gateProgressHeadline(0, 11)).toBe("Let's map the risk areas.");
+  });
+});
+
+describe("the engine lights paths, and says why (S3, FR-4/FR-5)", () => {
+  const gatesFor = (intake: Record<string, string | string[]>) =>
+    gateStates({}, intake);
+
+  it("a chosen path is lit as chosen, with no reason attached", () => {
+    const intake = { thirdPartyInvolved: "Yes", usesAi: "No", dataClassification: "Internal" };
+    const lit = litPaths(CATEGORIES, gatesFor(intake), { "third-party": ["TPR_LA"] }, intake);
+    const chosen = lit.find((p) => p.id === "TPR_LA")!;
+    expect(chosen.source).toBe("chosen");
+    expect(chosen.because).toBeNull();
+  });
+
+  it("derives a path from evidence already given, and carries the sentence", () => {
+    // Supplier concentration is assessed for every vendor; nobody is asked.
+    const intake = { thirdPartyInvolved: "Yes", usesAi: "No", dataClassification: "Internal" };
+    const lit = litPaths(CATEGORIES, gatesFor(intake), { "third-party": [] }, intake);
+    const derived = lit.find((p) => p.id === "TPR_CONC")!;
+    expect(derived.source).toBe("derived");
+    expect(derived.because).toMatch(/every supplier/);
+  });
+
+  it("crosses domains: personal information plus AI lights the PI-in-AI path", () => {
+    // The demo moment. Two answers in two different areas combine, and
+    // nobody had to connect them.
+    const intake = { thirdPartyInvolved: "No", usesAi: "Yes", dataClassification: "Confidential" };
+    const lit = litPaths(CATEGORIES, gatesFor(intake), { "data-privacy": ["PRIV"] }, intake);
+    const piAi = lit.find((p) => p.id === "PI_AI");
+    expect(piAi?.source).toBe("derived");
+    expect(piAi?.because).toMatch(/personal information .* uses AI/);
+  });
+
+  it("does not light PI-in-AI when either half is missing", () => {
+    const noAi = { thirdPartyInvolved: "No", usesAi: "No", dataClassification: "Confidential" };
+    expect(
+      litPaths(CATEGORIES, gatesFor(noAi), { "data-privacy": ["PRIV"] }, noAi)
+        .find((p) => p.id === "PI_AI"),
+    ).toBeUndefined();
+    const noPi = { thirdPartyInvolved: "No", usesAi: "Yes", dataClassification: "Confidential" };
+    expect(
+      litPaths(CATEGORIES, gatesFor(noPi), { "data-privacy": [] }, noPi)
+        .find((p) => p.id === "PI_AI"),
+    ).toBeUndefined();
+  });
+
+  it("lights nothing in an area whose gate is closed", () => {
+    const intake = { thirdPartyInvolved: "No", usesAi: "No", dataClassification: "Public" };
+    const lit = litPaths(CATEGORIES, gatesFor(intake), { "third-party": ["TPR_LA"] }, intake);
+    // The selection exists but the area is closed, so nothing is asked.
+    expect(lit.filter((p) => p.categoryKey === "third-party")).toEqual([]);
+  });
+
+  it("re-derives when an upstream answer changes — nothing is stored", () => {
+    const selections = { "data-privacy": ["PRIV"] };
+    const withAi = { thirdPartyInvolved: "No", usesAi: "Yes", dataClassification: "Confidential" };
+    const withoutAi = { ...withAi, usesAi: "No" };
+    const before = litPaths(CATEGORIES, gatesFor(withAi), selections, withAi);
+    const after = litPaths(CATEGORIES, gatesFor(withoutAi), selections, withoutAi);
+    expect(before.some((p) => p.id === "PI_AI")).toBe(true);
+    expect(after.some((p) => p.id === "PI_AI")).toBe(false);
+    expect(after.some((p) => p.categoryKey === "ai")).toBe(false);
+  });
+});
+
+describe("a gate can answer another gate (audit C-5)", () => {
+  it("a system change answers the security gate, with its reason", () => {
+    const intake = { initiativeType: "Moving a proof of concept into production" };
+    const states = gateStates({}, intake);
+    const arch = states.find((s) => s.category.key === "solution-architecture")!;
+    const sec = states.find((s) => s.category.key === "security-resilience")!;
+    expect(arch.answer).toBe("Yes");
+    expect(sec.answer).toBe("Yes");
+    expect(sec.fromIntake).toBe(true);
+    expect(sec.because).toMatch(/system is being built or changed/);
+  });
+
+  it("stays silent when the gate it reads has no answer", () => {
+    const states = gateStates({}, {});
+    expect(states.find((s) => s.category.key === "security-resilience")!.answer).toBeNull();
+  });
+
+  it("a person's own answer is never overwritten by a derived one", () => {
+    const intake = { initiativeType: "Moving a proof of concept into production" };
+    const states = gateStates(
+      { "gate.security_resilience": { value: "No", source: "person", confirmed: true } },
+      intake,
+    );
+    const sec = states.find((s) => s.category.key === "security-resilience")!;
+    expect(sec.answer).toBe("No");
+    expect(sec.fromIntake).toBe(false);
   });
 });

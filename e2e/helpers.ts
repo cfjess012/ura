@@ -44,3 +44,43 @@ export async function startAssessment(page: Page, name: string): Promise<string>
   await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
   return `/projects/${page.url().split("/projects/")[1]!.split("/")[0]!}`;
 }
+
+/**
+ * Walk whatever gates are still open, confirming any answer intake already
+ * pre-filled rather than overwriting it, and land on the paths screen.
+ *
+ * Deliberately not "click Yes eleven times": that would flip pre-filled
+ * answers and quietly test a different assessment from the one intake set
+ * up. Each step waits for the URL to change so the walk never races itself.
+ */
+export async function answerRemainingGates(page: Page, base: string): Promise<void> {
+  // Each step starts from the paths screen, which redirects to the first
+  // gate still unanswered. That makes every step independent: no state is
+  // carried between iterations, so nothing can race the redirect. Reading
+  // the URL mid-redirect and clicking the outgoing document was exactly the
+  // flake this replaces.
+  for (let step = 0; step < 14; step++) {
+    await page.goto(`${base}/assess/paths`);
+    await page.waitForLoadState("networkidle");
+    if (page.url().includes("/assess/paths")) {
+      await expect(page.getByRole("heading", { name: "Narrow it down" })).toBeVisible();
+      return;
+    }
+    const yes = page.getByRole("button", { name: /Yes, it applies/ });
+    const no = page.getByRole("button", { name: /No, it doesn't/ });
+    await expect(yes).toBeVisible();
+    // Confirm whatever intake already established; only decide where
+    // nothing is decided. Clicking Yes everywhere would quietly test a
+    // different assessment from the one intake set up.
+    const pressed =
+      (await yes.getAttribute("aria-pressed")) === "true"
+        ? yes
+        : (await no.getAttribute("aria-pressed")) === "true"
+          ? no
+          : yes;
+    const here = page.url();
+    await pressed.click();
+    await page.waitForURL((url) => url.href !== here, { timeout: 15000 });
+  }
+  throw new Error("gates did not finish within 14 steps — is a gate not advancing?");
+}

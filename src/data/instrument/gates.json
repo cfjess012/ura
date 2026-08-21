@@ -1,6 +1,6 @@
 {
   "slug": "tier1-gates",
-  "version": "2026-08-21.4",
+  "version": "2026-08-21.5",
   "categories": [
     {
       "key": "third-party",
@@ -49,6 +49,53 @@
             ]
           },
           "because": "you told us this is a vendor renewal"
+        }
+      ],
+      "pathQuestion": {
+        "questionId": "path.third-party",
+        "text": "Which third-party exposure types apply?",
+        "help": "Tick everything that's true. Each one opens a specific line of questions later — leaving one out means we won't ask about it.",
+        "options": [
+          {
+            "id": "TPR_LA",
+            "label": "Logical access to enterprise environments",
+            "help": "They can sign in to our systems, or we give them accounts."
+          },
+          {
+            "id": "TPR_DH",
+            "label": "Handles enterprise data (receive / process / store)",
+            "help": "Our data goes to them, or sits in their systems."
+          },
+          {
+            "id": "TPR_OPS",
+            "label": "Performs outsourced operations on our behalf",
+            "help": "They do work we would otherwise do ourselves."
+          },
+          {
+            "id": "TPR_4P",
+            "label": "Relies on subcontractors (fourth parties)",
+            "help": "For an AI product this includes the model provider behind it — often a different company entirely."
+          },
+          {
+            "id": "TPR_PHY",
+            "label": "Physical access to our sites",
+            "help": "Their people come on site."
+          }
+        ]
+      },
+      "derivedPaths": [
+        {
+          "id": "TPR_CONC",
+          "name": "Supplier Concentration / Substitutability",
+          "when": [
+            {
+              "field": "gate.third-party",
+              "equalsAny": [
+                "Yes"
+              ]
+            }
+          ],
+          "because": "every supplier gets this one — how hard would they be to replace?"
         }
       ]
     },
@@ -110,7 +157,40 @@
           },
           "because": "you weren't sure at intake, so we're treating it as in scope until a reviewer confirms"
         }
-      ]
+      ],
+      "pathQuestion": {
+        "questionId": "path.ai",
+        "text": "Which AI usage patterns apply?",
+        "help": "How the AI is actually used matters more than which model it is. Tick everything that happens, including things the vendor's product does automatically.",
+        "options": [
+          {
+            "id": "AI_DEC",
+            "label": "Outputs influence decisions about individuals",
+            "help": "Anything that shapes what happens to a person — who gets hours, who gets flagged, who gets approved."
+          },
+          {
+            "id": "AI_CONT",
+            "label": "Generates content or communications",
+            "help": "Drafts messages, summaries or documents that people read."
+          },
+          {
+            "id": "AI_RAG",
+            "label": "Retrieves enterprise data to answer (RAG)",
+            "help": "It looks things up in our documents or databases before answering."
+          },
+          {
+            "id": "AI_RET",
+            "label": "Stores or reuses prompts and outputs",
+            "help": "Including any reuse for training or improving models — by the vendor or the model provider behind them."
+          },
+          {
+            "id": "AI_AGENT",
+            "label": "Executes multi-step workflows on its own",
+            "help": "It can take a sequence of actions without someone confirming each step."
+          }
+        ]
+      },
+      "derivedPaths": []
     },
     {
       "key": "data-privacy",
@@ -142,6 +222,54 @@
           },
           "because": "you told us the only data involved is already public"
         }
+      ],
+      "pathQuestion": {
+        "questionId": "path.data-privacy",
+        "text": "Which data situations apply?",
+        "help": "About the data itself — what kind it is and where it goes.",
+        "options": [
+          {
+            "id": "PRIV",
+            "label": "Personal information is involved",
+            "help": "Anything identifying a person: employees, customers, applicants."
+          },
+          {
+            "id": "REGDATA",
+            "label": "Regulated data (financial, health, payment)",
+            "help": "Data with rules attached beyond our own policy."
+          },
+          {
+            "id": "DATA_EXT",
+            "label": "Non-public data is shared outside the company",
+            "help": "Leaves our control, even to a supplier."
+          },
+          {
+            "id": "DATA_XB",
+            "label": "Data crosses a border",
+            "help": "Stored, processed or accessed from another country — including a supplier's offshore support team."
+          }
+        ]
+      },
+      "derivedPaths": [
+        {
+          "id": "PI_AI",
+          "name": "Personal Information in AI / GenAI Use",
+          "when": [
+            {
+              "field": "paths",
+              "includesAny": [
+                "PRIV"
+              ]
+            },
+            {
+              "field": "gate.ai",
+              "equalsAny": [
+                "Yes"
+              ]
+            }
+          ],
+          "because": "you told us personal information is involved and that this uses AI — so we need to know how the two meet"
+        }
       ]
     },
     {
@@ -169,7 +297,55 @@
       "questionId": "gate.security_resilience",
       "text": "Does the activity introduce or change any technology component, integration, connectivity, or identity and access pattern?",
       "help": "If you're building, buying, or changing a system, this is usually Yes as well — it asks specifically about the connections and access that change comes with: new ways in from outside, new links between systems, or changes to who can sign in.",
-      "prefill": []
+      "prefill": [
+        {
+          "answer": "Yes",
+          "when": {
+            "field": "gate.solution-architecture",
+            "equalsAny": [
+              "Yes"
+            ]
+          },
+          "because": "you told us a system is being built or changed — that changes the connections and access that come with it"
+        }
+      ],
+      "pathQuestion": {
+        "questionId": "path.security-resilience",
+        "text": "Which security surfaces change?",
+        "help": "What the activity adds or alters in the way systems are reached, connected, and administered.",
+        "options": [
+          {
+            "id": "SR_EXT",
+            "label": "Internet-facing or externally reachable",
+            "help": "Anyone outside our network can reach some part of it — most SaaS products qualify."
+          },
+          {
+            "id": "SR_PAM",
+            "label": "New privileged or administrative access",
+            "help": "Someone gains admin rights they didn't have."
+          },
+          {
+            "id": "SR_INT",
+            "label": "New integrations or data flows",
+            "help": "It connects to other systems, in either direction."
+          }
+        ]
+      },
+      "derivedPaths": [
+        {
+          "id": "SR_TP",
+          "name": "Third-Party Security Exposure",
+          "when": [
+            {
+              "field": "gate.third-party",
+              "equalsAny": [
+                "Yes"
+              ]
+            }
+          ],
+          "because": "a company outside ours is involved, so their security posture is part of ours"
+        }
+      ]
     },
     {
       "key": "governance",

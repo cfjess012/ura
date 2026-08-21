@@ -7,6 +7,7 @@ import {
   gateProgressHeadline,
   unansweredCount,
 } from "@/lib/instrument";
+import { litPaths } from "@/lib/engine";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
@@ -35,7 +36,8 @@ export default async function GatesCompletePage({
   // is never the enforcement point (FR-28, §2).
   const incomplete = firstIncompleteSection(intake);
   if (incomplete) redirect(`/projects/${id}/intake/${incomplete}?needed=1`);
-  const states = gateStates(await answerStore().current(id), intake);
+  const stored = await answerStore().current(id);
+  const states = gateStates(stored, intake);
   const remaining = unansweredCount(states);
   const applies = states.filter((s) => s.answer === "Yes");
   const closed = states.filter((s) => s.answer === "No");
@@ -43,6 +45,21 @@ export default async function GatesCompletePage({
   // an area nobody was asked about as "answered" would flatter the number.
   const asked = askableCategories();
   const settled = states.filter((s) => s.settled);
+  // Recomputed here, never read from a stored "derived" column (NFR-3).
+  const selections: Record<string, string[]> = {};
+  for (const category of CATEGORIES) {
+    const value = category.pathQuestion
+      ? stored[category.pathQuestion.questionId]?.value
+      : undefined;
+    if (Array.isArray(value)) selections[category.key] = value;
+  }
+  const lit = litPaths(CATEGORIES, states, selections, intake);
+  const pathsPending = states.some(
+    (s) =>
+      s.answer === "Yes" &&
+      s.category.pathQuestion &&
+      selections[s.category.key] === undefined,
+  );
 
   return (
     <main>
@@ -70,6 +87,40 @@ export default async function GatesCompletePage({
               ? `${applies.length} of ${CATEGORIES.length} areas apply to this activity. The rest are closed — you won't be asked about them again.${settled.length > 0 ? ` We didn't ask about ${settled.length === 1 ? "one of them" : `${settled.length} of them`} at all.` : ""}`
               : `Answer the remaining ${remaining} in the list, and we'll know which areas to ask about.`}
           </p>
+
+          {lit.length > 0 && (
+            <div className="card">
+              <h2>What we&rsquo;ll ask about</h2>
+              <ul className="summary-list">
+                {lit.map((path) => (
+                  <li key={`${path.categoryKey}.${path.id}`}>
+                    <strong>{path.name}</strong>
+                    {path.source === "derived" && path.because && (
+                      <span className="meta"> — added because {path.because}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="help" style={{ marginTop: ".6rem" }}>
+                {lit.filter((p) => p.source === "derived").length} of these were
+                worked out from answers you already gave. The detailed questions
+                for each arrive in the next phase.
+              </p>
+            </div>
+          )}
+
+          {pathsPending && (
+            <div className="card card-upcoming">
+              <h2>Still to narrow down</h2>
+              <p>
+                Some open areas haven&rsquo;t been narrowed yet, so we don&rsquo;t
+                know which parts of them to ask about.
+              </p>
+              <Link className="btn" href={`/projects/${id}/assess/paths`}>
+                Narrow them down →
+              </Link>
+            </div>
+          )}
 
           <div className="card">
             <h2>Applies to this activity</h2>

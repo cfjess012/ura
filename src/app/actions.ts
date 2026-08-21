@@ -18,7 +18,7 @@ import {
   projectNameOrNull,
   type SubmittedEntries,
 } from "@/lib/intake-values";
-import { INSTRUMENT, prefillFor } from "@/lib/instrument";
+import { CATEGORIES, INSTRUMENT, prefillFor } from "@/lib/instrument";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { editableProject } from "@/lib/project-access";
 import { answerStore, projectStore } from "@/lib/repo";
@@ -146,6 +146,66 @@ export async function answerGate(
       "answerGate",
       error,
       "That answer wasn't recorded, so nothing changed. Try again in a moment.",
+    );
+  }
+}
+
+/**
+ * Record which threads apply inside a category (FR-4). The value is a list,
+ * stored as JSON so it keeps its shape — and insert-only like every other
+ * answer, so changing your mind writes a new row rather than erasing the
+ * old one (NFR-1).
+ *
+ * An empty selection is a real answer: "this area applies, but none of
+ * these specific threads do." It must be storable, or the person is stuck
+ * on a screen with no honest way forward.
+ */
+export async function answerPaths(
+  projectId: string,
+  categoryKey: string,
+  selected: string[],
+): Promise<Result<{ recorded: true }>> {
+  try {
+    const allowed = await editableProject(projectId, "answerPaths");
+    if (isFailure(allowed)) return allowed;
+    const { person } = allowed;
+    if (!canAnswer(person.role)) {
+      return failure(
+        "answerPaths",
+        new NotPermitted("answer assessment questions", person.role),
+        "This role doesn't answer assessment questions, so nothing was recorded. Switch to the person who owns this assessment.",
+        { retryable: false },
+      );
+    }
+    const category = CATEGORIES.find((c) => c.key === categoryKey);
+    if (!category?.pathQuestion) {
+      return failure(
+        "answerPaths",
+        new Error(`no path question for category ${categoryKey}`),
+        "That part of the assessment no longer exists. Your other answers are safe.",
+        { retryable: false },
+      );
+    }
+    // Only options the instrument actually offers — a submitted value the
+    // instrument does not know is not an answer, it is noise.
+    const known = new Set(category.pathQuestion.options.map((o) => o.id));
+    const answers = answerStore();
+    await answers.record({
+      projectId,
+      questionId: category.pathQuestion.questionId,
+      value: selected.filter((id) => known.has(id)),
+      source: "person",
+      confirmed: true,
+      instrumentVersionId: await answers.activeVersionId(INSTRUMENT.slug),
+      answeredBy: person.id,
+    });
+    revalidatePath(`/projects/${projectId}/assess`);
+    return { ok: true as const, recorded: true as const };
+  } catch (error) {
+    return failure(
+      "answerPaths",
+      error,
+      "Those selections weren't recorded, so nothing changed. Try again in a moment.",
     );
   }
 }

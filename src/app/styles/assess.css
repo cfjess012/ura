@@ -98,3 +98,15 @@
    answered it. */
 .rail-item.settled .rail-num { background: var(--surface-3); color: var(--navy); }
 .rail-item.settled .rail-name { color: var(--neutral-700); }
+
+/* ---------- Tier 1: paths (S3) ---------- */
+.patharea h3 { margin: 0 0 .35rem; font-size: 1.05rem; color: var(--navy); }
+.patharea .gate-question { font-size: .98rem; margin-bottom: .3rem; }
+.pathopts { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: .3rem 1rem; }
+.pathopt { align-items: flex-start !important; padding: .45rem .55rem !important; }
+.pathopt input { margin-top: .28rem; }
+.pathopt-label { display: block; font-weight: 600; }
+.pathopt-help { display: block; font-size: .81rem; color: var(--neutral-600); margin-top: .05rem; }
+/* A path the engine lit rather than asked: same treatment as an intake
+   pre-fill, because it is the same promise — we already knew this. */
+.prefill.derived { margin-top: .7rem; }

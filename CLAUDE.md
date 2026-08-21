@@ -18,7 +18,9 @@ implementation, stop on ambiguity.
 - S3.5 Destinations — SPEC'd not built (§27): ServiceNow AI Use Case Record.
 - OPEN WITH OWNER: `db:reset` held until demo-data day — raise at each phase
   boundary. Audit C-5/6/7/10 open (`audits/instrument-2026-08-21.md`).
-- S3..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
+- S3 Paths & engine — DONE (derived state is COMPUTED, never stored; a
+  derived path always carries its reason; parts shelf declined on evidence)
+- S4..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
 
 Instrument data lives in `src/data/instrument/*.json`, imported at build time
 (never from disk at runtime). After editing, `pnpm instrument:seed` activates

@@ -1,6 +1,6 @@
 ---
 audit: instrument-coherence
-spec-version: 2026-08-21.7
+spec-version: 2026-08-21.8
 instrument: tier1-gates@2026-08-21.2 + intake (src/lib/intake.ts)
 run-on: 2026-08-21
 run-by: Claude, following .claude/skills/instrument-coherence
@@ -18,7 +18,7 @@ proposal for the owner; changing what is asked is a governance event (§8).
 **Owner decisions, same day** — C-2 accepted (G-35) and C-8 accepted for
 Governance only (G-36), both shipped in `tier1-gates@2026-08-21.3` along
 with the closing pre-fill rules from C-1 and the uncertainty carry-forward
-from C-9. Status of each finding is marked below. C-3 followed the same day (G-38). C-5, C-6, C-7 and C-10 remain open.
+from C-9. Status of each finding is marked below. C-3 followed the same day (G-38), and C-5 closed in S3 (G-40). C-6, C-7 and C-10 remain open.
 
 Headline: the instrument is structurally sound — every gate honours the
 Tier-1 contract, every question is reachable, and no condition is
@@ -117,7 +117,7 @@ the AI question already has.
 
 ## C-5 (duplication) · Security & Resilience is answered by Solution Architecture
 
-**Status: open, and the proposed fix does not work as written.** Pre-fill rules read *intake* answers only; they cannot read another gate's answer. Gate-to-gate derivation is the condition engine's job and belongs in S3.
+**Status: closed in S3 (G-40).** The engine now folds intake, gate answers and path selections into one namespace, so a gate can pre-fill from another gate: Solution Architecture = Yes answers Security & Resilience, with its reason on screen. Two passes, one level deep, validator-enforced.
 
 
 Gate 7's own help says: *"If you're building, buying, or changing a system,

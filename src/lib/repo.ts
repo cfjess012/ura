@@ -38,8 +38,18 @@ export type LastIntakeChange = { byName: string | null; at: Date };
 
 export type ProjectRecord = typeof schema.projects.$inferSelect;
 
-/** The newest answer per question — answers are insert-only (NFR-1). */
-export type CurrentAnswer = { value: string; source: string; confirmed: boolean };
+/**
+ * The newest answer per question — answers are insert-only (NFR-1).
+ *
+ * `value` is a string for a single answer and a list for a multi-select
+ * (Tier-1 path selections). Both are stored as JSON, so a list keeps its
+ * shape instead of being flattened into text nobody can split reliably.
+ */
+export type CurrentAnswer = {
+  value: string | string[];
+  source: string;
+  confirmed: boolean;
+};
 
 export interface PeopleStore {
   list(): Promise<Person[]>;
@@ -53,7 +63,7 @@ export interface AnswerStore {
   record(input: {
     projectId: string;
     questionId: string;
-    value: string;
+    value: string | string[];
     source: "person" | "intake";
     confirmed: boolean;
     instrumentVersionId: string;
@@ -205,7 +215,7 @@ export function postgresAnswerStore(): AnswerStore {
         // Rows arrive newest-first; the first one seen wins.
         if (latest[row.questionId]) continue;
         latest[row.questionId] = {
-          value: String(row.value),
+          value: Array.isArray(row.value) ? (row.value as string[]) : String(row.value),
           source: row.source,
           confirmed: row.confirmed,
         };

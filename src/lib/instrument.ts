@@ -16,6 +16,31 @@ export type GatePrefill = {
   because: string;
 };
 
+/** One selectable thread inside a category (Tier-1 paths, SPEC §3.2). */
+export type PathOption = { id: string; label: string; help?: string };
+
+/** The multi-select that tailors a category once its gate says Yes. */
+export type PathQuestion = {
+  questionId: string;
+  text: string;
+  help: string;
+  options: PathOption[];
+};
+
+/**
+ * A path the engine lights from evidence already given, rather than asking.
+ * `when` is a list because these are conjunctions — "personal information
+ * IS involved AND this uses AI" — and every one carries the sentence shown
+ * to the person, because a path that appears without a reason is the kind
+ * of magic people stop trusting (§24.5).
+ */
+export type DerivedPath = {
+  id: string;
+  name: string;
+  when: Condition[];
+  because: string;
+};
+
 export type Category = {
   key: string;
   name: string;
@@ -34,6 +59,8 @@ export type Category = {
   alwaysApplies?: boolean;
   /** Why it always applies, in the words shown to the person. */
   because?: string;
+  pathQuestion?: PathQuestion;
+  derivedPaths?: DerivedPath[];
 };
 
 export type Instrument = {
@@ -69,7 +96,36 @@ function validate(candidate: Instrument): Instrument {
       problems.push(`${where}: alwaysApplies needs a plain-language reason`);
     if (category.alwaysApplies && (category.prefill ?? []).length > 0)
       problems.push(`${where}: alwaysApplies cannot also carry prefill rules`);
+    const pathIds = new Set<string>();
+    for (const option of category.pathQuestion?.options ?? []) {
+      if (!option.id?.trim() || !option.label?.trim())
+        problems.push(`${where}: path option needs an id and a label`);
+      if (pathIds.has(option.id))
+        problems.push(`${where}: duplicate path option ${option.id}`);
+      pathIds.add(option.id);
+    }
+    if (category.pathQuestion && !category.pathQuestion.text?.trim())
+      problems.push(`${where}: path question needs text`);
+    for (const derived of category.derivedPaths ?? []) {
+      if (!derived.because?.trim())
+        problems.push(`${where}: derived path ${derived.id} needs a plain-language reason`);
+      if (!derived.when?.length)
+        problems.push(`${where}: derived path ${derived.id} needs at least one condition`);
+      // One level only: a derivation may read chosen selections, never
+      // another derivation, so there is no order to get wrong (§3.2).
+      for (const condition of derived.when ?? []) {
+        if (condition.field === `path.${category.key}` && "includesAny" in condition) {
+          const self = condition.includesAny.filter((p) => !pathIds.has(p));
+          if (self.length > 0)
+            problems.push(
+              `${where}: derived path ${derived.id} depends on ${self.join(", ")}, which is not a chosen option — derivations may not chain`,
+            );
+        }
+      }
+    }
     for (const rule of category.prefill ?? []) {
+      if (rule.when?.field === `gate.${category.key}`)
+        problems.push(`${where}: a gate cannot pre-fill from its own answer`);
       if (rule.answer !== "Yes" && rule.answer !== "No")
         problems.push(`${where}: prefill answer must be Yes or No`);
       if (!rule.because?.trim())
@@ -123,12 +179,22 @@ export type GateState = {
   settled: boolean;
 };
 
-/** Fold stored answers and intake pre-fill into one state per category. */
+/**
+ * Fold stored answers and pre-fill into one state per category.
+ *
+ * Two passes, because a gate may be answered by another gate: "a system is
+ * being built" answers "connections and access change" (audit C-5). The
+ * first pass resolves everything a person or intake settled; the second
+ * lets the remaining gates read those answers. One level only — a gate may
+ * not pre-fill from a gate that was itself pre-filled — so there is no
+ * order to get wrong and no cycle to detect at runtime. The validator
+ * refuses a rule that reads its own gate.
+ */
 export function gateStates(
-  stored: Record<string, { value: string; source: string; confirmed: boolean }>,
+  stored: Record<string, { value: string | string[]; source: string; confirmed: boolean }>,
   intake: AnswerLookup,
 ): GateState[] {
-  return CATEGORIES.map((category) => {
+  const settle = (category: Category, lookup: AnswerLookup): GateState => {
     if (category.alwaysApplies) {
       return {
         category,
@@ -149,12 +215,12 @@ export function gateStates(
         fromIntake: existing.source === "intake" && !existing.confirmed,
         because:
           existing.source === "intake" && !existing.confirmed
-            ? (prefillFor(category, intake)?.because ?? null)
+            ? (prefillFor(category, lookup)?.because ?? null)
             : null,
         settled: false,
       };
     }
-    const prefilled = prefillFor(category, intake);
+    const prefilled = prefillFor(category, lookup);
     return {
       category,
       answer: prefilled?.answer ?? null,
@@ -162,7 +228,18 @@ export function gateStates(
       because: prefilled?.because ?? null,
       settled: false,
     };
-  });
+  };
+
+  // Pass one: what people and intake alone establish.
+  const first = CATEGORIES.map((category) => settle(category, intake));
+  const withGates: AnswerLookup = { ...intake };
+  for (const state of first) {
+    if (state.answer) withGates[`gate.${state.category.key}`] = state.answer;
+  }
+  // Pass two: gates that nothing has answered yet may now read the rest.
+  return first.map((state) =>
+    state.answer === null ? settle(state.category, withGates) : state,
+  );
 }
 
 /** Progress the person can act on (§24.8): categories still unanswered. */

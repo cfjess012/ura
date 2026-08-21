@@ -43,7 +43,9 @@ export default async function GatePage({
   const index = askable.findIndex((c) => c.key === key);
   const next = askable[index + 1];
   const previous = askable[index - 1];
-  const nextHref = next ? `/projects/${id}/assess/${next.key}` : `/projects/${id}/assess/complete`;
+  const nextHref = next
+    ? `/projects/${id}/assess/${next.key}`
+    : `/projects/${id}/assess/paths`;
   const remaining = unansweredCount(states);
 
   return (
