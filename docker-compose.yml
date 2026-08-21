@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ura
+      POSTGRES_PASSWORD: ura
+      POSTGRES_DB: ura
+    ports:
+      - "5433:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+  web:
+    profiles: ["app"]
+    build: .
+    environment:
+      DATABASE_URL: postgres://ura:ura@db:5432/ura
+    ports:
+      - "3100:3000"
+    depends_on:
+      - db
+volumes:
+  dbdata:
