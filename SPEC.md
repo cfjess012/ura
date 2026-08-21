@@ -269,6 +269,7 @@ Composite scoring policy (§14) · framework crosswalks (planned; will anchor to
 - **G-5 (settled):** No runtime instrument authoring; seed-PR governance only (§8).
 - **G-6 (settled):** The agentic layer's contract (§7) is normative now, even while dormant — nothing may be built that would violate it later.
 - **G-7 (settled):** AWS is the deployment target and §6.4's tiered migration is the plan of record. Phase 1 builds AWS-ready by construction (the five firm obligations in §6.4); cloud execution itself is Phase-3 work. The Bedrock model-access request is the standing critical-path item and is owner-owned.
+- **G-17 (settled):** The persistence engine is an open decision under standing assessment (§14.6), not a settled choice — Postgres is Phase 1's implementation behind the store interface, DynamoDB is a live candidate. Store-specific choices must be flagged in slice reviews; the implementer reports with evidence after S9 and before the AWS migration. Recorded 2026-08-21 at the owner's direction.
 - **G-16 (settled):** §26 cloud-native construction rules adopted 2026-08-21 as workspace law (NFR-14 to NFR-17): pure logic separated from executors, state and persistence externalised behind one interface, configuration only through a single validated env module, and three separately-runnable test tiers. The migration guide (§26.7) is a named deliverable before production. Recorded correction: development-time subagents do not migrate; the runtime agents are the Phase-2 features in §7.
 - **G-15 (settled):** §25 error-handling standard adopted 2026-08-21 (NFR-13): expected failures are typed values not exceptions; the user gets a sentence and a quotable reference while the log keeps the detail; every message says what happened, whether their work is safe, and what to do next; input is never lost; error paths are tested.
 - **G-14 (settled):** §24 experience principles adopted 2026-08-21 — each derived from a defect found in this build, audited by the slice-verifier, and binding on every surface. The first two, in the owner's framing: never re-ask what someone said they don't know, and pace the journey rather than presenting a wall.
@@ -286,6 +287,11 @@ Composite scoring policy (§14) · framework crosswalks (planned; will anchor to
 3. **Re-ask policy** — when, if ever, an unanswered asked question resurfaces (matters mainly once the agentic layer returns).
 4. **Help text per audience** — single help string today; requester vs. reviewer variants require a data-model addition.
 5. **History posture at handoff** — keep full git history or squash to a clean initial commit.
+6. **Persistence engine — Postgres or DynamoDB (owner decision, standing assessment).** Postgres is Phase 1's implementation behind the §26.2 interface; DynamoDB is a live candidate for the AWS target. The implementer assesses and reports at two checkpoints — **after S9** (the data model is fully known) and **before the AWS migration** — against these criteria, with evidence rather than preference:
+   - **Invariant enforcement (the decisive one).** §5's invariants are currently enforced by database CHECK constraints, which DynamoDB does not have. Moving to DynamoDB relocates those guarantees into application code, weakening "enforced in the schema, never only in the UI". That is a governance trade, not a technical preference, and would need its own governance entry.
+   - **Access patterns.** Whether reads stay key-shaped (a project by id) or need relational work (queue triage across projects, findings by state, answers joined to instrument versions).
+   - **Operational fit.** DynamoDB: scale-to-zero, no connection ceiling, no RDS Proxy, cheap at pilot volume. Postgres: joins, ad-hoc reviewer queries, multi-row transactions, and pgvector if Phase 2 wants embeddings.
+   - **Migration cost at the decision point**, measured against the store interface as it then stands.
 
 ## 15. Claude Code operating layer
 
@@ -582,6 +588,8 @@ AWS is settled (§6.4, G-7). This section makes it a **construction** rule rathe
 
 **26.2 State is external; persistence is behind one interface.** No feature state lives in process memory, on the local filesystem, or in a hardcoded path. All reads and writes go through the store interface; no route, action, or component touches the driver. *Honest limit:* this makes a store swap **contained**, not free — a different query model still needs a real implementation. What is guaranteed is that only the store module and its wiring change.
 
+**The engine choice is open and under standing assessment (§14.6).** Postgres is the Phase-1 implementation, not a settled destination. Two obligations follow: (a) no slice may adopt a store-specific feature without flagging it in its review as a constraint on the choice; (b) the implementer reports on the choice at the checkpoints in §14.6 with evidence from the data model as it actually exists, not from preference.
+
 **26.3 Configuration only through the environment, read in one place.** No hardcoded secrets, hosts, or connection strings. Env is read in the config module alone, validated at the boundary, and fails with a message naming both the local fix and the AWS source (Secrets Manager / Parameter Store).
 
 **26.4 Lego-block tests.** Three tiers, separately runnable, each a candidate CI step: **unit** (pure logic, mocks everything external, needs nothing but Node), **integration** (real SQL against in-process Postgres, no daemon or local setup), **e2e** (the running app). Tests are grouped by feature domain, never a single tangled runner, and every tier must run inside an isolated CI container with no local terminal setup.
@@ -590,7 +598,7 @@ AWS is settled (§6.4, G-7). This section makes it a **construction** rule rathe
 
 **26.6 Serverless-shaped defaults.** Connection pools stay small because serverless scales instances rather than connections (RDS Proxy fronts the database on AWS); containers build from the repo root; nothing assumes a warm process, local disk, or a long-lived server.
 
-**26.7 The migration guide is a deliverable.** Before production, a step-by-step guide is written plainly enough to be followed without prior AWS knowledge, covering: infrastructure and IAM; how the product's agentic layer (§7) becomes AgentCore runtimes with Gateway/OpenAPI wiring; how features map to Lambda or container tasks; and a checklist for running all three test tiers in the cloud to prove parity with local. **Terminology note:** the `.claude/agents/*.md` subagents are *development-time* tooling and do not migrate; the runtime agents are the Phase-2 product features in §7 and §22.1.
+**26.7 The migration guide is a deliverable.** Before production, a step-by-step guide is written plainly enough to be followed without prior AWS knowledge, covering: infrastructure and IAM; how the product's agentic layer (§7) becomes AgentCore runtimes, wired through AgentCore Gateway using **OpenAPI** schemas (the open REST-description standard, formerly Swagger — unrelated to OpenAI, which this project does not use); how features map to Lambda or container tasks; and a checklist for running all three test tiers in the cloud to prove parity with local. **Terminology note:** the `.claude/agents/*.md` subagents are *development-time* tooling and do not migrate; the runtime agents are the Phase-2 product features in §7 and §22.1.
 
 ---
 

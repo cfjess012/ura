@@ -41,6 +41,11 @@ standard (§23). Critique is owed in both directions (Build Rule 14).
 - **State is external.** No process memory, no local files, no hardcoded
   paths. All reads/writes through `src/lib/repo.ts`; nothing else touches
   the driver.
+- **The store engine is UNDECIDED** (SPEC §14.6): Postgres is today's
+  implementation, DynamoDB is a live candidate. Flag any Postgres-specific
+  choice in the slice review; assess with evidence after S9 and before the
+  AWS migration. Note: §5 invariants currently rely on DB CHECK
+  constraints, which DynamoDB does not have — that trade is the crux.
 - **Config in one place.** Only `src/lib/config.ts` reads process.env, and it
   validates. Secrets Manager / Parameter Store swap in there alone.
 - **Three test tiers**: `pnpm test:unit` (pure, no deps) · `test:integration`
