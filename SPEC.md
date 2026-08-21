@@ -26,7 +26,9 @@ These rules bind any implementer, human or Claude Code, before a single line is 
 9. Do not add features because they seem useful. Prefer the simplest implementation consistent with the spec.
 10. Do not change settled decisions (§13) without explicitly flagging the change and obtaining a governance-log entry.
 11. **Every slice ends with the review protocol (§21), and no slice begins until the prior slice's review is closed.** Silence is never approval — from either side.
-12. **Critique is owed, not optional.** The implementer must surface disagreements, weaknesses, and risks in the owner's instructions as readily as in its own work. Agreeable implementation of a flawed instruction is a failure of this specification, not a courtesy.
+12. **Every slice plans its agentic opportunity** (§22) — designed and registered, not built. Phase 1 ships no agent; it may not ship anything that forecloses one.
+13. **Every slice ships demo-ready UI** (§23). A slice with working logic and unfinished interface is not done.
+14. **Critique is owed, not optional.** The implementer must surface disagreements, weaknesses, and risks in the owner's instructions as readily as in its own work. Agreeable implementation of a flawed instruction is a failure of this specification, not a courtesy.
 
 ## 1. Mission and purpose
 
@@ -266,6 +268,8 @@ Composite scoring policy (§14) · framework crosswalks (planned; will anchor to
 - **G-5 (settled):** No runtime instrument authoring; seed-PR governance only (§8).
 - **G-6 (settled):** The agentic layer's contract (§7) is normative now, even while dormant — nothing may be built that would violate it later.
 - **G-7 (settled):** AWS is the deployment target and §6.4's tiered migration is the plan of record. Phase 1 builds AWS-ready by construction (the five firm obligations in §6.4); cloud execution itself is Phase-3 work. The Bedrock model-access request is the standing critical-path item and is owner-owned.
+- **G-12 (settled):** Every slice ships demo-ready UI to the §23 standard; a slice with working logic and unfinished interface is not done. Taste calls belong to the owner and are applied before the next slice begins.
+- **G-11 (settled):** Every slice registers its agentic opportunity (§22) as a designed, guard-railed Phase-2 feature. Phase 1 builds none of it and may foreclose none of it. First entry: the intake quality assistant (rubric grading, contradiction detection, opt-in rewrite of the requester's own words).
 - **G-10 (settled):** Intake question set refined 2026-08-21 (S1 review): AI capture with a conditional detail field; plain-language "new vs. update" replacing the acronym list, with an optional prior-work pointer; objective launch date replacing self-reported priority; lifecycle stage retired (absorbed by initiative type); procurement status softened to Yes/No/Not-sure; compliance-obligation areas and granular PII detail removed from intake — both are asked at Tier 1/2 where they route (T1-LRC-2, T2-PRIV-1.C). Consequence: intake now carries routing-relevant answers, which is why FR-22 exists.
 - **G-9 (settled):** Delivery runs under the slice review protocol (§21) — pre-flight before each slice, structured review with mandatory self-critique after it, refinements applied and re-gated before the next slice. Adopted 2026-08-21 after the intake review demonstrated its value in both directions.
 - **G-8 (settled):** Execution route — **fresh repository, built slice by slice (§17)**. The prior repository is retained untouched as the **parts shelf**: proven components (condition engine, invariants schema, verbatim matcher, eval harness, agent service) are salvage candidates, and each salvage-or-rebuild decision is made at the slice that needs the part, recorded against that slice. The prior repository is never developed further and is decommissioned only after Phase-1 acceptance.
@@ -455,10 +459,51 @@ The implementer delivers, in one message:
 3. **What was deliberately not done** — deferrals, with the reason and where they're recorded.
 4. **Open questions** — decisions the owner owes, each with a recommendation.
 5. **A demoable artifact** — running app, screenshot, or transcript. Never a claim without evidence.
+6. **The agentic opportunity** (§22) — what an agent would do for this slice's work, registered as a Phase-2 feature with its guardrails. Written even when the answer is "nothing here".
+7. **UI evidence** — a screenshot per new surface, and a statement of which §23 criteria are met and which are deliberately deferred.
 
 The owner then analyses and returns changes. **Refinements are applied and re-gated before the next slice starts**; if a refinement is large enough to change the instrument or a requirement, it updates §20 and the governance log first.
 
 **Why this exists:** the two failure modes of AI-assisted delivery are an implementer that agrees too readily and an owner reviewing only the finished pile. This protocol forces critical thinking at both ends, at the smallest reviewable unit of work. It is a gate, not a ceremony — a slice that skips it is not done.
+
+
+## 22. Agentic opportunity planning
+
+Phase 1 builds no agent (§16). It nonetheless **designs** for one, because the cheapest moment to notice that a decision forecloses an agentic feature is while making it.
+
+**The rule:** every slice registers, in its review, what an agent would do for the work that slice just made possible — the job, the evidence it would read, the guardrails it needs, and the human decision it must never take. Registered features enter the Phase-2 backlog (§22.1) and are built only when Phase 2 is authorized. A slice may not ship a design that makes its registered feature impossible (e.g., discarding the raw text an agent would need to read).
+
+**Standing guardrails for every registered feature** — inherited from §7 and non-negotiable at design time:
+- It reads what the requester provided; it never invents facts.
+- It proposes; a human accepts. Nothing it produces is final on its own.
+- Any rewrite is **reorganization of the requester's own words**, never addition. Content it cannot ground in what they wrote is surfaced as a question, not inserted.
+- It speaks plain language: no internal identifiers, no scores presented as verdicts.
+- Its judgments are recorded with their basis so a reviewer can see what was machine-suggested versus human-confirmed.
+
+### 22.1 Phase-2 feature register
+
+| From | Feature | What it does | Guardrails beyond the standing set |
+|---|---|---|---|
+| S1 Intake | **Intake quality assistant** | Grades the description against a published rubric (specificity, scope, data handling, dependencies, outcomes); flags contradictions *within* the intake (e.g. "no personal data" versus an employee-PI selection, or a vendor named while the third-party answer says none); offers a rewrite that reorganizes and tightens the requester's own words. | The rubric is data and visible to the requester — no black-box grade. A low grade never blocks submission; it routes to a reviewer with the specifics. Contradictions are *shown*, never auto-resolved. The rewrite is opt-in, diffed against the original, and rejectable; the original text is always retained. |
+
+## 23. UI/UX standard — demo-ready
+
+Every slice ships an interface that could be shown to leadership without apology. "Demo-ready" is defined here so it is gate-able rather than a matter of mood.
+
+**A surface is demo-ready when all of the following hold:**
+
+1. **Design system, not defaults.** Type scale, spacing scale, and colour come from named tokens; no unstyled browser controls; consistent with surfaces already shipped.
+2. **Every state is designed** — empty, loading/pending, success, error, disabled, and (where relevant) too-much-content. No silent seconds, no dead ends: every error says what happened and what to do next.
+3. **Hierarchy reads at a glance.** The primary action is unmistakable; secondary actions are quieter; the thing the user must decide is visually dominant over chrome.
+4. **Motion is explanatory, not decorative** — reveals, transitions, and progress that show cause and effect; honours reduced-motion preferences.
+5. **Accessible by construction** — every control has an accessible name, keyboard operation works end to end, focus is visible and never stranded, contrast passes, and state is never conveyed by colour alone.
+6. **Content design counts as design** — plain language, no internal identifiers, labels that say what happens, help text where a business user would hesitate.
+7. **Responsive** to a laptop viewport at minimum; wide content scrolls in its own container, never the page.
+8. **Evidenced** — a screenshot of each new surface accompanies the slice review.
+
+**The remaining 10%** is what legitimately depends on later slices — cross-slice navigation, the global progress model, final brand treatment, and polish that only makes sense once neighbouring surfaces exist. Deferrals are named in the slice review, not discovered later.
+
+**Taste is the owner's call.** The standard sets the floor; the owner's judgment sets the bar. Visual direction raised in a slice review is applied before the next slice starts (§21).
 
 ---
 
