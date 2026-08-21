@@ -27,11 +27,6 @@ test("create → fill (conditionals reveal) → reopen → everything is there",
   await page
     .getByLabel("Activity / Use-Case Description")
     .fill("AI-assisted workforce scheduling with a SaaS vendor.");
-  await page
-    .getByRole("checkbox", {
-      name: "A system, application, or software — including buying or configuring one",
-    })
-    .check();
   await expect(page.getByLabel("What does the AI do?")).toBeHidden();
   await page
     .getByLabel("Does this use AI or machine learning?")

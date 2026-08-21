@@ -27,7 +27,7 @@ describe("intake structure (FR-1)", () => {
     // Changing the instrument is a deliberate act: update this list with it.
     const ids = INTAKE_SECTIONS.map((s) => [s.name, s.fields.map((f) => f.id)]);
     expect(ids).toEqual([
-      ["Description", ["projectName", "businessPurpose", "projectDescription", "activityTypes", "activityTypesUnsure", "usesAi", "aiUseCase", "usesAiUnsure"]],
+      ["Description", ["projectName", "businessPurpose", "projectDescription", "usesAi", "aiUseCase", "usesAiUnsure"]],
       ["Ownership", ["businessOwner", "technicalOwner", "collaborators", "initiativeType", "priorAssessmentRef"]],
       ["Categorization", ["businessUnit", "otherUnits", "targetGoLive", "vendorNames", "coupaOnboarded", "coupaUnsure"]],
       ["Compliance & Data", ["dataClassification", "dataElements"]],
@@ -123,7 +123,6 @@ describe("completeness meter", () => {
     expect(missing).toContain("Project Name");
     expect(missing).toContain("Data Classification");
     expect(missing).toContain("Does this use AI or machine learning?");
-    expect(missing).toContain("What is this activity introducing or changing?");
     // Conditional fields are optional AND hidden — never counted.
     expect(missing).not.toContain("Other Business Units Involved");
   });
@@ -133,7 +132,6 @@ describe("completeness meter", () => {
       projectName: "P",
       businessPurpose: "B",
       projectDescription: "D",
-      activityTypes: ["A process or way of working"],
       usesAi: "No",
       businessOwner: "O",
       initiativeType: "Brand new",

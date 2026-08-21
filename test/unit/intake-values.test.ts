@@ -7,7 +7,6 @@ import { describe, expect, it } from "vitest";
 import {
   intakePatchFrom,
   intakeValuesFrom,
-  isTechnologyActivity,
   projectNameOrNull,
 } from "../../src/lib/intake-values";
 
@@ -58,24 +57,5 @@ describe("intakeValuesFrom (pure)", () => {
     expect(values.projectName).toBe("Cadenza");
     expect(values.targetGoLive).toBe("");
     expect(values.dataClassification).toEqual(["Internal"]);
-  });
-});
-
-describe("isTechnologyActivity (derived, never asked — G-19)", () => {
-  it("is true when a system, application, or software is involved", () => {
-    expect(
-      isTechnologyActivity({
-        activityTypes: ["A system, application, or software — including buying or configuring one"],
-      }),
-    ).toBe(true);
-  });
-
-  it("is false for purely non-technology activity — the case that must still route", () => {
-    expect(
-      isTechnologyActivity({
-        activityTypes: ["A process or way of working", "People, roles, or where work is done"],
-      }),
-    ).toBe(false);
-    expect(isTechnologyActivity({})).toBe(false);
   });
 });
