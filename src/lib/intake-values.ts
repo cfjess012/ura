@@ -47,6 +47,18 @@ export function intakePatchFrom(entries: SubmittedEntries): IntakePatch {
   return patch;
 }
 
+/**
+ * The technology/non-technology classification the risk organisation needs
+ * for queue routing — DERIVED, never asked (G-19). Deriving beats asking:
+ * a business user classifying a SaaS purchase or a spreadsheet process is
+ * guessing, and a guess at the front door corrupts everything routed from it.
+ */
+export function isTechnologyActivity(values: IntakeValues): boolean {
+  const selected = values.activityTypes;
+  if (!Array.isArray(selected)) return false;
+  return selected.some((option) => /system, application, or software/i.test(option));
+}
+
 /** Trim a proposed project name, or null when it cannot serve as one. */
 export function projectNameOrNull(raw: unknown): string | null {
   const name = String(raw ?? "").trim();

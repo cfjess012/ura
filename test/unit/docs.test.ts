@@ -15,10 +15,12 @@ const skillBody = (name: string) => readFileSync(join(SKILLS, name, "SKILL.md"),
 
 describe("SPEC ↔ skills stay in sync", () => {
   it("every skill named in SPEC or CLAUDE.md exists on disk", () => {
+    // Derived from what exists, never an allowlist that rots.
+    const known = new Set(skillNames);
     const named = new Set(
       [...spec.matchAll(/`\/?([a-z-]+)`/g), ...claudeMd.matchAll(/`\/?([a-z-]+)`/g)]
         .map((m) => m[1]!)
-        .filter((candidate) => /^(full-gates|slice-review|ui-craft|ux-audit|error-handling|aws-ready|instrument-change|uat-checkout)$/.test(candidate)),
+        .filter((candidate) => known.has(candidate)),
     );
     expect(named.size).toBeGreaterThan(0);
     for (const name of named) expect(skillNames, name).toContain(name);

@@ -23,7 +23,7 @@ export const projects = pgTable("projects", {
   projectName: text("project_name").notNull(),
   businessPurpose: text("business_purpose").notNull().default(""),
   projectDescription: text("project_description").notNull().default(""),
-  techNonTech: text("tech_non_tech").notNull().default(""),
+  activityTypes: jsonb("activity_types").$type<string[]>().notNull().default([]),
   usesAi: text("uses_ai").notNull().default(""),
   aiUseCase: text("ai_use_case").notNull().default(""),
   businessOwner: text("business_owner").notNull().default(""),

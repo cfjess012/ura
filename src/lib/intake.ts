@@ -73,14 +73,37 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         help: "What the activity does, who it touches, and how it works — in plain terms.",
       },
       {
-        // Kept as-is pending an owner decision: it currently routes nothing.
-        // Candidate job: "Non-Technology" pre-answers the systems/security
-        // gates as No. Open question in the S1 review.
-        id: "techNonTech",
-        label: "Technology / Non-Technology",
-        type: "select",
-        options: ["Technology", "Non-Technology"],
+        // Replaces "Technology / Non-Technology" (G-19). That question asked
+        // a business user to classify against our taxonomy — a coin flip for
+        // a SaaS purchase, a spreadsheet process, or a vendor's own system.
+        // This asks them to RECOGNISE their situation instead; the
+        // tech/non-tech label is derived (isTechnologyActivity), and each
+        // selection pre-answers a Tier-1 gate (FR-22).
+        id: "activityTypes",
+        label: "What is this activity introducing or changing?",
+        type: "multi",
         required: true,
+        help: "Select everything that applies — most activities touch more than one.",
+        options: [
+          "A system, application, or software — including buying or configuring one",
+          "A process or way of working",
+          "A supplier, vendor, or contract",
+          "People, roles, or where work is done",
+          "A policy, standard, or approval rule",
+          "Data — new information collected, shared, or moved",
+          "I'm not sure yet",
+        ],
+        prefillsGate: "SA/TPR/OR/GO/DMP",
+      },
+      {
+        id: "activityTypesUnsure",
+        label: "That's fine",
+        type: "note",
+        conditional: {
+          visibleWhen: "activityTypes",
+          includesAny: ["I'm not sure yet"],
+        },
+        body: "A reviewer will work this out with you — answer what you can and keep going. Nothing here is blocked while that's confirmed.",
       },
       {
         id: "usesAi",
