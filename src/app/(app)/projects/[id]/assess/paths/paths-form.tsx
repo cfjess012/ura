@@ -39,6 +39,13 @@ export function PathsForm({
     Object.fromEntries(areas.map((a) => [a.category.key, a.selected])),
   );
   const [saving, setSaving] = React.useState(false);
+  // Which areas this person has actually touched. An autosave writes only
+  // those: ticking one box used to commit a positive "none of these apply"
+  // for every other open area, so three questions nobody had answered were
+  // recorded as answered. Submitting the form is a different act — it
+  // covers every question on screen — so that writes them all.
+  const touched = React.useRef<Set<string>>(new Set());
+  const inFlight = React.useRef<Promise<boolean> | null>(null);
   const [error, setError] = React.useState<{
     message: string;
     ref: string;
@@ -59,10 +66,19 @@ export function PathsForm({
       [key]: on ? [...current, id] : current.filter((x) => x !== id),
     };
     setPicked(next);
-    void save(next);
+    touched.current.add(key);
+    const running = save(next, [...touched.current]);
+    inFlight.current = running;
+    void running.finally(() => {
+      if (inFlight.current === running) inFlight.current = null;
+    });
   }
 
-  async function save(selections = picked): Promise<boolean> {
+  async function save(
+    selections = picked,
+    /** Which areas to write. Everything, when the person submits. */
+    areaKeys: string[] = areas.map((a) => a.category.key),
+  ): Promise<boolean> {
     setSaving(true);
     setError(null);
     setSaved(false);
@@ -74,7 +90,9 @@ export function PathsForm({
       const result = await answerPaths(
         projectId,
         Object.fromEntries(
-          areas.map((a) => [a.category.key, selections[a.category.key] ?? []]),
+          areas
+            .filter((a) => areaKeys.includes(a.category.key))
+            .map((a) => [a.category.key, selections[a.category.key] ?? []]),
         ),
       );
       if (isFailure(result)) {
@@ -110,7 +128,14 @@ export function PathsForm({
     <form
       onSubmit={async (event) => {
         event.preventDefault();
-        if (await save()) router.push(nextHref);
+        // Wait for any autosave already in flight rather than refusing the
+        // press: a disabled forward control swallowed the click silently,
+        // which is the one thing a control must never do (§24.3).
+        if (inFlight.current) await inFlight.current;
+        const done = save();
+        inFlight.current = done;
+        if (await done) router.push(nextHref);
+        inFlight.current = null;
       }}
     >
       {areas.map((area) => (
@@ -197,12 +222,14 @@ export function PathsForm({
             )}
           </span>
           {error && !error.retryable ? (
-            <Link className="btn ghost" href="/projects">
-              Go to my assessments
-            </Link>
+            /* The message tells them to reload; the control has to be the
+               thing the message names. */
+            <button className="btn" type="button" onClick={() => router.refresh()}>
+              Reload the questions
+            </button>
           ) : (
-            <button className="btn" type="submit" disabled={saving}>
-              {saving ? "Saving…" : "See what we'll ask →"}
+            <button className="btn" type="submit">
+              {"See what we'll ask →"}
             </button>
           )}
         </span>

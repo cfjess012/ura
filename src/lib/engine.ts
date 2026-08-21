@@ -160,3 +160,40 @@ export function litPaths(
     litPathsFor(category, chosenOnly[category.key] ?? [], lookup),
   );
 }
+
+/** What is wrong with a submitted set of path selections, if anything. */
+export type PathProblem =
+  | { kind: "unknown-category"; categoryKey: string }
+  | { kind: "no-path-question"; categoryKey: string }
+  | { kind: "unknown-options"; categoryKey: string; ids: string[] };
+
+/**
+ * Check a submission before any of it is written (§26.1 — the rule is pure,
+ * the executor does the writing).
+ *
+ * It **refuses** rather than narrows. Dropping an option the instrument does
+ * not recognise turns a person's real selections into a positive "none of
+ * these apply", recorded against their name and pinned to a version that
+ * will outlive the mistake.
+ */
+export function pathSubmissionProblems(
+  categories: Category[],
+  selections: Record<string, string[]>,
+): PathProblem[] {
+  const problems: PathProblem[] = [];
+  for (const [categoryKey, selected] of Object.entries(selections)) {
+    const category = categories.find((c) => c.key === categoryKey);
+    if (!category) {
+      problems.push({ kind: "unknown-category", categoryKey });
+      continue;
+    }
+    if (!category.pathQuestion) {
+      problems.push({ kind: "no-path-question", categoryKey });
+      continue;
+    }
+    const known = new Set(category.pathQuestion.options.map((o) => o.id));
+    const ids = selected.filter((id) => !known.has(id));
+    if (ids.length > 0) problems.push({ kind: "unknown-options", categoryKey, ids });
+  }
+  return problems;
+}

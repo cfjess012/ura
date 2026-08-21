@@ -54,6 +54,9 @@ export default async function GatesCompletePage({
     if (Array.isArray(value)) selections[category.key] = value;
   }
   const lit = litPaths(CATEGORIES, states, selections, intake);
+  // Did anyone actually answer a path question? Distinct from "no paths are
+  // lit", which is also true when nobody was ever asked.
+  const answeredPaths = Object.keys(selections).length > 0;
   const pathsPending = states.some(
     (s) =>
       s.answer === "Yes" &&
@@ -94,9 +97,12 @@ export default async function GatesCompletePage({
             <div className="card">
               <h2>What we&rsquo;ll ask about</h2>
               <p className="help">
-                Nothing further. You told us none of the specific threads apply
-                in the areas that are open, so the detailed questions have
-                nothing to ask — that is a complete answer, not a gap.
+                {/* Two different facts, and the earlier version stated the
+                    wrong one: "you told us none apply" was printed to people
+                    who had never been asked anything. */}
+                {answeredPaths
+                  ? "Nothing further. You told us none of the specific threads apply in the areas that are open, so the detailed questions have nothing to ask — that is a complete answer, not a gap."
+                  : "Nothing further. None of the areas that apply here ask a follow-up question, so there was nothing to narrow down."}
               </p>
             </div>
           )}
@@ -151,7 +157,12 @@ export default async function GatesCompletePage({
                       <span className="meta"> — {s.because}</span>
                     )}
                     {s.fromIntake && s.because && (
-                      <span className="meta"> — answered from your intake because {s.because}</span>
+                      <span className="meta">
+                        {" — answered from "}
+                        {s.origin === "answers" ? "your answers" : "your intake"}
+                        {" because "}
+                        {s.because}
+                      </span>
                     )}
                   </li>
                 ))}

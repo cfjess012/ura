@@ -88,9 +88,11 @@ export default async function PathsPage({
         name={project.projectName}
         status="Draft"
         nextLine={
-          applies === 1
-            ? "One risk area applies — tell us which parts of it, and we'll only ask about those."
-            : `${applies} risk areas apply — tell us which parts of each one, and we'll only ask about those.`
+          areas.length === 0
+            ? "Nothing to narrow down — none of the areas that apply ask a follow-up."
+            : areas.length === 1
+              ? "One risk area needs narrowing — tell us which parts of it apply."
+              : `${areas.length} risk areas need narrowing — tell us which parts of each one apply.`
         }
         currentStage={1}
       />
@@ -100,7 +102,9 @@ export default async function PathsPage({
 
         <section>
           <p className="eyebrow">Step 2 · Which parts apply</p>
-          <h2 className="display gate-display">Narrow it down</h2>
+          <h2 className="display gate-display">
+            {areas.length === 0 ? "Nothing to narrow down" : "Narrow it down"}
+          </h2>
           <p className="lede" style={{ textAlign: "left", margin: "0 0 1.2rem" }}>
             {areas.length === 0
               ? "You've told us which areas are in scope."
@@ -112,7 +116,7 @@ export default async function PathsPage({
                genuinely nothing to narrow. It used to be a dead end — no
                button, no link, the only way on was to type the URL. */
             <div className="card card-upcoming">
-              <h2>Nothing to narrow down</h2>
+              <h2>Why there&rsquo;s nothing here</h2>
               <p>
                 None of the areas that apply ask a follow-up question, so
                 there&rsquo;s nothing for you to do here.

@@ -48,7 +48,9 @@ export function GateRail({
                     : status === "closed"
                       ? "Not applicable"
                       : status === "prefilled"
-                        ? "Yes · from intake"
+                        ? state.origin === "answers"
+                          ? "Yes · from your answers"
+                          : "Yes · from intake"
                         : status === "open"
                           ? "Applies"
                           : ""}

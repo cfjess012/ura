@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { saveIntake } from "@/app/actions";
 import { SCOPE_KEY } from "@/lib/intake-values";
-import { isFailure } from "@/lib/errors";
+import { errorRef, isFailure } from "@/lib/errors";
 import {
   ALL_FIELDS,
   INTAKE_SECTIONS,
@@ -146,7 +146,7 @@ export function SectionForm({
       setError({
         message:
           "The server couldn't be reached, so nothing was saved. Your answers are still on screen — try again in a moment.",
-        ref: "OFFLINE",
+        ref: errorRef(),
         retryable: true,
       });
       return false;

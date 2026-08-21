@@ -1162,8 +1162,9 @@ audited against the wrong list (N7). `test/unit/docs.test.ts` now checks it.</pr
       <p><span class="label">What it can see</span>Sees the path of the file just edited and reads that one file. Nothing else — no network, no database, no other files.</p>
       <p><span class="label">In its own words</span><span class="gist">PostToolUse advisory (SPEC G-18, &quot;teeth in hooks&quot;).
 Skills load probabilistically. This hook makes the trigger deterministic:
-when a file is edited that a standard governs, it says so — with the skill
-to load. It never blocks; it reminds at the exact moment of relevance.</span></p>
+when a file is edited that a standard governs, it does not merely *name*
+the skill — it emits the skill's own checklist, so the procedure arrives
+in context whether or not an</span></p>
       <details class="full">
         <summary>Read the full instructions</summary>
         <pre>#!/usr/bin/env node
@@ -1171,10 +1172,43 @@ to load. It never blocks; it reminds at the exact moment of relevance.</span></p
  * PostToolUse advisory (SPEC G-18, &quot;teeth in hooks&quot;).
  *
  * Skills load probabilistically. This hook makes the trigger deterministic:
- * when a file is edited that a standard governs, it says so — with the skill
- * to load. It never blocks; it reminds at the exact moment of relevance.
+ * when a file is edited that a standard governs, it does not merely *name*
+ * the skill — it emits the skill's own checklist, so the procedure arrives
+ * in context whether or not anyone chose to load it. Naming a skill still
+ * leaves the loading to judgement, and three rounds of verification found
+ * judgement is exactly what forgets.
+ *
+ * It never blocks; it reminds at the exact moment of relevance. What it
+ * cannot do is force the checklist to be followed — that is the Stop gate's
+ * job, and the artifacts it requires.
  */
 import { readFileSync } from &quot;node:fs&quot;;
+import { join } from &quot;node:path&quot;;
+
+/**
+ * A skill's checklist: its headline rules, not the whole file. Enough to act
+ * on without flooding the context of a one-line edit.
+ */
+function checklist(skill) {
+  try {
+    const text = readFileSync(join(process.cwd(), &quot;.claude&quot;, &quot;skills&quot;, skill, &quot;SKILL.md&quot;), &quot;utf8&quot;);
+    // Skills are written as prose under headings, so the headings ARE the
+    // checklist. Bold leads are used too; take whichever the file has.
+    const bold = [...text.matchAll(/^\*\*(.+?)\*\*/gm)].map((m) =&gt; m[1]);
+    const headings = [...text.matchAll(/^#{2,3} (.+)$/gm)].map((m) =&gt; m[1]);
+    const bullets = [...text.matchAll(/^- \*\*(.+?)\*\*/gm)].map((m) =&gt; m[1]);
+    const rules = [...new Set([...headings, ...bold, ...bullets])]
+      .map((r) =&gt; r.replace(/\s+/g, &quot; &quot;).replace(/[.:]$/, &quot;&quot;).trim())
+      .filter((r) =&gt; r.length &gt; 3 &amp;&amp; r.length &lt; 140)
+      .slice(0, 9);
+    if (rules.length === 0) return &quot;&quot;;
+    return `\n   ${skill} — its own checklist, so you do not have to load it:\n${rules
+      .map((r) =&gt; `     · ${r}`)
+      .join(&quot;\n&quot;)}`;
+  } catch {
+    return &quot;&quot;;
+  }
+}
 
 let payload = &quot;&quot;;
 process.stdin.on(&quot;data&quot;, (chunk) =&gt; (payload += chunk));
@@ -1198,13 +1232,23 @@ process.stdin.on(&quot;end&quot;, () =&gt; {
   })();
 
   if (/^src\/app\/.*actions\.ts$/.test(rel) || /route\.ts$/.test(rel)) {
-    notes.push(&quot;Server action/route touched → SPEC §25: return typed results, never throw for expected failure. Load the `error-handling` skill.&quot;);
+    notes.push(
+      &quot;Server action/route touched → SPEC §25: return typed results, never throw for expected failure.&quot; +
+        checklist(&quot;error-handling&quot;),
+    );
   }
   if (/^src\/app\/.*\.tsx$/.test(rel)) {
-    notes.push(&quot;Surface touched → SPEC §23/§24: designed empty/loading/error states, accessible names, no internal identifiers. Load `ui-craft` and `ux-audit`.&quot;);
+    notes.push(
+      &quot;Surface touched → SPEC §23/§24: designed empty/loading/error states, accessible names, no internal identifiers.&quot; +
+        checklist(&quot;ui-craft&quot;) +
+        checklist(&quot;ux-audit&quot;),
+    );
   }
   if (/^src\/lib\/(intake|instrument).*\.ts$/.test(rel)) {
-    notes.push(&quot;Instrument data touched → SPEC §8: update the pinned field-set test in the same commit and record a governance entry. Load `instrument-change`.&quot;);
+    notes.push(
+      &quot;Instrument data touched → SPEC §8: update the pinned field-set test in the same commit and record a governance entry.&quot; +
+        checklist(&quot;instrument-change&quot;),
+    );
   }
   if (/^\.claude\/(agents|skills)\//.test(rel)) {
     notes.push(&quot;Agent or skill changed → run `pnpm agent-map` so docs/agent-map.html and the in-app transparency page match. test/unit/agent-map.test.ts fails the build until you do.&quot;);
@@ -1241,31 +1285,92 @@ process.stdin.on(&quot;end&quot;, () =&gt; {
     <div class="detail hidden">
       <p><span class="label">How and when it runs</span>Automatically, whenever a working session tries to finish.</p>
       <p><span class="label">What it can see</span>Runs two commands — the type checker and the unit tests. It reads their output and nothing else.</p>
-      <p><span class="label">In its own words</span><span class="gist">Stop gate (SPEC §0 Build Rule 3): work does not conclude on a red build.
-Runs only the tiers that need nothing external — typecheck and unit —
-so the gate is fast and cannot fail for environmental reasons. The full
-chain (integration + e2e) is `pnpm verify` and the `full-gates` skill.</span></p>
+      <p><span class="label">In its own words</span><span class="gist">Stop gate (SPEC §0 Build Rule 3): work does not conclude on a red build,
+on a stale generated artifact, or on a slice that skipped its record.
+Everything here is mechanical. That is the point: three rounds of
+independent verification found procedures that live only in a skill or a
+prose line firing </span></p>
       <details class="full">
         <summary>Read the full instructions</summary>
         <pre>#!/usr/bin/env node
 /**
- * Stop gate (SPEC §0 Build Rule 3): work does not conclude on a red build.
- * Runs only the tiers that need nothing external — typecheck and unit —
- * so the gate is fast and cannot fail for environmental reasons. The full
- * chain (integration + e2e) is `pnpm verify` and the `full-gates` skill.
+ * Stop gate (SPEC §0 Build Rule 3): work does not conclude on a red build,
+ * on a stale generated artifact, or on a slice that skipped its record.
+ *
+ * Everything here is mechanical. That is the point: three rounds of
+ * independent verification found procedures that live only in a skill or a
+ * prose line firing only when someone remembered — including registering a
+ * slice's agentic opportunity, which fired when the owner asked. A hook
+ * cannot forget, so anything that must always hold belongs here or in a
+ * test, never only in a skill (G-18).
+ *
+ * Only tiers that need nothing external run, so the gate is fast and cannot
+ * fail for environmental reasons. The full chain is `pnpm verify`.
  */
 import { execSync } from &quot;node:child_process&quot;;
+import { readFileSync, existsSync } from &quot;node:fs&quot;;
+import { join } from &quot;node:path&quot;;
 
+const ROOT = process.cwd();
+const problems = [];
+
+// ---- 1. The build is green ------------------------------------------------
 try {
-  execSync(&quot;pnpm typecheck &amp;&amp; pnpm test:unit&quot;, { stdio: &quot;pipe&quot;, cwd: process.cwd() });
-  process.exit(0);
+  execSync(&quot;pnpm typecheck &amp;&amp; pnpm test:unit&quot;, { stdio: &quot;pipe&quot;, cwd: ROOT });
 } catch (error) {
-  const output = `${error.stdout ?? &quot;&quot;}${error.stderr ?? &quot;&quot;}`.slice(-2000);
-  console.error(
-    &quot;Stop gate: typecheck or unit tests are red — finish the work or fix the break.\n&quot; + output,
-  );
+  const output = `${error.stdout ?? &quot;&quot;}${error.stderr ?? &quot;&quot;}`.slice(-1800);
+  problems.push(&quot;typecheck or unit tests are red — finish the work or fix the break.\n&quot; + output);
+}
+
+// ---- 2. Generated artifacts are current -----------------------------------
+// A generated file nobody regenerates is a snapshot with better manners.
+try {
+  const before = readFileSync(join(ROOT, &quot;src&quot;, &quot;data&quot;, &quot;agents.json&quot;), &quot;utf8&quot;);
+  execSync(&quot;node scripts/build-agent-map.mjs&quot;, { stdio: &quot;pipe&quot;, cwd: ROOT });
+  const after = readFileSync(join(ROOT, &quot;src&quot;, &quot;data&quot;, &quot;agents.json&quot;), &quot;utf8&quot;);
+  const strip = (t) =&gt; t.replace(/&quot;generated&quot;:\s*&quot;[^&quot;]*&quot;/, &quot;&quot;);
+  if (strip(before) !== strip(after)) {
+    problems.push(
+      &quot;the agent map was stale and has been regenerated — review the diff and commit it (`git diff src/data/agents.json docs/agent-map.html`).&quot;,
+    );
+  }
+} catch (error) {
+  problems.push(`could not verify the agent map: ${error.message}`);
+}
+
+// ---- 3. Every finished slice carries its record ----------------------------
+// Required sections, not just a file: a record missing its agentic section
+// is how &quot;register the agentic opportunity&quot; quietly stopped happening.
+const REQUIRED = [
+  { heading: &quot;## Findings&quot;, what: &quot;a Findings section&quot; },
+  { heading: &quot;## Not verified&quot;, what: &quot;a Not verified section&quot; },
+  { heading: &quot;## Agentic opportunity&quot;, what: &quot;an Agentic opportunity section (§21 item 6)&quot; },
+];
+try {
+  const claude = readFileSync(join(ROOT, &quot;CLAUDE.md&quot;), &quot;utf8&quot;);
+  // Global, not per line: CLAUDE.md packs two slices onto one line to stay
+  // inside its size budget, and a line-anchored match found only the first.
+  const done = [...claude.matchAll(/\b(S[\d.]+)[^—\n]{0,40}— DONE/g)].map((m) =&gt; m[1]);
+  for (const slice of done) {
+    const record = join(ROOT, &quot;uat&quot;, `${slice}.md`);
+    if (!existsSync(record)) {
+      problems.push(`slice ${slice} is marked DONE but has no uat/${slice}.md (G-24).`);
+      continue;
+    }
+    const body = readFileSync(record, &quot;utf8&quot;);
+    for (const { heading, what } of REQUIRED) {
+      if (!body.includes(heading)) problems.push(`uat/${slice}.md is missing ${what}.`);
+    }
+  }
+} catch (error) {
+  problems.push(`could not check slice records: ${error.message}`);
+}
+
+if (problems.length &gt; 0) {
+  console.error(&quot;Stop gate:\n- &quot; + problems.join(&quot;\n- &quot;));
   process.exit(2);
 }
+process.exit(0);
 </pre>
       </details>
       <p class="where"><code>scripts/hooks/stop-gate.mjs</code></p>
@@ -1276,7 +1381,109 @@ try {
     <section>
       <div class="branch-head"><h3>Runtime — the product</h3>
         <p>Registered in SPEC §22, deliberately unbuilt. These become AgentCore runtimes.</p></div>
-      <p class="group-label">Intake &amp; conversation</p><p class="group-label">Knowledge</p>
+      <p class="group-label">Intake &amp; conversation</p>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Intake quality assistant</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">Grades the description against a published rubric (specificity, scope, data handling, dependencies, outcomes); flags contradictions *within* the intake (e.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S1 Intake; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: the description the requester wrote, and the published rubric it is graded against. Nothing else.</p>
+      <p><span class="label">In its own words</span><span class="gist">Grades the description against a published rubric (specificity, scope, data handling, dependencies, outcomes); flags contradictions *within* the intake (e.g. &quot;no personal data&quot; versus an employee-PI selection, or a vendor named while the third-party answer says none); offers a rewrite that reorganizes and tightens the requester's own words.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+Grades the description against a published rubric (specificity, scope, data handling, dependencies, outcomes); flags contradictions *within* the intake (e.g. &quot;no personal data&quot; versus an employee-PI selection, or a vendor named while the third-party answer says none); offers a rewrite that reorganizes and tightens the requester's own words.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+The rubric is data and visible to the requester — no black-box grade. A low grade never blocks submission; it routes to a reviewer with the specifics. Contradictions are *shown*, never auto-resolved. The rewrite is opt-in, diffed against the original, and rejectable; the original text is always retained.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S1 Intake</code></p>
+    </div>
+  </article>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Assessment companion</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">An always-available assistant a person can ask anything of while assessing: &quot;based on my description, what do you think?&quot;, &quot;what does this question mean?&quot;, &quot;can you word this another way?&quot;.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S1–S2; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: everything this requester has said or attached on this assessment, plus the instrument itself. Would not read: another team's content, and nothing leaves the boundary without the §22.3 policy.</p>
+      <p><span class="label">In its own words</span><span class="gist">An always-available assistant a person can ask anything of while assessing: &quot;based on my description, what do you think?&quot;, &quot;what does this question mean?&quot;, &quot;can you word this another way?&quot;. Proposes gate answers with its reasoning, explains routing, and drafts nothing without a human click.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+An always-available assistant a person can ask anything of while assessing: &quot;based on my description, what do you think?&quot;, &quot;what does this question mean?&quot;, &quot;can you word this another way?&quot;. Proposes gate answers with its reasoning, explains routing, and drafts nothing without a human click.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+World knowledge may inform the *conversation*, never the *evidence* (see §22.2). Every proposal is shown with what it was derived from. It never answers a question on the person's behalf — the click is theirs, and the record says so (source `person`).
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S1–S2</code></p>
+    </div>
+  </article>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Consistency &amp; contradiction chaining</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">Continuously reads everything captured so far and surfaces disagreements — across intake prose, gate answers, and later tiers.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S1–S2; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: every answer captured so far in this assessment, to compare them with each other.</p>
+      <p><span class="label">In its own words</span><span class="gist">Continuously reads everything captured so far and surfaces disagreements — across intake prose, gate answers, and later tiers. Two passes: a **deterministic** pass over structured answers (cheap, exact, testable — &quot;no personal data&quot; versus an employee-PI selection) and a **semantic** pass over prose (an LLM catching &quot;the description says customer-facing but the audience answer says internal-only&quot;).</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+Continuously reads everything captured so far and surfaces disagreements — across intake prose, gate answers, and later tiers. Two passes: a **deterministic** pass over structured answers (cheap, exact, testable — &quot;no personal data&quot; versus an employee-PI selection) and a **semantic** pass over prose (an LLM catching &quot;the description says customer-facing but the audience answer says internal-only&quot;).
+
+GUARDRAILS BEYOND THE STANDING SET
+
+Contradictions are *shown*, never auto-resolved. The deterministic pass must stand alone: if the model is unavailable, consistency checking still works. Every flag names both sides and quotes them.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S1–S2</code></p>
+    </div>
+  </article><p class="group-label">Knowledge</p>
   <article class="node dormant" data-status="dormant">
     <button type="button" class="node-head" aria-expanded="false">
       <span class="node-top">
@@ -1446,6 +1653,74 @@ STANDING GUARDRAILS (inherited by every registered feature)
       </details>
       <p class="where"><code>SPEC.md §22.1 · S3+</code></p>
     </div>
+  </article>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Instrument contradiction lint</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">Reads the authored instrument as a whole and reports rules that cannot both be satisfied, questions that mean the same thing in different words, and paths no realistic answer set can reach.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S3; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: the authored instrument only — questions, options, conditions and rubrics. No assessment data, no personal information, and it never edits what it reads.</p>
+      <p><span class="label">In its own words</span><span class="gist">Reads the authored instrument as a whole and reports rules that cannot both be satisfied, questions that mean the same thing in different words, and paths no realistic answer set can reach. The *structural* half — unsatisfiable conditions, cycles, chained derivations, unreachable options — is deterministic and belongs in the validator, not here.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+Reads the authored instrument as a whole and reports rules that cannot both be satisfied, questions that mean the same thing in different words, and paths no realistic answer set can reach. The *structural* half — unsatisfiable conditions, cycles, chained derivations, unreachable options — is deterministic and belongs in the validator, not here.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+Reports to a human as findings; never edits the instrument (§8 — changing what is asked is a governance event). Every finding names the two rules or questions it compares, verbatim, so the reader judges the comparison rather than the verdict.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S3</code></p>
+    </div>
+  </article>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Plain-language term help on demand</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">Where a question uses a term a business user may not know — &quot;RAG&quot;, &quot;privileged access&quot;, &quot;fourth party&quot; — the person can ask what it means and get an answer grounded in the organisation's own policy or the cited standard, in context, without leaving the question.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S3; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: the term on screen and the organisation's own policy and standards library. Not the person's answers.</p>
+      <p><span class="label">In its own words</span><span class="gist">Where a question uses a term a business user may not know — &quot;RAG&quot;, &quot;privileged access&quot;, &quot;fourth party&quot; — the person can ask what it means and get an answer grounded in the organisation's own policy or the cited standard, in context, without leaving the question.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+Where a question uses a term a business user may not know — &quot;RAG&quot;, &quot;privileged access&quot;, &quot;fourth party&quot; — the person can ask what it means and get an answer grounded in the organisation's own policy or the cited standard, in context, without leaving the question.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+Definitions come from a named, versioned source (§22.5) and are quoted, not paraphrased; a term with no grounded definition says so rather than inventing one. Never rewrites the question itself.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S3</code></p>
+    </div>
   </article><p class="group-label">Portfolio memory</p>
   <article class="node dormant" data-status="dormant">
     <button type="button" class="node-head" aria-expanded="false">
@@ -1547,6 +1822,74 @@ STANDING GUARDRAILS (inherited by every registered feature)
   was machine-suggested from what a human confirmed.</pre>
       </details>
       <p class="where"><code>SPEC.md §22.1 · S2+</code></p>
+    </div>
+  </article><p class="group-label">Destinations</p>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Destination record drafting</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">The agent drafts the inventory narrative from what the requester already wrote — purpose, description, what the AI does — and maps it onto the destination's fields, flagging what the destination requires that the assessment never asked (model provider, training data source, human oversight).</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S3.5+; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: this assessment's answers and the destination's field map. It never reaches the destination system itself — the write stays out of scope (§27).</p>
+      <p><span class="label">In its own words</span><span class="gist">The agent drafts the inventory narrative from what the requester already wrote — purpose, description, what the AI does — and maps it onto the destination's fields, flagging what the destination requires that the assessment never asked (model provider, training data source, human oversight).</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+The agent drafts the inventory narrative from what the requester already wrote — purpose, description, what the AI does — and maps it onto the destination's fields, flagging what the destination requires that the assessment never asked (model provider, training data source, human oversight).
+
+GUARDRAILS BEYOND THE STANDING SET
+
+Every drafted field carries the assessment answer it came from, verbatim; a field with no source is left empty and named as missing, never inferred (§22.2).
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S3.5+</code></p>
+    </div>
+  </article>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Reverse pre-fill from a system of record</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">Where a use-case record already exists for this application, the assessment pre-fills from it — the &quot;asked twice&quot; complaint answered from the other end.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S3.5+; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: an existing record in the downstream system for this same application, and this assessment's answers, to offer the overlap.</p>
+      <p><span class="label">In its own words</span><span class="gist">Where a use-case record already exists for this application, the assessment pre-fills from it — the &quot;asked twice&quot; complaint answered from the other end.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+Where a use-case record already exists for this application, the assessment pre-fills from it — the &quot;asked twice&quot; complaint answered from the other end.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+Pre-filled values are visibly sourced to the external record with its id and date, unconfirmed until a person accepts them (FR-22), and never silently overwrite an answer a person gave.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S3.5+</code></p>
     </div>
   </article>
     </section>

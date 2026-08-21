@@ -3,10 +3,43 @@
  * PostToolUse advisory (SPEC G-18, "teeth in hooks").
  *
  * Skills load probabilistically. This hook makes the trigger deterministic:
- * when a file is edited that a standard governs, it says so — with the skill
- * to load. It never blocks; it reminds at the exact moment of relevance.
+ * when a file is edited that a standard governs, it does not merely *name*
+ * the skill — it emits the skill's own checklist, so the procedure arrives
+ * in context whether or not anyone chose to load it. Naming a skill still
+ * leaves the loading to judgement, and three rounds of verification found
+ * judgement is exactly what forgets.
+ *
+ * It never blocks; it reminds at the exact moment of relevance. What it
+ * cannot do is force the checklist to be followed — that is the Stop gate's
+ * job, and the artifacts it requires.
  */
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+/**
+ * A skill's checklist: its headline rules, not the whole file. Enough to act
+ * on without flooding the context of a one-line edit.
+ */
+function checklist(skill) {
+  try {
+    const text = readFileSync(join(process.cwd(), ".claude", "skills", skill, "SKILL.md"), "utf8");
+    // Skills are written as prose under headings, so the headings ARE the
+    // checklist. Bold leads are used too; take whichever the file has.
+    const bold = [...text.matchAll(/^\*\*(.+?)\*\*/gm)].map((m) => m[1]);
+    const headings = [...text.matchAll(/^#{2,3} (.+)$/gm)].map((m) => m[1]);
+    const bullets = [...text.matchAll(/^- \*\*(.+?)\*\*/gm)].map((m) => m[1]);
+    const rules = [...new Set([...headings, ...bold, ...bullets])]
+      .map((r) => r.replace(/\s+/g, " ").replace(/[.:]$/, "").trim())
+      .filter((r) => r.length > 3 && r.length < 140)
+      .slice(0, 9);
+    if (rules.length === 0) return "";
+    return `\n   ${skill} — its own checklist, so you do not have to load it:\n${rules
+      .map((r) => `     · ${r}`)
+      .join("\n")}`;
+  } catch {
+    return "";
+  }
+}
 
 let payload = "";
 process.stdin.on("data", (chunk) => (payload += chunk));
@@ -30,13 +63,23 @@ process.stdin.on("end", () => {
   })();
 
   if (/^src\/app\/.*actions\.ts$/.test(rel) || /route\.ts$/.test(rel)) {
-    notes.push("Server action/route touched → SPEC §25: return typed results, never throw for expected failure. Load the `error-handling` skill.");
+    notes.push(
+      "Server action/route touched → SPEC §25: return typed results, never throw for expected failure." +
+        checklist("error-handling"),
+    );
   }
   if (/^src\/app\/.*\.tsx$/.test(rel)) {
-    notes.push("Surface touched → SPEC §23/§24: designed empty/loading/error states, accessible names, no internal identifiers. Load `ui-craft` and `ux-audit`.");
+    notes.push(
+      "Surface touched → SPEC §23/§24: designed empty/loading/error states, accessible names, no internal identifiers." +
+        checklist("ui-craft") +
+        checklist("ux-audit"),
+    );
   }
   if (/^src\/lib\/(intake|instrument).*\.ts$/.test(rel)) {
-    notes.push("Instrument data touched → SPEC §8: update the pinned field-set test in the same commit and record a governance entry. Load `instrument-change`.");
+    notes.push(
+      "Instrument data touched → SPEC §8: update the pinned field-set test in the same commit and record a governance entry." +
+        checklist("instrument-change"),
+    );
   }
   if (/^\.claude\/(agents|skills)\//.test(rel)) {
     notes.push("Agent or skill changed → run `pnpm agent-map` so docs/agent-map.html and the in-app transparency page match. test/unit/agent-map.test.ts fails the build until you do.");

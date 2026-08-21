@@ -135,7 +135,12 @@ build.push({
 
 // ------------------------------------------------------------------- runtime
 const spec = readFileSync(join(ROOT, "SPEC.md"), "utf8");
-const registerRows = [...spec.matchAll(/^\| (S[0-9+–-]+) \| \*\*(.+?)\*\* \| (.+?) \| (.+?) \|$/gm)];
+// Any phase label, not a guessed shape. The previous pattern accepted "S2"
+// and "S3+" and silently rejected "S1 Intake", "S1–S2" and "S3.5+", so five
+// registered features never reached the map (found by the owner, who
+// remembered there were more agents than it showed).
+const registerRows = [...spec.matchAll(/^\| (S[^|]*?) \| \*\*(.+?)\*\* \| (.+?) \| (.+?) \|$/gm)]
+  .map((m) => [m[0], m[1].trim(), m[2].trim(), m[3].trim(), m[4].trim()]);
 
 const RUNTIME_ACCESS = {
   "Intake quality assistant":
@@ -160,8 +165,26 @@ const RUNTIME_ACCESS = {
     "Would read: attested answers and the policy version in force when they were attested. A later policy revision never rewrites a historical assessment.",
   "Instrument-to-obligation traceability":
     "Would read: the instrument and the obligation library, plus human-ratified mappings between them.",
+  "Instrument contradiction lint":
+    "Would read: the authored instrument only — questions, options, conditions and rubrics. No assessment data, no personal information, and it never edits what it reads.",
+  "Plain-language term help on demand":
+    "Would read: the term on screen and the organisation's own policy and standards library. Not the person's answers.",
+  "Destination record drafting":
+    "Would read: this assessment's answers and the destination's field map. It never reaches the destination system itself — the write stays out of scope (§27).",
+  "Reverse pre-fill from a system of record":
+    "Would read: an existing record in the downstream system for this same application, and this assessment's answers, to offer the overlap.",
+  "Intake quality assistant":
+    "Would read: the description the requester wrote, and the published rubric it is graded against. Nothing else.",
+  "Assessment companion (conversational)":
+    "Would read: everything captured in this assessment so far, plus the instrument. It answers about this assessment only.",
+  "Consistency & contradiction chaining":
+    "Would read: every answer captured so far in this assessment, to compare them with each other.",
 };
 
+// Which group a registered feature belongs to. Anything not named here
+// still appears — under "Other" — because a hardcoded list that silently
+// filters is how two features registered today vanished from a page whose
+// entire purpose is that agents can be enumerated (G-25).
 const runtimeGroups = {
   "Intake & conversation": [
     "Intake quality assistant",
@@ -174,11 +197,17 @@ const runtimeGroups = {
     "Policy-grounded suggestions",
     "Compliance checking",
     "Instrument-to-obligation traceability",
+    "Instrument contradiction lint (semantic half)",
+    "Plain-language term help on demand",
   ],
   "Portfolio memory": [
     "Precedent suggestion (portfolio memory)",
     "Application profiles (our own systems)",
     "Divergence signal (reviewer-side)",
+  ],
+  Destinations: [
+    "Destination record drafting",
+    "Reverse pre-fill from a system of record",
   ],
 };
 
@@ -186,7 +215,13 @@ const byName = new Map(
   registerRows.map((r) => [r[2], { phase: r[1], name: r[2], does: r[3], guard: r[4] }]),
 );
 
-const runtime = Object.entries(runtimeGroups).map(([group, names]) => ({
+const grouped = new Set(Object.values(runtimeGroups).flat());
+const ungrouped = [...byName.keys()].filter((n) => !grouped.has(n));
+if (ungrouped.length > 0) runtimeGroups.Other = ungrouped;
+
+const runtime = Object.entries(runtimeGroups)
+  .filter(([, names]) => names.length > 0)
+  .map(([group, names]) => ({
   group,
   nodes: names
     .filter((n) => byName.has(n))

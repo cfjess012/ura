@@ -117,3 +117,34 @@ describe("the skills cannot fall behind the law they audit", () => {
     }
   });
 });
+
+describe("the agent map can be checked against something other than itself", () => {
+  // The old test regenerated the map and compared it to the committed copy:
+  // it proved the file matched the generator, and nothing proved the
+  // generator matched the SPEC. Seven registered features were missing for
+  // weeks while it stayed green. A check may never be its own reference.
+  const map = JSON.parse(
+    readFileSync(join(ROOT, "src", "data", "agents.json"), "utf8"),
+  ) as { groups: { side: string; nodes: { name: string }[] }[] };
+  const register = (spec.split("### 22.1 Phase-2 feature register")[1] ?? "").split("## 23.")[0]!;
+  const rows = register
+    .split("\n")
+    .filter((l) => l.startsWith("|") && !l.includes("---") && !l.startsWith("| From"))
+    .map((l) => l.split("|")[2]!.trim().replace(/\*\*/g, ""));
+
+  it("lists every feature registered in §22.1 — no silent drops", () => {
+    expect(rows.length).toBeGreaterThan(10);
+    const listed = map.groups.flatMap((g) => g.nodes.map((n) => n.name));
+    const missing = rows.filter(
+      (row) => !listed.some((name) => row.startsWith(name) || name === row),
+    );
+    expect(missing, "registered in SPEC §22.1 but absent from the map").toEqual([]);
+  });
+
+  it("counts the same both ways", () => {
+    const runtime = map.groups
+      .filter((g) => g.side === "runtime")
+      .flatMap((g) => g.nodes).length;
+    expect(runtime, "§22.1 rows vs runtime nodes on the map").toBe(rows.length);
+  });
+});

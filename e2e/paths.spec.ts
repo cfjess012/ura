@@ -102,9 +102,61 @@ test("answering No to everything still reaches the summary (B2)", async ({ page 
     await page.getByRole("button", { name: /No, it doesn't/ }).click();
     await page.waitForLoadState("networkidle");
   }
-  await expect(page.getByRole("heading", { name: "Nothing to narrow down" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Why there.s nothing here/ })).toBeVisible();
+  // The header must not tell them to narrow something the page says is not
+  // there — the two contradicted each other on the same screen.
+  await expect(page.getByText(/none of the areas that apply ask a follow-up/)).toBeVisible();
   await page.getByRole("link", { name: /See the summary/ }).click();
   await expect(page.getByRole("heading", { name: /whole map|areas answered/ })).toBeVisible();
+  // And it must not claim they answered something they were never asked.
+  await expect(page.getByText(/None of the areas that apply here ask a follow-up/)).toBeVisible();
+  await expect(page.getByText(/You told us none of the specific threads apply/)).toHaveCount(0);
+});
+
+test("one tick records one area, not four (N3)", async ({ page }) => {
+  // Ticking one box used to commit a positive "none of these apply" for
+  // every other open area — three questions answered on the person's behalf.
+  const base = await startAssessment(page, `One tick ${Date.now()}`);
+  await completeIntake(page, base);
+  await answerRemainingGates(page, base);
+
+  await page.getByRole("checkbox", { name: /Personal information is involved/ }).check();
+  await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
+
+  // The other open areas are still outstanding, and the summary says so
+  // rather than presenting them as narrowed.
+  await page.goto(`${base}/assess/complete`);
+  await expect(page.getByRole("heading", { name: "Still to narrow down" })).toBeVisible();
+});
+
+test("a gate answered by another gate does not claim to come from intake (N2)", async ({
+  page,
+}) => {
+  const base = await startAssessment(page, `Provenance ${Date.now()}`);
+  await page.getByLabel("Business Purpose or Objective").fill("Move the pilot into production.");
+  await page.getByLabel("Activity / Use-Case Description").fill("Promote a proof of concept.");
+  await page.getByLabel("Does this use AI or machine learning?").selectOption("No");
+  await page.getByRole("button", { name: /Next: Ownership/ }).click();
+  await page.getByLabel("Business Owner").fill("P. Sharma");
+  await page
+    .getByLabel("Is this a new initiative, or an update to an existing one?")
+    .selectOption("Moving a proof of concept into production");
+  await page.getByRole("button", { name: /Next: Categorization/ }).click();
+  await page.getByLabel("Responsible Business Unit").fill("Platform");
+  await page.getByLabel("Does anything about this involve a company outside ours?").selectOption("No");
+  await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
+  await page.getByRole("radio", { name: /Internal/ }).check();
+  await page.getByRole("button", { name: /Continue to the risk areas/ }).click();
+  await expect(page).toHaveURL(/\/assess\//);
+
+  // Security is derived from Architecture, which is derived from intake.
+  // All three surfaces must name the real source, not just the gate screen.
+  await page.goto(`${base}/assess/security-resilience`);
+  await expect(page.getByText("Answered from your answers")).toBeVisible();
+  const rail = page.getByRole("navigation", { name: "Risk areas" });
+  await expect(rail.getByRole("link", { name: /Security/ })).toContainText("from your answers");
+  await page.goto(`${base}/assess/complete`);
+  await expect(page.getByText(/Security & Resilience.*answered from your answers/)).toBeVisible();
 });
 
 test("a tick survives leaving the screen by the rail (S2)", async ({ page }) => {

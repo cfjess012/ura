@@ -8,6 +8,10 @@
  */
 import gates from "@/data/instrument/gates.json";
 import { matches, type AnswerLookup, type Condition } from "./conditions";
+import { ALL_FIELDS } from "./intake";
+
+/** Intake field ids a rule may legitimately read. */
+const INTAKE_FIELD_IDS = new Set(ALL_FIELDS.map((f) => f.id));
 
 export type GatePrefill = {
   answer: "Yes" | "No";
@@ -136,11 +140,58 @@ function validate(candidate: Instrument): Instrument {
       for (const condition of derived.when ?? []) {
         if (!("includesAny" in condition)) continue;
         if (condition.field !== "paths" && !condition.field.startsWith("path.")) continue;
-        const chained = condition.includesAny.filter((id) => derivedIds.has(id));
+        const optionIds = new Set(
+          (candidate.categories ?? []).flatMap((c) =>
+            (c.pathQuestion?.options ?? []).map((o) => o.id),
+          ),
+        );
+        const chained = condition.includesAny.filter(
+          (id) => derivedIds.has(id) && !optionIds.has(id),
+        );
         if (chained.length > 0)
           problems.push(
             `${category.key}: derived path ${derived.id} depends on ${chained.join(", ")}, which is itself derived — derivations may not chain`,
           );
+      }
+    }
+  }
+
+  // Every condition must name something that exists, and something the
+  // surface evaluating it can actually see. A rule referring to a gate key
+  // with a typo, or to `paths` from a gate pre-fill (which is resolved
+  // before any path is chosen), validates as well-formed and then never
+  // fires — the silent no-op B3 was raised for, in its general form.
+  const categoryKeys = new Set((candidate.categories ?? []).map((c) => c.key));
+  const knownField = (field: string, where: string, canSeePaths: boolean) => {
+    if (field === "paths" || field.startsWith("path.")) {
+      if (!canSeePaths)
+        return `${where}: reads "${field}", which is not resolved yet when gates are settled — it can never fire`;
+      const key = field.slice("path.".length);
+      if (field !== "paths" && !categoryKeys.has(key))
+        return `${where}: reads paths of unknown category "${key}"`;
+      return null;
+    }
+    if (field.startsWith("gate.")) {
+      const key = field.slice("gate.".length);
+      return categoryKeys.has(key) ? null : `${where}: reads unknown gate "${key}"`;
+    }
+    return INTAKE_FIELD_IDS.has(field)
+      ? null
+      : `${where}: reads "${field}", which is not an intake field, a gate, or a path`;
+  };
+  for (const category of candidate.categories ?? []) {
+    for (const rule of category.prefill ?? []) {
+      const problem = knownField(rule.when?.field ?? "", `${category.key} prefill`, false);
+      if (problem) problems.push(problem);
+    }
+    for (const derived of category.derivedPaths ?? []) {
+      for (const condition of derived.when ?? []) {
+        const problem = knownField(
+          condition.field ?? "",
+          `${category.key} derived path ${derived.id}`,
+          true,
+        );
+        if (problem) problems.push(problem);
       }
     }
   }
@@ -213,6 +264,7 @@ export type GateState = {
 export function gateStates(
   stored: Record<string, { value: string | string[]; source: string; confirmed: boolean }>,
   intake: AnswerLookup,
+  categories: Category[] = CATEGORIES,
 ): GateState[] {
   const settle = (
     category: Category,
@@ -262,8 +314,8 @@ export function gateStates(
   // passes: two passes silently capped derivation at one hop, so a rule
   // that read a gate two steps upstream validated fine and then did
   // nothing — chain depth quietly decided whether an authored rule worked.
-  let states = CATEGORIES.map((category) => settle(category, intake, "intake"));
-  for (let pass = 0; pass < CATEGORIES.length; pass++) {
+  let states = categories.map((category) => settle(category, intake, "intake"));
+  for (let pass = 0; pass < categories.length; pass++) {
     const lookup: AnswerLookup = { ...intake };
     for (const state of states) {
       if (state.answer) lookup[`gate.${state.category.key}`] = state.answer;

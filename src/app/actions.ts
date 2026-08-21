@@ -19,6 +19,7 @@ import {
   type SubmittedEntries,
 } from "@/lib/intake-values";
 import { CATEGORIES, INSTRUMENT } from "@/lib/instrument";
+import { pathSubmissionProblems } from "@/lib/engine";
 import { editableProject } from "@/lib/project-access";
 import { answerStore, projectStore } from "@/lib/repo";
 
@@ -176,42 +177,27 @@ export async function answerPaths(
       );
     }
 
-    // Validate every area BEFORE writing any of it, and refuse rather than
-    // narrow: silently dropping an option the instrument does not know
-    // turns a person's real selections into a positive "none of these
-    // apply", pinned to a version that will outlive the mistake.
-    const rows = [];
-    const versionId = await answerStore().activeVersionId(INSTRUMENT.slug);
-    for (const [categoryKey, selected] of Object.entries(selections)) {
-      const category = CATEGORIES.find((c) => c.key === categoryKey);
-      if (!category?.pathQuestion) {
-        return failure(
-          "answerPaths",
-          new Error(`no path question for category ${categoryKey}`),
-          "That part of the assessment no longer exists — it may have changed since this page was opened. Reload and your other answers will still be here.",
-          { retryable: false },
-        );
-      }
-      const known = new Set(category.pathQuestion.options.map((o) => o.id));
-      const unknown = selected.filter((id) => !known.has(id));
-      if (unknown.length > 0) {
-        return failure(
-          "answerPaths",
-          new Error(`unknown path ids for ${categoryKey}: ${unknown.join(", ")}`),
-          "Some of those options aren't part of this assessment any more — it may have changed since this page was opened. Reload to see the current questions; nothing was saved.",
-          { retryable: false },
-        );
-      }
-      rows.push({
-        projectId,
-        questionId: category.pathQuestion.questionId,
-        value: selected,
-        source: "person" as const,
-        confirmed: true,
-        instrumentVersionId: versionId,
-        answeredBy: person.id,
-      });
+    // Validate every area BEFORE writing any of it, using the pure rule so
+    // it is testable without a database.
+    const problems = pathSubmissionProblems(CATEGORIES, selections);
+    if (problems.length > 0) {
+      return failure(
+        "answerPaths",
+        new Error(problems.map((p) => JSON.stringify(p)).join("; ")),
+        "Some of those options aren't part of this assessment any more — it may have changed since this page was opened. Reload to see the current questions; nothing was saved.",
+        { retryable: false },
+      );
     }
+    const versionId = await answerStore().activeVersionId(INSTRUMENT.slug);
+    const rows = Object.entries(selections).map(([categoryKey, selected]) => ({
+      projectId,
+      questionId: CATEGORIES.find((c) => c.key === categoryKey)!.pathQuestion!.questionId,
+      value: selected,
+      source: "person" as const,
+      confirmed: true,
+      instrumentVersionId: versionId,
+      answeredBy: person.id,
+    }));
 
     // All of them, or none (B1).
     await answerStore().recordAll(rows);

@@ -13,7 +13,13 @@ import {
   prefillFor,
   unansweredCount,
 } from "../../src/lib/instrument";
-import { litPaths, litPathsFor, assessmentLookup, matchesAll } from "../../src/lib/engine";
+import {
+  litPaths,
+  litPathsFor,
+  assessmentLookup,
+  matchesAll,
+  pathSubmissionProblems,
+} from "../../src/lib/engine";
 
 describe("the instrument is valid seed data (NFR-8)", () => {
   it("has eleven categories, each with one gate and a unique question id", () => {
@@ -337,20 +343,73 @@ describe("the engine's own rules are enforced, not just described (B3, B4)", () 
     expect(tp.because.join(" ")).toMatch(/outside ours.*sign in/);
   });
 
-  it("resolves gate pre-fill to a fixed point, not a fixed number of hops", () => {
-    // Two passes silently capped derivation at one hop: a rule reading a
-    // gate two steps upstream validated fine and then did nothing.
-    const intake = { initiativeType: "Moving a proof of concept into production" };
-    const states = gateStates({}, intake);
-    // intake → architecture → security is two hops and must resolve.
-    expect(states.find((s) => s.category.key === "security-resilience")!.answer).toBe("Yes");
+  // A synthetic chain: seed → a → b → c. The shipped instrument only has a
+  // two-hop chain, which the OLD two-pass code also resolved — so a test
+  // against shipped data proved nothing about the fix. This is why
+  // gateStates takes its categories as an argument now.
+  const link = (key: string, reads: string, value: string) => ({
+    key,
+    name: key,
+    short: key,
+    questionId: `gate.${key}`,
+    text: `Does ${key} apply?`,
+    help: `Whether ${key} applies.`,
+    prefill: [
+      {
+        answer: "Yes" as const,
+        when: { field: reads, equalsAny: [value] },
+        because: `${reads} said ${value}`,
+      },
+    ],
   });
 
-  it("terminates even if a cycle were ever authored", () => {
-    // The loop is bounded by the number of categories, so a cycle cannot
-    // spin here even if the validator let one through.
+  it("resolves a THREE-hop chain, which two passes could not", () => {
+    const chain = [link("a", "seed", "Yes"), link("b", "gate.a", "Yes"), link("c", "gate.b", "Yes")];
+    const states = gateStates({}, { seed: "Yes" }, chain);
+    expect(states.map((s) => s.answer)).toEqual(["Yes", "Yes", "Yes"]);
+    // Everything past the first hop came from another answer, not intake.
+    expect(states.map((s) => s.origin)).toEqual(["intake", "answers", "answers"]);
+  });
+
+  it("stops the chain where the evidence stops", () => {
+    const chain = [link("a", "seed", "Yes"), link("b", "gate.a", "Yes")];
+    expect(gateStates({}, {}, chain).map((s) => s.answer)).toEqual([null, null]);
+  });
+
+  it("terminates on a REAL cycle, and answers nothing", () => {
+    // Authored deliberately: a reads b, b reads a. The validator should
+    // never allow it; the engine must not spin if it ever did.
+    const cycle = [link("a", "gate.b", "Yes"), link("b", "gate.a", "Yes")];
     const started = performance.now();
-    gateStates({}, { initiativeType: "Moving a proof of concept into production" });
-    expect(performance.now() - started).toBeLessThan(200);
+    const states = gateStates({}, {}, cycle);
+    expect(performance.now() - started).toBeLessThan(100);
+    expect(states.map((s) => s.answer)).toEqual([null, null]);
+  });
+
+  it("a person's answer stops the chain from overriding it", () => {
+    const chain = [link("a", "seed", "Yes"), link("b", "gate.a", "Yes")];
+    const states = gateStates(
+      { "gate.b": { value: "No", source: "person", confirmed: true } },
+      { seed: "Yes" },
+      chain,
+    );
+    expect(states.find((s) => s.category.key === "b")!.answer).toBe("No");
+  });
+});
+
+describe("a path submission is refused, never narrowed (N9)", () => {
+  it("names an option the instrument does not offer", () => {
+    expect(pathSubmissionProblems(CATEGORIES, { "data-privacy": ["PRIV", "NOPE"] })).toEqual([
+      { kind: "unknown-options", categoryKey: "data-privacy", ids: ["NOPE"] },
+    ]);
+  });
+
+  it("refuses an unknown category, and one with no path question", () => {
+    expect(pathSubmissionProblems(CATEGORIES, { nonsense: [] })[0]!.kind).toBe("unknown-category");
+    expect(pathSubmissionProblems(CATEGORIES, { governance: [] })[0]!.kind).toBe("no-path-question");
+  });
+
+  it("accepts a genuinely empty selection — 'none of these apply' is an answer", () => {
+    expect(pathSubmissionProblems(CATEGORIES, { "data-privacy": [] })).toEqual([]);
   });
 });

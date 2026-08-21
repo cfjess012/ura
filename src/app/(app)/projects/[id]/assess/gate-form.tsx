@@ -8,7 +8,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { answerGate } from "@/app/actions";
-import { isFailure } from "@/lib/errors";
+import { errorRef, isFailure } from "@/lib/errors";
 
 export function GateForm({
   projectId,
@@ -66,7 +66,7 @@ export function GateForm({
       setError({
         message:
           "The server couldn't be reached, so this answer wasn't recorded. Everything you answered before is safe. Try again in a moment.",
-        ref: "OFFLINE",
+        ref: errorRef(),
         retryable: true,
       });
     } finally {
