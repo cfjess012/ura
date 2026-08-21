@@ -16,7 +16,7 @@ test("create → fill (conditionals reveal) → reopen → everything is there",
 }) => {
   // Create.
   await page.goto("/");
-  await page.getByLabel("Project name").fill(NAME);
+  await page.getByLabel("Start a new assessment").fill(NAME);
   await page.getByRole("button", { name: "Start assessment" }).click();
   await expect(page.getByRole("heading", { name: NAME })).toBeVisible();
 

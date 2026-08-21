@@ -1,8 +1,9 @@
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getDb, schema } from "@/lib/db";
-import type { IntakeValues } from "@/lib/intake";
+import { missingRequired, type IntakeValues } from "@/lib/intake";
 import { IntakeForm } from "./intake-form";
+import { ProjectHeader } from "./project-header";
 
 export const dynamic = "force-dynamic";
 
@@ -40,14 +41,33 @@ export default async function ProjectPage({
     dataElements: row.dataElements,
   };
 
+  const outstanding = missingRequired(initial).length;
+  const nextLine =
+    outstanding === 0
+      ? "Intake is complete — the risk questions come next."
+      : `Tell us about the project — ${outstanding} question${outstanding === 1 ? "" : "s"} left before the assessment can start.`;
+
   return (
     <main>
-      <h1>{row.projectName}</h1>
-      <p className="meta">
-        Intake — the assessment&rsquo;s identity record. Last saved{" "}
-        {row.updatedAt.toLocaleString()}.
+      <ProjectHeader
+        name={row.projectName}
+        status="Draft"
+        nextLine={nextLine}
+        currentStage={0}
+      />
+
+      <p className="eyebrow">Step 1 · Intake</p>
+      <h2 className="display">Tell us about the project.</h2>
+      <p className="lede">
+        Plain answers are fine — this is the record every risk area works from,
+        so nobody has to ask you the same thing twice.
       </p>
+
       <IntakeForm projectId={row.id} initial={initial} />
+
+      <p className="meta" style={{ textAlign: "center", marginTop: "1.4rem" }}>
+        Everything you provide becomes the source material for the assessment.
+      </p>
     </main>
   );
 }

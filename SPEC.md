@@ -28,7 +28,8 @@ These rules bind any implementer, human or Claude Code, before a single line is 
 11. **Every slice ends with the review protocol (§21), and no slice begins until the prior slice's review is closed.** Silence is never approval — from either side.
 12. **Every slice plans its agentic opportunity** (§22) — designed and registered, not built. Phase 1 ships no agent; it may not ship anything that forecloses one.
 13. **Every slice ships demo-ready UI** (§23). A slice with working logic and unfinished interface is not done.
-14. **Critique is owed, not optional.** The implementer must surface disagreements, weaknesses, and risks in the owner's instructions as readily as in its own work. Agreeable implementation of a flawed instruction is a failure of this specification, not a courtesy.
+14. **Every slice is independently verified before it advances** — the slice-verifier subagent (§15) runs UAT and regression, and its report is attached to the review. Self-certification is not verification.
+15. **Critique is owed, not optional.** The implementer must surface disagreements, weaknesses, and risks in the owner's instructions as readily as in its own work. Agreeable implementation of a flawed instruction is a failure of this specification, not a courtesy.
 
 ## 1. Mission and purpose
 
@@ -268,6 +269,7 @@ Composite scoring policy (§14) · framework crosswalks (planned; will anchor to
 - **G-5 (settled):** No runtime instrument authoring; seed-PR governance only (§8).
 - **G-6 (settled):** The agentic layer's contract (§7) is normative now, even while dormant — nothing may be built that would violate it later.
 - **G-7 (settled):** AWS is the deployment target and §6.4's tiered migration is the plan of record. Phase 1 builds AWS-ready by construction (the five firm obligations in §6.4); cloud execution itself is Phase-3 work. The Bedrock model-access request is the standing critical-path item and is owner-owned.
+- **G-13 (settled):** Independent verification is a Phase-1 capability, not a Phase-2 one: the slice-verifier subagent runs UAT and regression against every slice before it advances, cannot edit code, and its report is part of the slice review. Adopted 2026-08-21.
 - **G-12 (settled):** Every slice ships demo-ready UI to the §23 standard; a slice with working logic and unfinished interface is not done. Taste calls belong to the owner and are applied before the next slice begins.
 - **G-11 (settled):** Every slice registers its agentic opportunity (§22) as a designed, guard-railed Phase-2 feature. Phase 1 builds none of it and may foreclose none of it. First entry: the intake quality assistant (rubric grading, contradiction detection, opt-in rewrite of the requester's own words).
 - **G-10 (settled):** Intake question set refined 2026-08-21 (S1 review): AI capture with a conditional detail field; plain-language "new vs. update" replacing the acronym list, with an optional prior-work pointer; objective launch date replacing self-reported priority; lifecycle stage retired (absorbed by initiative type); procurement status softened to Yes/No/Not-sure; compliance-obligation areas and granular PII detail removed from intake — both are asked at Tier 1/2 where they route (T1-LRC-2, T2-PRIV-1.C). Consequence: intake now carries routing-relevant answers, which is why FR-22 exists.
@@ -292,7 +294,8 @@ This repository is operated with Claude Code as a first-class tool; the operatin
   - *Post-write* — formatter + package typecheck on every edit.
   - *Stop gate* — the full chain (tests · coherence gate · eval when active · **file-budget check**) must pass before any session concludes work. The budget check enforces §11 mechanically.
 - **Skills** (`.claude/skills/`): `/instrument-change` — the governed seed-PR workflow end to end (edit → validate → parity → ground truth → four-eyes PR); `/full-gates` — the complete gate chain; `/uat-checkout` — generates a numbered, objective-pass-line test script for the current milestone. Procedures are commands, not lore.
-- **Subagents** (`.claude/agents/`): *contract-guard* (before any seam-adjacent commit), *coherence-auditor* (after any instrument change), *provenance-auditor* (before any eval-baseline commit), *ontology-auditor* (sampling ratified relationships). Each definition states its trigger moment; using them at those moments is part of the definition of done for the relevant change.
+- **Subagents** (`.claude/agents/`): **slice-verifier** (mandatory — see below), *contract-guard* (before any seam-adjacent commit), *coherence-auditor* (after any instrument change), *provenance-auditor* (before any eval-baseline commit), *ontology-auditor* (sampling ratified relationships). Each definition states its trigger moment; using them at those moments is part of the definition of done for the relevant change.
+- **The slice-verifier is not optional.** Every slice is independently verified before its review is written: full gate chain, requirement-by-requirement UAT driven through the running app, **regression over every prior slice's journey**, acceptance criteria including negative cases, a §23 UI audit, an invariant spot-check, and a scope check. It may not edit code — it reports. **A FAIL blocks the slice; a PASS with findings means the findings are fixed and it is re-run.** Its report is attached to the slice review (§21).
 - **Conventions the layer enforces**: file budgets; no parallel implementations (§11); generated docs only regenerated, never hand-edited; model access confined to the agent service.
 
 ## 16. Phase boundaries — what "build this" means
@@ -461,6 +464,7 @@ The implementer delivers, in one message:
 5. **A demoable artifact** — running app, screenshot, or transcript. Never a claim without evidence.
 6. **The agentic opportunity** (§22) — what an agent would do for this slice's work, registered as a Phase-2 feature with its guardrails. Written even when the answer is "nothing here".
 7. **UI evidence** — a screenshot per new surface, and a statement of which §23 criteria are met and which are deliberately deferred.
+8. **The slice-verifier report** — verdict, gates, requirement-by-requirement UAT, regression results, findings, and what it could not verify.
 
 The owner then analyses and returns changes. **Refinements are applied and re-gated before the next slice starts**; if a refinement is large enough to change the instrument or a requirement, it updates §20 and the governance log first.
 

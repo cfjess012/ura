@@ -19,19 +19,27 @@ export default async function Home() {
 
   return (
     <main>
-      <h1>Assessments</h1>
-      <p className="meta">
-        One front door: describe the activity once, and every risk area works
-        from it.
+      <p className="eyebrow">Assessments</p>
+      <h1 className="display">One front door.</h1>
+      <p className="lede">
+        Describe the activity once. Every risk area works from the same answers
+        — third-party, security, privacy, AI, legal — so nobody has to ask you
+        again.
       </p>
 
       <div className="card">
-        <form action={createProject} style={{ display: "flex", gap: "0.6rem" }}>
+        <label className="field" htmlFor="new-project">
+          Start a new assessment
+        </label>
+        <p className="help">
+          A working name is enough — you can change it later.
+        </p>
+        <form action={createProject} className="start-card">
           <input
             type="text"
+            id="new-project"
             name="projectName"
-            placeholder="Project name"
-            aria-label="Project name"
+            placeholder="e.g. Cadenza workforce scheduling"
             required
           />
           <button className="btn" type="submit">
@@ -40,23 +48,25 @@ export default async function Home() {
         </form>
       </div>
 
-      <h2>All projects</h2>
-      <div className="list">
-        {rows.length === 0 && (
-          <p className="meta">
-            Nothing yet — start the first assessment above.
+      <h2 className="card-heading">Your assessments</h2>
+      {rows.length === 0 ? (
+        <div className="empty">
+          <p>
+            <strong>No assessments yet.</strong>
           </p>
-        )}
-        {rows.map((p) => (
-          <div className="card row" key={p.id}>
+          <p>Start one above — it takes a name and about five minutes.</p>
+        </div>
+      ) : (
+        rows.map((p) => (
+          <div className="list-row" key={p.id}>
             <Link href={`/projects/${p.id}`}>{p.projectName}</Link>
             <span className="meta">
               {p.businessUnit ? `${p.businessUnit} · ` : ""}
-              updated {p.updatedAt.toLocaleString()}
+              updated {p.updatedAt.toLocaleDateString()}
             </span>
           </div>
-        ))}
-      </div>
+        ))
+      )}
     </main>
   );
 }

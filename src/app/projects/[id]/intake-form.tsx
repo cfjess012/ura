@@ -74,9 +74,15 @@ export function IntakeForm({
       ))}
       <div className="savebar">
         <span className="missing">
-          {missing.length === 0
-            ? "All required fields answered."
-            : `${missing.length} required field${missing.length === 1 ? "" : "s"} remaining: ${missing.join(", ")}`}
+          {missing.length === 0 ? (
+            "All required fields answered."
+          ) : (
+            <>
+              <strong>{missing.length}</strong> still needed —{" "}
+              {missing.slice(0, 2).join(", ")}
+              {missing.length > 2 && ` and ${missing.length - 2} more`}
+            </>
+          )}
         </span>
         <span style={{ display: "flex", gap: "0.8rem", alignItems: "center" }}>
           {/* One unambiguous status region — never a silent second (SPEC §9). */}
@@ -128,7 +134,9 @@ function Field({
   if (field.conditional) {
     return (
       <div className="reveal">
-        <p className="why">{field.revealNote}</p>
+        <p className="why">
+        <span aria-hidden="true">↳</span> {field.revealNote}
+      </p>
         {label}
         {body}
       </div>
