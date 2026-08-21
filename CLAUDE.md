@@ -28,6 +28,7 @@ pnpm db:migrate   # DATABASE_URL from .env
 pnpm test         # vitest (PGlite applies REAL migrations — no docker needed)
 pnpm e2e          # playwright against a running dev server
 pnpm typecheck
+pnpm agent-map     # regenerates docs/agent-map.html from the repo itself
 ```
 
 ## Skills — load them at these moments (SPEC G-18)

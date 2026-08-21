@@ -1,0 +1,1386 @@
+<title>Agent Topology</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;800&display=swap">
+<style>
+  :root {
+    --navy:#002855; --navy-2:#013a76; --accent:#c6ed08; --primary:#0076cf; --link:#0061a0;
+    --tint-1:#f2f9fd; --tint-2:#e5f3fb; --tint-3:#cbe4f6; --page:#f6f8f9; --card:#ffffff;
+    --ink:#1b2227; --ink-soft:#626d76; --line:#dbe2e7; --live:#008744; --live-bg:#e6fff2;
+    --dormant:#96690f; --dormant-bg:#f7efdd;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --navy:#0b1d31; --navy-2:#12314f; --primary:#67b0e8; --link:#8cc4f0;
+      --tint-1:#16222c; --tint-2:#1a2b38; --tint-3:#24405a; --page:#10161b; --card:#182028;
+      --ink:#e6eaed; --ink-soft:#9aa7b1; --line:#2a353f; --live:#7fd3a3; --live-bg:#163024;
+      --dormant:#dcac5c; --dormant-bg:#2f2718;
+    }
+  }
+  :root[data-theme="dark"] {
+    --navy:#0b1d31; --navy-2:#12314f; --primary:#67b0e8; --link:#8cc4f0;
+    --tint-1:#16222c; --tint-2:#1a2b38; --tint-3:#24405a; --page:#10161b; --card:#182028;
+    --ink:#e6eaed; --ink-soft:#9aa7b1; --line:#2a353f; --live:#7fd3a3; --live-bg:#163024;
+    --dormant:#dcac5c; --dormant-bg:#2f2718;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--page); color:var(--ink);
+    font-family:Figtree,-apple-system,"Segoe UI",sans-serif; font-size:16px; line-height:1.5; }
+  main { max-width:76rem; margin:0 auto; padding:2.5rem 1.25rem 5rem; }
+  .kicker { font-size:.72rem; font-weight:800; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--primary); margin:0 0 .4rem; }
+  h1 { font-size:2.1rem; font-weight:800; letter-spacing:-.02em; margin:0 0 .5rem; text-wrap:balance; }
+  .lede { color:var(--ink-soft); max-width:48rem; margin:0 0 1.6rem; }
+  .controls { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin-bottom:1.6rem; }
+  .filter { font:inherit; font-size:.85rem; font-weight:600; cursor:pointer; border:1px solid var(--line);
+    background:var(--card); color:var(--ink); border-radius:999px; padding:.35rem .9rem; }
+  .filter[aria-pressed="true"] { background:var(--navy); border-color:var(--navy); color:#fff; }
+  .filter:focus-visible, .node-head:focus-visible, summary:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+  .count { margin-left:auto; font-size:.85rem; color:var(--ink-soft); font-variant-numeric:tabular-nums; }
+  .root { background:linear-gradient(180deg,var(--navy) 0%,var(--navy-2) 100%); color:#fff;
+    border-radius:14px; padding:1.1rem 1.4rem; margin-bottom:.6rem; }
+  .root h2 { margin:0; font-size:1.05rem; font-weight:800; }
+  .root p { margin:.2rem 0 0; font-size:.9rem; color:#c3d6e6; }
+  .root .accent { color:var(--accent); }
+  .branches { display:grid; grid-template-columns:1fr auto 1fr; gap:0 1.4rem; align-items:start; }
+  @media (max-width:960px){ .branches{grid-template-columns:1fr;} .divider{display:none;} }
+  .branch-head { padding:1rem 0 .4rem; }
+  .branch-head h3 { margin:0; font-size:1rem; font-weight:800; }
+  .branch-head p { margin:.15rem 0 0; font-size:.86rem; color:var(--ink-soft); }
+  .divider { width:1px; background:var(--line); align-self:stretch; margin-top:1.4rem; position:relative; }
+  .divider::after { content:"stays behind   ·   migrates to AgentCore →"; position:absolute; top:5rem; left:50%;
+    transform:translateX(-50%) rotate(90deg); white-space:nowrap; font-size:.66rem; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--ink-soft); }
+  .group-label { font-size:.68rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--ink-soft); margin:1rem 0 .4rem; }
+  .node { border:1px solid var(--line); border-left:3px solid var(--live); border-radius:10px;
+    background:var(--card); margin-bottom:.4rem; overflow:hidden; }
+  .node.dormant { border-left-color:var(--dormant); border-style:dashed; background:transparent; }
+  .node-head { display:block; width:100%; text-align:left; font:inherit; color:var(--ink);
+    background:none; border:0; cursor:pointer; padding:.65rem .85rem; }
+  .node-head:hover { background:var(--tint-1); }
+  .node-top { display:flex; gap:.6rem; align-items:baseline; justify-content:space-between; }
+  .node-name { font-weight:700; font-size:.94rem; }
+  .node-what { display:block; font-size:.85rem; color:var(--ink-soft); margin-top:.1rem; }
+  .chip { font-size:.62rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+    border-radius:999px; padding:.1rem .5rem; white-space:nowrap; }
+  .chip.live { background:var(--live-bg); color:var(--live); }
+  .chip.dormant { background:var(--dormant-bg); color:var(--dormant); }
+  .detail { padding:0 .85rem .8rem; font-size:.87rem; }
+  .detail p { margin:0 0 .6rem; }
+  .label { display:block; font-size:.64rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-soft); margin-bottom:.1rem; }
+  .gist { color:var(--ink-soft); font-style:italic; }
+  .full { border-top:1px dashed var(--line); padding-top:.5rem; }
+  .full summary { cursor:pointer; font-weight:700; font-size:.83rem; color:var(--link); }
+  .full pre { max-height:26rem; overflow:auto; background:var(--tint-1); border:1px solid var(--line);
+    border-radius:8px; padding:.8rem; font-family:var(--mono); font-size:.74rem; line-height:1.5;
+    white-space:pre-wrap; margin:.6rem 0 0; }
+  .where { margin-top:.5rem; }
+  .where code { font-family:var(--mono); font-size:.72rem; color:var(--ink-soft); }
+  .hidden { display:none; }
+  .laws { margin-top:2.4rem; border-top:1px solid var(--line); padding-top:1.4rem; }
+  .laws h3 { font-size:1rem; margin:0 0 .8rem; }
+  .law-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(255px,1fr)); gap:.6rem; }
+  .law { background:var(--tint-1); border:1px solid var(--tint-3); border-radius:10px; padding:.75rem .9rem; }
+  .law strong { display:block; font-size:.86rem; margin-bottom:.15rem; }
+  .law span { font-size:.83rem; color:var(--ink-soft); }
+  .stamp { margin-top:1.6rem; font-size:.78rem; color:var(--ink-soft); }
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important;} }
+</style>
+<main>
+  <p class="kicker">Universal Risk Assessment · generated 2026-08-21</p>
+  <h1>Agent Topology</h1>
+  <p class="lede">
+    Every agent in this project, what triggers it, what it can see, and its full instruction set.
+    The line down the middle is the one that matters at migration time: the agents that
+    <strong>build</strong> the product are Claude Code tooling and stay behind; the agents that
+    <strong>are</strong> the product become AgentCore runtimes on AWS.
+  </p>
+  <div class="controls">
+    <button class="filter" data-filter="all" aria-pressed="true">All</button>
+    <button class="filter" data-filter="live" aria-pressed="false">Live today</button>
+    <button class="filter" data-filter="dormant" aria-pressed="false">Registered, unbuilt</button>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="root">
+    <h2>Universal Risk Assessment <span class="accent">·</span> one front door</h2>
+    <p>SPEC.md is the brain. Phase 1 builds no runtime agent — and forecloses none.</p>
+  </div>
+  <div class="branches">
+    <section>
+      <div class="branch-head"><h3>Build-time — Claude Code</h3>
+        <p>Builds and guards the product. Never ships, never migrates.</p></div>
+      <p class="group-label">Subagents — independent reviewers with their own context</p>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">slice-verifier</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Independent UAT and regression verification of a completed slice before it may advance. Runs the full gate chain, drives the app as a user against the slice's requirements, re-runs every prior slice's journey, and audits the demo-ready UI standard. Reports PASS/FAIL with evidence. Use at the end of every slice, before the slice review is written.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>At the end of every slice, before the review is written. A FAIL blocks the slice; a PASS with findings means they are fixed and it runs again.</p>
+      <p><span class="label">What it can see</span>Reads any file in the repository and searches it. Runs commands — the test suites, the database, and a browser it drives like a person. It cannot edit a single line of code: it reports, and someone else fixes.</p>
+      <p><span class="label">In its own words</span><span class="gist">You verify a completed slice. You are deliberately not the implementer: you did not write this code, you do not fix it, and you do not grade on a curve.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>You verify a completed slice. You are deliberately **not** the implementer:
+you did not write this code, you do not fix it, and you do not grade on a
+curve. Your only output is a verdict with evidence.
+
+**You may never edit source files.** If something is broken, you report it
+precisely enough that the implementer can fix it without re-deriving it.
+
+## Skills are the source of truth, not this file
+
+Where a check has a skill, **load the skill and audit against it** rather
+than against the summary here. A verifier working from a stale paraphrase
+misses exactly the standards that were added most recently — which are the
+ones most likely to be violated by new work. `test/unit/docs.test.ts`
+enforces that this file names every §24 principle.
+
+## Inputs
+
+The slice number (e.g. &quot;S2&quot;) and, from SPEC.md: that slice's row in §17
+(what it builds, which requirement IDs it owns, its done-when), the owned
+requirements in §20, the acceptance criteria in §19, and the UI standard
+in §23. Read those first. Never accept a summary of the requirements —
+read the requirements.
+
+## Procedure
+
+1. **Gate chain.** Run `pnpm test`, `pnpm typecheck`, and `pnpm e2e`
+   (start the dev server first if it is not up). Record counts and any
+   failures verbatim. A red gate is an immediate FAIL — stop and report.
+2. **Requirement-by-requirement UAT.** For each requirement ID the slice
+   owns, drive the running app as a user would and confirm the behaviour
+   with your own eyes, not by reading the source.
+
+   **Work in small, time-boxed steps.** Write **one short script per
+   requirement** (30 lines maximum, in the repo root as `.verify-N.mjs` so
+   module resolution works), run it, record the result, delete it, move on.
+   Never write one long script that does everything: a single stalled
+   browser call then costs the whole verification. Set
+   `page.setDefaultTimeout(15000)` in every script and always
+   `await browser.close()`. If a script hangs twice, record it as
+   &quot;could not verify&quot; with the reason and continue — a partial report
+   delivered is worth more than a complete one that never arrives.
+3. **Regression.** Re-run every prior slice's journey. A slice that breaks
+   an earlier slice's done-when is a FAIL regardless of its own quality.
+4. **Acceptance criteria.** Check the §19 criteria that apply to this
+   slice, including the negative cases (unanswered inputs, unknown
+   severity, forged requests where relevant). Missing negative-case
+   coverage is a finding.
+5. **Experience audit (§24).** **Read `SPEC.md` §24 and `.claude/skills/ux-audit/SKILL.md` first, and audit against every principle you find there — not against this list.** The laws grow; this file must never become a stale copy of them. Walk the surface as the person it is for, not as a tester, and report each principle as met or violated **with the screen and the exact wording at fault**.
+
+   As of writing, §24 covers: never re-ask what someone said they don't know (24.1) · one decision per screen (24.2) · every wait and failure speaks (24.3) · revealed content says why (24.4) · nobody repeats themselves (24.5) · no internal vocabulary on screen (24.6) · unbuilt stages read as upcoming (24.7) · progress counts only what the person can act on (24.8) · **every question says what to do when it doesn't apply (24.9)** · **every question carries teaching helper text (24.10)**. If §24 contains principles beyond 24.10, audit those too and say so in your report.
+6. **UI audit (§23).** **Read `.claude/skills/ui-craft/SKILL.md` first.** For each new surface: accessible name on every
+   control, full keyboard operation, visible focus, designed empty /
+   loading / error / disabled states, no state conveyed by colour alone,
+   no internal identifiers in any user-facing string, and no silent
+   waits. Capture a screenshot per surface into `/tmp`.
+7. **Invariant spot-check.** Confirm the slice did not weaken a §5
+   invariant — especially insert-only records, server-side authority, and
+   the one-visibility-predicate rule.
+8. **Error-path audit (§25).** **Read `.claude/skills/error-handling/SKILL.md` first.** Force at least one failure per slice (stop the database, break the network, submit a stale id) and confirm: a plain sentence with a reference, no internal detail on screen, the person's input still present, a retry offered only where retrying can work, and the failure announced to assistive technology. An error path with no test is a finding.
+9. **Scope check.** Confirm nothing outside the slice's requirements was
+   built (Build Rule 5) and nothing was silently dropped: the pinned
+   instrument field-set test and the file budgets both still hold.
+
+## Output
+
+A single report:
+
+- **VERDICT: PASS** or **VERDICT: FAIL** (FAIL if any blocking finding).
+- **Gates** — the actual numbers (tests passed, typecheck, e2e).
+- **Requirements** — one line per owned requirement ID: met / not met, with
+  the observation that proves it.
+- **Regression** — prior journeys re-run and their results.
+- **Findings** — each with severity (blocking / should-fix / note), what you
+  observed, the exact reproduction, and where it lives. No speculation: if
+  you could not reproduce it, say so.
+- **UI audit** — §23 criteria met, criteria missed, screenshots captured.
+- **Experience audit** — §24 principles met or violated, each with the screen and the exact wording at fault.
+- **What you could not verify** — always present. Name the gaps in your own
+  coverage rather than implying completeness.
+
+Be specific and be blunt. A verifier that reports PASS on work with real
+defects is worse than no verifier at all: it converts a missing check into
+false confidence, which is exactly what this project's governance exists to
+prevent.</pre>
+      </details>
+      <p class="where"><code>.claude/agents/slice-verifier.md</code></p>
+    </div>
+  </article><p class="group-label">Skills — procedure, loaded at the moment it is needed</p>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">agentic-design</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Design an AI-assisted feature for this product without breaking its provenance guarantees — the evidence line, propose-never-decide, precedent rules, privacy of external calls, and graceful degradation</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Before proposing or specifying anything an agent would do.</p>
+      <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
+      <p><span class="label">In its own words</span><span class="gist">the precedent rules in §22.4. World knowledge and portfolio patterns may inform the conversation.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>Implements SPEC §7 (the agentic contract), §22 (opportunity register), and
+the precedent rules in §22.4.
+
+## The one line that decides most designs
+
+**World knowledge and portfolio patterns may inform the conversation. They
+may never become an answer's evidence** (§22.2).
+
+An answer's evidence must trace to what *this* requester said or provided.
+&quot;The internet says Snowflake works this way&quot; and &quot;eleven other teams
+answered Yes&quot; are both assertions about the world, not facts about this
+implementation — their Snowflake may be single-tenant, their pipeline
+different. The correct shape is always:
+
+&gt; agent proposes, using whatever knowledge it has →
+&gt; the person confirms in their own words or with their own click →
+&gt; **that confirmation is the evidence.**
+
+Every feature below is a variation on that sentence. If a design cannot be
+expressed in it, the design is wrong.
+
+## The five checks
+
+Run these before writing a line of a feature spec.
+
+**1. Who decides?** The agent drafts, suggests, explains, flags. A human
+attests. If a feature would let a value become final without a person
+choosing it, stop — it violates §5.5, not merely a preference.
+
+**2. What happens when it's wrong?** Assume the model is confident and
+wrong. What does the person see, what does the reviewer see, and how does
+the mistake get caught? A feature with no answer here is not ready. Prefer
+designs where being wrong is *visible* (a proposal a person rejects) over
+designs where being wrong is *silent* (a value quietly written).
+
+**3. What leaves the boundary?** Any external call is data egress, and this
+product asks people to classify their content Confidential or Restricted
+(§22.3). Name exactly what is sent. Default: the technology name, never the
+description. Name the classification threshold above which nothing leaves.
+
+**4. What happens with no model?** Every agentic feature needs a defined
+degraded state: the deterministic half still runs, the surface still works,
+nothing blocks. If the product is unusable when the model is down, the
+model has become an invariant — and only §5 gets to be that.
+
+**5. Does it anchor?** Showing a suggestion before a person thinks changes
+their answer. That is fine for a draft they will edit; it is corrosive for
+a binary judgement. For gates and yes/no decisions, prefer showing patterns
+*after* the answer as a check, not before as a prompt (§22.4.3).
+
+## Policy-grounded features specifically
+
+An internal policy is the **one legitimate exception** to the evidence line
+(§22.5) — but only for part of the chain:
+
+- The policy defines **what a term means** and **what is required**.
+- The requester supplies **the facts about their project**.
+- Their **confirmation** is the answer's evidence.
+
+A design that lets a policy assert a project fact (&quot;the standard says
+systems like this store PII, so we recorded Yes&quot;) has broken the chain as
+badly as a web-grounded one. Quote **verbatim or not at all**, always with
+policy, clause, and version. Version policies like the instrument: a
+revision raises a finding against a current assessment, it never rewrites a
+historical one.
+
+## Precedent features specifically
+
+Anything that learns from other assessments obeys §22.4:
+
+- **Attested only.** Precedent is built from human-signed answers.
+  Otherwise an early error compounds into institutional truth — the
+  platform industrialises the mistake instead of catching it.
+- **Aggregate, never disclose.** Patterns and counts, never another team's
+  content, project, or owner. Below the minimum comparable count, show
+  nothing: precedent from a single assessment is gossip, and it identifies
+  the source.
+- **Age is part of the fact.** Always show how many and how recent.
+- **Divergence belongs to the reviewer.** &quot;Different from fourteen
+  comparable assessments&quot; is a triage signal for a reviewer, never a nag
+  that pressures a requester toward the majority. Being different is often
+  correct — that is frequently the whole point of the assessment.
+
+## Writing the register entry (§22.1)
+
+Four columns, and the guardrail column is the one that matters:
+
+| From | Feature | What it does | Guardrails beyond the standing set |
+
+Write the guardrails as the things you would refuse to build, not as
+aspirations. &quot;Proposes, never decides&quot; is a guardrail. &quot;Aims to be
+accurate&quot; is not.
+
+## Phase discipline
+
+Phase 1 builds **none** of this and forecloses **none** of it (§16, Build
+Rule 12). The practical obligation while building today: keep the raw
+material an agent will need — the requester's own prose, the attestation
+record, the reason a value was derived. Discarding those is what makes a
+registered feature impossible later.</pre>
+      </details>
+      <p class="where"><code>.claude/skills/agentic-design/SKILL.md</code></p>
+    </div>
+  </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">aws-ready</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Keep every feature deployable to serverless AWS — pure logic separated from executors, state externalised, config through one module, tests in tiers</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>When adding a feature, utility, or data-access path.</p>
+      <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
+      <p><span class="label">In its own words</span><span class="gist"> src/lib/&lt;feature&gt;.ts          pure rules — no framework, no driver, no env src/lib/repo.ts               the only place the database driver appears src/app/actions.ts            executor: request → pure fn → store → Result src/lib/config.ts             the only place process.env is read  Anything i</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>Implements SPEC §26 (and §6.4, G-7).
+
+## The shape of a feature
+
+```
+src/lib/&lt;feature&gt;.ts          pure rules — no framework, no driver, no env
+src/lib/repo.ts               the only place the database driver appears
+src/app/actions.ts            executor: request → pure fn → store → Result
+src/lib/config.ts             the only place process.env is read
+```
+
+Anything in the pure layer must lift into a Lambda handler or AgentCore
+task **with no edit to its body**. That is the test: could you copy this
+file into a new project and have it compile with only its own imports?
+
+- Convert web shapes (`FormData`, `Request`) at the boundary. A pure module
+  that mentions `FormData` has already failed.
+- No local filesystem state, no hardcoded paths, no in-memory session.
+- Small connection pools: serverless scales instances, not connections.
+
+## Config
+
+Add new settings to `src/lib/config.ts` only, with validation and an error
+naming both the local fix and the AWS source (Secrets Manager / Parameter
+Store). Never read `process.env` anywhere else.
+
+## Tests in tiers
+
+- `test/unit/` — pure logic, mocks everything external, needs only Node.
+- `test/integration/` — real SQL on in-process Postgres (PGlite); no
+  daemon, no local setup.
+- `e2e/` — the running app.
+
+Group by feature domain. Each tier must run inside a CI container with no
+local terminal setup, because each becomes a CodeBuild step.
+
+## The store engine is undecided
+
+Postgres today; **DynamoDB is a live candidate** (§14.6). Flag any
+Postgres-specific choice in the slice review as a constraint on that
+decision. The crux to remember: §5 invariants are enforced by DB CHECK
+constraints, which DynamoDB does not have — moving would relocate those
+guarantees into application code.
+
+## Enforcement
+
+`test/unit/architecture.test.ts` fails the build on drift: a framework
+import in a logic module, driver access outside the store, `process.env`
+outside config, or a hardcoded connection string. Add a case there when you
+add a rule.</pre>
+      </details>
+      <p class="where"><code>.claude/skills/aws-ready/SKILL.md</code></p>
+    </div>
+  </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">error-handling</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">How to write and review any failure path — server actions, mutations, data access, background work</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Before writing an action, a mutation, or any failure path.</p>
+      <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
+      <p><span class="label">In its own words</span><span class="gist">Expected failures are values, not exceptions — a forgotten catch cannot swallow what was never thrown. ts // src/lib/errors.ts provides: Result&lt;T&gt;, failure(), isFailure() export async function saveThing(id: string, input: X): Promise&lt;Result&lt;{ savedAt: string }&gt;&gt; {   try {     const existed = await s</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>Implements SPEC §25 (standard) and §24.3 (the experience law behind it).
+
+## The pattern
+
+Expected failures are **values**, not exceptions — a forgotten `catch`
+cannot swallow what was never thrown.
+
+```ts
+// src/lib/errors.ts provides: Result&lt;T&gt;, failure(), isFailure()
+export async function saveThing(id: string, input: X): Promise&lt;Result&lt;{ savedAt: string }&gt;&gt; {
+  try {
+    const existed = await store().update(id, input);
+    if (!existed) {
+      return failure(&quot;saveThing&quot;, new Error(`no row ${id}`),
+        &quot;That record no longer exists. Copy your answers somewhere safe before leaving.&quot;,
+        { retryable: false });        // never invite a retry that cannot work
+    }
+    return { ok: true as const, savedAt: new Date().toISOString() };
+  } catch (error) {
+    return failure(&quot;saveThing&quot;, error,
+      &quot;Couldn't save — your answers are still on screen. Check your connection and try again.&quot;);
+  }
+}
+```
+
+Callers branch with `isFailure(result)`. The client also catches transport
+failure separately (offline, deploy mid-request) — the action never ran, so
+its message differs.
+
+## Writing the message
+
+Answer three questions in this order, in one sentence:
+1. **What happened** — plainly, no system vocabulary.
+2. **Is my work safe** — say it explicitly; this is the question people
+   actually have.
+3. **What do I do now** — a next action, or who is handling it.
+
+Show the reference (`Reference AB12CD`) so a support conversation starts
+with a fact. &quot;Something went wrong&quot; answers none of the three and is not
+acceptable.
+
+## Never
+
+- Put a driver message, SQL, constraint name, or stack trace on a screen.
+- Clear the person's input to reach a clean state.
+- Offer &quot;Try again&quot; on a permanent failure.
+- Leave a failure silent — it goes in a live region so assistive tech
+  announces it.
+
+## Test it
+
+Every error path gets a test proving the message is safe, the reference is
+present, and the input survives — see `test/unit/errors.test.ts`, which
+asserts a Postgres constraint name can never reach a user-facing string.
+An untested error path is an untested feature.</pre>
+      </details>
+      <p class="where"><code>.claude/skills/error-handling/SKILL.md</code></p>
+    </div>
+  </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">full-gates</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Run the complete verification chain before calling any work done — typecheck, the three test tiers, and the E2E journey</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Before any commit, and before claiming anything is done.</p>
+      <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
+      <p><span class="label">In its own words</span><span class="gist">sh pnpm typecheck            # strict tsc — fastest signal, run first pnpm test:unit            # pure logic; needs only Node pnpm test:integration     # real SQL on in-process Postgres; no daemon pnpm e2e                  # needs the dev server running on :3100  pnpm verify runs the first three (ev</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>Implements SPEC §0 (Build Rule 3) and §26.4.
+
+## The chain, in order
+
+```sh
+pnpm typecheck            # strict tsc — fastest signal, run first
+pnpm test:unit            # pure logic; needs only Node
+pnpm test:integration     # real SQL on in-process Postgres; no daemon
+pnpm e2e                  # needs the dev server running on :3100
+```
+
+`pnpm verify` runs the first three (everything that needs no server).
+
+## Rules
+
+- **Green is the permission slip.** A red gate stops the slice; it is never
+  &quot;known failing&quot; or &quot;fixed in the next commit&quot;.
+- **Start the dev server before E2E** and confirm it answers:
+  `curl -s -o /dev/null -w &quot;%{http_code}&quot; http://localhost:3100/` → 200.
+- **Read the failure, don't re-run it.** Re-running a red test hoping for
+  green is how a real defect gets shipped as flakiness.
+- **When a test fails after an intentional change**, decide explicitly:
+  either the code is wrong (fix it) or the test encoded the old intent
+  (update it, and say so in the commit). Never delete a failing test.
+- **File budgets** are part of the chain: nothing over 800 lines, new files
+  ≤400 (`find src -name &quot;*.ts*&quot; -exec wc -l {} + | sort -rn | head`).
+
+## Reporting
+
+State the actual numbers (&quot;35 tests, typecheck clean, E2E green&quot;), never
+&quot;tests pass&quot;. If any tier was skipped, say which and why.</pre>
+      </details>
+      <p class="where"><code>.claude/skills/full-gates/SKILL.md</code></p>
+    </div>
+  </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">instrument-change</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Change the assessment instrument — questions, options, conditions, rubrics, control objectives — through the governed path</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Before changing any question, option, or condition.</p>
+      <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
+      <p><span class="label">In its own words</span><span class="gist">The instrument is versioned data, never code and never a runtime admin screen. The database can therefore never fork away from the repository.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>Implements SPEC §6.2, §8, and G-5 (no runtime authoring — seed-PR only).
+
+## The rule
+
+The instrument is **versioned data**, never code and never a runtime admin
+screen. The database can therefore never fork away from the repository.
+
+## The path
+
+1. **Edit the data.** Today: `src/lib/intake.ts`. From S2: the instrument
+   seed files. Question content never appears in a component.
+2. **Update the pinned field-set test** in the same commit
+   (`test/unit/intake.test.ts`). It exists because a rewrite once dropped a
+   field silently — changing the instrument must be a deliberate act, and
+   the diff is the proof.
+3. **Check the experience laws still hold** — run the `ux-audit` skill.
+   The mechanical ones are in `test/unit/experience.test.ts`: no
+   &quot;I'm not sure&quot; answer may reveal another question; every conditional
+   carries &quot;Shown because…&quot;; no acronym batteries or identifiers.
+4. **Schema, if the shape changed.** New migration in `drizzle/` (append
+   only — never edit an applied file), mirrored in `src/lib/schema.ts`.
+   The PGlite integration test applies the real SQL, so drift fails.
+5. **Run `full-gates`.**
+6. **Record it.** A governance-log entry in SPEC §13 for anything that
+   changes what is asked or how it routes, and a requirement row in §20 if
+   it adds a capability.
+
+## Watch for
+
+- **Duplication with a later tier** — if Tier 1 or 2 already asks it,
+  intake should not (and vice versa). Prefer pre-fill (FR-22) over asking
+  twice.
+- **Uncertainty** — any answer a requester may genuinely not know needs an
+  &quot;I'm not sure&quot; option that routes to a human (FR-23), plus a reassurance
+  note rather than a follow-up question.
+- **Plain language** — the label is what a business user reads. Internal
+  vocabulary stays internal.</pre>
+      </details>
+      <p class="where"><code>.claude/skills/instrument-change/SKILL.md</code></p>
+    </div>
+  </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">question-design</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Assess any question from the answering person's vantage point before it ships — can they answer it honestly, does it earn its place, what helper text do they need, and what would an agent do here later</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Before adding, rewording, or challenging any question.</p>
+      <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
+      <p><span class="label">In its own words</span><span class="gist">*before* the instrument-change skill applies the edit. Name the person and their situation, then read the question as them.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>Implements SPEC §24 (experience) and §22 (agentic opportunity). Run this
+*before* the `instrument-change` skill applies the edit.
+
+## 1. Sit in their chair
+
+Name the person and their situation, then read the question as them.
+&quot;John Smith, operations manager, has never done a risk assessment.&quot;
+
+- **Could they answer without a glossary?** If a business user needs to
+  learn our vocabulary first, the question is wrong — not the user (§24.6).
+- **Would two reasonable people answer differently?** Ambiguity at the
+  front door corrupts everything routed from it.
+- **Are we asking them to classify?** Classification is the system's job.
+  People *recognise* their situation; they do not categorise it.
+
+**The ambiguity probe.** Write four real scenarios that stress the wording
+and answer as each. If any is a coin flip, the question needs rebuilding.
+*Worked example — &quot;Technology / Non-Technology&quot;: a SaaS subscription with
+no build? A process running on a shared spreadsheet? A vendor using their
+own system? A policy change configured in an existing tool? Four coin
+flips, so the question was replaced by &quot;What is this activity introducing
+or changing?&quot; and the label derived.*
+
+## 2. Ask what the organisation actually needs
+
+Write the underlying need in one sentence (&quot;which assessor queue is this,
+and which domains are in play?&quot;). Then ask: **what is the plainest question
+that yields it?** Prefer deriving a label from concrete answers over asking
+someone to apply the label themselves.
+
+## 3. Make it earn its place
+
+- **Does it route anything?** A question that changes nothing downstream is
+  either registry data (fine — say so) or deletable.
+- **Is it asked again later?** If a later tier asks it, remove it here or
+  pre-fill there — never both (§24.5, FR-22).
+- **Is the detail needed *now*?** Deep detail belongs where it applies, not
+  at the front door. Assessment fatigue is a real failure mode.
+
+## 4. Design the uncertainty path
+
+Every question a person may genuinely not be able to answer needs an
+honest-uncertainty option (FR-23) — and answering it must produce a
+**reassurance naming who resolves it**, never a follow-up question (§24.1).
+
+## 4b. The &quot;doesn't apply to me&quot; check (§24.9)
+
+For every question, answer: **what does a person do when this doesn't apply
+to them?** An optional field with no guidance leaves someone staring at an
+empty box unsure whether blank means &quot;none&quot; or &quot;I forgot&quot; — and the
+reviewer inherits that ambiguity rather than an answer.
+
+Say it in the helper text: *&quot;Leave blank if everything is built and run
+in-house.&quot;* A multi-select needs an explicit &quot;None of the above&quot; option
+rather than an empty selection.
+
+*Origin: the vendor-name field. Someone building entirely in-house had no
+way to say so — and it survived a slice review, a UI pass, and a screenshot
+before the owner caught it. It is now a test.*
+
+## 5. Write the helper text
+
+- **Examples, not definitions.** &quot;Including AI features inside a vendor's
+  product&quot; beats defining AI.
+- **Say what happens with the answer** when the person might hesitate:
+  &quot;leave blank if there isn't a date — reviewers would rather see blank
+  than a guess&quot;.
+- **Let &quot;select all that apply&quot; carry ambiguity** rather than forcing a
+  false single choice.
+- **Never** an internal identifier, framework code, or acronym battery.
+- **Required, not optional** (§24.10): every question a person answers has
+  helper text that *teaches* — a restatement of the label is not help. Only
+  a genuinely self-evident label may go without, and the test names those
+  explicitly.
+
+## 6. Register the agentic opportunity (§22)
+
+For each question, note what an agent would do once Phase 2 exists — and
+confirm today's design does not foreclose it (e.g. keep the raw prose an
+agent would need to read). Typical: pre-fill from the description, flag
+contradictions with other answers, offer a tightening rewrite of the
+person's own words, or explain the question on request.
+
+## Output
+
+A short brief: the person and scenario · the ambiguity probe results · the
+underlying need · what routes · the uncertainty path · proposed wording
+with helper text · the agentic entry · and a recommendation (keep / reword
+/ replace / cut) with the reason. Then hand off to `instrument-change`.</pre>
+      </details>
+      <p class="where"><code>.claude/skills/question-design/SKILL.md</code></p>
+    </div>
+  </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">slice-review</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Run the pre-flight before a slice and write the structured review after it</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Before a slice starts, and again when its done-when holds.</p>
+      <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
+      <p><span class="label">In its own words</span><span class="gist">Post, and get confirmation on: 1. The slice's owned requirements, restated in your own words from    §17/§20 — not copied.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>Implements SPEC §21 (and Build Rules 11–15).
+
+## Pre-flight — before the first line
+
+Post, and get confirmation on:
+1. **The slice's owned requirements**, restated in your own words from
+   §17/§20 — not copied.
+2. **The design decisions you intend to make**, with the alternative you
+   rejected for each.
+3. **Every ambiguity and assumption** you would otherwise resolve silently.
+   Unresolved ambiguity blocks the slice (Build Rule 8).
+
+## Slice review — when the done-when holds
+
+One message, these eight parts:
+
+1. **What changed** — files, requirement IDs satisfied, tests added, gates
+   passed with real numbers.
+2. **Self-critique — at least two.** The weakest decision, the likeliest
+   bug, the worst-aged assumption. &quot;Nothing&quot; is not an acceptable answer;
+   if the work is genuinely clean, name what would break it first. *This is
+   the part that decays fastest under time pressure — write it first, not
+   last.*
+3. **What was deliberately not done** — deferrals with reasons and where
+   they're recorded.
+4. **Open questions** — each with a recommendation, not just a question.
+5. **A demoable artifact** — running app, screenshot, transcript. Never a
+   claim without evidence.
+6. **The agentic opportunity** (§22) — what an agent would do for this
+   slice's work, its guardrails, and the human decision it must never take.
+   Written even when the answer is &quot;nothing here&quot;.
+7. **UI evidence** — screenshot per surface; §23 criteria met and deferred.
+8. **The slice-verifier report** — run the subagent; attach its verdict.
+
+## Then
+
+The owner analyses and returns changes. **Refinements are applied and
+re-gated before the next slice starts.** If a refinement changes the
+instrument or a requirement, update §20 and the governance log first.
+
+## Tone
+
+Critique is owed in both directions (Build Rule 15). Surface disagreements
+with the owner's instructions as readily as with your own work — agreeable
+implementation of a flawed instruction is a specification failure, not
+courtesy.</pre>
+      </details>
+      <p class="where"><code>.claude/skills/slice-review/SKILL.md</code></p>
+    </div>
+  </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">uat-checkout</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Produce a numbered hands-on test script the owner can run to verify a slice or release, with exact steps and objective pass lines</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>When handing the owner something to test.</p>
+      <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
+      <p><span class="label">In its own words</span><span class="gist">Numbered checks (T1, T2, …), grouped by persona or track, each with: - A title naming the behaviour, not the code. - Numbered steps a person can follow without knowing the internals.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>Implements SPEC §10 (UAT) and supports §21.
+
+## Shape
+
+Numbered checks (T1, T2, …), grouped by persona or track, each with:
+
+- **A title** naming the behaviour, not the code.
+- **Numbered steps** a person can follow without knowing the internals.
+- **A pass line** that is objectively true or false, quoting the exact
+  strings expected on screen.
+- **A speed tag** where a step involves a slow dependency, so a wait is not
+  mistaken for a hang.
+
+Include a **&quot;known-open, not bugs&quot;** section listing deliberate deferrals —
+otherwise the owner files them as defects.
+
+## Rules
+
+- Test behaviour, not implementation. &quot;The save status reads *All changes
+  stored*&quot;, not &quot;setSavedAt is called&quot;.
+- Cover the negative paths: an unanswered required field, an &quot;I'm not sure&quot;
+  answer, a forced failure (offline), a reopened page.
+- Every check must be runnable from a clean start — say what to create
+  first.
+- Tell the owner up front that &quot;T# failed&quot; plus a screenshot is a complete
+  bug report.
+
+## Example
+
+&gt; **T7 · Submit is never silent** · Fast
+&gt; 1. Complete intake, click **Save intake**.
+&gt; **Pass:** a status region shows &quot;Saving…&quot; immediately, then &quot;All changes
+&gt; stored&quot;. The old behaviour — a dialog closing followed by silent seconds —
+&gt; must not happen.</pre>
+      </details>
+      <p class="where"><code>.claude/skills/uat-checkout/SKILL.md</code></p>
+    </div>
+  </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">ui-craft</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Build or review a screen to the demo-ready standard — tokens, designed states, hierarchy, motion, accessibility, content</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Before building or restyling any screen.</p>
+      <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
+      <p><span class="label">In its own words</span><span class="gist">Every colour, radius, shadow, and easing is a custom property in src/app/globals.css. Components reference tokens.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>Implements SPEC §23.
+
+## Tokens, never raw values
+
+Every colour, radius, shadow, and easing is a custom property in
+`src/app/globals.css`. Components reference tokens. A raw hex in a
+component is a defect, not a shortcut.
+
+Palette in use: `--navy` (chrome, headings) · `--accent` lime, **only on
+navy, sparingly** · `--primary` blue for actions · `--surface-1..3` tints ·
+neutrals · `--success/--warning/--error` for state · `--radius`,
+`--shadow-card`, `--ease`.
+
+## The states checklist
+
+Build all of these before calling a surface done:
+
+| State | What it must do |
+|---|---|
+| Empty | Say what goes here and how to start — never a blank panel |
+| Loading / pending | Visible immediately; the control disables and relabels |
+| Success | Explicit confirmation in a `role=&quot;status&quot;` region |
+| Failure | See the `error-handling` skill — cause, safety, next step |
+| Disabled | Looks unavailable *and* explains why nearby |
+| Overflow | Long content scrolls in its own container, never the page |
+
+## Accessibility, by construction
+
+- Every control has an accessible name. **A checkbox group is named with
+  `aria-labelledby` pointing at a label element's id — not `&lt;label for&gt;`,
+  which needs a single control to point at.** (This exact bug shipped once:
+  the group had no accessible name at all, and the E2E couldn't find it.)
+- Keyboard: full operation, visible `:focus-visible`, focus never stranded
+  after a dialog closes.
+- State is never colour alone — pair it with a word or an icon.
+- Motion is explanatory (reveals, transitions) and honours
+  `prefers-reduced-motion`.
+
+## Content design is design
+
+Plain language; labels that say what happens (&quot;Save intake&quot;, then &quot;All
+changes stored&quot;); help text where a business user would hesitate; no
+internal identifiers. See the `ux-audit` skill for the behavioural laws.
+
+## Evidence
+
+Screenshot every new surface and look at it — most defects in this project
+were caught by reading a screenshot, not the code. Two real examples: a
+&quot;still needed&quot; list that swamped the footer, and a primary button whose
+label wrapped to two lines.
+
+```js
+// scratch script; delete after use
+await page.screenshot({ path: &quot;/tmp/surface.png&quot;, fullPage: true });
+```</pre>
+      </details>
+      <p class="where"><code>.claude/skills/ui-craft/SKILL.md</code></p>
+    </div>
+  </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">ux-audit</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Walk a surface as a person and audit it against the experience principles before calling it done</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>When finishing a screen, or deciding how a question should behave.</p>
+      <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
+      <p><span class="label">In its own words</span><span class="gist">procedure are here. Walk the surface as the person it is for — not as the person who built it.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>Implements SPEC §24. The laws are in the spec; the reasoning and the
+procedure are here.
+
+## How to audit
+
+Walk the surface as the person it is for — not as the person who built it.
+For each principle, name the screen and the exact wording at fault.
+
+**24.1 Never re-ask what someone said they don't know.**
+Look for any &quot;I'm not sure&quot; / &quot;unknown&quot; answer, then look at what appears
+next. A question is a violation; a reassurance is correct. The reassurance
+must say *who* will resolve it and that nothing is blocked meanwhile.
+*Origin: the AI question revealed &quot;What does the AI do?&quot; to someone who
+had just said they didn't know. That punishes honesty and teaches
+guessing, and a guess is worse for an assessment than an admitted unknown.*
+This one is machine-checkable — see `test/unit/experience.test.ts`.
+
+**24.2 One decision per screen; pace the journey.**
+A wall of fields lowers both completion and answer quality. Ask: could a
+person finish this in one sitting without scrolling past their own answers?
+*Origin: S1 shipped four intake sections as one long scroll.*
+
+**24.3 Every wait has a state; every failure has a cause and next step.**
+Force the failure — stop the database, go offline — and watch. Pending,
+success, and failure are all designed states.
+*Origin: an 8-second silent submit read as broken, and a save path with no
+error state at all.*
+
+**24.4 Reveal on evidence, and say why.** Content that appears without a
+reason reads as a malfunction. Every conditional carries &quot;Shown because…&quot;.
+
+**24.5 Never make a person repeat themselves.** An answer given once is
+reused everywhere it applies, shown with its source, still changeable.
+
+**24.6 The system absorbs complexity.** No identifiers, acronym batteries,
+or framework codes on screen. If a business user would need a glossary,
+the question is wrong — not the user.
+*Origin: intake asked for &quot;ARA, BIR, PIA, DPIA, AVA&quot; by name.*
+
+**24.7 Show the whole journey honestly**, including stages not built yet —
+as *upcoming*, never as broken or missing.
+
+**24.8 Progress is measured in what's left for the person.** Never show a
+total that includes work they cannot see or act on.
+*Origin: a review queue that claimed &quot;274 to attest&quot; on a 39-question
+assessment.*
+
+## Output
+
+A line per principle: met, or violated with the screen and wording. If a
+violation is deliberate, say so and record it as a deferral — silence reads
+as an oversight.</pre>
+      </details>
+      <p class="where"><code>.claude/skills/ux-audit/SKILL.md</code></p>
+    </div>
+  </article><p class="group-label">Hooks — mechanical, and they do not rely on anyone reading anything</p>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">advise (PostToolUse)</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Names the governing standard the instant a governed file is edited</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Automatically, after every file edit. Nothing has to remember to call it.</p>
+      <p><span class="label">What it can see</span>Sees the path of the file just edited and reads that one file. Nothing else — no network, no database, no other files.</p>
+      <p><span class="label">In its own words</span><span class="gist">PostToolUse advisory (SPEC G-18, &quot;teeth in hooks&quot;).
+Skills load probabilistically. This hook makes the trigger deterministic:
+when a file is edited that a standard governs, it says so — with the skill
+to load. It never blocks; it reminds at the exact moment of relevance.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>#!/usr/bin/env node
+/**
+ * PostToolUse advisory (SPEC G-18, &quot;teeth in hooks&quot;).
+ *
+ * Skills load probabilistically. This hook makes the trigger deterministic:
+ * when a file is edited that a standard governs, it says so — with the skill
+ * to load. It never blocks; it reminds at the exact moment of relevance.
+ */
+import { readFileSync } from &quot;node:fs&quot;;
+
+let payload = &quot;&quot;;
+process.stdin.on(&quot;data&quot;, (chunk) =&gt; (payload += chunk));
+process.stdin.on(&quot;end&quot;, () =&gt; {
+  let file = &quot;&quot;;
+  try {
+    file = JSON.parse(payload)?.tool_input?.file_path ?? &quot;&quot;;
+  } catch {
+    process.exit(0);
+  }
+  if (!file) process.exit(0);
+  const rel = file.replace(`${process.cwd()}/`, &quot;&quot;);
+  const notes = [];
+
+  const source = (() =&gt; {
+    try {
+      return readFileSync(file, &quot;utf8&quot;);
+    } catch {
+      return &quot;&quot;;
+    }
+  })();
+
+  if (/^src\/app\/.*actions\.ts$/.test(rel) || /route\.ts$/.test(rel)) {
+    notes.push(&quot;Server action/route touched → SPEC §25: return typed results, never throw for expected failure. Load the `error-handling` skill.&quot;);
+  }
+  if (/^src\/app\/.*\.tsx$/.test(rel)) {
+    notes.push(&quot;Surface touched → SPEC §23/§24: designed empty/loading/error states, accessible names, no internal identifiers. Load `ui-craft` and `ux-audit`.&quot;);
+  }
+  if (/^src\/lib\/(intake|instrument).*\.ts$/.test(rel)) {
+    notes.push(&quot;Instrument data touched → SPEC §8: update the pinned field-set test in the same commit and record a governance entry. Load `instrument-change`.&quot;);
+  }
+  if (/^drizzle\//.test(rel)) {
+    notes.push(&quot;Migration touched → SPEC §26.5: append a new file, never edit an applied one, and mirror it in src/lib/schema.ts.&quot;);
+  }
+  if (source.includes(&quot;process.env&quot;) &amp;&amp; rel !== &quot;src/lib/config.ts&quot;) {
+    notes.push(&quot;BLOCKED BY TEST: process.env outside src/lib/config.ts violates SPEC §26.3 — test/unit/architecture.test.ts will fail.&quot;);
+  }
+  if (/^src\//.test(rel) &amp;&amp; source.split(&quot;\n&quot;).length &gt; 400) {
+    notes.push(`File budget: ${rel} is ${source.split(&quot;\n&quot;).length} lines (SPEC §11 ceiling: 400 new / 800 hard).`);
+  }
+
+  if (notes.length) {
+    console.error(notes.map((n) =&gt; `• ${n}`).join(&quot;\n&quot;));
+    process.exit(2); // surfaced to the model as feedback, not a failure
+  }
+  process.exit(0);
+});
+</pre>
+      </details>
+      <p class="where"><code>scripts/hooks/advise.mjs</code></p>
+    </div>
+  </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">stop-gate (Stop)</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Work cannot conclude on a red build</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Automatically, whenever a working session tries to finish.</p>
+      <p><span class="label">What it can see</span>Runs two commands — the type checker and the unit tests. It reads their output and nothing else.</p>
+      <p><span class="label">In its own words</span><span class="gist">Stop gate (SPEC §0 Build Rule 3): work does not conclude on a red build.
+Runs only the tiers that need nothing external — typecheck and unit —
+so the gate is fast and cannot fail for environmental reasons. The full
+chain (integration + e2e) is `pnpm verify` and the `full-gates` skill.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>#!/usr/bin/env node
+/**
+ * Stop gate (SPEC §0 Build Rule 3): work does not conclude on a red build.
+ * Runs only the tiers that need nothing external — typecheck and unit —
+ * so the gate is fast and cannot fail for environmental reasons. The full
+ * chain (integration + e2e) is `pnpm verify` and the `full-gates` skill.
+ */
+import { execSync } from &quot;node:child_process&quot;;
+
+try {
+  execSync(&quot;pnpm typecheck &amp;&amp; pnpm test:unit&quot;, { stdio: &quot;pipe&quot;, cwd: process.cwd() });
+  process.exit(0);
+} catch (error) {
+  const output = `${error.stdout ?? &quot;&quot;}${error.stderr ?? &quot;&quot;}`.slice(-2000);
+  console.error(
+    &quot;Stop gate: typecheck or unit tests are red — finish the work or fix the break.\n&quot; + output,
+  );
+  process.exit(2);
+}
+</pre>
+      </details>
+      <p class="where"><code>scripts/hooks/stop-gate.mjs</code></p>
+    </div>
+  </article>
+    </section>
+    <div class="divider" aria-hidden="true"></div>
+    <section>
+      <div class="branch-head"><h3>Runtime — the product</h3>
+        <p>Registered in SPEC §22, deliberately unbuilt. These become AgentCore runtimes.</p></div>
+      <p class="group-label">Intake &amp; conversation</p><p class="group-label">Knowledge</p>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Technology profile library</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">Named technologies and vendors (&quot;Snowflake&quot;, &quot;Databricks&quot;, a SaaS product) resolve to ratified profiles — what the technology is, and which risk areas it typically implies.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S2; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: a ratified library of technology profiles held inside the platform. Would not search the web per question — profiles are seeded by research and ratified by a human before use.</p>
+      <p><span class="label">In its own words</span><span class="gist">Named technologies and vendors (&quot;Snowflake&quot;, &quot;Databricks&quot;, a SaaS product) resolve to ratified profiles — what the technology is, and which risk areas it typically implies. The companion uses profiles to suggest gate answers and explain them.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+Named technologies and vendors (&quot;Snowflake&quot;, &quot;Databricks&quot;, a SaaS product) resolve to ratified profiles — what the technology is, and which risk areas it typically implies. The companion uses profiles to suggest gate answers and explain them.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+Profiles are **seeded from research and ratified by a human**, never fetched live per turn: consistency across assessments matters more than freshness, and a reviewer must be able to see the profile that drove a suggestion and when it was ratified. Degrades gracefully — no network, no external dependency at request time.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S2</code></p>
+    </div>
+  </article>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Policy-grounded definitions</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">Where a person must choose against a standard — data classification, criticality, retention — the governing policy's own words appear beside the choice, quoted verbatim with a link to the clause.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S3+; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: the organisation's own policy library, quoted verbatim with clause and version. Nothing from outside the organisation.</p>
+      <p><span class="label">In its own words</span><span class="gist">Where a person must choose against a standard — data classification, criticality, retention — the governing policy's own words appear beside the choice, quoted verbatim with a link to the clause. Turns &quot;Confidential&quot; from a bare word into a decision someone can actually make.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+Where a person must choose against a standard — data classification, criticality, retention — the governing policy's own words appear beside the choice, quoted verbatim with a link to the clause. Turns &quot;Confidential&quot; from a bare word into a decision someone can actually make.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+Quotes are **verbatim** or they do not appear. Every quote names its policy, clause, and version. A policy may define a term; it may never assert a fact about this project (§22.5).
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S3+</code></p>
+    </div>
+  </article>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Policy-grounded suggestions</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">The agent proposes an answer citing two things: the clause that defines the standard, and the requester's own words that meet it.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S3+; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: the policy library and the requester's own words. The policy grounds the definition; only the requester supplies the facts.</p>
+      <p><span class="label">In its own words</span><span class="gist">The agent proposes an answer citing two things: the clause that defines the standard, and the requester's own words that meet it. &quot;This looks like Confidential — §3.2 defines it as X, and you told us you hold employee wage bands.&quot;</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+The agent proposes an answer citing two things: the clause that defines the standard, and the requester's own words that meet it. &quot;This looks like Confidential — §3.2 defines it as X, and you told us you hold employee wage bands.&quot;
+
+GUARDRAILS BEYOND THE STANDING SET
+
+The person confirms; their confirmation is the answer's evidence (§22.2). The policy grounds the *definition*, never the *fact*. A suggestion is never pre-selected.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S3+</code></p>
+    </div>
+  </article>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Compliance checking</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">An attested answer that contradicts a policy requirement raises a finding with both quotes side by side — the requirement and the answer — resolvable only through the four governed dispositions (§4.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S3+; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: attested answers and the policy version in force when they were attested. A later policy revision never rewrites a historical assessment.</p>
+      <p><span class="label">In its own words</span><span class="gist">An attested answer that contradicts a policy requirement raises a finding with both quotes side by side — the requirement and the answer — resolvable only through the four governed dispositions (§4.3).</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+An attested answer that contradicts a policy requirement raises a finding with both quotes side by side — the requirement and the answer — resolvable only through the four governed dispositions (§4.3).
+
+GUARDRAILS BEYOND THE STANDING SET
+
+Findings are raised against **attested** answers, never drafts. The finding cites the policy version in force when the answer was attested; a later policy revision does not retroactively rewrite history.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S3+</code></p>
+    </div>
+  </article>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Instrument-to-obligation traceability</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">Every question traces to the standard or obligation that requires it — so &quot;why are you asking me this?&quot; is answered with an authority, not only a routing rule.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S3+; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: the instrument and the obligation library, plus human-ratified mappings between them.</p>
+      <p><span class="label">In its own words</span><span class="gist">Every question traces to the standard or obligation that requires it — so &quot;why are you asking me this?&quot; is answered with an authority, not only a routing rule. Read the other way it produces two coverage reports: obligations with **no question** (a gap in the instrument) and questions citing **no obligation** (a candidate for deletion).</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+Every question traces to the standard or obligation that requires it — so &quot;why are you asking me this?&quot; is answered with an authority, not only a routing rule. Read the other way it produces two coverage reports: obligations with **no question** (a gap in the instrument) and questions citing **no obligation** (a candidate for deletion).
+
+GUARDRAILS BEYOND THE STANDING SET
+
+Traceability edges are **proposed by the agent and ratified by a human** before they are shown as authority. An unratified mapping may inform authoring; it may never be quoted to a requester as the reason they are being asked.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S3+</code></p>
+    </div>
+  </article><p class="group-label">Portfolio memory</p>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Precedent suggestion</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">While answering, the person can see how comparable assessments answered the same question — same vendor, same technology, same activity shape — and use that as a starting point.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S2+; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: attested answers from comparable assessments, as counts and patterns only. Never another team's project name, content, or owner — and nothing at all below a minimum number of comparable assessments.</p>
+      <p><span class="label">In its own words</span><span class="gist">While answering, the person can see how comparable assessments answered the same question — same vendor, same technology, same activity shape — and use that as a starting point. Turns 200 completed assessments from a filing cabinet into institutional memory a first-timer inherits.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+While answering, the person can see how comparable assessments answered the same question — same vendor, same technology, same activity shape — and use that as a starting point. Turns 200 completed assessments from a filing cabinet into institutional memory a first-timer inherits.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+Precedent draws **only on attested answers** (§4.2) — never on drafts, never on unattested pre-fills, so an unreviewed mistake cannot become institutional truth. Always aggregate, never verbatim content from another team's assessment. Never pre-selected: precedent is shown as *how others answered*, and the click stays the person's (§22.2). Always carries counts and recency.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S2+</code></p>
+    </div>
+  </article>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Application profiles</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">A system this organisation has assessed before carries a profile built from its own attested history — what it is, where it runs, what it touches.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S2+; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: the attested history of systems this organisation has assessed before, attributed to the assessment and date that established each fact.</p>
+      <p><span class="label">In its own words</span><span class="gist">A system this organisation has assessed before carries a profile built from its own attested history — what it is, where it runs, what it touches. Reassessing it starts from what we already know rather than from nothing.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+A system this organisation has assessed before carries a profile built from its own attested history — what it is, where it runs, what it touches. Reassessing it starts from what we already know rather than from nothing.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+Profile facts are attributed to the assessment and attestation that established them, with dates. A profile is a **starting point that must be re-confirmed**, never an inherited answer: systems change, and last year's truth is this year's finding.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S2+</code></p>
+    </div>
+  </article>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Divergence signal</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">When an assessment answers materially differently from comparable ones, the reviewer's queue says so.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S2+; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: the same aggregate precedent, compared against this assessment. Shown to reviewers only — never to the person answering.</p>
+      <p><span class="label">In its own words</span><span class="gist">When an assessment answers materially differently from comparable ones, the reviewer's queue says so. &quot;Answered No to third-party where 14 of 15 comparable assessments answered Yes.&quot;</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+When an assessment answers materially differently from comparable ones, the reviewer's queue says so. &quot;Answered No to third-party where 14 of 15 comparable assessments answered Yes.&quot;
+
+GUARDRAILS BEYOND THE STANDING SET
+
+A divergence is a **triage signal, not a verdict** — being different is often correct, and the platform must never pressure a requester toward the majority. Shown to reviewers, not as a nag to the person answering. Requires the same aggregation floor as precedent.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S2+</code></p>
+    </div>
+  </article>
+    </section>
+  </div>
+  <div class="laws">
+    <h3>The rules every runtime agent inherits</h3>
+    <div class="law-grid">
+      <div class="law"><strong>§22.2 · The evidence line</strong><span>World knowledge may inform the conversation. It may never become an answer's evidence — the person's confirmation is.</span></div>
+      <div class="law"><strong>§22.3 · Our own AI risk</strong><span>External enrichment is data egress. Name what leaves, set a classification ceiling, assess the flow. The platform passes its own assessment first.</span></div>
+      <div class="law"><strong>§22.4 · Precedent rules</strong><span>Attested answers only · aggregate, never disclose · never pre-selected · age is part of the fact.</span></div>
+      <div class="law"><strong>§22.5 · Policy authority</strong><span>A policy defines what a term means and what is required. It never asserts a fact about this project.</span></div>
+      <div class="law"><strong>Standing · Proposes, never decides</strong><span>Nothing an agent produces is final without a named human attesting it.</span></div>
+      <div class="law"><strong>Standing · Grounded, or it asks</strong><span>Never invents facts. A rewrite reorganises the person's own words; it never adds.</span></div>
+    </div>
+  </div>
+  <p class="stamp">Generated from the repository by <code>scripts/build-agent-map.mjs</code> — the instruction text below each node is the file itself, not a summary of it.</p>
+</main>
+<script>
+  for (const head of document.querySelectorAll(".node-head")) {
+    head.addEventListener("click", () => {
+      const open = head.getAttribute("aria-expanded") === "true";
+      head.setAttribute("aria-expanded", String(!open));
+      head.parentElement.querySelector(".detail").classList.toggle("hidden", open);
+    });
+  }
+  const nodes = [...document.querySelectorAll(".node")];
+  const counter = document.getElementById("count");
+  function applyFilter(which) {
+    let shown = 0;
+    for (const node of nodes) {
+      const match = which === "all" || node.dataset.status === which;
+      node.style.display = match ? "" : "none";
+      if (match) shown++;
+    }
+    const live = nodes.filter((n) => n.dataset.status === "live").length;
+    counter.textContent = shown + " shown · " + live + " live · " + (nodes.length - live) + " registered";
+  }
+  for (const button of document.querySelectorAll(".filter")) {
+    button.addEventListener("click", () => {
+      for (const other of document.querySelectorAll(".filter")) {
+        other.setAttribute("aria-pressed", String(other === button));
+      }
+      applyFilter(button.dataset.filter);
+    });
+  }
+  applyFilter("all");
+</script>
