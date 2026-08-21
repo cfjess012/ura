@@ -8,20 +8,22 @@ implementation, stop on ambiguity.
 
 ## Slice status
 
-- S1 Intake — DONE
-- S2 Gates — DONE (built; owner review pending)
-- S2.5 People — DONE (roles enforced server-side; persona switcher is a
-  pilot device, NOT auth; every answer AND every intake change records who
-  made it)
-- Independent verification ran twice on 2026-08-21 — FAIL, then FAIL again
-  (N1: role scoping was list-only). All addressed; SPEC G-28..G-34.
+- S1 Intake — DONE · S2 Gates — DONE (owner review pending)
+- S2.5 People — DONE (roles enforced server-side on the object as well as
+  the listing; persona switcher is a pilot device, NOT auth; every answer
+  and every intake change records who made it)
+- Verification ran twice 2026-08-21, FAIL both times; all addressed (G-28..
+  G-38). Owner then found required fields unenforced (FR-28) — negative
+  paths are now a standing verifier step (NFR-21).
 - S3.5 Destinations — SPEC'd not built (§27): ServiceNow AI Use Case Record.
+- OPEN WITH OWNER: `db:reset` held until demo-data day — raise at each phase
+  boundary. Audit C-5/6/7/10 open (`audits/instrument-2026-08-21.md`).
 - S3..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
 
-Instrument data lives in `src/data/instrument/*.json`, imported at build
-time (never read from disk at runtime). After editing it run
-`pnpm instrument:seed` to activate a new version — activated versions are
-immutable, so a change means a new version string.
+Instrument data lives in `src/data/instrument/*.json`, imported at build time
+(never from disk at runtime). After editing, `pnpm instrument:seed` activates
+a new version — activated versions are immutable, so a change means a new
+version string.
 
 ## Commands
 
@@ -104,11 +106,9 @@ only in a skill.
 
 ## Parts shelf (SPEC G-8)
 
-The prior platform lives at ../riskassess — READ-ONLY. Never edit, never
-run its dev server, never develop it further. It is a source of proven
-parts only; salvage decisions happen at the slice that needs the part.
-
-Salvage candidates and the slice that decides:
+The prior platform lives at ../riskassess — READ-ONLY. Never edit, never run
+its dev server, never develop it further. It is a source of proven parts;
+salvage decisions happen at the slice that needs the part:
 - condition engine + its tests (packages/contract) ....... S3
 - reviewer workspace patterns (apps/web) ................. S8
 - verbatim matcher, basis/never-guess machinery .......... Phase 2

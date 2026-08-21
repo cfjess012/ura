@@ -31,7 +31,7 @@ export async function completeIntake(page: Page, base: string): Promise<void> {
   await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
 
   await expect(page.getByRole("heading", { name: "Compliance & Data" })).toBeVisible();
-  await page.getByRole("checkbox", { name: "Internal", exact: true }).check();
+  await page.getByRole("radio", { name: /Internal/ }).check();
   await page.getByRole("button", { name: /Continue to the risk areas/ }).click();
   await expect(page).toHaveURL(/\/assess\//);
 }

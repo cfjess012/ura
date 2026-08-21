@@ -6,8 +6,6 @@ import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
 import { projectStore } from "@/lib/repo";
 import { NotYourAssessment } from "../../not-yours";
-import { ProjectHeader } from "../../project-header";
-import { IntakeRail } from "../intake-rail";
 import { SectionForm } from "../section-form";
 
 export const dynamic = "force-dynamic";
@@ -44,61 +42,29 @@ export default async function IntakeSectionPage({
 
   return (
     <main>
-      <ProjectHeader
-        name={project.projectName}
-        status="Draft"
-        nextLine={
-          outstanding === 0
-            ? "Everything we need — the risk areas come next."
-            : `Tell us about the project — ${outstanding} answer${outstanding === 1 ? "" : "s"} still needed.`
+      <SectionForm
+        projectName={project.projectName}
+        stepLine={`Step 1 · Section ${index + 1} of ${INTAKE_SECTIONS.length}`}
+        needed={Boolean(needed)}
+        projectId={id}
+        sectionName={section.name}
+        initial={values}
+        nextHref={nextHref}
+        nextLabel={next ? `Next: ${next.name} →` : "Continue to the risk areas →"}
+        previousHref={
+          previous ? `/projects/${id}/intake/${sectionKey(previous.name)}` : `/projects`
         }
-        currentStage={0}
+        previousLabel={previous ? "← Previous" : "← All projects"}
+        sectionKey={key}
+        lastChange={
+          lastChange
+            ? {
+                by: lastChange.byName ?? "recorded before attribution existed",
+                at: lastChange.at.toLocaleString(),
+              }
+            : null
+        }
       />
-
-      <div className="assess-layout">
-        <IntakeRail projectId={id} progress={progress} currentKey={key} />
-
-        <section>
-          <p className="eyebrow">
-            Step 1 · Section {index + 1} of {INTAKE_SECTIONS.length}
-          </p>
-          <h2 className="display gate-display">{section.name}</h2>
-
-          {needed && (
-            /* Arriving here from the risk areas: say why, rather than
-               bouncing someone back with no explanation (§25.3). */
-            <p className="prefill" role="note">
-              <span className="prefill-tag">Needed first</span>
-              <span>
-                The risk areas work from these answers — we ask you once here so
-                nobody asks you again later. Fill in what&rsquo;s marked and
-                you&rsquo;ll go straight through.
-              </span>
-            </p>
-          )}
-
-          <SectionForm
-            projectId={id}
-            sectionName={section.name}
-            initial={values}
-            nextHref={nextHref}
-            nextLabel={next ? `Next: ${next.name} →` : "Continue to the risk areas →"}
-            previousHref={
-              previous ? `/projects/${id}/intake/${sectionKey(previous.name)}` : `/projects`
-            }
-            previousLabel={previous ? "← Previous" : "← All projects"}
-          />
-
-          {lastChange && (
-            <p className="attribution">
-              Last change saved by{" "}
-              <strong>{lastChange.byName ?? "recorded before attribution existed"}</strong>
-              {" · "}
-              {lastChange.at.toLocaleString()}
-            </p>
-          )}
-        </section>
-      </div>
     </main>
   );
 }

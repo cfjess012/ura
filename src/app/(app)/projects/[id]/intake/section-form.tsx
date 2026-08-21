@@ -11,29 +11,43 @@ import { saveIntake } from "@/app/actions";
 import { SCOPE_KEY } from "@/lib/intake-values";
 import { isFailure } from "@/lib/errors";
 import {
+  ALL_FIELDS,
   INTAKE_SECTIONS,
   isFieldVisible,
   missingRequiredFields,
+  sectionProgress,
   type IntakeField,
   type IntakeValues,
 } from "@/lib/intake";
+import { IntakeRail } from "./intake-rail";
+import { ProjectHeader } from "../project-header";
 
 export function SectionForm({
   projectId,
+  projectName,
+  stepLine,
+  needed,
   sectionName,
   initial,
   nextHref,
   nextLabel,
   previousHref,
   previousLabel,
+  sectionKey,
+  lastChange,
 }: {
   projectId: string;
+  projectName: string;
+  stepLine: string;
+  needed: boolean;
   sectionName: string;
   initial: IntakeValues;
   nextHref: string;
   nextLabel: string;
   previousHref: string;
   previousLabel: string;
+  sectionKey: string;
+  lastChange: { by: string; at: string } | null;
 }) {
   const router = useRouter();
   const section = INTAKE_SECTIONS.find((s) => s.name === sectionName)!;
@@ -49,6 +63,44 @@ export function SectionForm({
 
   const set = (id: string, v: string | string[]) =>
     setValues((prev) => ({ ...prev, [id]: v }));
+
+  const formRef = React.useRef<HTMLFormElement>(null);
+  // Adopt anything typed before this component hydrated.
+  //
+  // The server sends real HTML, so the fields are usable immediately — but
+  // they are controlled inputs, and React's first render would overwrite
+  // whatever was typed in the meantime with the values the server sent.
+  // Silently: no error, no sign, the answer simply gone. Reading the form
+  // once on mount and taking the DOM's word for it closes that window.
+  // Found because an end-to-end test kept losing a typed answer roughly one
+  // run in three on a page reached by redirect.
+  React.useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+    const submitted = new FormData(form);
+    setValues((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const field of ALL_FIELDS) {
+        if (field.type === "note") continue;
+        if (field.type === "multi") {
+          const got = submitted.getAll(field.id).map(String);
+          const before = (prev[field.id] as string[] | undefined) ?? [];
+          if (got.length !== before.length || got.some((v, i) => v !== before[i])) {
+            next[field.id] = got;
+            changed = true;
+          }
+        } else {
+          const got = String(submitted.get(field.id) ?? "");
+          if (got !== ((prev[field.id] as string | undefined) ?? "")) {
+            next[field.id] = got;
+            changed = true;
+          }
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, []);
 
   const missingFields = missingRequiredFields(values).filter((f) =>
     section.fields.some((sf) => sf.id === f.id),
@@ -103,16 +155,28 @@ export function SectionForm({
     }
   }
 
+  // The rail lives inside the form so it reports what is on screen rather
+  // than what was last saved. Rendered from the server it went stale the
+  // moment someone typed — the rail said "1 still needed" while the save bar
+  // said "nothing outstanding", about the same section (§24.3).
+  const progress = sectionProgress(values);
+  const outstanding = progress.reduce((sum, p) => sum + p.missing.length, 0);
+
   return (
     <form
+      ref={formRef}
+      className="intake-form"
       noValidate
       onSubmit={async (event) => {
         event.preventDefault();
         // Required means required (FR-28). Their work is still saved — what
         // is refused is moving on, not the answers they did give.
         if (missingFields.length > 0) {
-          setFlagged(true);
+          // Save BEFORE flagging: the message says "Saved." and it has to be
+          // true when it appears, not a moment later. "Saving…" covers the
+          // gap, so the control still responds instantly (§24.3, §24.4).
           await save();
+          setFlagged(true);
           const first = missingFields[0]!;
           document.getElementById(first.id)?.focus();
           document
@@ -124,6 +188,40 @@ export function SectionForm({
         if (await save()) router.push(nextHref);
       }}
     >
+      {/* Header, rail and save bar all read from the same live values, so
+          the screen can never report two different amounts of work left
+          (§24.3, §24.9). Rendered from the server they went stale the moment
+          somebody typed. */}
+      <ProjectHeader
+        name={projectName}
+        status="Draft"
+        nextLine={
+          outstanding === 0
+            ? "Everything we need — the risk areas come next."
+            : `Tell us about the project — ${outstanding} answer${outstanding === 1 ? "" : "s"} still needed.`
+        }
+        currentStage={0}
+      />
+
+      <IntakeRail projectId={projectId} progress={progress} currentKey={sectionKey} />
+
+      <div className="intake-main">
+        <p className="eyebrow">{stepLine}</p>
+        <h2 className="display gate-display">{sectionName}</h2>
+
+        {needed && (
+          /* Arriving here from the risk areas: say why, rather than bouncing
+             someone back with no explanation (§25.3). */
+          <p className="prefill" role="note">
+            <span className="prefill-tag">Needed first</span>
+            <span>
+              The risk areas work from these answers — we ask you once here so
+              nobody asks you again later. Fill in what&rsquo;s marked and
+              you&rsquo;ll go straight through.
+            </span>
+          </p>
+        )}
+
       <div className="card">
         {section.fields.map((field) =>
           isFieldVisible(field, values) ? (
@@ -189,6 +287,15 @@ export function SectionForm({
         <Link className="btn ghost" href={previousHref} onClick={() => void save()}>
           {previousLabel}
         </Link>
+      </div>
+
+        {lastChange && (
+          <p className="attribution">
+            Last change saved by <strong>{lastChange.by}</strong>
+            {" · "}
+            {lastChange.at}
+          </p>
+        )}
       </div>
     </form>
   );
@@ -278,6 +385,7 @@ function Control({
     return (
       <input
         id={field.id}
+        name={field.id}
         type={field.type}
         value={(value as string) ?? ""}
         onChange={(e) => set(field.id, e.target.value)}
@@ -289,6 +397,7 @@ function Control({
     return (
       <textarea
         id={field.id}
+        name={field.id}
         value={(value as string) ?? ""}
         onChange={(e) => set(field.id, e.target.value)}
         {...validity}
@@ -299,6 +408,7 @@ function Control({
     return (
       <select
         id={field.id}
+        name={field.id}
         value={(value as string) ?? ""}
         onChange={(e) => set(field.id, e.target.value)}
         {...validity}
@@ -310,6 +420,46 @@ function Control({
           </option>
         ))}
       </select>
+    );
+  }
+  if (field.type === "choice") {
+    // One answer on a scale, laid out as the scale (§23). A dropdown hides
+    // the options behind a click and hides the ordering entirely, so a
+    // person cannot see that they are choosing a level at all.
+    const chosen = (value as string) ?? "";
+    return (
+      <div
+        className={flagged ? "levels flagged" : "levels"}
+        role="radiogroup"
+        aria-labelledby={`${field.id}-label`}
+        aria-required={field.required || undefined}
+        aria-invalid={flagged || undefined}
+      >
+        {field.options!.map((o, i) => (
+          <label key={o} className={`level${chosen === o ? " chosen" : ""}`}>
+            <input
+              type="radio"
+              name={field.id}
+              id={i === 0 ? field.id : undefined}
+              value={o}
+              checked={chosen === o}
+              onChange={() => set(field.id, o)}
+            />
+            <span className="level-body">
+              <span className="level-name">
+                <span className="level-rank" aria-hidden="true">
+                  {"●".repeat(i + 1)}
+                  <span className="level-rank-rest">{"○".repeat(field.options!.length - i - 1)}</span>
+                </span>
+                {o}
+              </span>
+              {field.optionHelp?.[o] && (
+                <span className="level-what">{field.optionHelp[o]}</span>
+              )}
+            </span>
+          </label>
+        ))}
+      </div>
     );
   }
   const selected = (value as string[] | undefined) ?? [];
@@ -329,6 +479,8 @@ function Control({
           <input
             type="checkbox"
             id={i === 0 ? field.id : undefined}
+            name={field.id}
+            value={o}
             checked={selected.includes(o)}
             onChange={(e) =>
               set(field.id, e.target.checked ? [...selected, o] : selected.filter((x) => x !== o))

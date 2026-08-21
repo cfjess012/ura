@@ -61,7 +61,7 @@ test("create → fill each section (conditionals reveal) → reopen → everythi
 
   // Compliance & Data — includesAny reveal.
   await expect(page.getByLabel("Data Elements")).toBeHidden();
-  await page.getByRole("checkbox", { name: "Confidential" }).check();
+  await page.getByRole("radio", { name: /Confidential/ }).check();
   await expect(page.getByLabel("Data Elements")).toBeVisible();
   await page.getByRole("checkbox", { name: "Employee personal information" }).check();
   await expect(page.getByText("Nothing outstanding in this section.")).toBeVisible();
@@ -94,7 +94,7 @@ test("create → fill each section (conditionals reveal) → reopen → everythi
   ).toHaveValue("I'm not sure");
 
   await fresh.goto(`${base}/intake/compliance-data`);
-  await expect(fresh.getByRole("checkbox", { name: "Confidential" })).toBeChecked();
+  await expect(fresh.getByRole("radio", { name: /Confidential/ })).toBeChecked();
   await expect(
     fresh.getByRole("checkbox", { name: "Employee personal information" }),
   ).toBeChecked();
@@ -126,14 +126,14 @@ test("saving a later section does not erase an earlier section's answers", async
 
   // Answer the LAST section again, out of order.
   await page.goto(`${base}/intake/compliance-data`);
-  await page.getByRole("checkbox", { name: "Confidential" }).check();
+  await page.getByRole("radio", { name: /Confidential/ }).check();
   await page.getByRole("checkbox", { name: "Employee personal information" }).check();
   await page.getByRole("button", { name: /Continue to the risk areas/ }).click();
   // Wait for the save to land where it says it will. Navigating away sooner
   // races the write and tests the harness rather than the product.
   await expect(page).toHaveURL(/\/assess\//);
   await page.goto(`${base}/intake/compliance-data`);
-  await expect(page.getByRole("checkbox", { name: "Confidential" })).toBeChecked();
+  await expect(page.getByRole("radio", { name: /Confidential/ })).toBeChecked();
 
   // Now go back and save an EARLIER section.
   await page.goto(`${base}/intake/ownership`);
@@ -143,7 +143,7 @@ test("saving a later section does not erase an earlier section's answers", async
 
   // The later section's answers must be untouched.
   await page.goto(`${base}/intake/compliance-data`);
-  await expect(page.getByRole("checkbox", { name: "Confidential" })).toBeChecked();
+  await expect(page.getByRole("radio", { name: /Confidential/ })).toBeChecked();
   await expect(
     page.getByRole("checkbox", { name: "Employee personal information" }),
   ).toBeChecked();
@@ -175,10 +175,24 @@ test("you cannot blast through intake — required means required (FR-28)", asyn
   await expect(page).toHaveURL(/\/intake\/description\?needed=1$/);
   await expect(page.getByText("Needed first")).toBeVisible();
 
-  // And nothing that was typed is lost on the way.
-  await page.getByLabel("Business Purpose or Objective").fill("Shorten scheduling effort.");
+  // And nothing that was typed is lost on the way. Wait for the save to be
+  // acknowledged before reloading: asserting persistence must not double as
+  // an assertion about how fast the server happens to be today.
+  const purpose = page.getByLabel("Business Purpose or Objective");
+  await purpose.fill("Shorten scheduling effort.");
+  // This page arrived via a redirect, so it is a fresh document and typing
+  // can land before React has hydrated — the value sits in the DOM and a
+  // controlled input discards it on first render. Checking the input's own
+  // value proves nothing (the DOM holds it either way); the rail only moves
+  // once React has processed the change, so that is the signal to wait for.
+  await expect(
+    page.getByRole("navigation", { name: "Intake sections" }).getByRole("link", {
+      name: /Description/,
+    }),
+  ).toContainText("2 still needed");
   await page.getByRole("button", { name: /Next: Ownership/ }).click();
   await expect(page.getByText(/Answer these 2 first/)).toBeVisible();
+  await expect(page.locator(".savebar [role=status]")).toContainText("Saved.");
   await page.reload();
   await expect(page.getByLabel("Business Purpose or Objective")).toHaveValue(
     "Shorten scheduling effort.",

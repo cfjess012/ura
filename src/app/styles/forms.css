@@ -124,7 +124,24 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 /* The bar is sticky and is the form's last child, so at rest it lands on
    top of the final field — and taller in the error state, hiding more (N5).
    The field card reserves that height instead. */
-.assess-layout section > form > .card { padding-bottom: 5.5rem; }
+.intake-main > .card { padding-bottom: 5.5rem; }
+/* Intake puts its rail inside the form (so it tracks unsaved answers), which
+   makes the form the two-column grid rather than the page. */
+.intake-form {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: 0 2rem;
+  align-items: start;
+}
+.intake-form > .projhead { grid-column: 1 / -1; }
+.intake-form > .rail { margin-top: 1.6rem; }
+.intake-form > .intake-main { min-width: 0; }
+.intake-form > .savebar { grid-column: 1 / -1; }
+.intake-form > .gate-nav { grid-column: 2; }
+@media (max-width: 900px) {
+  .intake-form { grid-template-columns: 1fr; }
+  .intake-form > .gate-nav { grid-column: 1; }
+}
 .savebar {
   position: sticky; bottom: 0; z-index: 5;
   background: rgba(252, 252, 252, 0.94);
@@ -210,3 +227,34 @@ select.flagged {
 }
 .checks.flagged { border-radius: var(--radius); padding: 0.35rem; }
 .missing.blocked { color: var(--warning-strong); font-weight: 700; white-space: normal; }
+
+/* A single answer on an ordered scale (C-3). Laid out as a scale so the
+   ordering is visible: a dropdown would hide both the options and the fact
+   that they rank. Rank is shown by filled pips AND by position AND by the
+   description — never by colour (§11.1). */
+.levels { display: grid; gap: 0.5rem; margin-bottom: 0.4rem; }
+.level {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.75rem 0.9rem;
+  border: 2px solid var(--neutral-200);
+  border-radius: var(--radius);
+  background: var(--neutral-0);
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.level:hover { border-color: var(--brand); background: var(--surface-1); }
+.level input { margin-top: 0.25rem; accent-color: var(--primary); }
+.level.chosen {
+  border-color: var(--navy);
+  background: var(--surface-2);
+  box-shadow: inset 4px 0 0 var(--navy);
+}
+.level-body { display: block; min-width: 0; }
+.level-name { display: flex; align-items: baseline; gap: 0.5rem; font-weight: 700; }
+.level.chosen .level-name { color: var(--navy); }
+.level-rank { font-size: 0.6rem; letter-spacing: 0.1em; color: var(--navy); }
+.level-rank-rest { color: var(--neutral-300); }
+.level-what { display: block; font-size: 0.85rem; color: var(--neutral-600); margin-top: 0.15rem; }
+.levels.flagged { border: 2px solid var(--warning-strong); border-radius: var(--radius); padding: 0.35rem; }

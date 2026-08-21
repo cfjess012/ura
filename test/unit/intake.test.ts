@@ -108,14 +108,14 @@ describe("conditional visibility (FR-1)", () => {
   it("includesAny conditions need an actual selection", () => {
     const elements = byId("dataElements");
     expect(isFieldVisible(elements, {})).toBe(false);
-    expect(isFieldVisible(elements, { dataClassification: ["Public"] })).toBe(
+    expect(isFieldVisible(elements, { dataClassification: "Public" })).toBe(
       false,
     );
     expect(
-      isFieldVisible(elements, { dataClassification: ["Confidential"] }),
+      isFieldVisible(elements, { dataClassification: "Confidential" }),
     ).toBe(true);
     expect(
-      isFieldVisible(elements, { dataClassification: ["Public", "Internal"] }),
+      isFieldVisible(elements, { dataClassification: "Internal" }),
     ).toBe(true);
   });
 });
@@ -124,7 +124,7 @@ describe("completeness meter", () => {
   it("counts only visible required fields", () => {
     const missing = missingRequired({});
     expect(missing).toContain("Project Name");
-    expect(missing).toContain("Data Classification");
+    expect(missing).toContain("What's the most sensitive data involved?");
     expect(missing).toContain("Does this use AI or machine learning?");
     // Conditional fields are optional AND hidden — never counted.
     expect(missing).not.toContain("Other Business Units Involved");
@@ -140,7 +140,7 @@ describe("completeness meter", () => {
       initiativeType: "Brand new",
       businessUnit: "U",
       thirdPartyInvolved: "No",
-      dataClassification: ["Internal"],
+      dataClassification: "Internal",
     });
     expect(done).toEqual([]);
   });
@@ -221,7 +221,7 @@ describe("required means required (FR-28)", () => {
     values.businessUnit = "U";
     values.thirdPartyInvolved = "No";
     expect(firstIncompleteSection(values)).toBe("compliance-data");
-    values.dataClassification = ["Public"];
+    values.dataClassification = "Public";
     expect(firstIncompleteSection(values)).toBeNull();
     expect(intakeIsComplete(values)).toBe(true);
   });

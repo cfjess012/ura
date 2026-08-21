@@ -79,8 +79,12 @@ describe("pre-fill from intake (FR-22)", () => {
 
   it("non-public data classification answers the data gate", () => {
     const data = categoryByKey("data-privacy")!;
-    expect(prefillFor(data, { dataClassification: ["Confidential"] })?.answer).toBe("Yes");
-    expect(prefillFor(data, { dataClassification: ["Public"] })).toBeNull();
+    expect(prefillFor(data, { dataClassification: "Confidential" })?.answer).toBe("Yes");
+    // Public no longer proves nothing — it closes the area (C-3).
+    expect(prefillFor(data, { dataClassification: "Public" })).toEqual({
+      answer: "No",
+      because: "you told us the only data involved is already public",
+    });
   });
 
   it("never pre-fills from an empty intake — positive evidence only (§3.2.1)", () => {

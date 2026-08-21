@@ -1,6 +1,6 @@
 {
   "slug": "tier1-gates",
-  "version": "2026-08-21.3",
+  "version": "2026-08-21.4",
   "categories": [
     {
       "key": "third-party",
@@ -124,13 +124,23 @@
           "answer": "Yes",
           "when": {
             "field": "dataClassification",
-            "includesAny": [
+            "equalsAny": [
               "Internal",
               "Confidential",
               "Restricted"
             ]
           },
-          "because": "you classified the data as Internal, Confidential, or Restricted"
+          "because": "you told us the data isn't public"
+        },
+        {
+          "answer": "No",
+          "when": {
+            "field": "dataClassification",
+            "equalsAny": [
+              "Public"
+            ]
+          },
+          "because": "you told us the only data involved is already public"
         }
       ]
     },

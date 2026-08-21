@@ -1,6 +1,6 @@
 ---
 audit: instrument-coherence
-spec-version: 2026-08-21.5
+spec-version: 2026-08-21.7
 instrument: tier1-gates@2026-08-21.2 + intake (src/lib/intake.ts)
 run-on: 2026-08-21
 run-by: Claude, following .claude/skills/instrument-coherence
@@ -18,8 +18,7 @@ proposal for the owner; changing what is asked is a governance event (§8).
 **Owner decisions, same day** — C-2 accepted (G-35) and C-8 accepted for
 Governance only (G-36), both shipped in `tier1-gates@2026-08-21.3` along
 with the closing pre-fill rules from C-1 and the uncertainty carry-forward
-from C-9. Status of each finding is marked below. C-3, C-5, C-6, C-7 and
-C-10 remain open.
+from C-9. Status of each finding is marked below. C-3 followed the same day (G-38). C-5, C-6, C-7 and C-10 remain open.
 
 Headline: the instrument is structurally sound — every gate honours the
 Tier-1 contract, every question is reachable, and no condition is
@@ -89,7 +88,7 @@ distinction doesn't hold up on reading, the finding should be rejected.
 
 ## C-3 (answer-type) · `dataClassification` is a multi-select asking for one answer
 
-**Status: open** — needs a migration converting stored arrays to a single value, so it is a decision, not a data edit.
+**Status: closed** — accepted by the owner, shipped as G-38 with migration 0010. It also closed the remaining half of C-1: public-only data now closes the privacy area.
 
 
 The help says *"Choose the highest classification of any data involved."* The

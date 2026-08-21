@@ -37,7 +37,7 @@ test("intake pre-answers gates; answers persist; No closes a category", async ({
     .selectOption("Yes");
   await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
 
-  await page.getByRole("checkbox", { name: "Confidential" }).check();
+  await page.getByRole("radio", { name: /Confidential/ }).check();
 
   // Leaving the last section saves and hands off to the risk areas.
   await page.getByRole("button", { name: /Continue to the risk areas/ }).click();
@@ -111,7 +111,7 @@ test("intake can CLOSE risk areas, and an area that applies to everyone is never
   await expect(page.getByLabel("Which companies?")).toBeHidden();
   await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
 
-  await page.getByRole("checkbox", { name: "Public" }).check();
+  await page.getByRole("radio", { name: /Public/ }).check();
   await page.getByRole("button", { name: /Continue to the risk areas/ }).click();
 
   // Two areas arrive already closed, each saying why.

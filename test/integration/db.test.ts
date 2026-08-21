@@ -31,7 +31,7 @@ describe("projects persistence (FR-2)", () => {
       .values({
         projectName: "Cadenza pilot",
         businessUnit: "Workforce Ops",
-        dataClassification: ["Internal", "Confidential"],
+        dataClassification: "Confidential",
         usesAi: "Yes",
         aiUseCase: "Drafts shift assignments for a human to approve.",
         initiativeType: "Moving a proof of concept into production",
@@ -43,7 +43,7 @@ describe("projects persistence (FR-2)", () => {
       .from(projects)
       .where(eq(projects.id, row!.id));
     expect(read!.projectName).toBe("Cadenza pilot");
-    expect(read!.dataClassification).toEqual(["Internal", "Confidential"]);
+    expect(read!.dataClassification).toEqual("Confidential");
     expect(read!.usesAi).toBe("Yes");
     expect(read!.initiativeType).toBe("Moving a proof of concept into production");
     // A date column, not a timestamp — no timezone drift on a launch date.

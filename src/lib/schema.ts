@@ -40,10 +40,7 @@ export const projects = pgTable("projects", {
   thirdPartyInvolved: text("third_party_involved").notNull().default(""),
   vendorNames: text("vendor_names").notNull().default(""),
   coupaOnboarded: text("coupa_onboarded").notNull().default(""),
-  dataClassification: jsonb("data_classification")
-    .$type<string[]>()
-    .notNull()
-    .default([]),
+  dataClassification: text("data_classification").notNull().default(""),
   dataElements: jsonb("data_elements").$type<string[]>().notNull().default([]),
   createdBy: text("created_by"),
 });

@@ -25,9 +25,16 @@ export type IntakeCondition =
 export type IntakeField = {
   id: string;
   label: string;
-  type: "text" | "textarea" | "select" | "multi" | "date" | "note";
+  type: "text" | "textarea" | "select" | "choice" | "multi" | "date" | "note";
   required?: boolean;
   options?: string[];
+  /**
+   * One line per option, shown beside it. A "choice" field asks a person to
+   * place their situation on a scale, and a scale whose rungs are single
+   * words ("Confidential") is a vocabulary test — the descriptions are what
+   * make the answer comparable between two people (§24.7).
+   */
+  optionHelp?: Record<string, string>;
   help?: string;
   /** For type "note": the reassurance shown. Notes ask nothing and store nothing. */
   body?: string;
@@ -224,10 +231,16 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
     fields: [
       {
         id: "dataClassification",
-        label: "Data Classification",
-        help: "Choose the highest classification of any data involved, including data in logs and backups. If you're unsure which applies, choose the higher one — a reviewer will confirm.",
-        type: "multi",
+        label: "What's the most sensitive data involved?",
+        help: "Count everything the activity touches, including copies in logs, exports and backups. If you're between two, choose the higher one — a reviewer confirms it.",
+        type: "choice",
         options: ["Public", "Internal", "Confidential", "Restricted"],
+        optionHelp: {
+          Public: "Already cleared for release outside the company — published pages, public reports.",
+          Internal: "Everyday company information. Not secret, but not for outside eyes.",
+          Confidential: "Would cause real harm if it got out — personal details, contracts, financials.",
+          Restricted: "The most sensitive we hold — payment or health data, credentials, anything under a legal lock.",
+        },
         required: true,
       },
       {
@@ -243,10 +256,9 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         ],
         conditional: {
           visibleWhen: "dataClassification",
-          includesAny: ["Internal", "Confidential", "Restricted"],
+          equalsAny: ["Internal", "Confidential", "Restricted"],
         },
-        revealNote:
-          "Shown because Internal, Confidential, or Restricted data was selected.",
+        revealNote: "Shown because the data is not public.",
         help: "High level only — the detailed data questions come later, and only if they apply.",
       },
     ],

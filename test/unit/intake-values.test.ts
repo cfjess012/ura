@@ -35,10 +35,12 @@ describe("intakePatchFrom (pure)", () => {
   it("inside its own scope, clearing a multi-select still persists", () => {
     const cleared = intakePatchFrom({
       [SCOPE_KEY]: ["dataClassification", "dataElements"],
-      dataElements: ["Employee personal information"],
+      dataClassification: ["Internal"],
     });
-    expect(cleared.dataClassification).toEqual([]); // in scope, unchecked
-    expect(cleared.dataElements).toEqual(["Employee personal information"]);
+    // dataElements is in scope and was submitted empty: that is a real
+    // clearing and must be written, not skipped.
+    expect(cleared.dataElements).toEqual([]);
+    expect(cleared.dataClassification).toEqual("Internal");
   });
 
   it("with no declared scope, still refuses to clear what it was not given (N8)", () => {
@@ -46,7 +48,7 @@ describe("intakePatchFrom (pure)", () => {
     // thinking. It must not be the dangerous one: writing [] over every
     // unmentioned multi-select is what erased whole sections (G-28).
     const everything = intakePatchFrom({ dataClassification: ["Internal"] });
-    expect(everything.dataClassification).toEqual(["Internal"]);
+    expect(everything.dataClassification).toEqual("Internal");
     expect(everything).not.toHaveProperty("dataElements");
   });
 
@@ -79,11 +81,11 @@ describe("intakeValuesFrom (pure)", () => {
     const values = intakeValuesFrom({
       projectName: "Cadenza",
       targetGoLive: null,
-      dataClassification: ["Internal"],
+      dataClassification: "Internal",
     });
     expect(values.projectName).toBe("Cadenza");
     expect(values.targetGoLive).toBe("");
-    expect(values.dataClassification).toEqual(["Internal"]);
+    expect(values.dataClassification).toEqual("Internal");
   });
 });
 
