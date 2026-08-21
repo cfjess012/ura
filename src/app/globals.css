@@ -443,9 +443,9 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 .appbar-link { color: #cfe0f0; text-decoration: none; font-size: 0.88rem; font-weight: 700; }
 .appbar-link:hover { color: var(--neutral-0); text-decoration: underline; }
 .persona { display: flex; align-items: center; gap: 0.5rem; }
-.persona-who { display: flex; flex-direction: column; line-height: 1.15; text-align: right; }
-.persona-name { font-size: 0.86rem; font-weight: 700; color: var(--neutral-0); }
-.persona-role { font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+.persona-label { display: flex; flex-direction: column; line-height: 1.15; text-align: right; cursor: pointer; }
+.persona-label-top { font-size: 0.68rem; color: #9db8d0; }
+.persona-role { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
 .persona select {
   width: auto; font-size: 0.82rem; padding: 0.3rem 1.8rem 0.3rem 0.6rem;
   background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); color: var(--neutral-0);

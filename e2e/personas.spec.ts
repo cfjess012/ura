@@ -17,11 +17,20 @@ test("the front door introduces the platform and asks who you are", async ({ pag
   await expect(page.getByRole("heading", { name: "One front door." })).toBeVisible();
 });
 
+test("choosing a person switches immediately — no second click", async ({ page }) => {
+  await page.goto("/projects");
+  await expect(page.locator(".persona-role")).toHaveText("Requester");
+  await page.getByLabel(/Working as/).selectOption({ label: "Noah Kahan · Risk Assessor" });
+  // No further interaction: the interface must respond to the action taken.
+  await expect(page.locator(".persona-role")).toHaveText("Risk Assessor");
+  await expect(page.getByRole("button", { name: "Switch" })).toHaveCount(0);
+});
+
 test("switching persona changes role, navigation, and what is permitted", async ({ page }) => {
   await page.goto("/projects");
 
   // A requester is the pilot default: no admin navigation.
-  await expect(page.getByText("Requester", { exact: true })).toBeVisible();
+  await expect(page.locator(".persona-role")).toHaveText("Requester");
   await expect(page.getByRole("link", { name: "Agents" })).toBeHidden();
 
   // The server refuses the admin surface by role, not by hiding a link.
@@ -33,11 +42,10 @@ test("switching persona changes role, navigation, and what is permitted", async 
 
   // Switch to the administrator.
   await page.goto("/projects");
-  await page.getByLabel("Switch person (pilot — not a sign-in)").selectOption({
-    label: "Tom Holland · Administrator",
-  });
-  await page.getByRole("button", { name: "Switch" }).click();
-  await expect(page.getByText("Administrator", { exact: true })).toBeVisible();
+  // Choosing IS the action — no confirming click. A control that needs a
+  // second press reads as broken (found in use, not by this suite).
+  await page.getByLabel(/Working as/).selectOption({ label: "Tom Holland · Administrator" });
+  await expect(page.locator(".persona-role")).toHaveText("Administrator");
   await expect(page.getByRole("link", { name: "Agents" })).toBeVisible();
 
   // Now the page opens, and it is honest about what the switcher is.
@@ -49,21 +57,15 @@ test("switching persona changes role, navigation, and what is permitted", async 
 
   // The Risk Assessor is a third, distinct role.
   await page.goto("/projects");
-  await page.getByLabel("Switch person (pilot — not a sign-in)").selectOption({
-    label: "Noah Kahan · Risk Assessor",
-  });
-  await page.getByRole("button", { name: "Switch" }).click();
-  await expect(page.getByText("Risk Assessor", { exact: true })).toBeVisible();
+  await page.getByLabel(/Working as/).selectOption({ label: "Noah Kahan · Risk Assessor" });
+  await expect(page.locator(".persona-role")).toHaveText("Risk Assessor");
   await expect(page.getByRole("link", { name: "Agents" })).toBeHidden();
 });
 
 test("an answer records who gave it", async ({ page }) => {
   const name = `Attribution ${Date.now()}`;
   await page.goto("/projects");
-  await page.getByLabel("Switch person (pilot — not a sign-in)").selectOption({
-    label: "Priya Sharma · Requester",
-  });
-  await page.getByRole("button", { name: "Switch" }).click();
+  await page.getByLabel(/Working as/).selectOption({ label: "Priya Sharma · Requester" });
   await page.getByLabel("Start a new assessment").fill(name);
   await page.getByRole("button", { name: "Start assessment" }).click();
   await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
