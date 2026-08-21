@@ -1,0 +1,79 @@
+/**
+ * Demo readiness is an artifact, not an intention (G-44).
+ *
+ * Build completeness and demo readiness are different things: a requirement
+ * can be fully met and still be unfit to show, and until this file existed
+ * nothing tracked the second one. These checks make a beat with a blank
+ * cell fail the build, because a beat with a blank cell is a hope.
+ */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const ROOT = join(__dirname, "..", "..");
+const doc = readFileSync(join(ROOT, "demo", "readiness.md"), "utf8");
+const claudeMd = readFileSync(join(ROOT, "CLAUDE.md"), "utf8");
+
+const rows = (heading: string) =>
+  (doc.split(heading)[1] ?? "")
+    .split(/^## /m)[0]!
+    .split("\n")
+    .filter((l) => l.startsWith("|") && !l.includes("---") && !/^\|\s*#\s*\|/.test(l))
+    .filter((l) => !/^\| Risk \|/.test(l))
+    .map((l) => l.split("|").slice(1, -1).map((c) => c.trim()));
+
+describe("the demo readiness record is complete", () => {
+  it("covers exactly the slices that are finished", () => {
+    // The teeth: finish a slice without revisiting what it changed for the
+    // demo and this fails, which forces the conversation rather than
+    // hoping someone starts it.
+    const done = [...claudeMd.matchAll(/\b(S[\d.]+)[^—\n]{0,40}— DONE/g)].map((m) => m[1]!);
+    const covered = (doc.match(/^slices-covered:\s*(.+)$/m)?.[1] ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    expect([...covered].sort(), "demo/readiness.md is stale — a slice finished and nobody revisited the demo").toEqual(
+      [...done].sort(),
+    );
+  });
+
+  it("every beat says what it is, who delivers it, and what happens if it breaks", () => {
+    const beats = rows("## The beats");
+    expect(beats.length).toBeGreaterThan(5);
+    for (const cells of beats) {
+      expect(cells.length, `row has ${cells.length} cells: ${cells[1]}`).toBe(6);
+      for (const [i, cell] of cells.entries()) {
+        expect(cell.length, `beat "${cells[1]}" has an empty column ${i + 1}`).toBeGreaterThan(0);
+        expect(/^(tbd|todo|\?+)$/i.test(cell), `beat "${cells[1]}" column ${i + 1} is a placeholder`).toBe(false);
+      }
+      // A fallback is the column people skip. It is also the only one that
+      // matters when something fails in front of an audience.
+      expect(cells[5]!.length, `beat "${cells[1]}" has no fallback`).toBeGreaterThan(15);
+    }
+  });
+
+  it("says plainly which beats are not built, rather than implying they are", () => {
+    const beats = rows("## The beats");
+    const unbuilt = beats.filter((c) => /\bno\b/i.test(c[3]!));
+    for (const cells of unbuilt) {
+      expect(
+        /not demoable yet|do not promise|describe it/i.test(cells[5]!),
+        `beat "${cells[1]}" is not built but its fallback does not say so`,
+      ).toBe(true);
+    }
+  });
+
+  it("names the risks that are not features, and what to do about each", () => {
+    const risks = rows("## Risks that are not features");
+    expect(risks.length).toBeGreaterThan(2);
+    for (const cells of risks) {
+      expect(cells.length).toBe(3);
+      expect(cells[2]!.length, `risk "${cells[0]}" has no mitigation`).toBeGreaterThan(15);
+    }
+  });
+
+  it("keeps a list of what will not be claimed", () => {
+    const section = doc.split("## What we will not claim")[1] ?? "";
+    expect(section.split("\n").filter((l) => l.startsWith("- ")).length).toBeGreaterThan(1);
+  });
+});

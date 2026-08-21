@@ -84,6 +84,16 @@ process.stdin.on("end", () => {
   if (/^\.claude\/(agents|skills)\//.test(rel)) {
     notes.push("Agent or skill changed → run `pnpm agent-map` so docs/agent-map.html and the in-app transparency page match. test/unit/agent-map.test.ts fails the build until you do.");
   }
+  if (/^CLAUDE\.md$/.test(rel) && /— DONE/.test(source)) {
+    notes.push(
+      "Slice status changed → demo/readiness.md must cover it: which beat does this add or change, is it built, has a person walked it, what is the fallback if it breaks live. The stop gate refuses to finish until it does (G-44).",
+    );
+  }
+  if (/^demo\/readiness\.md$/.test(rel)) {
+    notes.push(
+      "Demo readiness edited → say it to the owner in the reply, not just in the file. A beat nobody has walked is not ready, however green the tests are.",
+    );
+  }
   if (/^drizzle\//.test(rel)) {
     notes.push("Migration touched → SPEC §26.5: append a new file, never edit an applied one, and mirror it in src/lib/schema.ts.");
   }

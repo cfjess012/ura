@@ -72,6 +72,29 @@ try {
   problems.push(`could not check slice records: ${error.message}`);
 }
 
+// ---- 4. The demo conversation has been had ------------------------------
+// Build completeness is not demo readiness. This does not judge whether the
+// demo is good — it refuses to let a slice finish without someone saying
+// what it changed for the room (G-44).
+try {
+  const readiness = readFileSync(join(ROOT, "demo", "readiness.md"), "utf8");
+  const claude = readFileSync(join(ROOT, "CLAUDE.md"), "utf8");
+  const done = [...claude.matchAll(/\b(S[\d.]+)[^—\n]{0,40}— DONE/g)].map((m) => m[1]).sort();
+  const covered = (readiness.match(/^slices-covered:\s*(.+)$/m)?.[1] ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .sort();
+  const missing = done.filter((s) => !covered.includes(s));
+  if (missing.length > 0) {
+    problems.push(
+      `demo/readiness.md does not cover ${missing.join(", ")}. Before finishing: which beat does this slice add or change, is it built, has a person walked it, and what is the fallback if it breaks in front of the room? Update the file and say so out loud — this is the conversation, not the paperwork.`,
+    );
+  }
+} catch (error) {
+  problems.push(`could not read demo/readiness.md — the demo record is missing: ${error.message}`);
+}
+
 if (problems.length > 0) {
   console.error("Stop gate:\n- " + problems.join("\n- "));
   process.exit(2);

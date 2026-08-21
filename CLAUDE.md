@@ -15,11 +15,12 @@ implementation, stop on ambiguity.
   derived path carries its reason; parts shelf declined on evidence, G-40)
 - S3.5 Destinations — SPEC'd not built (§27): ServiceNow AI Use Case Record
 - S4..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
-- Verified twice 2026-08-21, FAIL both times, all addressed (G-28..G-40);
-  owner then found required fields unenforced (FR-28), so negative paths are
-  a standing verifier step (NFR-21). **S3 itself is NOT yet verified.**
-- OPEN WITH OWNER: `db:reset` held for demo-data day — raise at each phase
-  boundary. Audit C-6/7/10 open (`audits/instrument-2026-08-21.md`).
+- Verified 3× on 2026-08-21, FAIL each time, all addressed (G-28..G-44); each
+  remediation carried a defect into the next round. **Round-2 fixes and the
+  enforcement gates are NOT independently verified — folded into S4.**
+- `demo/readiness.md` = what the room sees. The stop gate blocks finishing
+  until it covers every DONE slice (G-44). `db:reset` held for demo-data
+  day. Audit C-6/7/10 open (`audits/instrument-2026-08-21.md`).
 
 Instrument data lives in `src/data/instrument/*.json`, imported at build time
 (never from disk at runtime). After editing, `pnpm instrument:seed` activates
@@ -42,7 +43,7 @@ pnpm db:reset --yes  # DESTRUCTIVE: rebuild the dev database. The only way
                   #   back to clean — answers are insert-only by design.
 pnpm typecheck
 pnpm agent-map     # regenerates docs/agent-map.html from the repo itself
-pnpm uat:new S3    # UAT record skeleton for a slice (rows from SPEC §17/§20)
+pnpm uat:new S4    # UAT record skeleton for a slice (rows from SPEC §17/§20)
 ```
 
 ## Skills — load them at these moments (SPEC G-18)
@@ -95,11 +96,10 @@ only in a skill.
 - AWS-ready by construction (SPEC §6.4): containerized, env-only config
   (DATABASE_URL), RDS-compatible Postgres, no dependency without an
   AWS-managed equivalent.
-- Instrument/intake content is DATA (src/lib/intake.ts now; seed files from
-  S2). No hardcoded question content in components.
+- Instrument/intake content is DATA (`src/lib/intake.ts`, `src/data/`). No
+  question content in components.
 - No internal identifiers in user-facing text (NFR-9). Labels only.
-- File budgets: ≤400 lines new, 800 hard (NFR-6) — stylesheets included;
-  `globals.css` is imports only, one sheet per area in `src/app/styles/`.
+- File budgets: ≤400 new, 800 hard (NFR-6), stylesheets included.
 - Demo-ready UI per slice (SPEC §23): designed states, accessible names,
   keyboard operable, plain language, screenshot in the review.
 - Migrations: plain SQL in drizzle/, mirrored in src/lib/schema.ts; drift is

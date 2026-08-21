@@ -1253,6 +1253,16 @@ process.stdin.on(&quot;end&quot;, () =&gt; {
   if (/^\.claude\/(agents|skills)\//.test(rel)) {
     notes.push(&quot;Agent or skill changed → run `pnpm agent-map` so docs/agent-map.html and the in-app transparency page match. test/unit/agent-map.test.ts fails the build until you do.&quot;);
   }
+  if (/^CLAUDE\.md$/.test(rel) &amp;&amp; /— DONE/.test(source)) {
+    notes.push(
+      &quot;Slice status changed → demo/readiness.md must cover it: which beat does this add or change, is it built, has a person walked it, what is the fallback if it breaks live. The stop gate refuses to finish until it does (G-44).&quot;,
+    );
+  }
+  if (/^demo\/readiness\.md$/.test(rel)) {
+    notes.push(
+      &quot;Demo readiness edited → say it to the owner in the reply, not just in the file. A beat nobody has walked is not ready, however green the tests are.&quot;,
+    );
+  }
   if (/^drizzle\//.test(rel)) {
     notes.push(&quot;Migration touched → SPEC §26.5: append a new file, never edit an applied one, and mirror it in src/lib/schema.ts.&quot;);
   }
@@ -1364,6 +1374,29 @@ try {
   }
 } catch (error) {
   problems.push(`could not check slice records: ${error.message}`);
+}
+
+// ---- 4. The demo conversation has been had ------------------------------
+// Build completeness is not demo readiness. This does not judge whether the
+// demo is good — it refuses to let a slice finish without someone saying
+// what it changed for the room (G-44).
+try {
+  const readiness = readFileSync(join(ROOT, &quot;demo&quot;, &quot;readiness.md&quot;), &quot;utf8&quot;);
+  const claude = readFileSync(join(ROOT, &quot;CLAUDE.md&quot;), &quot;utf8&quot;);
+  const done = [...claude.matchAll(/\b(S[\d.]+)[^—\n]{0,40}— DONE/g)].map((m) =&gt; m[1]).sort();
+  const covered = (readiness.match(/^slices-covered:\s*(.+)$/m)?.[1] ?? &quot;&quot;)
+    .split(&quot;,&quot;)
+    .map((s) =&gt; s.trim())
+    .filter(Boolean)
+    .sort();
+  const missing = done.filter((s) =&gt; !covered.includes(s));
+  if (missing.length &gt; 0) {
+    problems.push(
+      `demo/readiness.md does not cover ${missing.join(&quot;, &quot;)}. Before finishing: which beat does this slice add or change, is it built, has a person walked it, and what is the fallback if it breaks in front of the room? Update the file and say so out loud — this is the conversation, not the paperwork.`,
+    );
+  }
+} catch (error) {
+  problems.push(`could not read demo/readiness.md — the demo record is missing: ${error.message}`);
 }
 
 if (problems.length &gt; 0) {
