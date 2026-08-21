@@ -9,18 +9,17 @@ implementation, stop on ambiguity.
 ## Slice status
 
 - S1 Intake — DONE · S2 Gates — DONE (owner review pending)
-- S2.5 People — DONE (roles enforced server-side on the object as well as
-  the listing; persona switcher is a pilot device, NOT auth; every answer
-  and every intake change records who made it)
-- Verification ran twice 2026-08-21, FAIL both times; all addressed (G-28..
-  G-38). Owner then found required fields unenforced (FR-28) — negative
-  paths are now a standing verifier step (NFR-21).
-- S3.5 Destinations — SPEC'd not built (§27): ServiceNow AI Use Case Record.
-- OPEN WITH OWNER: `db:reset` held until demo-data day — raise at each phase
-  boundary. Audit C-5/6/7/10 open (`audits/instrument-2026-08-21.md`).
-- S3 Paths & engine — DONE (derived state is COMPUTED, never stored; a
-  derived path always carries its reason; parts shelf declined on evidence)
+- S2.5 People — DONE (roles enforced server-side on the OBJECT as well as the
+  listing; the persona switcher is a pilot device, NOT auth)
+- S3 Paths & engine — DONE (derived state is COMPUTED, never stored; every
+  derived path carries its reason; parts shelf declined on evidence, G-40)
+- S3.5 Destinations — SPEC'd not built (§27): ServiceNow AI Use Case Record
 - S4..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
+- Verified twice 2026-08-21, FAIL both times, all addressed (G-28..G-40);
+  owner then found required fields unenforced (FR-28), so negative paths are
+  a standing verifier step (NFR-21). **S3 itself is NOT yet verified.**
+- OPEN WITH OWNER: `db:reset` held for demo-data day — raise at each phase
+  boundary. Audit C-6/7/10 open (`audits/instrument-2026-08-21.md`).
 
 Instrument data lives in `src/data/instrument/*.json`, imported at build time
 (never from disk at runtime). After editing, `pnpm instrument:seed` activates
@@ -111,10 +110,9 @@ only in a skill.
 The prior platform lives at ../riskassess — READ-ONLY. Never edit, never run
 its dev server, never develop it further. It is a source of proven parts;
 salvage decisions happen at the slice that needs the part:
-- condition engine + its tests (packages/contract) ....... S3
 - reviewer workspace patterns (apps/web) ................. S8
 - verbatim matcher, basis/never-guess machinery .......... Phase 2
 - eval harness + agent service (apps/agent) .............. Phase 2
 
-Salvage = copy the code here, re-read it, keep what the SPEC requires,
-delete the rest, bring its tests. Never import across repos.
+Salvage = copy here, re-read, keep what the SPEC requires, delete the rest,
+bring its tests. Never import across repos. S3 declined the first one (G-40).

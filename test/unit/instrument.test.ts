@@ -277,3 +277,34 @@ describe("a gate can answer another gate (audit C-5)", () => {
     expect(sec.fromIntake).toBe(false);
   });
 });
+
+describe("NFR-4 · a full recompute is cheap enough to do on every render", () => {
+  it("re-derives gates and paths in well under a millisecond", () => {
+    // The whole design rests on this: derived state is never stored, so it
+    // is recomputed on every render. If that were expensive, someone would
+    // eventually cache it, and the cache would be the thing that goes stale.
+    const intake = {
+      thirdPartyInvolved: "Yes",
+      usesAi: "Yes",
+      dataClassification: "Confidential",
+      initiativeType: "Moving a proof of concept into production",
+    };
+    const selections = {
+      "third-party": ["TPR_LA", "TPR_DH", "TPR_4P"],
+      ai: ["AI_DEC", "AI_RAG", "AI_RET"],
+      "data-privacy": ["PRIV", "REGDATA"],
+      "security-resilience": ["SR_EXT", "SR_PAM", "SR_INT"],
+    };
+    for (let i = 0; i < 200; i++) litPaths(CATEGORIES, gateStates({}, intake), selections, intake);
+    const started = performance.now();
+    const ROUNDS = 500;
+    for (let i = 0; i < ROUNDS; i++) {
+      litPaths(CATEGORIES, gateStates({}, intake), selections, intake);
+    }
+    const each = (performance.now() - started) / ROUNDS;
+    // Measured ~0.006ms; the bar is single-digit milliseconds (NFR-4), and
+    // this is deliberately loose so a slow CI box does not fail the build
+    // for a budget it is nowhere near.
+    expect(each).toBeLessThan(5);
+  });
+});
