@@ -94,6 +94,7 @@ export default async function GatePage({
               questionId={category.questionId}
               answer={state.answer}
               fromIntake={state.fromIntake}
+              origin={state.origin}
               because={state.because}
               nextHref={nextHref}
             />

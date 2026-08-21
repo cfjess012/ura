@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   askableCategories,
@@ -63,13 +64,21 @@ export default async function PathsPage({
       c.pathQuestion &&
       gates.find((g) => g.category.key === c.key)?.answer === "Yes",
   );
-  const areas: PathArea[] = open.map((category) => ({
-    category,
-    selected: selections[category.key] ?? [],
-    derived: litPathsFor(category, selections[category.key] ?? [], lookup).filter(
-      (p) => p.source === "derived",
-    ),
-  }));
+  const areas: PathArea[] = open.map((category) => {
+    const state = gates.find((g) => g.category.key === category.key);
+    return {
+      category,
+      selected: selections[category.key] ?? [],
+      derived: litPathsFor(category, selections[category.key] ?? [], lookup).filter(
+        (p) => p.source === "derived",
+      ),
+      // §24.1: this area is open only because the person said they did not
+      // know. Asking them five sharper questions about it is the same
+      // defect one tier deeper, so the screen says so and leaves it to a
+      // reviewer instead of pretending the uncertainty resolved itself.
+      unsure: Boolean(state?.because?.includes("weren't sure")),
+    };
+  });
 
   const applies = gates.filter((g) => g.answer === "Yes").length;
 
@@ -78,7 +87,11 @@ export default async function PathsPage({
       <ProjectHeader
         name={project.projectName}
         status="Draft"
-        nextLine={`${applies} risk area${applies === 1 ? "" : "s"} apply — tell us which parts of each one, and we'll only ask about those.`}
+        nextLine={
+          applies === 1
+            ? "One risk area applies — tell us which parts of it, and we'll only ask about those."
+            : `${applies} risk areas apply — tell us which parts of each one, and we'll only ask about those.`
+        }
         currentStage={1}
       />
 
@@ -89,17 +102,24 @@ export default async function PathsPage({
           <p className="eyebrow">Step 2 · Which parts apply</p>
           <h2 className="display gate-display">Narrow it down</h2>
           <p className="lede" style={{ textAlign: "left", margin: "0 0 1.2rem" }}>
-            You&rsquo;ve told us which areas are in scope. Each one covers several
-            different things — tick what&rsquo;s true and the detailed questions
-            that follow will cover only those.
+            {areas.length === 0
+              ? "You've told us which areas are in scope."
+              : "You've told us which areas are in scope. Each one covers several different things — tick what's true and the detailed questions that follow will cover only those."}
           </p>
 
           {areas.length === 0 ? (
-            <div className="empty">
+            /* Reachable and correct: answer No to everything and there is
+               genuinely nothing to narrow. It used to be a dead end — no
+               button, no link, the only way on was to type the URL. */
+            <div className="card card-upcoming">
+              <h2>Nothing to narrow down</h2>
               <p>
-                <strong>Nothing to narrow down.</strong>
+                None of the areas that apply ask a follow-up question, so
+                there&rsquo;s nothing for you to do here.
               </p>
-              <p>None of the open areas ask a follow-up.</p>
+              <Link className="btn" href={`/projects/${id}/assess/complete`}>
+                See the summary &rarr;
+              </Link>
             </div>
           ) : (
             <PathsForm

@@ -16,6 +16,7 @@ export function GateForm({
   questionId,
   answer,
   fromIntake,
+  origin,
   because,
   nextHref,
 }: {
@@ -24,6 +25,7 @@ export function GateForm({
   questionId: string;
   answer: "Yes" | "No" | null;
   fromIntake: boolean;
+  origin: "intake" | "answers" | null;
   because: string | null;
   nextHref: string;
 }) {
@@ -76,7 +78,12 @@ export function GateForm({
     <div className="gate-answer">
       {fromIntake && because && (
         <p className="prefill" role="note">
-          <span className="prefill-tag">Answered from your intake</span>
+          {/* "From your intake" was a lie when the source was another gate:
+              it attributed to the person a sentence they never said. The
+              reason itself now names the real evidence either way. */}
+          <span className="prefill-tag">
+            {origin === "answers" ? "Answered from your answers" : "Answered from your intake"}
+          </span>
           <span>
             We&rsquo;ve marked this <strong>{answer}</strong> because {because}.
             Change it if that&rsquo;s not right.

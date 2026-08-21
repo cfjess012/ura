@@ -56,10 +56,27 @@ export interface PeopleStore {
   get(id: string): Promise<Person | null>;
 }
 
+export type AnswerInput = {
+  projectId: string;
+  questionId: string;
+  value: string | string[];
+  source: "person" | "intake";
+  confirmed: boolean;
+  instrumentVersionId: string;
+  answeredBy: string | null;
+};
+
 export interface AnswerStore {
   /** The active instrument version every answer pins to (NFR-11). */
   activeVersionId(slug: string): Promise<string>;
   current(projectId: string): Promise<Record<string, CurrentAnswer>>;
+  /**
+   * Record several answers as one act. All of them land or none do — a
+   * screen that saves four areas in a loop can fail halfway, leaving two
+   * committed while telling the person nothing was saved (found by
+   * independent verification).
+   */
+  recordAll(inputs: AnswerInput[]): Promise<void>;
   record(input: {
     projectId: string;
     questionId: string;
@@ -224,6 +241,12 @@ export function postgresAnswerStore(): AnswerStore {
     },
     async record(input) {
       await db.insert(schema.answers).values(input);
+    },
+    async recordAll(inputs) {
+      if (inputs.length === 0) return;
+      // One statement, one transaction: partial success is the failure mode
+      // this exists to remove.
+      await db.insert(schema.answers).values(inputs);
     },
   };
 }

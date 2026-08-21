@@ -22,7 +22,16 @@ const rel = (p: string) => p.slice(SRC.length + 1);
 
 describe("§26.1 pure logic is liftable", () => {
   // Modules that must run unchanged inside a Lambda or AgentCore task.
-  const PURE = ["lib/intake.ts", "lib/intake-values.ts", "lib/errors.ts"];
+  const PURE = [
+    "lib/intake.ts",
+    "lib/intake-values.ts",
+    "lib/errors.ts",
+    // Added after independent verification pointed out that the UAT cited
+    // this test as evidence for modules it never covered.
+    "lib/engine.ts",
+    "lib/conditions.ts",
+    "lib/people.ts",
+  ];
 
   it("imports no framework, driver, or environment", () => {
     for (const file of PURE) {
@@ -98,7 +107,7 @@ describe("§2 authority is checked on the object, not only on the listing", () =
 
   it("every write action decides authority before it writes", () => {
     const source = read(join(SRC, "app", "actions.ts"));
-    for (const action of ["saveIntake", "answerGate"]) {
+    for (const action of ["saveIntake", "answerGate", "answerPaths"]) {
       const body = source.slice(source.indexOf(`export async function ${action}`));
       const upToWrite = body.slice(0, body.indexOf("Store()."));
       expect(upToWrite, `${action} writes before checking`).toMatch(/editableProject/);

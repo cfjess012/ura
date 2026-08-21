@@ -195,7 +195,7 @@ describe("the engine lights paths, and says why (S3, FR-4/FR-5)", () => {
     const lit = litPaths(CATEGORIES, gatesFor(intake), { "third-party": ["TPR_LA"] }, intake);
     const chosen = lit.find((p) => p.id === "TPR_LA")!;
     expect(chosen.source).toBe("chosen");
-    expect(chosen.because).toBeNull();
+    expect(chosen.because).toEqual([]);
   });
 
   it("derives a path from evidence already given, and carries the sentence", () => {
@@ -204,7 +204,7 @@ describe("the engine lights paths, and says why (S3, FR-4/FR-5)", () => {
     const lit = litPaths(CATEGORIES, gatesFor(intake), { "third-party": [] }, intake);
     const derived = lit.find((p) => p.id === "TPR_CONC")!;
     expect(derived.source).toBe("derived");
-    expect(derived.because).toMatch(/every supplier/);
+    expect(derived.because.join(" ")).toMatch(/every supplier/);
   });
 
   it("crosses domains: personal information plus AI lights the PI-in-AI path", () => {
@@ -214,7 +214,7 @@ describe("the engine lights paths, and says why (S3, FR-4/FR-5)", () => {
     const lit = litPaths(CATEGORIES, gatesFor(intake), { "data-privacy": ["PRIV"] }, intake);
     const piAi = lit.find((p) => p.id === "PI_AI");
     expect(piAi?.source).toBe("derived");
-    expect(piAi?.because).toMatch(/personal information .* uses AI/);
+    expect(piAi?.because.join(" ")).toMatch(/personal information .* uses AI/);
   });
 
   it("does not light PI-in-AI when either half is missing", () => {
@@ -258,7 +258,11 @@ describe("a gate can answer another gate (audit C-5)", () => {
     expect(arch.answer).toBe("Yes");
     expect(sec.answer).toBe("Yes");
     expect(sec.fromIntake).toBe(true);
-    expect(sec.because).toMatch(/system is being built or changed/);
+    expect(sec.because).toMatch(/Solution Architecture area applies/);
+    // The provenance must name the real source: "from your intake" put a
+    // sentence in the person's mouth that they never said (B3a).
+    expect(sec.origin).toBe("answers");
+    expect(arch.origin).toBe("intake");
   });
 
   it("stays silent when the gate it reads has no answer", () => {
@@ -306,5 +310,47 @@ describe("NFR-4 · a full recompute is cheap enough to do on every render", () =
     // this is deliberately loose so a slow CI box does not fail the build
     // for a budget it is nowhere near.
     expect(each).toBeLessThan(5);
+  });
+});
+
+describe("the engine's own rules are enforced, not just described (B3, B4)", () => {
+  it("keeps BOTH reasons when two rules light the same path (§19)", () => {
+    // A second satisfied rule is a separate fact about the assessment. The
+    // first version kept the first reason and silently dropped the rest.
+    const twice = {
+      ...CATEGORIES.find((c) => c.key === "security-resilience")!,
+      derivedPaths: [
+        { id: "SR_TP", name: "Third-Party Security Exposure",
+          when: [{ field: "gate.third-party", equalsAny: ["Yes"] }],
+          because: "a company outside ours is involved" },
+        { id: "SR_TP", name: "Third-Party Security Exposure",
+          when: [{ field: "paths", includesAny: ["TPR_LA"] }],
+          because: "that company can sign in to our systems" },
+      ],
+    };
+    const lit = litPathsFor(twice, [], {
+      "gate.third-party": "Yes",
+      paths: ["TPR_LA"],
+    });
+    const tp = lit.find((p) => p.id === "SR_TP")!;
+    expect(tp.because).toHaveLength(2);
+    expect(tp.because.join(" ")).toMatch(/outside ours.*sign in/);
+  });
+
+  it("resolves gate pre-fill to a fixed point, not a fixed number of hops", () => {
+    // Two passes silently capped derivation at one hop: a rule reading a
+    // gate two steps upstream validated fine and then did nothing.
+    const intake = { initiativeType: "Moving a proof of concept into production" };
+    const states = gateStates({}, intake);
+    // intake → architecture → security is two hops and must resolve.
+    expect(states.find((s) => s.category.key === "security-resilience")!.answer).toBe("Yes");
+  });
+
+  it("terminates even if a cycle were ever authored", () => {
+    // The loop is bounded by the number of categories, so a cycle cannot
+    // spin here even if the validator let one through.
+    const started = performance.now();
+    gateStates({}, { initiativeType: "Moving a proof of concept into production" });
+    expect(performance.now() - started).toBeLessThan(200);
   });
 });

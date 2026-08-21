@@ -70,3 +70,58 @@ test("changing an upstream answer re-derives the paths — nothing is stored", a
   await expect(page.getByText("Which AI usage patterns apply?")).toBeVisible();
   await expect(page.getByText(/Personal Information in AI/)).toBeVisible();
 });
+
+test("answering No to everything still reaches the summary (B2)", async ({ page }) => {
+  // A dead end: the empty state had no button and no link, and the only way
+  // on was to type the URL. Found by independent verification.
+  const base = await startAssessment(page, `All no ${Date.now()}`);
+  // An intake that closes everything it can: no AI, no third party, public
+  // data. completeIntake picks Internal, which keeps privacy open.
+  await page.goto(`${base}/intake/description`);
+  await page.getByLabel("Business Purpose or Objective").fill("Reorder approval steps.");
+  await page.getByLabel("Activity / Use-Case Description").fill("A process change, no technology.");
+  await page.getByLabel("Does this use AI or machine learning?").selectOption("No");
+  await page.getByRole("button", { name: /Next: Ownership/ }).click();
+  await page.getByLabel("Business Owner").fill("P. Sharma");
+  await page.getByLabel("Is this a new initiative, or an update to an existing one?").selectOption("Brand new");
+  await page.getByRole("button", { name: /Next: Categorization/ }).click();
+  await page.getByLabel("Responsible Business Unit").fill("Finance Ops");
+  await page.getByLabel("Does anything about this involve a company outside ours?").selectOption("No");
+  await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
+  const publicLevel = page.getByRole("radio", { name: /Public/ });
+  await publicLevel.check();
+  await expect(publicLevel).toBeChecked();
+  await page.getByRole("button", { name: /Continue to the risk areas/ }).click();
+  await expect(page).toHaveURL(/\/assess\//);
+
+  // Say No to every gate that can be answered.
+  for (let step = 0; step < 14; step++) {
+    await page.goto(`${base}/assess/paths`);
+    await page.waitForLoadState("networkidle");
+    if (page.url().includes("/assess/paths")) break;
+    await page.getByRole("button", { name: /No, it doesn't/ }).click();
+    await page.waitForLoadState("networkidle");
+  }
+  await expect(page.getByRole("heading", { name: "Nothing to narrow down" })).toBeVisible();
+  await page.getByRole("link", { name: /See the summary/ }).click();
+  await expect(page.getByRole("heading", { name: /whole map|areas answered/ })).toBeVisible();
+});
+
+test("a tick survives leaving the screen by the rail (S2)", async ({ page }) => {
+  const base = await startAssessment(page, `Ticks ${Date.now()}`);
+  await completeIntake(page, base);
+  await answerRemainingGates(page, base);
+
+  await page.getByRole("checkbox", { name: /Personal information is involved/ }).check();
+  await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
+
+  // The rail is the primary navigation on this screen; leaving by it used
+  // to discard the tick with no warning and no trace.
+  await page.getByRole("navigation", { name: "Risk areas" })
+    .getByRole("link", { name: /Governance/ }).click();
+  await expect(page.getByText("Nothing to answer")).toBeVisible();
+  await page.goto(`${base}/assess/paths`);
+  await expect(
+    page.getByRole("checkbox", { name: /Personal information is involved/ }),
+  ).toBeChecked();
+});

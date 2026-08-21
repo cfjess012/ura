@@ -69,7 +69,9 @@ export default async function GatesCompletePage({
         nextLine={
           remaining === 0
             ? "Every risk area has an answer — the detail questions come next."
-            : `${remaining} risk area${remaining === 1 ? "" : "s"} still need an answer.`
+            : remaining === 1
+              ? "One risk area still needs an answer."
+              : `${remaining} risk areas still need an answer.`
         }
         currentStage={1}
       />
@@ -84,9 +86,20 @@ export default async function GatesCompletePage({
           </h2>
           <p className="lede">
             {remaining === 0
-              ? `${applies.length} of ${CATEGORIES.length} areas apply to this activity. The rest are closed — you won't be asked about them again.${settled.length > 0 ? ` We didn't ask about ${settled.length === 1 ? "one of them" : `${settled.length} of them`} at all.` : ""}`
+              ? `${applies.length} of ${CATEGORIES.length} areas apply to this activity.${closed.length > 0 ? ` The other ${closed.length === 1 ? "one is" : `${closed.length} are`} closed — you won't be asked about ${closed.length === 1 ? "it" : "them"} again.` : ""}${settled.length > 0 ? ` We didn't ask about ${settled.length === 1 ? "one of them" : `${settled.length} of them`} at all.` : ""}`
               : `Answer the remaining ${remaining} in the list, and we'll know which areas to ask about.`}
           </p>
+
+          {lit.length === 0 && !pathsPending && (
+            <div className="card">
+              <h2>What we&rsquo;ll ask about</h2>
+              <p className="help">
+                Nothing further. You told us none of the specific threads apply
+                in the areas that are open, so the detailed questions have
+                nothing to ask — that is a complete answer, not a gap.
+              </p>
+            </div>
+          )}
 
           {lit.length > 0 && (
             <div className="card">
@@ -95,8 +108,11 @@ export default async function GatesCompletePage({
                 {lit.map((path) => (
                   <li key={`${path.categoryKey}.${path.id}`}>
                     <strong>{path.name}</strong>
-                    {path.source === "derived" && path.because && (
-                      <span className="meta"> — added because {path.because}</span>
+                    {path.source === "derived" && path.because.length > 0 && (
+                      <span className="meta">
+                        {" "}
+                        — added because {path.because.join("; and ")}
+                      </span>
                     )}
                   </li>
                 ))}

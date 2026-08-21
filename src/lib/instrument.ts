@@ -111,17 +111,6 @@ function validate(candidate: Instrument): Instrument {
         problems.push(`${where}: derived path ${derived.id} needs a plain-language reason`);
       if (!derived.when?.length)
         problems.push(`${where}: derived path ${derived.id} needs at least one condition`);
-      // One level only: a derivation may read chosen selections, never
-      // another derivation, so there is no order to get wrong (§3.2).
-      for (const condition of derived.when ?? []) {
-        if (condition.field === `path.${category.key}` && "includesAny" in condition) {
-          const self = condition.includesAny.filter((p) => !pathIds.has(p));
-          if (self.length > 0)
-            problems.push(
-              `${where}: derived path ${derived.id} depends on ${self.join(", ")}, which is not a chosen option — derivations may not chain`,
-            );
-        }
-      }
     }
     for (const rule of category.prefill ?? []) {
       if (rule.when?.field === `gate.${category.key}`)
@@ -132,6 +121,30 @@ function validate(candidate: Instrument): Instrument {
         problems.push(`${where}: prefill needs a plain-language reason`);
     }
   }
+  // Derivations may read what a person CHOSE, never what another rule
+  // derived. Checked across the whole instrument rather than per category,
+  // because a rule can reference any category's paths — the earlier
+  // per-category check inspected one field name and missed every other
+  // shape, so a chained rule passed validation and then silently never
+  // fired. A rule that looks correct and does nothing is worse than one
+  // that is rejected.
+  const derivedIds = new Set(
+    (candidate.categories ?? []).flatMap((c) => (c.derivedPaths ?? []).map((d) => d.id)),
+  );
+  for (const category of candidate.categories ?? []) {
+    for (const derived of category.derivedPaths ?? []) {
+      for (const condition of derived.when ?? []) {
+        if (!("includesAny" in condition)) continue;
+        if (condition.field !== "paths" && !condition.field.startsWith("path.")) continue;
+        const chained = condition.includesAny.filter((id) => derivedIds.has(id));
+        if (chained.length > 0)
+          problems.push(
+            `${category.key}: derived path ${derived.id} depends on ${chained.join(", ")}, which is itself derived — derivations may not chain`,
+          );
+      }
+    }
+  }
+
   if (problems.length > 0) {
     throw new Error(`Instrument is invalid:\n- ${problems.join("\n- ")}`);
   }
@@ -172,8 +185,15 @@ export type GateState = {
   category: Category;
   /** The current answer, if one exists. */
   answer: "Yes" | "No" | null;
-  /** True when the answer came from intake and nobody has confirmed it. */
+  /** True when nobody stated it here and nobody has confirmed it. */
   fromIntake: boolean;
+  /**
+   * Where a pre-filled answer came from: intake alone, or another answer in
+   * this assessment. The screen says different things for the two, because
+   * "answered from your intake" attributed to a person a sentence they
+   * never said when the real source was another gate.
+   */
+  origin: "intake" | "answers" | null;
   because: string | null;
   /** True where nobody is asked because the area always applies (C-8). */
   settled: boolean;
@@ -194,7 +214,11 @@ export function gateStates(
   stored: Record<string, { value: string | string[]; source: string; confirmed: boolean }>,
   intake: AnswerLookup,
 ): GateState[] {
-  const settle = (category: Category, lookup: AnswerLookup): GateState => {
+  const settle = (
+    category: Category,
+    lookup: AnswerLookup,
+    origin: "intake" | "answers",
+  ): GateState => {
     if (category.alwaysApplies) {
       return {
         category,
@@ -203,6 +227,7 @@ export function gateStates(
         // not changeable. Presenting it as a pre-fill would invite a person
         // to correct something that is not theirs to correct.
         fromIntake: false,
+        origin: null,
         because: category.because ?? null,
         settled: true,
       };
@@ -213,6 +238,7 @@ export function gateStates(
         category,
         answer: existing.value === "Yes" ? "Yes" : "No",
         fromIntake: existing.source === "intake" && !existing.confirmed,
+        origin: existing.source === "intake" && !existing.confirmed ? "intake" : null,
         because:
           existing.source === "intake" && !existing.confirmed
             ? (prefillFor(category, lookup)?.because ?? null)
@@ -225,21 +251,34 @@ export function gateStates(
       category,
       answer: prefilled?.answer ?? null,
       fromIntake: prefilled !== null,
+      origin: prefilled === null ? null : origin,
       because: prefilled?.because ?? null,
       settled: false,
     };
   };
 
-  // Pass one: what people and intake alone establish.
-  const first = CATEGORIES.map((category) => settle(category, intake));
-  const withGates: AnswerLookup = { ...intake };
-  for (const state of first) {
-    if (state.answer) withGates[`gate.${state.category.key}`] = state.answer;
+  // Settle what people and intake alone establish, then keep resolving
+  // until nothing new appears. A fixed point rather than a fixed number of
+  // passes: two passes silently capped derivation at one hop, so a rule
+  // that read a gate two steps upstream validated fine and then did
+  // nothing — chain depth quietly decided whether an authored rule worked.
+  let states = CATEGORIES.map((category) => settle(category, intake, "intake"));
+  for (let pass = 0; pass < CATEGORIES.length; pass++) {
+    const lookup: AnswerLookup = { ...intake };
+    for (const state of states) {
+      if (state.answer) lookup[`gate.${state.category.key}`] = state.answer;
+    }
+    const next = states.map((state) =>
+      state.answer === null ? settle(state.category, lookup, "answers") : state,
+    );
+    const settledMore = next.some((s, i) => s.answer !== states[i]!.answer);
+    states = next;
+    // No new answer means no rule can fire again — the loop is bounded by
+    // the number of categories, so a cycle cannot spin here even if the
+    // validator ever let one through.
+    if (!settledMore) break;
   }
-  // Pass two: gates that nothing has answered yet may now read the rest.
-  return first.map((state) =>
-    state.answer === null ? settle(state.category, withGates) : state,
-  );
+  return states;
 }
 
 /** Progress the person can act on (§24.8): categories still unanswered. */

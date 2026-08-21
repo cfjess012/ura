@@ -15,11 +15,11 @@ import { matches, type AnswerLookup, type Condition } from "./conditions";
 import type { Category, GateState } from "./instrument";
 
 /** Prefix for a gate's answer in the shared namespace: `gate.third-party`. */
-export const GATE = (key: string) => `gate.${key}`;
+const GATE = (key: string) => `gate.${key}`;
 /** Prefix for a category's path selections: `path.third-party`. */
-export const PATH = (key: string) => `path.${key}`;
+const PATH = (key: string) => `path.${key}`;
 /** Every lit path id, flattened — so a rule can ask `includesAny: ["PRIV"]`. */
-export const ALL_PATHS = "paths";
+const ALL_PATHS = "paths";
 
 /**
  * All conditions must hold. The one predicate stays one predicate: this
@@ -44,7 +44,16 @@ export type LitPath = {
    * evidence already given, and `because` says what that evidence was.
    */
   source: "chosen" | "derived";
-  because: string | null;
+  /**
+   * Every reason that lit it, not the first one (§19).
+   *
+   * Two rules can both be satisfied for one path, and the second reason is
+   * not redundant — it is a separate fact about the assessment, and a
+   * reviewer who sees only the first is reading an incomplete record.
+   * Independent verification found the previous single-string version
+   * silently discarding the second.
+   */
+  because: string[];
 };
 
 /**
@@ -96,19 +105,25 @@ export function litPathsFor(
       name: option.label,
       categoryKey: category.key,
       source: "chosen",
-      because: null,
+      because: [],
     });
   }
   for (const derived of category.derivedPaths ?? []) {
-    if (seen.has(derived.id)) continue;
     if (!matchesAll(derived.when, lookup)) continue;
+    const already = lit.find((p) => p.id === derived.id);
+    if (already) {
+      // A second satisfied rule for the same path keeps its reason too.
+      if (!already.because.includes(derived.because))
+        already.because.push(derived.because);
+      continue;
+    }
     seen.add(derived.id);
     lit.push({
       id: derived.id,
       name: derived.name,
       categoryKey: category.key,
       source: "derived",
-      because: derived.because,
+      because: [derived.because],
     });
   }
   return lit;
@@ -144,18 +159,4 @@ export function litPaths(
   return open.flatMap((category) =>
     litPathsFor(category, chosenOnly[category.key] ?? [], lookup),
   );
-}
-
-/** Categories that are open and still owe a path answer (§24.9). */
-export function categoriesAwaitingPaths(
-  categories: Category[],
-  gates: GateState[],
-  answered: Record<string, string[] | undefined>,
-): Category[] {
-  return categories.filter((category) => {
-    if (!category.pathQuestion) return false;
-    if (gates.find((g) => g.category.key === category.key)?.answer !== "Yes")
-      return false;
-    return answered[category.key] === undefined;
-  });
 }

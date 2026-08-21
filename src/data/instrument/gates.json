@@ -1,6 +1,6 @@
 {
   "slug": "tier1-gates",
-  "version": "2026-08-21.5",
+  "version": "2026-08-21.6",
   "categories": [
     {
       "key": "third-party",
@@ -306,7 +306,7 @@
               "Yes"
             ]
           },
-          "because": "you told us a system is being built or changed — that changes the connections and access that come with it"
+          "because": "the Solution Architecture area applies, and a system change brings new connections and access with it"
         }
       ],
       "pathQuestion": {

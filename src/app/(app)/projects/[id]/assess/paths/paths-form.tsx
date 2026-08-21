@@ -12,7 +12,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { answerPaths } from "@/app/actions";
-import { isFailure } from "@/lib/errors";
+import { errorRef, isFailure } from "@/lib/errors";
 import type { Category } from "@/lib/instrument";
 import type { LitPath } from "@/lib/engine";
 
@@ -21,6 +21,8 @@ export type PathArea = {
   selected: string[];
   /** Paths the engine lit without asking, with the reason to show. */
   derived: LitPath[];
+  /** The gate opened only because the person said they weren't sure. */
+  unsure: boolean;
 };
 
 export function PathsForm({
@@ -44,35 +46,44 @@ export function PathsForm({
   } | null>(null);
   const [saved, setSaved] = React.useState(false);
 
+  // Ticks are saved as they are made, not only on submit. Leaving by the
+  // rail — the primary navigation on this very screen — used to discard
+  // them silently, which is the one thing §24.3 says a control must never
+  // do. The submit button still exists: it saves and moves on.
   function toggle(key: string, id: string, on: boolean) {
-    setPicked((prev) => {
-      const current = prev[key] ?? [];
-      return {
-        ...prev,
-        [key]: on ? [...current, id] : current.filter((x) => x !== id),
-      };
-    });
-    setSaved(false);
+    // Computed outside setPicked: a state updater must be pure, and saving
+    // from inside one made React's double-invoke toggle the tick twice.
+    const current = picked[key] ?? [];
+    const next = {
+      ...picked,
+      [key]: on ? [...current, id] : current.filter((x) => x !== id),
+    };
+    setPicked(next);
+    void save(next);
   }
 
-  async function save(): Promise<boolean> {
+  async function save(selections = picked): Promise<boolean> {
     setSaving(true);
     setError(null);
+    setSaved(false);
     try {
-      for (const area of areas) {
-        const result = await answerPaths(
-          projectId,
-          area.category.key,
-          picked[area.category.key] ?? [],
-        );
-        if (isFailure(result)) {
-          setError({
-            message: result.message,
-            ref: result.ref,
-            retryable: result.retryable,
-          });
-          return false;
-        }
+      // One call covering every area: all of them land or none do, so the
+      // message below can be true. Saving them in a loop meant a failure
+      // halfway committed the first areas while telling the person nothing
+      // had been saved — and the unsaved ticks then vanished on reload.
+      const result = await answerPaths(
+        projectId,
+        Object.fromEntries(
+          areas.map((a) => [a.category.key, selections[a.category.key] ?? []]),
+        ),
+      );
+      if (isFailure(result)) {
+        setError({
+          message: result.message,
+          ref: result.ref,
+          retryable: result.retryable,
+        });
+        return false;
       }
       setSaved(true);
       return true;
@@ -81,7 +92,9 @@ export function PathsForm({
       setError({
         message:
           "The server couldn't be reached, so nothing was saved. Your selections are still on screen — try again in a moment.",
-        ref: "OFFLINE",
+        // A per-incident reference, not a class name: support needs to
+        // correlate one person's report with one moment in the log.
+        ref: errorRef(),
         retryable: true,
       });
       return false;
@@ -107,6 +120,19 @@ export function PathsForm({
             {area.category.pathQuestion!.text}
           </p>
           <p className="help gate-help">{area.category.pathQuestion!.help}</p>
+
+          {area.unsure && (
+            <p className="note" role="note">
+              <span className="note-title">
+                <span aria-hidden="true">✓</span> Leave this one to us
+              </span>
+              <span className="note-body">
+                You told us you weren&rsquo;t sure about this area, and we
+                haven&rsquo;t asked you to become sure. Tick anything you do know
+                — a reviewer works out the rest.
+              </span>
+            </p>
+          )}
 
           <div
             className="checks pathopts"
@@ -138,7 +164,7 @@ export function PathsForm({
             <p className="prefill derived" role="note" key={path.id}>
               <span className="prefill-tag">Added for you</span>
               <span>
-                <strong>{path.name}</strong> — {path.because}.
+                <strong>{path.name}</strong> — {path.because.join("; and ")}
               </span>
             </p>
           ))}

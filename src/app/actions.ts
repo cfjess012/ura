@@ -18,8 +18,7 @@ import {
   projectNameOrNull,
   type SubmittedEntries,
 } from "@/lib/intake-values";
-import { CATEGORIES, INSTRUMENT, prefillFor } from "@/lib/instrument";
-import { intakeValuesFrom } from "@/lib/intake-values";
+import { CATEGORIES, INSTRUMENT } from "@/lib/instrument";
 import { editableProject } from "@/lib/project-access";
 import { answerStore, projectStore } from "@/lib/repo";
 
@@ -162,8 +161,7 @@ export async function answerGate(
  */
 export async function answerPaths(
   projectId: string,
-  categoryKey: string,
-  selected: string[],
+  selections: Record<string, string[]>,
 ): Promise<Result<{ recorded: true }>> {
   try {
     const allowed = await editableProject(projectId, "answerPaths");
@@ -177,65 +175,54 @@ export async function answerPaths(
         { retryable: false },
       );
     }
-    const category = CATEGORIES.find((c) => c.key === categoryKey);
-    if (!category?.pathQuestion) {
-      return failure(
-        "answerPaths",
-        new Error(`no path question for category ${categoryKey}`),
-        "That part of the assessment no longer exists. Your other answers are safe.",
-        { retryable: false },
-      );
+
+    // Validate every area BEFORE writing any of it, and refuse rather than
+    // narrow: silently dropping an option the instrument does not know
+    // turns a person's real selections into a positive "none of these
+    // apply", pinned to a version that will outlive the mistake.
+    const rows = [];
+    const versionId = await answerStore().activeVersionId(INSTRUMENT.slug);
+    for (const [categoryKey, selected] of Object.entries(selections)) {
+      const category = CATEGORIES.find((c) => c.key === categoryKey);
+      if (!category?.pathQuestion) {
+        return failure(
+          "answerPaths",
+          new Error(`no path question for category ${categoryKey}`),
+          "That part of the assessment no longer exists — it may have changed since this page was opened. Reload and your other answers will still be here.",
+          { retryable: false },
+        );
+      }
+      const known = new Set(category.pathQuestion.options.map((o) => o.id));
+      const unknown = selected.filter((id) => !known.has(id));
+      if (unknown.length > 0) {
+        return failure(
+          "answerPaths",
+          new Error(`unknown path ids for ${categoryKey}: ${unknown.join(", ")}`),
+          "Some of those options aren't part of this assessment any more — it may have changed since this page was opened. Reload to see the current questions; nothing was saved.",
+          { retryable: false },
+        );
+      }
+      rows.push({
+        projectId,
+        questionId: category.pathQuestion.questionId,
+        value: selected,
+        source: "person" as const,
+        confirmed: true,
+        instrumentVersionId: versionId,
+        answeredBy: person.id,
+      });
     }
-    // Only options the instrument actually offers — a submitted value the
-    // instrument does not know is not an answer, it is noise.
-    const known = new Set(category.pathQuestion.options.map((o) => o.id));
-    const answers = answerStore();
-    await answers.record({
-      projectId,
-      questionId: category.pathQuestion.questionId,
-      value: selected.filter((id) => known.has(id)),
-      source: "person",
-      confirmed: true,
-      instrumentVersionId: await answers.activeVersionId(INSTRUMENT.slug),
-      answeredBy: person.id,
-    });
+
+    // All of them, or none (B1).
+    await answerStore().recordAll(rows);
     revalidatePath(`/projects/${projectId}/assess`);
     return { ok: true as const, recorded: true as const };
   } catch (error) {
     return failure(
       "answerPaths",
       error,
-      "Those selections weren't recorded, so nothing changed. Try again in a moment.",
+      "Those selections weren't recorded, so nothing changed. Your ticks are still on screen — try again in a moment.",
     );
-  }
-}
-
-/**
- * Persist intake-derived gate answers so a reviewer can see where they came
- * from (FR-22). Unconfirmed until a person visits the screen and agrees.
- */
-export async function seedPrefilledGates(projectId: string): Promise<void> {
-  const project = await projectStore().get(projectId);
-  if (!project) return;
-  const intake = intakeValuesFrom(project as unknown as Record<string, unknown>);
-  const answers = answerStore();
-  const existing = await answers.current(projectId);
-  const versionId = await answers.activeVersionId(INSTRUMENT.slug);
-  for (const category of INSTRUMENT.categories) {
-    if (existing[category.questionId]) continue;
-    const prefilled = prefillFor(category, intake);
-    if (!prefilled) continue;
-    await answers.record({
-      projectId,
-      questionId: category.questionId,
-      value: prefilled.answer,
-      source: "intake",
-      confirmed: false,
-      instrumentVersionId: versionId,
-      // Derived from intake, not stated by a person — attribution belongs to
-      // whoever confirms it on the gate screen, not to whoever is browsing.
-      answeredBy: null,
-    });
   }
 }
 
