@@ -44,6 +44,7 @@ work, not after:
 | finish a screen or design a question's behaviour | `ux-audit` |
 | add a feature, utility, or data access path | `aws-ready` |
 | challenge or design a question a person answers | `question-design` |
+| propose or spec anything an agent would do | `agentic-design` |
 | change any question, option, or condition | `instrument-change` |
 | hand the owner something to test | `uat-checkout` |
 
