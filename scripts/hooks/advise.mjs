@@ -38,6 +38,9 @@ process.stdin.on("end", () => {
   if (/^src\/lib\/(intake|instrument).*\.ts$/.test(rel)) {
     notes.push("Instrument data touched → SPEC §8: update the pinned field-set test in the same commit and record a governance entry. Load `instrument-change`.");
   }
+  if (/^\.claude\/(agents|skills)\//.test(rel)) {
+    notes.push("Agent or skill changed → run `pnpm agent-map` so docs/agent-map.html and the in-app transparency page match. test/unit/agent-map.test.ts fails the build until you do.");
+  }
   if (/^drizzle\//.test(rel)) {
     notes.push("Migration touched → SPEC §26.5: append a new file, never edit an applied one, and mirror it in src/lib/schema.ts.");
   }

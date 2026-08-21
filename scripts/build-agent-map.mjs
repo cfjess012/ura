@@ -399,5 +399,24 @@ const page = `<title>Agent Topology</title>
 </script>`;
 
 writeFileSync(OUT, page);
+
+// The same data, for the in-app transparency page. Written as a module the
+// app imports at BUILD time — never read from disk at request time, so the
+// page works unchanged in a Lambda or a container (§26.1).
+const appData = join(ROOT, "src", "data", "agents.json");
+writeFileSync(
+  appData,
+  JSON.stringify(
+    {
+      generated: DATA.generated,
+      groups: [
+        ...DATA.build.map((g) => ({ ...g, side: "build" })),
+        ...DATA.runtime.map((g) => ({ ...g, side: "runtime" })),
+      ],
+    },
+    null,
+    2,
+  ) + "\n",
+);
 const total = [...DATA.build, ...DATA.runtime].reduce((n, g) => n + g.nodes.length, 0);
 console.log(`wrote ${OUT} — ${total} agents across ${DATA.build.length + DATA.runtime.length} groups`);
