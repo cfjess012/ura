@@ -96,3 +96,41 @@ describe("activated instrument versions are immutable (NFR-11)", () => {
     expect(after.rows[0]!.activated_at).not.toBeNull();
   });
 });
+
+describe("attribution (S2.5)", () => {
+  it("seeds one person per role, and rejects an unknown role", async () => {
+    const rows = await pg.query<{ role: string; count: string }>(
+      "select role, count(*)::text as count from people group by role order by role",
+    );
+    expect(rows.rows.map((r) => r.role)).toEqual(["admin", "assessor", "requester"]);
+    await expect(
+      pg.query("insert into people (id, name, role) values ('x', 'X', 'auditor')"),
+    ).rejects.toThrow(/people_role_known/);
+  });
+
+  it("records who answered, and refuses an author who does not exist", async () => {
+    const withAuthor = await pg.query<{ answered_by: string }>(
+      `insert into answers (project_id, question_id, value, source, confirmed, instrument_version_id, answered_by)
+       values ($1, 'gate.ai', '"Yes"'::jsonb, 'person', true, $2, 'p.assessor') returning answered_by`,
+      [projectId, versionId],
+    );
+    expect(withAuthor.rows[0]!.answered_by).toBe("p.assessor");
+
+    await expect(
+      pg.query(
+        `insert into answers (project_id, question_id, value, source, confirmed, instrument_version_id, answered_by)
+         values ($1, 'gate.ai', '"Yes"'::jsonb, 'person', true, $2, 'p.ghost')`,
+        [projectId, versionId],
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("allows no author, because rows written before people existed cannot be attributed", async () => {
+    const anonymous = await pg.query<{ answered_by: string | null }>(
+      `insert into answers (project_id, question_id, value, source, confirmed, instrument_version_id)
+       values ($1, 'gate.data_privacy', '"Yes"'::jsonb, 'intake', false, $2) returning answered_by`,
+      [projectId, versionId],
+    );
+    expect(anonymous.rows[0]!.answered_by).toBeNull();
+  });
+});

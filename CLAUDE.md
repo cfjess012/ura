@@ -10,6 +10,8 @@ implementation, stop on ambiguity.
 
 - S1 Intake — DONE
 - S2 Gates — DONE (built; owner review pending)
+- S2.5 People — DONE (roles enforced server-side; persona switcher is a
+  pilot device, NOT auth; every answer records who gave it)
 - S3..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
 
 Instrument data lives in `src/data/instrument/*.json`, imported at build

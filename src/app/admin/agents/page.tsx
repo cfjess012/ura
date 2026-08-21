@@ -1,7 +1,9 @@
 import agents from "@/data/agents.json";
+import { currentPerson } from "@/lib/current-person";
+import { canAdminister, ROLE_LABEL } from "@/lib/people";
 import { AgentList } from "./agent-list";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 type AgentData = {
   generated: string;
@@ -30,7 +32,22 @@ type AgentData = {
  * (scripts/build-agent-map.mjs) and imported, never read from disk at
  * request time (§26.1). A test fails the build if it is stale.
  */
-export default function AgentsPage() {
+export default async function AgentsPage() {
+  const person = await currentPerson();
+  if (!canAdminister(person.role)) {
+    return (
+      <main>
+        <p className="eyebrow">Administration</p>
+        <h1 className="display" style={{ textAlign: "left" }}>
+          This page is for administrators.
+        </h1>
+        <p className="lede" style={{ textAlign: "left" }}>
+          You are currently working as <strong>{person.name}</strong> ({ROLE_LABEL[person.role]}).
+          Switch to an administrator in the bar above to see the agent transparency page.
+        </p>
+      </main>
+    );
+  }
   const data = agents as AgentData;
   const build = data.groups.filter((g) => g.side === "build");
   const runtime = data.groups.filter((g) => g.side === "runtime");
@@ -69,9 +86,10 @@ export default function AgentsPage() {
           <span aria-hidden="true">↳</span> About this page
         </p>
         <p className="note-body">
-          Sign-in is not built yet, so this page is not restricted — anyone with the link can read
-          it. That is deliberate for a pilot and will change when identity arrives; we would rather
-          say so than imply a protection that is not there.
+          The role check above is real and enforced on the server — but the persona switcher is a
+          pilot device, not a sign-in: anyone can switch to an administrator. That is deliberate for
+          a demonstration, and it changes when single sign-on arrives. We would rather say so than
+          imply a protection that is not there.
         </p>
       </div>
     </main>

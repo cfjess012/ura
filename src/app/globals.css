@@ -437,3 +437,27 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
   border: 1px solid var(--neutral-200); border-radius: 8px; padding: 0.8rem;
   font-size: 0.74rem; line-height: 1.5; white-space: pre-wrap; margin: 0.6rem 0 0;
 }
+
+/* ---------- persona switcher (pilot, not a sign-in) ---------- */
+.appbar-right { display: flex; align-items: center; gap: 1rem; }
+.appbar-link { color: #cfe0f0; text-decoration: none; font-size: 0.88rem; font-weight: 700; }
+.appbar-link:hover { color: var(--neutral-0); text-decoration: underline; }
+.persona { display: flex; align-items: center; gap: 0.5rem; }
+.persona-who { display: flex; flex-direction: column; line-height: 1.15; text-align: right; }
+.persona-name { font-size: 0.86rem; font-weight: 700; color: var(--neutral-0); }
+.persona-role { font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+.persona select {
+  width: auto; font-size: 0.82rem; padding: 0.3rem 1.8rem 0.3rem 0.6rem;
+  background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); color: var(--neutral-0);
+}
+.persona select option { color: var(--neutral-900); }
+.persona-go {
+  font: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  background: rgba(255,255,255,0.12); color: var(--neutral-0);
+  border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; padding: 0.28rem 0.8rem;
+}
+.persona-go:hover { background: rgba(255,255,255,0.2); }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}

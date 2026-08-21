@@ -44,6 +44,7 @@ export const projects = pgTable("projects", {
     .notNull()
     .default([]),
   dataElements: jsonb("data_elements").$type<string[]>().notNull().default([]),
+  createdBy: text("created_by"),
 });
 
 export type ProjectRow = typeof projects.$inferSelect;
@@ -71,9 +72,18 @@ export const answers = pgTable(
     source: text("source").notNull(),
     confirmed: boolean("confirmed").notNull().default(false),
     instrumentVersionId: uuid("instrument_version_id").notNull(),
+    answeredBy: text("answered_by"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("answers_current").on(t.projectId, t.questionId, t.createdAt)],
 );
 
 export type AnswerRow = typeof answers.$inferSelect;
+
+export const people = pgTable("people", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  role: text("role").notNull(),
+  title: text("title").notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

@@ -15,6 +15,7 @@
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { getDb, schema } from "./db";
 import type { IntakePatch } from "./intake-values";
+import type { Person, Role } from "./people";
 
 export type ProjectSummary = {
   id: string;
@@ -28,6 +29,11 @@ export type ProjectRecord = typeof schema.projects.$inferSelect;
 /** The newest answer per question — answers are insert-only (NFR-1). */
 export type CurrentAnswer = { value: string; source: string; confirmed: boolean };
 
+export interface PeopleStore {
+  list(): Promise<Person[]>;
+  get(id: string): Promise<Person | null>;
+}
+
 export interface AnswerStore {
   /** The active instrument version every answer pins to (NFR-11). */
   activeVersionId(slug: string): Promise<string>;
@@ -39,13 +45,15 @@ export interface AnswerStore {
     source: "person" | "intake";
     confirmed: boolean;
     instrumentVersionId: string;
+    /** Who recorded it. Null only for rows written before people existed. */
+    answeredBy: string | null;
   }): Promise<void>;
 }
 
 export interface ProjectStore {
   list(): Promise<ProjectSummary[]>;
   get(id: string): Promise<ProjectRecord | null>;
-  create(projectName: string): Promise<{ id: string }>;
+  create(projectName: string, createdBy: string | null): Promise<{ id: string }>;
   /** Returns false when the project no longer exists. */
   updateIntake(id: string, patch: IntakePatch): Promise<boolean>;
 }
@@ -71,10 +79,10 @@ export function postgresProjectStore(): ProjectStore {
         .where(eq(schema.projects.id, id));
       return row ?? null;
     },
-    async create(projectName) {
+    async create(projectName, createdBy) {
       const [row] = await db
         .insert(schema.projects)
-        .values({ projectName })
+        .values({ projectName, createdBy })
         .returning({ id: schema.projects.id });
       return row!;
     },
@@ -133,6 +141,30 @@ export function postgresAnswerStore(): AnswerStore {
       await db.insert(schema.answers).values(input);
     },
   };
+}
+
+export function postgresPeopleStore(): PeopleStore {
+  const db = getDb();
+  const shape = (row: typeof schema.people.$inferSelect): Person => ({
+    id: row.id,
+    name: row.name,
+    role: row.role as Role,
+    title: row.title,
+  });
+  return {
+    async list() {
+      const rows = await db.select().from(schema.people).orderBy(schema.people.name);
+      return rows.map(shape);
+    },
+    async get(id) {
+      const [row] = await db.select().from(schema.people).where(eq(schema.people.id, id));
+      return row ? shape(row) : null;
+    },
+  };
+}
+
+export function peopleStore(): PeopleStore {
+  return postgresPeopleStore();
 }
 
 export function answerStore(): AnswerStore {

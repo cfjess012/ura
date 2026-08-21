@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 const slice = (process.argv[2] ?? "").toUpperCase();
-if (!/^S\d+$/.test(slice)) {
+if (!/^S\d+(\.\d+)?$/.test(slice)) {
   console.error("Usage: node scripts/uat-skeleton.mjs S3");
   process.exit(1);
 }
