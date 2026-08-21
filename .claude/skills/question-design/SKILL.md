@@ -48,6 +48,21 @@ Every question a person may genuinely not be able to answer needs an
 honest-uncertainty option (FR-23) — and answering it must produce a
 **reassurance naming who resolves it**, never a follow-up question (§24.1).
 
+## 4b. The "doesn't apply to me" check (§24.9)
+
+For every question, answer: **what does a person do when this doesn't apply
+to them?** An optional field with no guidance leaves someone staring at an
+empty box unsure whether blank means "none" or "I forgot" — and the
+reviewer inherits that ambiguity rather than an answer.
+
+Say it in the helper text: *"Leave blank if everything is built and run
+in-house."* A multi-select needs an explicit "None of the above" option
+rather than an empty selection.
+
+*Origin: the vendor-name field. Someone building entirely in-house had no
+way to say so — and it survived a slice review, a UI pass, and a screenshot
+before the owner caught it. It is now a test.*
+
 ## 5. Write the helper text
 
 - **Examples, not definitions.** "Including AI features inside a vendor's
@@ -58,6 +73,10 @@ honest-uncertainty option (FR-23) — and answering it must produce a
 - **Let "select all that apply" carry ambiguity** rather than forcing a
   false single choice.
 - **Never** an internal identifier, framework code, or acronym battery.
+- **Required, not optional** (§24.10): every question a person answers has
+  helper text that *teaches* — a restatement of the label is not help. Only
+  a genuinely self-evident label may go without, and the test names those
+  explicitly.
 
 ## 6. Register the agentic opportunity (§22)
 

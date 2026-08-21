@@ -1,0 +1,72 @@
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { CATEGORIES } from "@/lib/instrument";
+import { INTAKE_SECTIONS, sectionByKey, sectionKey, sectionProgress } from "@/lib/intake";
+import { intakeValuesFrom } from "@/lib/intake-values";
+import { projectStore } from "@/lib/repo";
+import { ProjectHeader } from "../../project-header";
+import { IntakeRail } from "../intake-rail";
+import { SectionForm } from "../section-form";
+
+export const dynamic = "force-dynamic";
+
+export default async function IntakeSectionPage({
+  params,
+}: {
+  params: Promise<{ id: string; section: string }>;
+}) {
+  const { id, section: key } = await params;
+  const section = sectionByKey(key);
+  if (!section) notFound();
+
+  const project = await projectStore().get(id);
+  if (!project) notFound();
+
+  const values = intakeValuesFrom(project as unknown as Record<string, unknown>);
+  const progress = sectionProgress(values);
+  const index = INTAKE_SECTIONS.findIndex((s) => sectionKey(s.name) === key);
+  const next = INTAKE_SECTIONS[index + 1];
+  const previous = INTAKE_SECTIONS[index - 1];
+  const nextHref = next
+    ? `/projects/${id}/intake/${sectionKey(next.name)}`
+    : `/projects/${id}/assess/${CATEGORIES[0]!.key}`;
+  const outstanding = progress.reduce((sum, s) => sum + s.missing.length, 0);
+
+  return (
+    <main>
+      <ProjectHeader
+        name={project.projectName}
+        status="Draft"
+        nextLine={
+          outstanding === 0
+            ? "Everything we need — the risk areas come next."
+            : `Tell us about the project — ${outstanding} answer${outstanding === 1 ? "" : "s"} still needed.`
+        }
+        currentStage={0}
+      />
+
+      <div className="assess-layout">
+        <IntakeRail projectId={id} progress={progress} currentKey={key} />
+
+        <section>
+          <p className="eyebrow">
+            Step 1 · Section {index + 1} of {INTAKE_SECTIONS.length}
+          </p>
+          <h2 className="display gate-display">{section.name}</h2>
+
+          <SectionForm
+            projectId={id}
+            sectionName={section.name}
+            initial={values}
+            nextHref={nextHref}
+            nextLabel={next ? `Next: ${next.name} →` : "Continue to the risk areas →"}
+            previousHref={
+              previous ? `/projects/${id}/intake/${sectionKey(previous.name)}` : `/projects`
+            }
+            previousLabel={previous ? "← Previous" : "← All projects"}
+          />
+        </section>
+      </div>
+    </main>
+  );
+}

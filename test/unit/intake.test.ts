@@ -141,3 +141,43 @@ describe("completeness meter", () => {
     expect(done).toEqual([]);
   });
 });
+
+describe("helper text (§24.6 — the system absorbs complexity)", () => {
+  // A person should never have to guess what a question means. Only a field
+  // whose label is self-evident may go without help.
+  const SELF_EVIDENT = new Set(["projectName", "projectDescription"]);
+
+  it("every question a person answers carries helper text", () => {
+    const bare = ALL_FIELDS.filter(
+      (f) => f.type !== "note" && !SELF_EVIDENT.has(f.id) && !f.help?.trim(),
+    ).map((f) => f.label);
+    expect(bare).toEqual([]);
+  });
+
+  it("helper text teaches rather than restates the label", () => {
+    for (const f of ALL_FIELDS.filter((f) => f.help)) {
+      expect(f.help!.length, f.id).toBeGreaterThan(30);
+      expect(f.help!.toLowerCase(), f.id).not.toBe(f.label.toLowerCase());
+    }
+  });
+
+  it("tells people what to do when something does not apply to them", () => {
+    // The vendor field is the case that prompted this: an in-house build
+    // left a person staring at an empty box with no way to say "none".
+    expect(ALL_FIELDS.find((f) => f.id === "vendorNames")!.help).toMatch(/in-house/i);
+  });
+});
+
+describe("questions say what to do when they don't apply (§24.1)", () => {
+  // The case that prompted this rule: someone building entirely in-house
+  // stared at an empty "Third-Party / Vendor Name(s)" box with no way to
+  // say "none". An optional free-text question must tell them.
+  it("every optional free-text field says what 'not applicable' looks like", () => {
+    const silent = ALL_FIELDS.filter(
+      (f) => (f.type === "text" || f.type === "textarea") && !f.required,
+    )
+      .filter((f) => !/leave blank|if that|if it|if there|if you don't|not applicable|none/i.test(f.help ?? ""))
+      .map((f) => f.label);
+    expect(silent).toEqual([]);
+  });
+});

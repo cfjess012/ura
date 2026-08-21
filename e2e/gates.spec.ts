@@ -19,21 +19,25 @@ test("intake pre-answers gates; answers persist; No closes a category", async ({
   await page.getByLabel("Activity / Use-Case Description").fill("Vendor scheduling tool.");
   await page.getByLabel("Does this use AI or machine learning?").selectOption("Yes");
   await page.getByLabel("What does the AI do?").fill("Drafts shifts for a supervisor to approve.");
+  await page.getByRole("button", { name: /Next: Ownership/ }).click();
+
   await page.getByLabel("Business Owner").fill("P. Sharma");
   await page
     .getByLabel("Is this a new initiative, or an update to an existing one?")
     .selectOption("Brand new");
+  await page.getByRole("button", { name: /Next: Categorization/ }).click();
+
   await page.getByLabel("Responsible Business Unit").fill("Workforce Ops");
   await page.getByLabel("Third-Party / Vendor Name(s)").fill("Cadenza Inc");
   await page
     .getByLabel("Has this vendor been onboarded through Procurement (Coupa)?")
     .selectOption("Yes");
-  await page.getByRole("checkbox", { name: "Confidential" }).check();
-  await page.getByRole("button", { name: "Save intake" }).click();
-  await expect(page.getByRole("status")).toHaveText("All changes stored");
+  await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
 
-  // Intake complete → an honest way forward.
-  await page.getByRole("link", { name: "Continue →" }).click();
+  await page.getByRole("checkbox", { name: "Confidential" }).check();
+
+  // Leaving the last section saves and hands off to the risk areas.
+  await page.getByRole("button", { name: /Continue to the risk areas/ }).click();
   await expect(page.getByRole("heading", { name: "Third-Party & Supply Chain" })).toBeVisible();
 
   // FR-22: pre-answered from intake, with its reason, and changeable.

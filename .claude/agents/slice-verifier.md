@@ -26,10 +26,17 @@ read the requirements.
    failures verbatim. A red gate is an immediate FAIL — stop and report.
 2. **Requirement-by-requirement UAT.** For each requirement ID the slice
    owns, drive the running app as a user would and confirm the behaviour
-   with your own eyes, not by reading the source. Write a short Playwright
-   script under `/tmp` for anything the existing e2e does not cover, and
-   assert against the **rendered DOM** — never against server markup, and
-   never conclude from code inspection alone.
+   with your own eyes, not by reading the source.
+
+   **Work in small, time-boxed steps.** Write **one short script per
+   requirement** (30 lines maximum, in the repo root as `.verify-N.mjs` so
+   module resolution works), run it, record the result, delete it, move on.
+   Never write one long script that does everything: a single stalled
+   browser call then costs the whole verification. Set
+   `page.setDefaultTimeout(15000)` in every script and always
+   `await browser.close()`. If a script hangs twice, record it as
+   "could not verify" with the reason and continue — a partial report
+   delivered is worth more than a complete one that never arrives.
 3. **Regression.** Re-run every prior slice's journey. A slice that breaks
    an earlier slice's done-when is a FAIL regardless of its own quality.
 4. **Acceptance criteria.** Check the §19 criteria that apply to this

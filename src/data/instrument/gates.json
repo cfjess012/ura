@@ -1,6 +1,6 @@
 {
   "slug": "tier1-gates",
-  "version": "2026-08-21.1",
+  "version": "2026-08-21.2",
   "categories": [
     {
       "key": "third-party",
@@ -12,12 +12,20 @@
       "prefill": [
         {
           "answer": "Yes",
-          "when": { "field": "vendorNames", "hasValue": true },
+          "when": {
+            "field": "vendorNames",
+            "hasValue": true
+          },
           "because": "you named a vendor at intake"
         },
         {
           "answer": "Yes",
-          "when": { "field": "initiativeType", "equalsAny": ["A vendor renewal"] },
+          "when": {
+            "field": "initiativeType",
+            "equalsAny": [
+              "A vendor renewal"
+            ]
+          },
           "because": "you told us this is a vendor renewal"
         }
       ]
@@ -28,13 +36,15 @@
       "short": "Systems & apps",
       "questionId": "gate.solution_architecture",
       "text": "Will this activity create, build, deploy, integrate, or materially change an information system, application, or digital service?",
-      "help": "Building or buying software, connecting two systems together, moving something to a new platform, or changing how an existing system is set up.",
+      "help": "Building or buying software, connecting two systems together, moving something to a new platform, or changing how an existing system is set up. A change counts as material if it changes what the system does, who can reach it, or what data it holds \u2014 not routine maintenance or a cosmetic tweak.",
       "prefill": [
         {
           "answer": "Yes",
           "when": {
             "field": "initiativeType",
-            "equalsAny": ["Moving a proof of concept into production"]
+            "equalsAny": [
+              "Moving a proof of concept into production"
+            ]
           },
           "because": "moving a proof of concept into production changes a system"
         }
@@ -45,12 +55,17 @@
       "name": "AI & Model Risk",
       "short": "AI / ML",
       "questionId": "gate.ai",
-      "text": "Will this activity use artificial intelligence or machine learning in any product or service — internally built, vendor-embedded, or third-party?",
+      "text": "Will this activity use artificial intelligence or machine learning in any product or service \u2014 internally built, vendor-embedded, or third-party?",
       "help": "Includes AI features inside a product you buy, not only models you build yourself.",
       "prefill": [
         {
           "answer": "Yes",
-          "when": { "field": "usesAi", "equalsAny": ["Yes"] },
+          "when": {
+            "field": "usesAi",
+            "equalsAny": [
+              "Yes"
+            ]
+          },
           "because": "you told us at intake that this uses AI or machine learning"
         }
       ]
@@ -61,13 +76,17 @@
       "short": "Data & privacy",
       "questionId": "gate.data_privacy",
       "text": "Will the activity collect, access, store, process, transmit, or share non-public enterprise data?",
-      "help": "Any information not approved for public release — customer or employee details, internal reports, financial records, credentials.",
+      "help": "Any information not approved for public release \u2014 customer or employee details, internal reports, financial records, credentials.",
       "prefill": [
         {
           "answer": "Yes",
           "when": {
             "field": "dataClassification",
-            "includesAny": ["Internal", "Confidential", "Restricted"]
+            "includesAny": [
+              "Internal",
+              "Confidential",
+              "Restricted"
+            ]
           },
           "because": "you classified the data as Internal, Confidential, or Restricted"
         }
@@ -78,8 +97,8 @@
       "name": "Legal & Regulatory Compliance",
       "short": "Legal & reg",
       "questionId": "gate.legal_regulatory",
-      "text": "Does the activity support, enable, or change a process, product, service, or technology capability subject to externally governed compliance obligations?",
-      "help": "Rules set outside the company that this work has to satisfy — privacy law, financial regulation, records retention, accessibility, advertising standards.",
+      "text": "Does this involve customer-facing communications, money movement or financial reporting, records that must be kept for a set period, work or data crossing a border, or a new legal entity or operating model?",
+      "help": "These are the conditions that usually bring outside rules into play. You don't need to know which rules \u2014 if any of them describe your activity, answer Yes and a reviewer works out the rest.",
       "prefill": []
     },
     {
@@ -88,7 +107,7 @@
       "short": "Operational",
       "questionId": "gate.operational",
       "text": "Does the activity introduce or materially change an operational process, service delivery, or workflow?",
-      "help": "A change to how work actually gets done day to day — new steps, new handoffs, new approvals, or a different way of delivering a service.",
+      "help": "A change to how work actually gets done day to day \u2014 new steps, new handoffs, new approvals, or a different way of delivering a service. A change counts as material if it changes what people do, who approves what, or where work happens \u2014 not routine maintenance or a cosmetic tweak.",
       "prefill": []
     },
     {
@@ -97,7 +116,7 @@
       "short": "Security",
       "questionId": "gate.security_resilience",
       "text": "Does the activity introduce or change any technology component, integration, connectivity, or identity and access pattern?",
-      "help": "New connections between systems, new ways in from outside, or changes to who can sign in and what they can reach.",
+      "help": "If you're building, buying, or changing a system, this is usually Yes as well \u2014 it asks specifically about the connections and access that change comes with: new ways in from outside, new links between systems, or changes to who can sign in.",
       "prefill": []
     },
     {
@@ -114,8 +133,8 @@
       "name": "Ethics & Conduct",
       "short": "Ethics",
       "questionId": "gate.ethics_conduct",
-      "text": "Could the activity involve or create ethics, conduct, or trust risks — unfair treatment, misleading communications, or harmful outcomes?",
-      "help": "Anything that could treat people unfairly, mislead them, monitor them beyond what the job needs, or damage trust if it went wrong.",
+      "text": "Does the activity make or influence decisions about individual people, communicate directly with customers, monitor behaviour, or rely on something that would be hard to explain if challenged?",
+      "help": "This isn't asking whether your project is ethical \u2014 it's asking whether it touches people in ways that deserve a second look. Most activities that affect individuals answer Yes here, and that's routine.",
       "prefill": []
     },
     {
@@ -132,8 +151,8 @@
       "name": "Jurisdiction-Bound Execution",
       "short": "Jurisdiction",
       "questionId": "gate.jurisdiction",
-      "text": "Does the activity rely on jurisdiction-bound execution or client and regulator interaction that constrains where and how the work can be performed?",
-      "help": "Work that legally has to happen in a particular place, or that involves dealing directly with regulators or clients in a specific market.",
+      "text": "Does any part of this have to happen in a specific country or region \u2014 for legal, licensing, or regulator reasons?",
+      "help": "For example: data that must stay in one country, work only licensed staff may perform, or a regulator who expects to deal with a local entity.",
       "prefill": []
     }
   ]

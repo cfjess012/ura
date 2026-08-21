@@ -66,6 +66,7 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
       {
         id: "businessPurpose",
         label: "Business Purpose or Objective",
+        help: "Why the organisation wants this — one or two sentences is plenty.",
         type: "textarea",
         required: true,
       },
@@ -92,7 +93,7 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         conditional: { visibleWhen: "usesAi", equalsAny: ["Yes"] },
         revealNote:
           "Shown because you told us this uses AI or machine learning.",
-        help: "What it decides or produces, what data it uses, and how much a person reviews before anything happens.",
+        help: "What it decides or produces, what data it uses, and how much a person reviews before anything happens. If you don't know the details, say what you do know — a reviewer will follow up.",
       },
       {
         // Never re-ask what someone just told you they do not know (§24.1).
@@ -111,14 +112,26 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
       {
         id: "businessOwner",
         label: "Business Owner",
+        help: "The person accountable for this activity — usually whoever owns the budget or the outcome.",
         type: "text",
         required: true,
       },
-      { id: "technicalOwner", label: "Technical Owner", type: "text" },
-      { id: "collaborators", label: "Collaborators", type: "text" },
+      {
+        id: "technicalOwner",
+        label: "Technical Owner",
+        type: "text",
+        help: "Whoever builds or runs it, if that's someone else. Leave blank if it's the same person, or if there's nothing technical.",
+      },
+      {
+        id: "collaborators",
+        label: "Collaborators",
+        type: "text",
+        help: "Anyone else who should be able to see this assessment or answer questions about it. Leave blank if it's just you.",
+      },
       {
         id: "initiativeType",
         label: "Is this a new initiative, or an update to an existing one?",
+        help: "It helps reviewers know whether there is prior work to look at, or whether this starts from nothing.",
         type: "select",
         options: ["Brand new", ...UPDATE_TYPES, "Something else"],
         required: true,
@@ -143,10 +156,12 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         label: "Responsible Business Unit",
         type: "text",
         required: true,
+        help: "The team or department that owns this activity — the one accountable if it goes wrong, not necessarily the one building it.",
       },
       {
         id: "otherUnits",
         label: "Other Business Units Involved",
+        help: "Teams outside your own who use it, depend on it, or share the data. Leave blank if it's only your team.",
         type: "text",
         conditional: { visibleWhen: "businessUnit", hasValue: true },
         revealNote: "Shown because a responsible business unit was entered.",
@@ -161,6 +176,7 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         id: "vendorNames",
         label: "Third-Party / Vendor Name(s)",
         type: "text",
+        help: "Any outside company involved in delivering this — a software subscription (SaaS), a cloud provider, a consultancy, or an outsourced team. Leave blank if everything is built and run in-house.",
         prefillsGate: "TPR",
       },
       {
@@ -190,6 +206,7 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
       {
         id: "dataClassification",
         label: "Data Classification",
+        help: "Choose the highest classification of any data involved, including data in logs and backups. If you're unsure which applies, choose the higher one — a reviewer will confirm.",
         type: "multi",
         options: ["Public", "Internal", "Confidential", "Restricted"],
         required: true,
@@ -252,4 +269,47 @@ export function missingRequired(values: IntakeValues): string[] {
         ? (values[f.id] as string[]).length === 0
         : !(values[f.id] as string | undefined)?.trim()),
   ).map((f) => f.label);
+}
+
+/** URL-safe key for a section, so each one can be its own screen (§24.2). */
+export function sectionKey(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+export const SECTION_KEYS = INTAKE_SECTIONS.map((s) => sectionKey(s.name));
+
+export function sectionByKey(key: string): IntakeSection | undefined {
+  return INTAKE_SECTIONS.find((s) => sectionKey(s.name) === key);
+}
+
+export type SectionProgress = {
+  key: string;
+  name: string;
+  /** Required, visible, still unanswered — what this section owes. */
+  missing: string[];
+  answered: number;
+  visible: number;
+};
+
+/** Per-section progress for the rail — counted on what the person can act on (§24.8). */
+export function sectionProgress(values: IntakeValues): SectionProgress[] {
+  return INTAKE_SECTIONS.map((section) => {
+    const visible = section.fields.filter(
+      (f) => f.type !== "note" && isFieldVisible(f, values),
+    );
+    const held = (f: IntakeField) => {
+      const v = values[f.id];
+      return Array.isArray(v) ? v.length > 0 : Boolean((v as string | undefined)?.trim());
+    };
+    return {
+      key: sectionKey(section.name),
+      name: section.name,
+      missing: visible.filter((f) => f.required && !held(f)).map((f) => f.label),
+      answered: visible.filter(held).length,
+      visible: visible.length,
+    };
+  });
 }
