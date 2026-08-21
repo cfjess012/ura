@@ -12,9 +12,11 @@ implementation, stop on ambiguity.
 - S2.5 People — DONE (roles enforced server-side on the OBJECT as well as the
   listing; the persona switcher is a pilot device, NOT auth)
 - S3 Paths & engine — DONE (derived state is COMPUTED, never stored; every
-  derived path carries its reason; parts shelf declined on evidence, G-40)
+  derived path carries its reason; parts shelf declined, G-40)
+- S4 Tier 2 — DONE (rubric anchors ARE the options; a derived band is offered,
+  never pre-answered; controls accumulate carrying every reason)
 - S3.5 Destinations — SPEC'd not built (§27): ServiceNow AI Use Case Record
-- S4..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
+- S5..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
 - Verified 3× on 2026-08-21, FAIL each time, all addressed (G-28..G-44); each
   remediation carried a defect into the next round. **Round-2 fixes and the
   enforcement gates are NOT independently verified — folded into S4.**
@@ -110,9 +112,8 @@ only in a skill.
 The prior platform lives at ../riskassess — READ-ONLY. Never edit, never run
 its dev server, never develop it further. It is a source of proven parts;
 salvage decisions happen at the slice that needs the part:
-- reviewer workspace patterns (apps/web) ................. S8
-- verbatim matcher, basis/never-guess machinery .......... Phase 2
-- eval harness + agent service (apps/agent) .............. Phase 2
+- reviewer workspace patterns (apps/web) · S8 · verbatim matcher and
+  basis/never-guess machinery · eval harness + agent service · all Phase 2
 
 Salvage = copy here, re-read, keep what the SPEC requires, delete the rest,
 bring its tests. Never import across repos. S3 declined the first one (G-40).

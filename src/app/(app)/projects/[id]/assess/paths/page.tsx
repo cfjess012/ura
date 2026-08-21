@@ -6,7 +6,9 @@ import {
   gateStates,
   unansweredCount,
 } from "@/lib/instrument";
-import { litPathsFor, assessmentLookup } from "@/lib/engine";
+import { litPathsFor, litPaths, assessmentLookup } from "@/lib/engine";
+import { severityQuestionsFor } from "@/lib/severity";
+import { groupsFor } from "../severity/severity-rail";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
@@ -64,6 +66,7 @@ export default async function PathsPage({
       c.pathQuestion &&
       gates.find((g) => g.category.key === c.key)?.answer === "Yes",
   );
+  const lit = litPaths(CATEGORIES, gates, selections, intake);
   const areas: PathArea[] = open.map((category) => {
     const state = gates.find((g) => g.category.key === category.key);
     return {
@@ -81,6 +84,13 @@ export default async function PathsPage({
   });
 
   const applies = gates.filter((g) => g.answer === "Yes").length;
+  // Where "next" goes: the first severity area, or the summary if the lit
+  // paths ask no severity questions at all.
+  const asked = severityQuestionsFor(lit.map((p) => p.id));
+  const severityGroups = groupsFor(asked);
+  const firstSeverityHref = severityGroups[0]
+    ? `/projects/${id}/assess/severity/${severityGroups[0].key}`
+    : `/projects/${id}/assess/complete`;
 
   return (
     <main>
@@ -121,15 +131,15 @@ export default async function PathsPage({
                 None of the areas that apply ask a follow-up question, so
                 there&rsquo;s nothing for you to do here.
               </p>
-              <Link className="btn" href={`/projects/${id}/assess/complete`}>
-                See the summary &rarr;
+              <Link className="btn" href={firstSeverityHref}>
+                {severityGroups[0] ? "Continue to how severe →" : "See the summary →"}
               </Link>
             </div>
           ) : (
             <PathsForm
               projectId={id}
               areas={areas}
-              nextHref={`/projects/${id}/assess/complete`}
+              nextHref={firstSeverityHref}
             />
           )}
         </section>

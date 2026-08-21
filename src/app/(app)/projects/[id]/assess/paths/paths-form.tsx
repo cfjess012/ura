@@ -229,7 +229,7 @@ export function PathsForm({
             </button>
           ) : (
             <button className="btn" type="submit">
-              {"See what we'll ask →"}
+              {"Next: how severe →"}
             </button>
           )}
         </span>

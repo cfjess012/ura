@@ -8,6 +8,12 @@ import {
   unansweredCount,
 } from "@/lib/instrument";
 import { litPaths } from "@/lib/engine";
+import {
+  accumulateControls,
+  severityQuestionsFor,
+  type Band,
+} from "@/lib/severity";
+import { groupsFor } from "../severity/severity-rail";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
@@ -54,6 +60,22 @@ export default async function GatesCompletePage({
     if (Array.isArray(value)) selections[category.key] = value;
   }
   const lit = litPaths(CATEGORIES, states, selections, intake);
+  // Recomputed from the answers, never stored (NFR-3). Change a severity
+  // upstream and the workplan below changes with it.
+  const severityQuestions = severityQuestionsFor(lit.map((p) => p.id));
+  const bands: Record<string, Band | undefined> = {};
+  const detailAnswers: Record<string, string[] | undefined> = {};
+  for (const q of severityQuestions) {
+    const value = stored[q.questionId]?.value;
+    if (typeof value === "string") bands[q.questionId] = value as Band;
+    if (q.detail) {
+      const detail = stored[q.detail.questionId]?.value;
+      if (Array.isArray(detail)) detailAnswers[q.detail.questionId] = detail;
+    }
+  }
+  const owed = accumulateControls(severityQuestions, bands, detailAnswers);
+  const severityAnswered = severityQuestions.filter((q) => bands[q.questionId]).length;
+  const severityGroupKey = groupsFor(severityQuestions)[0]?.key ?? "";
   // Did anyone actually answer a path question? Distinct from "no paths are
   // lit", which is also true when nobody was ever asked.
   const answeredPaths = Object.keys(selections).length > 0;
@@ -128,6 +150,39 @@ export default async function GatesCompletePage({
                 worked out from answers you already gave. The detailed questions
                 for each arrive in the next phase.
               </p>
+            </div>
+          )}
+
+          {owed.length > 0 && (
+            <div className="card owed">
+              <h2>What this assessment requires</h2>
+              <p className="help">
+                Assembled from your severity answers — each control names the
+                answer that pulled it in. The control questions themselves
+                come in the next phase.
+              </p>
+              <ul className="summary-list">
+                {owed.map((control) => (
+                  <li key={control.objective}>
+                    <strong>{control.objective}</strong>
+                    <span className="meta"> — {control.because.join("; and ")}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {severityQuestions.length > 0 && severityAnswered < severityQuestions.length && (
+            <div className="card card-upcoming">
+              <h2>Still to answer</h2>
+              <p>
+                {severityQuestions.length - severityAnswered} severity question
+                {severityQuestions.length - severityAnswered === 1 ? "" : "s"} have no
+                answer yet, so the control list above is incomplete.
+              </p>
+              <Link className="btn" href={`/projects/${id}/assess/severity/${severityGroupKey}`}>
+                Answer them &rarr;
+              </Link>
             </div>
           )}
 

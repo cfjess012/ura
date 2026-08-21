@@ -1,8 +1,8 @@
 ---
 artifact: demo-readiness
-slices-covered: S1, S2, S2.5, S3
+slices-covered: S1, S2, S2.5, S3, S4
 reviewed-on: 2026-08-21
-walked-with-owner: partially — S1, S2 and S2.5 walked by the owner; S3 not yet
+walked-with-owner: partially — S1, S2 and S2.5 walked by the owner; S3 and S4 not yet
 ---
 
 # Demo readiness
@@ -24,8 +24,9 @@ One row per beat. A beat with a blank cell is not a beat, it is a hope.
 | 4 | One selection tailors the rest of the assessment | S3 · FR-4 | yes | no | Show the summary's "What we'll ask about" list instead |
 | 5 | An answer in one domain lights a path in another | S3 engine · FR-5 | yes | no | Read the reason aloud from the Added-for-you note |
 | 6 | Change your mind, everything re-derives, nothing stored | S3 · FR-9 | yes | no | Skip — this beat needs a live change to land at all |
+| 11 | A band the platform works out for you, offered not imposed | S4 · FR-7 | yes | no | Point at the dashed suggestion and say nothing is pre-selected |
 | 7 | Roles enforced server-side, not simulated | S2.5 · FR-25 | yes | yes — owner | Switch to the Risk Assessor and show the missing start form |
-| 8 | A severity answer summons a control, with its reason | S4 | **no** | no | Not demoable yet — do not promise it |
+| 8 | A severity answer summons a control, with its reason | S4 | yes | no | Answer Provider Access High and read the control list aloud; if the screen fails, the reasons are in uat/S4.md |
 | 9 | "24 of 29 fields already answered" → ServiceNow record | S3.5 | **no** | no | Not demoable yet — describe it from §27 instead |
 | 10 | Every agent enumerated: what it does, what it can see | S2 · FR-24 | yes | partially | Open `docs/agent-map.html` directly if the app is down |
 

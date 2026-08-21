@@ -20,6 +20,7 @@ import {
 } from "@/lib/intake-values";
 import { CATEGORIES, INSTRUMENT } from "@/lib/instrument";
 import { pathSubmissionProblems } from "@/lib/engine";
+import { SEVERITY, severitySubmissionProblems } from "@/lib/severity";
 import { editableProject } from "@/lib/project-access";
 import { answerStore, projectStore } from "@/lib/repo";
 
@@ -208,6 +209,66 @@ export async function answerPaths(
       "answerPaths",
       error,
       "Those selections weren't recorded, so nothing changed. Your ticks are still on screen — try again in a moment.",
+    );
+  }
+}
+
+/**
+ * Record severity answers and their detail selections (FR-6, FR-8).
+ *
+ * Everything the caller sends is validated before anything is written, and
+ * the whole set lands in one transaction — the lesson from the paths screen,
+ * which wrote area by area and then told people nothing had been saved
+ * after saving half of it (G-40a). A submission naming a question or a band
+ * the instrument does not offer is refused, not narrowed (G-42).
+ */
+export async function answerSeverity(
+  projectId: string,
+  answers: Record<string, string | string[]>,
+): Promise<Result<{ recorded: true }>> {
+  try {
+    const allowed = await editableProject(projectId, "answerSeverity");
+    if (isFailure(allowed)) return allowed;
+    const { person } = allowed;
+    if (!canAnswer(person.role)) {
+      return failure(
+        "answerSeverity",
+        new NotPermitted("answer assessment questions", person.role),
+        "This role doesn't answer assessment questions, so nothing was recorded. Switch to the person who owns this assessment.",
+        { retryable: false },
+      );
+    }
+
+    const problems = severitySubmissionProblems(answers);
+    if (problems.length > 0) {
+      return failure(
+        "answerSeverity",
+        new Error(problems.join("; ")),
+        "Some of those answers aren't part of this assessment any more — it may have changed since this page was opened. Reload to see the current questions; nothing was saved.",
+        { retryable: false },
+      );
+    }
+
+    const store = answerStore();
+    const versionId = await store.activeVersionId(SEVERITY.slug);
+    await store.recordAll(
+      Object.entries(answers).map(([questionId, value]) => ({
+        projectId,
+        questionId,
+        value,
+        source: "person" as const,
+        confirmed: true,
+        instrumentVersionId: versionId,
+        answeredBy: person.id,
+      })),
+    );
+    revalidatePath(`/projects/${projectId}/assess`);
+    return { ok: true as const, recorded: true as const };
+  } catch (error) {
+    return failure(
+      "answerSeverity",
+      error,
+      "Those answers weren't recorded, so nothing changed. They're still on screen — try again in a moment.",
     );
   }
 }

@@ -50,7 +50,17 @@ describe("SPEC ↔ skills stay in sync", () => {
 
 describe("the always-resident context stays thin", () => {
   it("CLAUDE.md remains a router, not a manual", () => {
-    expect(claudeMd.split("\n").length).toBeLessThan(120);
+    // The slice-status block is excluded, and that is a correction rather
+    // than a loosening — same reasoning as the governance log in SPEC. It
+    // grows by a line per finished slice, so counting it meant the budget
+    // tightened every time work was completed, and the only ways to pass
+    // were to delete status or stop recording it. What this measures is the
+    // part that is supposed to stay small: the routing.
+    const lines = claudeMd.split("\n");
+    const start = lines.findIndex((l) => l.startsWith("## Slice status"));
+    const end = lines.findIndex((l) => l.startsWith("## Commands"));
+    const router = lines.length - (end - start);
+    expect(router, "CLAUDE.md's routing has grown — move detail to a skill").toBeLessThan(105);
   });
 
   it("SPEC keeps the law and does not grow procedure back", () => {

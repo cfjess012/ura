@@ -17,7 +17,7 @@
     "test:integration": "vitest run test/integration",
     "test:e2e": "pnpm e2e",
     "verify": "pnpm typecheck && pnpm test:unit && pnpm test:integration",
-    "instrument:seed": "node scripts/seed-instrument.mjs",
+    "instrument:seed": "node scripts/seed-instrument.mjs && node scripts/seed-severity.mjs",
     "agent-map": "node scripts/build-agent-map.mjs",
     "uat:new": "node scripts/uat-skeleton.mjs"
   },

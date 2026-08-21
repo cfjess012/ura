@@ -37,9 +37,11 @@ test("open areas narrow down; the engine adds paths and says why", async ({ page
   // AI gate is also open. Two areas combining, nobody connected them.
   await page.getByRole("checkbox", { name: /Personal information is involved/ }).check();
   await page.getByRole("checkbox", { name: /Logical access to enterprise environments/ }).check();
-  await page.getByRole("button", { name: /See what we'll ask/ }).click();
+  await page.getByRole("button", { name: /Next: how severe/ }).click();
 
-  // The summary lists what will be asked, chosen and derived alike.
+  // The summary lists what will be asked, chosen and derived alike. The
+  // journey now runs on into severity, so ask for the summary directly.
+  await page.goto(`${base}/assess/complete`);
   await expect(page.getByRole("heading", { name: /What we.ll ask about/ })).toBeVisible();
   await expect(page.getByText(/Personal Information in AI/)).toBeVisible();
   await expect(page.getByText(/personal information is involved and that this uses AI/)).toBeVisible();
@@ -53,7 +55,8 @@ test("changing an upstream answer re-derives the paths — nothing is stored", a
   // completeIntake says No to AI, so the AI area is closed and never appears.
   await expect(page.getByText("Which AI usage patterns apply?")).toHaveCount(0);
   await page.getByRole("checkbox", { name: /Personal information is involved/ }).check();
-  await page.getByRole("button", { name: /See what we'll ask/ }).click();
+  await page.getByRole("button", { name: /Next: how severe/ }).click();
+  await page.goto(`${base}/assess/complete`);
   await expect(page.getByRole("heading", { name: /What we.ll ask about/ })).toBeVisible();
   await expect(page.getByText(/Personal Information in AI/)).toHaveCount(0);
 
@@ -106,7 +109,8 @@ test("answering No to everything still reaches the summary (B2)", async ({ page 
   // The header must not tell them to narrow something the page says is not
   // there — the two contradicted each other on the same screen.
   await expect(page.getByText(/none of the areas that apply ask a follow-up/)).toBeVisible();
-  await page.getByRole("link", { name: /See the summary/ }).click();
+  await page.getByRole("link", { name: /See the summary|Continue to how severe/ }).click();
+  await page.goto(`${base}/assess/complete`);
   await expect(page.getByRole("heading", { name: /whole map|areas answered/ })).toBeVisible();
   // And it must not claim they answered something they were never asked.
   await expect(page.getByText(/None of the areas that apply here ask a follow-up/)).toBeVisible();

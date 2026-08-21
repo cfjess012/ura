@@ -1,0 +1,1264 @@
+{
+  "slug": "tier2-severity",
+  "version": "2026-08-21.1",
+  "questions": [
+    {
+      "id": "T2-SH-1",
+      "questionId": "sev.sh_1",
+      "path": null,
+      "category": "Business Criticality",
+      "name": "Business Criticality",
+      "text": "How critical is the activity to business operations, customers, financial reporting, or compliance outcomes?",
+      "bands": {
+        "Low": "Non-critical; limited impact if degraded/unavailable",
+        "Medium": "Important to a function or multiple processes; moderate impact",
+        "High": "Critical to core operations / customer outcomes / financial reporting (0–72 hours)"
+      },
+      "requires": [
+        {
+          "objective": "T3-RES-01",
+          "atLeast": "High",
+          "why": "recoverable"
+        },
+        {
+          "objective": "T3-RES-02",
+          "atLeast": "High",
+          "why": "incident response"
+        },
+        {
+          "objective": "T3-RES-03",
+          "atLeast": "High",
+          "why": "continuity"
+        },
+        {
+          "objective": "T3-GOV-03",
+          "atLeast": "High",
+          "why": "oversight"
+        },
+        {
+          "objective": "T3-LOG-01",
+          "atLeast": "High",
+          "why": "logging"
+        }
+      ]
+    },
+    {
+      "id": "T2-SH-2",
+      "questionId": "sev.sh_2",
+      "path": null,
+      "category": "Business Criticality",
+      "name": "Breadth of Deployment",
+      "text": "How broadly is the activity deployed across the organization or business processes?",
+      "bands": {
+        "Low": "Single team / function; narrowly scoped",
+        "Medium": "Multiple teams or business processes",
+        "High": "Enterprise-wide or broadly used"
+      },
+      "requires": [
+        {
+          "objective": "T3-GOV-03",
+          "atLeast": "High",
+          "why": "broad reach → oversight"
+        },
+        {
+          "objective": "T3-LOG-02",
+          "atLeast": "High",
+          "why": "ongoing monitoring"
+        }
+      ]
+    },
+    {
+      "id": "T2-SH-3",
+      "questionId": "sev.sh_3",
+      "path": null,
+      "category": "Business Criticality",
+      "name": "Access & Output Audience",
+      "text": "Who can access the activity or receive its outputs (including external parties)?",
+      "bands": {
+        "Low": "Internal-only access and outputs",
+        "Medium": "Broad internal audience and/or partner/vendor access",
+        "High": "Customer / public access and/or large external distribution"
+      },
+      "requires": [
+        {
+          "objective": "T3-NB-01",
+          "atLeast": "High",
+          "why": "boundary"
+        },
+        {
+          "objective": "T3-NB-02",
+          "atLeast": "High",
+          "why": "WAF/API gateway"
+        },
+        {
+          "objective": "T3-IAM-01",
+          "atLeast": "High",
+          "why": "access authorization"
+        },
+        {
+          "objective": "T3-IAM-02",
+          "atLeast": "High",
+          "why": "MFA"
+        },
+        {
+          "objective": "T3-DP-01",
+          "atLeast": "High",
+          "why": "encryption"
+        }
+      ]
+    },
+    {
+      "id": "T2-TPR-LA-1",
+      "questionId": "sev.tpr_la_1",
+      "path": "TPR_LA",
+      "category": "Third-Party",
+      "name": "Level of Provider Access",
+      "text": "What level of access will the provider have to enterprise environments?",
+      "bands": {
+        "Low": "No direct access, or non-production only with no sensitive systems",
+        "Medium": "Standard (non-admin) access to production, or multiple non-prod environments",
+        "High": "Privileged / admin access to production and/or broad access across environments"
+      },
+      "requires": [
+        {
+          "objective": "T3-TPR-04",
+          "atLeast": "Low",
+          "why": "govern all third-party access"
+        },
+        {
+          "objective": "T3-IAM-02",
+          "atLeast": "Medium",
+          "why": "MFA"
+        },
+        {
+          "objective": "T3-IAM-05",
+          "atLeast": "Medium",
+          "why": "access recertification"
+        },
+        {
+          "objective": "T3-LOG-01",
+          "atLeast": "Medium",
+          "why": "log access"
+        },
+        {
+          "objective": "T3-IAM-10",
+          "atLeast": "Medium",
+          "why": "remote-access governance"
+        },
+        {
+          "objective": "T3-IAM-03",
+          "atLeast": "High",
+          "why": "privileged access mgmt"
+        }
+      ],
+      "detail": {
+        "questionId": "sev.tpr_la_1_detail",
+        "text": "Which access types apply?",
+        "firesAt": [
+          "Medium",
+          "High"
+        ],
+        "options": [
+          "Read-only",
+          "Read / write",
+          "Admin / privileged",
+          "Database-level",
+          "Access to PI",
+          "Access to production",
+          "Remote / VPN",
+          "Standing access",
+          "Just-in-time access"
+        ],
+        "optionRequires": {
+          "Admin / privileged": [
+            "T3-IAM-03",
+            "T3-IAM-06"
+          ],
+          "Read / write": [
+            "T3-IAM-06"
+          ],
+          "Database-level": [
+            "T3-IAM-03",
+            "T3-DP-01"
+          ],
+          "Access to PI": [
+            "T3-DP-01",
+            "T3-TPR-01"
+          ],
+          "Access to production": [
+            "T3-TPR-02",
+            "T3-LOG-01"
+          ],
+          "Remote / VPN": [
+            "T3-IAM-10"
+          ],
+          "Standing access": [
+            "T3-IAM-05"
+          ]
+        }
+      }
+    },
+    {
+      "id": "T2-TPR-LA-2",
+      "questionId": "sev.tpr_la_2",
+      "path": "TPR_LA",
+      "category": "Third-Party",
+      "name": "Access Persistence",
+      "text": "How persistent is the provider’s access?",
+      "bands": {
+        "Low": "Time-bound / just-in-time / as-needed access",
+        "Medium": "Standing access for limited roles / systems",
+        "High": "Always-on standing access and/or shared credentials used routinely"
+      },
+      "requires": [
+        {
+          "objective": "T3-TPR-04",
+          "atLeast": "Low",
+          "why": "govern third-party access"
+        },
+        {
+          "objective": "T3-IAM-05",
+          "atLeast": "Medium",
+          "why": "access recertification"
+        },
+        {
+          "objective": "T3-IAM-03",
+          "atLeast": "High",
+          "why": "standing-credential controls"
+        }
+      ]
+    },
+    {
+      "id": "T2-TPR-DH-1",
+      "questionId": "sev.tpr_dh_1",
+      "path": "TPR_DH",
+      "category": "Third-Party",
+      "name": "Data Classification Handled",
+      "text": "What is the highest data classification the provider will handle?",
+      "bands": {
+        "Low": "Public or internal-only, low sensitivity",
+        "Medium": "Confidential business data or limited PI",
+        "High": "Restricted / regulated / special-category data and/or large volumes of PI"
+      },
+      "requires": [
+        {
+          "objective": "T3-TPR-01",
+          "atLeast": "Low",
+          "why": "contractual data protection & flow-down"
+        },
+        {
+          "objective": "T3-DP-01",
+          "atLeast": "Medium",
+          "why": "encryption in transit & at rest"
+        },
+        {
+          "objective": "T3-DP-05",
+          "atLeast": "Medium",
+          "why": "retention / disposal"
+        }
+      ],
+      "detail": {
+        "questionId": "sev.tpr_dh_1_detail",
+        "text": "How does the provider handle the data?",
+        "firesAt": [
+          "Medium",
+          "High"
+        ],
+        "options": [
+          "Stores data",
+          "Processes data",
+          "Transmits data",
+          "Views / accesses only",
+          "Handles PI",
+          "Handles confidential / restricted",
+          "Handles regulated data"
+        ],
+        "optionRequires": {}
+      },
+      "derivedFrom": {
+        "from": "dataClassification",
+        "map": {
+          "Public": "Low",
+          "Internal": "Low",
+          "Confidential": "Medium",
+          "Restricted": "High"
+        },
+        "because": "you told us the most sensitive data involved is {value}"
+      }
+    },
+    {
+      "id": "T2-TPR-OPS-1",
+      "questionId": "sev.tpr_ops_1",
+      "path": "TPR_OPS",
+      "category": "Third-Party",
+      "name": "Outsourced Operations",
+      "text": "What operational responsibilities will the provider perform?",
+      "bands": {
+        "Low": "Basic support with no ability to change production behavior",
+        "Medium": "Monitoring / support plus routine changes under defined procedures",
+        "High": "Admin operations, incident response, and/or production changes with broad impact"
+      },
+      "requires": [
+        {
+          "objective": "T3-OPS-04",
+          "atLeast": "Low",
+          "why": "documented procedures & QC"
+        },
+        {
+          "objective": "T3-TPR-02",
+          "atLeast": "Medium",
+          "why": "independent assurance (SOC/ISO)"
+        },
+        {
+          "objective": "T3-RES-01",
+          "atLeast": "Medium",
+          "why": "backup/recovery"
+        },
+        {
+          "objective": "T3-RES-02",
+          "atLeast": "High",
+          "why": "incident response"
+        }
+      ]
+    },
+    {
+      "id": "T2-TPR-OPS-2",
+      "questionId": "sev.tpr_ops_2",
+      "path": "TPR_OPS",
+      "category": "Third-Party",
+      "name": "Provider Impact on Availability",
+      "text": "How directly can provider actions affect availability or security?",
+      "bands": {
+        "Low": "Indirect influence; limited blast radius",
+        "Medium": "Moderate influence; affects a subsystem or non-critical services",
+        "High": "Direct influence over critical services and/or broad blast radius"
+      },
+      "requires": [
+        {
+          "objective": "T3-OPS-04",
+          "atLeast": "Low",
+          "why": "documented procedures & QC"
+        },
+        {
+          "objective": "T3-TPR-02",
+          "atLeast": "Medium",
+          "why": "independent assurance"
+        },
+        {
+          "objective": "T3-RES-01",
+          "atLeast": "Medium",
+          "why": "backup/recovery"
+        },
+        {
+          "objective": "T3-RES-02",
+          "atLeast": "High",
+          "why": "incident response"
+        }
+      ]
+    },
+    {
+      "id": "T2-TPR-4P-1",
+      "questionId": "sev.tpr_4p_1",
+      "path": "TPR_4P",
+      "category": "Third-Party",
+      "name": "Subcontractor Reliance",
+      "text": "What is the extent of subcontractor reliance for delivery, support, or operations?",
+      "bands": {
+        "Low": "No subcontractors or minor ancillary services",
+        "Medium": "Subcontractors used for specific components / support functions",
+        "High": "Subcontractors are critical for core delivery / hosting / operations"
+      },
+      "requires": [
+        {
+          "objective": "T3-TPR-01",
+          "atLeast": "Low",
+          "why": "flow-down to subcontractors"
+        },
+        {
+          "objective": "T3-TPR-03",
+          "atLeast": "Medium",
+          "why": "fourth-party risk mgmt & chain transparency"
+        }
+      ],
+      "detail": {
+        "questionId": "sev.tpr_4p_1_detail",
+        "text": "Which subcontractor / fourth-party types are used?",
+        "firesAt": [
+          "Medium",
+          "High"
+        ],
+        "options": [
+          "Hosting / cloud provider (AWS, Azure, Google, Private Cloud)",
+          "Subprocessor performing on behalf of the third party",
+          "Data backup provider",
+          "Other"
+        ],
+        "optionRequires": {
+          "Hosting / cloud provider (AWS, Azure, Google, Private Cloud)": [
+            "T3-TPR-02",
+            "T3-TPR-03"
+          ],
+          "Subprocessor performing on behalf of the third party": [
+            "T3-TPR-03",
+            "T3-TPR-01"
+          ],
+          "Data backup provider": [
+            "T3-TPR-03",
+            "T3-DP-05",
+            "T3-DP-01"
+          ],
+          "Other": [
+            "T3-TPR-03"
+          ]
+        }
+      }
+    },
+    {
+      "id": "T2-TPR-4P-2",
+      "questionId": "sev.tpr_4p_2",
+      "path": "TPR_4P",
+      "category": "Third-Party",
+      "name": "Subcontractor Chain Transparency",
+      "text": "How transparent is the subcontractor chain?",
+      "bands": {
+        "Low": "Full visibility of subcontractors and their roles",
+        "Medium": "Partial visibility; some subcontractors not fully enumerated",
+        "High": "Limited / unknown chain; opaque subcontracting"
+      },
+      "requires": [
+        {
+          "objective": "T3-TPR-01",
+          "atLeast": "Low",
+          "why": "flow-down to subcontractors"
+        },
+        {
+          "objective": "T3-TPR-03",
+          "atLeast": "Medium",
+          "why": "fourth-party risk mgmt & chain transparency"
+        }
+      ]
+    },
+    {
+      "id": "T2-TPR-PHY-1",
+      "questionId": "sev.tpr_phy_1",
+      "path": "TPR_PHY",
+      "category": "Third-Party",
+      "name": "Physical Access Level",
+      "text": "What level of physical access will provider personnel require?",
+      "bands": {
+        "Low": "Escorted / limited-area access; no sensitive equipment or records",
+        "Medium": "Unescorted access to limited areas or controlled equipment",
+        "High": "Broad unescorted access to sensitive areas / equipment / records"
+      },
+      "requires": [
+        {
+          "objective": "T3-TPR-05",
+          "atLeast": "Low",
+          "why": "authorize & control physical access"
+        },
+        {
+          "objective": "T3-DP-07",
+          "atLeast": "Medium",
+          "why": "media protection"
+        }
+      ],
+      "detail": {
+        "questionId": "sev.tpr_phy_1_detail",
+        "text": "What physical access applies?",
+        "firesAt": [
+          "Medium",
+          "High"
+        ],
+        "options": [
+          "Data center / server room",
+          "General office space",
+          "Records storage",
+          "Escorted only",
+          "Unescorted / badge access",
+          "None"
+        ],
+        "optionRequires": {
+          "Data center / server room": [
+            "T3-TPR-05",
+            "T3-DP-07"
+          ],
+          "Records storage": [
+            "T3-DP-07"
+          ],
+          "Unescorted / badge access": [
+            "T3-TPR-05",
+            "T3-LOG-01"
+          ]
+        }
+      }
+    },
+    {
+      "id": "T2-TPR-CONC-1",
+      "questionId": "sev.tpr_conc_1",
+      "path": "TPR_CONC",
+      "category": "Third-Party",
+      "name": "Supplier Concentration",
+      "text": "How difficult would it be to replace this supplier or source an equivalent product / service elsewhere?",
+      "bands": {
+        "Low": "Standard / off-the-shelf; multiple alternatives; replaceable <6 months at low cost",
+        "Medium": "Tailored; limited alternatives; replaceable 6–12 months or moderate cost",
+        "High": "Exclusive / unique; few or no alternatives; >12 months or high cost"
+      },
+      "requires": [
+        {
+          "objective": "T3-TPR-01",
+          "atLeast": "Low",
+          "why": "contract & exit/termination terms"
+        },
+        {
+          "objective": "T3-RES-01",
+          "atLeast": "Medium",
+          "why": "backup/recovery"
+        },
+        {
+          "objective": "T3-RES-02",
+          "atLeast": "High",
+          "why": "contingency for exclusive suppliers"
+        }
+      ]
+    },
+    {
+      "id": "T2-AI-DEC-1",
+      "questionId": "sev.ai_dec_1",
+      "path": "AI_DEC",
+      "category": "AI / Model Risk",
+      "name": "AI-Influenced Decisioning",
+      "text": "How directly do AI outputs influence decisions or actions affecting individuals?",
+      "bands": {
+        "Low": "AI outputs are informational; no direct decision or action follows",
+        "Medium": "AI recommends or prioritizes, but humans take final decisions",
+        "High": "AI outputs automatically trigger decisions / actions, or the process depends on them"
+      },
+      "requires": [
+        {
+          "objective": "T3-AI-01",
+          "atLeast": "Low",
+          "why": "model governance/validation"
+        },
+        {
+          "objective": "T3-AI-05",
+          "atLeast": "Medium",
+          "why": "explainability/documentation"
+        },
+        {
+          "objective": "T3-AI-02",
+          "atLeast": "Medium",
+          "why": "human oversight"
+        },
+        {
+          "objective": "T3-AI-11",
+          "atLeast": "Medium",
+          "why": "feedback/recourse"
+        }
+      ],
+      "detail": {
+        "questionId": "sev.ai_dec_1_detail",
+        "text": "Which decision domains are affected by the AI?",
+        "firesAt": [
+          "Medium",
+          "High"
+        ],
+        "options": [
+          "Credit / underwriting",
+          "Claims",
+          "Hiring / HR",
+          "Pricing",
+          "Customer eligibility",
+          "Fraud / AML",
+          "Marketing targeting",
+          "Content generation",
+          "Other"
+        ],
+        "optionRequires": {
+          "Credit / underwriting": [
+            "T3-AI-03",
+            "T3-AI-05"
+          ],
+          "Claims": [
+            "T3-AI-03",
+            "T3-AI-05"
+          ],
+          "Hiring / HR": [
+            "T3-AI-03",
+            "T3-AI-05"
+          ],
+          "Pricing": [
+            "T3-AI-03",
+            "T3-AI-05"
+          ],
+          "Customer eligibility": [
+            "T3-AI-03",
+            "T3-AI-05"
+          ],
+          "Fraud / AML": [
+            "T3-AI-03",
+            "T3-AI-05"
+          ],
+          "Marketing targeting": [
+            "T3-AI-03"
+          ],
+          "Content generation": [
+            "T3-AI-06"
+          ]
+        }
+      }
+    },
+    {
+      "id": "T2-AI-CONT-1",
+      "questionId": "sev.ai_cont_1",
+      "path": "AI_CONT",
+      "category": "AI / Model Risk",
+      "name": "GenAI Content / Communications",
+      "text": "What is the audience and formality of GenAI-generated content?",
+      "bands": {
+        "Low": "Internal-only drafts; non-authoritative",
+        "Medium": "External communications positioned as non-authoritative or limited-use",
+        "High": "Customer / public-facing and/or regulated or authoritative communications"
+      },
+      "requires": [
+        {
+          "objective": "T3-AI-06",
+          "atLeast": "Low",
+          "why": "output safety/quality"
+        },
+        {
+          "objective": "T3-CMP-02",
+          "atLeast": "Medium",
+          "why": "compliance review of external content"
+        }
+      ],
+      "detail": {
+        "questionId": "sev.ai_cont_1_detail",
+        "text": "What is the audience / use of GenAI-generated content?",
+        "firesAt": [
+          "Medium",
+          "High"
+        ],
+        "options": [
+          "Internal use only",
+          "Customer-facing",
+          "Financial professional-facing",
+          "Public / marketing",
+          "Regulated communication",
+          "Other"
+        ],
+        "optionRequires": {
+          "Customer-facing": [
+            "T3-CMP-02"
+          ],
+          "Financial professional-facing": [
+            "T3-CMP-02"
+          ],
+          "Public / marketing": [
+            "T3-CMP-02"
+          ],
+          "Regulated communication": [
+            "T3-CMP-02"
+          ]
+        }
+      }
+    },
+    {
+      "id": "T2-AI-AGENT-1",
+      "questionId": "sev.ai_agent_1",
+      "path": "AI_AGENT",
+      "category": "AI / Model Risk",
+      "name": "Agentic Autonomy",
+      "text": "To what extent can the AI execute multi-step workflows without user confirmation at each step?",
+      "bands": {
+        "Low": "No autonomy; single-step suggestions only",
+        "Medium": "Multi-step possible, but user confirmation required at key steps",
+        "High": "Multi-step with limited / no confirmation, and/or runs unattended"
+      },
+      "requires": [
+        {
+          "objective": "T3-AI-08",
+          "atLeast": "Medium",
+          "why": "authorize & bound autonomy"
+        },
+        {
+          "objective": "T3-AI-02",
+          "atLeast": "Medium",
+          "why": "human oversight/checkpoints"
+        },
+        {
+          "objective": "T3-RES-03",
+          "atLeast": "High",
+          "why": "kill-switch for unattended execution"
+        }
+      ],
+      "detail": {
+        "questionId": "sev.ai_agent_1_detail",
+        "text": "What level of autonomous action applies?",
+        "firesAt": [
+          "Medium",
+          "High"
+        ],
+        "options": [
+          "Single-step with confirmation",
+          "Multi-step with confirmation",
+          "Multi-step limited confirmation",
+          "Fully autonomous execution",
+          "Can self-initiate tasks",
+          "None"
+        ],
+        "optionRequires": {
+          "Multi-step limited confirmation": [
+            "T3-AI-08",
+            "T3-AI-02",
+            "T3-RES-03"
+          ],
+          "Fully autonomous execution": [
+            "T3-AI-08",
+            "T3-AI-02",
+            "T3-RES-03"
+          ],
+          "Can self-initiate tasks": [
+            "T3-AI-08",
+            "T3-AI-02",
+            "T3-RES-03"
+          ],
+          "Multi-step with confirmation": [
+            "T3-AI-02"
+          ]
+        }
+      }
+    },
+    {
+      "id": "T2-AI-RET-1",
+      "questionId": "sev.ai_ret_1",
+      "path": "AI_RET",
+      "category": "AI / Model Risk",
+      "name": "Prompt / Output Retention",
+      "text": "To what extent are prompts and outputs stored or reused beyond the user session?",
+      "bands": {
+        "Low": "Not stored beyond session; no reuse",
+        "Medium": "Stored for operational logging / troubleshooting with defined retention",
+        "High": "Stored broadly and/or reused for analytics, evaluation, or model improvement"
+      },
+      "requires": [
+        {
+          "objective": "T3-AI-07",
+          "atLeast": "Medium",
+          "why": "prompt/output handling controls"
+        },
+        {
+          "objective": "T3-DP-05",
+          "atLeast": "Medium",
+          "why": "retention/disposal"
+        }
+      ]
+    },
+    {
+      "id": "T2-AI-RAG-1",
+      "questionId": "sev.ai_rag_1",
+      "path": "AI_RAG",
+      "category": "AI / Model Risk",
+      "name": "Enterprise Data Retrieval (RAG)",
+      "text": "How broad is the retrieval (RAG) data access available to the AI solution?",
+      "bands": {
+        "Low": "Single repository or tightly scoped dataset; least-privileged retrieval",
+        "Medium": "Multiple repositories within one domain / function",
+        "High": "Enterprise-wide or multi-domain retrieval; higher overexposure likelihood"
+      },
+      "requires": [
+        {
+          "objective": "T3-AI-09",
+          "atLeast": "Low",
+          "why": "retrieval entitlement enforcement"
+        },
+        {
+          "objective": "T3-LOG-01",
+          "atLeast": "Medium",
+          "why": "log retrieval access"
+        }
+      ]
+    },
+    {
+      "id": "T2-PRIV-1",
+      "questionId": "sev.priv_1",
+      "path": "PRIV",
+      "category": "Data & Privacy",
+      "name": "Privacy & Personal Information",
+      "text": "What is the highest sensitivity / type of personal information involved?",
+      "bands": {
+        "Low": "Basic contact / employee directory type PI",
+        "Medium": "Financial identifiers and/or broad datasets",
+        "High": "Special-category PI (health / payment / biometric) and/or large-scale PI"
+      },
+      "requires": [
+        {
+          "objective": "T3-PRIV-02",
+          "atLeast": "Low",
+          "why": "lawful basis"
+        },
+        {
+          "objective": "T3-PRIV-04",
+          "atLeast": "Low",
+          "why": "transparency/notice"
+        },
+        {
+          "objective": "T3-PRIV-03",
+          "atLeast": "Low",
+          "why": "data-subject rights"
+        },
+        {
+          "objective": "T3-PRIV-05",
+          "atLeast": "High",
+          "why": "special-category safeguards"
+        }
+      ],
+      "detail": {
+        "questionId": "sev.priv_1_detail",
+        "text": "Which specific types of personal information are collected?",
+        "firesAt": [
+          "Medium",
+          "High"
+        ],
+        "options": [
+          "Name / contact identifiers",
+          "Date of birth / age",
+          "Government IDs (SSN, passport)",
+          "Financial / bank / credit card",
+          "Health / medical",
+          "Biometric",
+          "Genetic",
+          "Geolocation",
+          "Online identifiers (IP, cookies, device)",
+          "Racial / ethnic origin",
+          "Children’s data",
+          "Other"
+        ],
+        "optionRequires": {}
+      },
+      "derivedFrom": {
+        "from": "dataElements",
+        "map": {
+          "Customer personal information": "Medium",
+          "Employee personal information": "Medium",
+          "Applicant personal information": "Medium",
+          "Partner/Vendor contact personal information": "Low",
+          "None / Unknown": "Low"
+        },
+        "because": "you listed {value} at intake"
+      }
+    },
+    {
+      "id": "T2-REGDATA-1",
+      "questionId": "sev.regdata_1",
+      "path": "REGDATA",
+      "category": "Data & Privacy",
+      "name": "Regulated Data Handling",
+      "text": "What is the regulated data context?",
+      "bands": {
+        "Low": "Limited regulated data with constrained use",
+        "Medium": "Regulated data used operationally with moderate scope",
+        "High": "Regulated data central to activity and/or large scale"
+      },
+      "requires": [
+        {
+          "objective": "T3-DP-01",
+          "atLeast": "Low",
+          "why": "encryption of regulated data"
+        },
+        {
+          "objective": "T3-PRIV-05",
+          "atLeast": "Low",
+          "why": "special-category safeguards"
+        },
+        {
+          "objective": "T3-CMP-03",
+          "atLeast": "Medium",
+          "why": "jurisdictional compliance"
+        }
+      ],
+      "detail": {
+        "questionId": "sev.regdata_1_detail",
+        "text": "Which special-category / regulated data types apply?",
+        "firesAt": [
+          "Medium",
+          "High"
+        ],
+        "options": [
+          "Biometric data",
+          "Genetic data",
+          "Health data (PHI)",
+          "Racial / ethnic origin",
+          "Payment card data (PCI)",
+          "Children’s data (under 16)",
+          "Financial account / GLBA-covered data",
+          "None of these"
+        ],
+        "optionRequires": {
+          "Biometric data": [
+            "T3-PRIV-05"
+          ],
+          "Genetic data": [
+            "T3-PRIV-05"
+          ],
+          "Health data (PHI)": [
+            "T3-PRIV-05"
+          ],
+          "Racial / ethnic origin": [
+            "T3-PRIV-05"
+          ],
+          "Payment card data (PCI)": [
+            "T3-DP-01",
+            "T3-DP-06"
+          ],
+          "Children’s data (under 16)": [
+            "T3-PRIV-05"
+          ],
+          "Financial account / GLBA-covered data": [
+            "T3-DP-01",
+            "T3-CMP-04"
+          ]
+        }
+      }
+    },
+    {
+      "id": "T2-PI-AI-1",
+      "questionId": "sev.pi_ai_1",
+      "path": "PI_AI",
+      "category": "Data & Privacy",
+      "name": "PI in AI / GenAI Use",
+      "text": "How is personal information used with AI/GenAI?",
+      "bands": {
+        "Low": "PI excluded / redacted; incidental exposure unlikely",
+        "Medium": "PI used in prompts / context with defined constraints",
+        "High": "PI used broadly and/or retained beyond session; risk of PI in outputs"
+      },
+      "requires": [
+        {
+          "objective": "T3-DP-04",
+          "atLeast": "Low",
+          "why": "minimize/de-identify PI for AI"
+        },
+        {
+          "objective": "T3-AI-07",
+          "atLeast": "Medium",
+          "why": "prompt/output PI handling"
+        },
+        {
+          "objective": "T3-PRIV-05",
+          "atLeast": "Medium",
+          "why": "ADM/profiling safeguards"
+        }
+      ],
+      "detail": {
+        "questionId": "sev.pi_ai_1_detail",
+        "text": "How is personal information used with AI/GenAI?",
+        "firesAt": [
+          "Medium",
+          "High"
+        ],
+        "options": [
+          "Training / fine-tuning data",
+          "Prompt input",
+          "Retrieval (RAG) source",
+          "Output may contain PI",
+          "Shared with model vendor",
+          "None of these"
+        ],
+        "optionRequires": {
+          "Training / fine-tuning data": [
+            "T3-AI-10",
+            "T3-DP-04"
+          ],
+          "Prompt input": [
+            "T3-AI-07"
+          ],
+          "Retrieval (RAG) source": [
+            "T3-AI-09"
+          ],
+          "Output may contain PI": [
+            "T3-PRIV-04",
+            "T3-AI-06"
+          ],
+          "Shared with model vendor": [
+            "T3-TPR-01"
+          ]
+        }
+      }
+    },
+    {
+      "id": "T2-DATA-EXT-1",
+      "questionId": "sev.data_ext_1",
+      "path": "DATA_EXT",
+      "category": "Data & Privacy",
+      "name": "External Data Sharing",
+      "text": "To what extent is non-public data shared externally?",
+      "bands": {
+        "Low": "Limited sharing with one vetted party for a narrow purpose",
+        "Medium": "Multiple external parties and/or broader purposes",
+        "High": "Broad or downstream sharing, high volume, or multiple recipients"
+      },
+      "requires": [
+        {
+          "objective": "T3-TPR-01",
+          "atLeast": "Low",
+          "why": "contractual/DPA for external sharing"
+        },
+        {
+          "objective": "T3-DP-05",
+          "atLeast": "Medium",
+          "why": "retention/deletion terms"
+        }
+      ],
+      "detail": {
+        "questionId": "sev.data_ext_1_detail",
+        "text": "With whom / how is non-public data shared externally?",
+        "firesAt": [
+          "Medium",
+          "High"
+        ],
+        "options": [
+          "Existing vendor / supplier",
+          "New vendor / supplier",
+          "Third party (non-vendor)",
+          "Regulator / authority",
+          "Public / open distribution",
+          "None of the above"
+        ],
+        "optionRequires": {
+          "Existing vendor / supplier": [
+            "T3-TPR-01"
+          ],
+          "New vendor / supplier": [
+            "T3-TPR-01",
+            "T3-TPR-02"
+          ],
+          "Third party (non-vendor)": [
+            "T3-TPR-01"
+          ],
+          "Regulator / authority": [
+            "T3-CMP-03"
+          ],
+          "Public / open distribution": [
+            "T3-DP-04",
+            "T3-GOV-02"
+          ]
+        }
+      }
+    },
+    {
+      "id": "T2-DATA-XB-1",
+      "questionId": "sev.data_xb_1",
+      "path": "DATA_XB",
+      "category": "Data & Privacy",
+      "name": "Cross-Border Data Transfer",
+      "text": "What is the cross-border exposure?",
+      "bands": {
+        "Low": "Occasional access from abroad; no storage",
+        "Medium": "Processing / storage in one additional jurisdiction",
+        "High": "Processing / storage across multiple jurisdictions and/or complex transfer paths"
+      },
+      "requires": [
+        {
+          "objective": "T3-CMP-03",
+          "atLeast": "Low",
+          "why": "jurisdictional/cross-border compliance & TIAs"
+        },
+        {
+          "objective": "T3-DP-05",
+          "atLeast": "Medium",
+          "why": "retention"
+        }
+      ],
+      "detail": {
+        "questionId": "sev.data_xb_1_detail",
+        "text": "Which regions / jurisdictions are involved in the data transfer?",
+        "firesAt": [
+          "Medium",
+          "High"
+        ],
+        "options": [
+          "United States",
+          "Canada",
+          "EU / UK / Australia",
+          "APAC (Singapore, Indonesia, Malaysia, Thailand)",
+          "China",
+          "India",
+          "Latin America",
+          "Middle East",
+          "The Philippines",
+          "Other"
+        ],
+        "optionRequires": {
+          "Canada": [
+            "T3-CMP-03"
+          ],
+          "EU / UK / Australia": [
+            "T3-CMP-03"
+          ],
+          "APAC (Singapore, Indonesia, Malaysia, Thailand)": [
+            "T3-CMP-03"
+          ],
+          "China": [
+            "T3-CMP-03"
+          ],
+          "India": [
+            "T3-CMP-03"
+          ],
+          "Latin America": [
+            "T3-CMP-03"
+          ],
+          "Middle East": [
+            "T3-CMP-03"
+          ],
+          "The Philippines": [
+            "T3-CMP-03"
+          ],
+          "Other": [
+            "T3-CMP-03"
+          ]
+        }
+      }
+    },
+    {
+      "id": "T2-SR-EXT-1",
+      "questionId": "sev.sr_ext_1",
+      "path": "SR_EXT",
+      "category": "Security",
+      "name": "External Attack Surface",
+      "text": "How exposed is the solution to external threats?",
+      "bands": {
+        "Low": "No internet exposure; limited external access",
+        "Medium": "Restricted external access or limited endpoints",
+        "High": "Internet-facing / customer-facing broad exposure"
+      },
+      "requires": [
+        {
+          "objective": "T3-SDLC-03",
+          "atLeast": "Medium",
+          "why": "vulnerability mgmt"
+        },
+        {
+          "objective": "T3-SDLC-06",
+          "atLeast": "Medium",
+          "why": "patching"
+        },
+        {
+          "objective": "T3-SDLC-05",
+          "atLeast": "Medium",
+          "why": "malicious-code protection"
+        },
+        {
+          "objective": "T3-NB-02",
+          "atLeast": "Medium",
+          "why": "WAF"
+        },
+        {
+          "objective": "T3-NB-05",
+          "atLeast": "Medium",
+          "why": "DoS protection"
+        },
+        {
+          "objective": "T3-SDLC-04",
+          "atLeast": "High",
+          "why": "penetration testing"
+        },
+        {
+          "objective": "T3-RES-02",
+          "atLeast": "High",
+          "why": "incident response"
+        }
+      ]
+    },
+    {
+      "id": "T2-SR-PAM-1",
+      "questionId": "sev.sr_pam_1",
+      "path": "SR_PAM",
+      "category": "Security",
+      "name": "Privileged Access / Admin Risk",
+      "text": "What is the scope of privileged or administrative capabilities introduced?",
+      "bands": {
+        "Low": "Limited admin functions in non-prod",
+        "Medium": "Admin in prod for limited systems / roles",
+        "High": "Broad privileged access across critical systems and/or many admins"
+      },
+      "requires": [
+        {
+          "objective": "T3-IAM-03",
+          "atLeast": "Low",
+          "why": "privileged access mgmt"
+        },
+        {
+          "objective": "T3-IAM-06",
+          "atLeast": "Medium",
+          "why": "credential lifecycle"
+        },
+        {
+          "objective": "T3-LOG-01",
+          "atLeast": "Medium",
+          "why": "log privileged actions"
+        }
+      ]
+    },
+    {
+      "id": "T2-SR-INT-1",
+      "questionId": "sev.sr_int_1",
+      "path": "SR_INT",
+      "category": "Security",
+      "name": "Integration / Data Flow Security",
+      "text": "How complex are the integrations or data flows introduced?",
+      "bands": {
+        "Low": "Single internal flow with limited data",
+        "Medium": "Multiple internal flows and/or moderate data",
+        "High": "External integrations and/or multiple flows with sensitive data"
+      },
+      "requires": [
+        {
+          "objective": "T3-NB-03",
+          "atLeast": "Low",
+          "why": "secure integration/interface config"
+        },
+        {
+          "objective": "T3-DP-06",
+          "atLeast": "Medium",
+          "why": "secrets protection"
+        },
+        {
+          "objective": "T3-LOG-02",
+          "atLeast": "Medium",
+          "why": "monitoring"
+        }
+      ]
+    },
+    {
+      "id": "T2-SR-TP-1",
+      "questionId": "sev.sr_tp_1",
+      "path": "SR_TP",
+      "category": "Security",
+      "name": "Third-Party Security Exposure",
+      "text": "How significant is the third party’s security exposure to your environment?",
+      "bands": {
+        "Low": "No access / limited exposure",
+        "Medium": "Access or data handling with constraints",
+        "High": "Privileged access and/or operational role with broad exposure"
+      },
+      "requires": [
+        {
+          "objective": "T3-TPR-02",
+          "atLeast": "Medium",
+          "why": "third-party assurance"
+        },
+        {
+          "objective": "T3-HR-01",
+          "atLeast": "Medium",
+          "why": "provider personnel screening"
+        },
+        {
+          "objective": "T3-HR-02",
+          "atLeast": "Medium",
+          "why": "provider training"
+        }
+      ]
+    }
+  ]
+}

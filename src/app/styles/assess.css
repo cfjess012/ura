@@ -110,3 +110,29 @@
 /* A path the engine lit rather than asked: same treatment as an intake
    pre-fill, because it is the same promise — we already knew this. */
 .prefill.derived { margin-top: .7rem; }
+
+/* ---------- Tier 2: severity (S4) ---------- */
+.q2 { padding: 1.2rem 1.4rem; }
+.q2-name { margin: 0 0 .3rem; font-size: 1.02rem; color: var(--navy); }
+.bands { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin-top: .8rem; }
+@media (max-width: 900px) { .bands { grid-template-columns: 1fr; } }
+/* The anchor IS the option. A band labelled only "Medium" is a bare word,
+   and two assessors read a bare word differently. */
+.band {
+  position: relative;
+  display: block; text-align: left; font: inherit; cursor: pointer;
+  background: var(--neutral-0); border: 2px solid var(--neutral-200);
+  border-radius: var(--radius); padding: .7rem .85rem;
+  transition: border-color .15s var(--ease), background .15s var(--ease);
+}
+.band:hover { border-color: var(--brand); background: var(--surface-1); }
+.band.chosen { border-color: var(--navy); background: var(--surface-2); box-shadow: inset 4px 0 0 var(--navy); }
+/* A worked-out band is a suggestion, not an answer: dashed, never filled,
+   so it cannot be mistaken for something the person chose. */
+.band.suggested { border-style: dashed; border-color: var(--brand); }
+.band-mark { position: absolute; top: .5rem; right: .6rem; font-weight: 800; color: var(--navy); line-height: 1; }
+.band-level { display: block; font-weight: 800; font-size: .82rem; letter-spacing: .04em; color: var(--navy); }
+.band-anchor { display: block; font-size: .84rem; color: var(--neutral-700); margin-top: .2rem; }
+.q2 .detail { border-top: 1px dashed var(--neutral-200); margin-top: .9rem; padding-top: .7rem; }
+.owed { border-left: 4px solid var(--success); }
+.owed h2 { color: var(--success); }
