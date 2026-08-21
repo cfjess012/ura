@@ -269,6 +269,7 @@ Composite scoring policy (§14) · framework crosswalks (planned; will anchor to
 - **G-5 (settled):** No runtime instrument authoring; seed-PR governance only (§8).
 - **G-6 (settled):** The agentic layer's contract (§7) is normative now, even while dormant — nothing may be built that would violate it later.
 - **G-7 (settled):** AWS is the deployment target and §6.4's tiered migration is the plan of record. Phase 1 builds AWS-ready by construction (the five firm obligations in §6.4); cloud execution itself is Phase-3 work. The Bedrock model-access request is the standing critical-path item and is owner-owned.
+- **G-18 (settled):** Documentation architecture — law in SPEC (short, governed, traceable), procedure in skills (loaded on demand), teeth in tests and hooks. Skills may not carry normative rules that must always hold, because loading is probabilistic; anything always-true is stated here and routed from CLAUDE.md. Adopted 2026-08-21.
 - **G-17 (settled):** The persistence engine is an open decision under standing assessment (§14.6), not a settled choice — Postgres is Phase 1's implementation behind the store interface, DynamoDB is a live candidate. Store-specific choices must be flagged in slice reviews; the implementer reports with evidence after S9 and before the AWS migration. Recorded 2026-08-21 at the owner's direction.
 - **G-16 (settled):** §26 cloud-native construction rules adopted 2026-08-21 as workspace law (NFR-14 to NFR-17): pure logic separated from executors, state and persistence externalised behind one interface, configuration only through a single validated env module, and three separately-runnable test tiers. The migration guide (§26.7) is a named deliverable before production. Recorded correction: development-time subagents do not migrate; the runtime agents are the Phase-2 features in §7.
 - **G-15 (settled):** §25 error-handling standard adopted 2026-08-21 (NFR-13): expected failures are typed values not exceptions; the user gets a sentence and a quotable reference while the log keeps the detail; every message says what happened, whether their work is safe, and what to do next; input is never lost; error paths are tested.
@@ -463,27 +464,23 @@ Executable acceptance per major subsystem — each becomes a named test before i
 
 ## 21. Slice review protocol (the refinement gate)
 
-Every slice is bracketed by two conversations. Building without them is a build-rule violation (§0.11), not a shortcut.
+Every slice is bracketed by two conversations; building without them is a Build-Rule violation (§0.11), not a shortcut. **Procedure: `/slice-review`.**
 
-**Pre-flight — before the first line of a slice:**
-1. The implementer restates the slice's owned requirements (§20) in its own words, names the design decisions it intends to make, and lists every ambiguity or assumption it would otherwise resolve silently.
-2. The owner confirms, corrects, or defers. Unresolved ambiguity blocks the slice (§0.8).
+**Pre-flight — before the first line.** The implementer restates the slice's owned requirements in its own words, names the design decisions it intends to make, and lists every ambiguity or assumption it would otherwise resolve silently. The owner confirms, corrects, or defers; unresolved ambiguity blocks the slice (§0.8).
 
-**Slice review — when the done-when holds:**
-The implementer delivers, in one message:
-1. **What changed** — files, requirement IDs satisfied, tests added, gates passed.
-2. **Self-critique** — at least two things the implementer would challenge in its own work: weakest decision, likeliest bug, worst-aged assumption. "Nothing" is not an acceptable answer; if the work is genuinely clean, name what would break it first.
-3. **What was deliberately not done** — deferrals, with the reason and where they're recorded.
-4. **Open questions** — decisions the owner owes, each with a recommendation.
-5. **A demoable artifact** — running app, screenshot, or transcript. Never a claim without evidence.
-6. **The agentic opportunity** (§22) — what an agent would do for this slice's work, registered as a Phase-2 feature with its guardrails. Written even when the answer is "nothing here".
-7. **UI evidence** — a screenshot per new surface, and a statement of which §23 criteria are met and which are deliberately deferred.
-8. **The slice-verifier report** — verdict, gates, requirement-by-requirement UAT, regression results, findings, and what it could not verify.
+**Slice review — when the done-when holds.** One message containing, at minimum:
+1. What changed — files, requirement IDs, tests, gates with real numbers.
+2. **Self-critique — at least two items.** "Nothing" is not an acceptable answer.
+3. What was deliberately not done, and where it is recorded.
+4. Open questions, each with a recommendation.
+5. A demoable artifact — never a claim without evidence.
+6. The agentic opportunity registered for Phase 2 (§22).
+7. UI evidence against §23, and any §24 deferrals.
+8. The slice-verifier's report (§15).
 
-The owner then analyses and returns changes. **Refinements are applied and re-gated before the next slice starts**; if a refinement is large enough to change the instrument or a requirement, it updates §20 and the governance log first.
+Refinements are applied and re-gated **before the next slice starts**; a refinement that changes the instrument or a requirement updates §20 and §13 first.
 
-**Why this exists:** the two failure modes of AI-assisted delivery are an implementer that agrees too readily and an owner reviewing only the finished pile. This protocol forces critical thinking at both ends, at the smallest reviewable unit of work. It is a gate, not a ceremony — a slice that skips it is not done.
-
+**Why it exists:** the two failure modes of AI-assisted delivery are an implementer that agrees too readily and an owner reviewing only the finished pile. This forces critical thinking at both ends, at the smallest reviewable unit of work.
 
 ## 22. Agentic opportunity planning
 
@@ -506,79 +503,34 @@ Phase 1 builds no agent (§16). It nonetheless **designs** for one, because the 
 
 ## 23. UI/UX standard — demo-ready
 
-Every slice ships an interface that could be shown to leadership without apology. "Demo-ready" is defined here so it is gate-able rather than a matter of mood.
+Every slice ships an interface that could be shown to leadership without apology. **Procedure, patterns, and checks: `/ui-craft`.**
 
-**A surface is demo-ready when all of the following hold:**
+A surface is demo-ready when: (1) colour, type, spacing, radius and motion come from named tokens, never raw values; (2) **every state is designed** — empty, loading, success, failure, disabled, overflow; (3) hierarchy reads at a glance, with one unmistakable primary action; (4) motion is explanatory and honours reduced-motion; (5) it is accessible by construction — accessible name on every control, full keyboard operation, visible focus, sufficient contrast, and state never by colour alone; (6) the words are designed too — plain language, no internal identifiers, help where a business user would hesitate; (7) it is responsive to a laptop viewport, with wide content scrolling in its own container; (8) a screenshot of each surface accompanies the slice review.
 
-1. **Design system, not defaults.** Type scale, spacing scale, and colour come from named tokens; no unstyled browser controls; consistent with surfaces already shipped.
-2. **Every state is designed** — empty, loading/pending, success, error, disabled, and (where relevant) too-much-content. No silent seconds, no dead ends: every error says what happened and what to do next.
-3. **Hierarchy reads at a glance.** The primary action is unmistakable; secondary actions are quieter; the thing the user must decide is visually dominant over chrome.
-4. **Motion is explanatory, not decorative** — reveals, transitions, and progress that show cause and effect; honours reduced-motion preferences.
-5. **Accessible by construction** — every control has an accessible name, keyboard operation works end to end, focus is visible and never stranded, contrast passes, and state is never conveyed by colour alone.
-6. **Content design counts as design** — plain language, no internal identifiers, labels that say what happens, help text where a business user would hesitate.
-7. **Responsive** to a laptop viewport at minimum; wide content scrolls in its own container, never the page.
-8. **Evidenced** — a screenshot of each new surface accompanies the slice review.
-
-**The remaining 10%** is what legitimately depends on later slices — cross-slice navigation, the global progress model, final brand treatment, and polish that only makes sense once neighbouring surfaces exist. Deferrals are named in the slice review, not discovered later.
-
-**Taste is the owner's call.** The standard sets the floor; the owner's judgment sets the bar. Visual direction raised in a slice review is applied before the next slice starts (§21).
-
+**The remaining 10%** is cross-slice work — global navigation, the progress model, final brand treatment — deferred by name in the review, never discovered later. **Taste is the owner's call:** the standard sets the floor, the owner's judgment sets the bar, and direction raised in a review is applied before the next slice starts.
 
 ## 24. Experience principles (how the product treats a person)
 
-§23 sets the visual floor; this section sets the behavioural one. Each principle below was written after a real defect found in this build — they are scar tissue, not taste. The slice-verifier audits them; a violation is a finding.
+§23 sets the visual floor; these set the behavioural one. Each was written after a real defect in this build. **The reasoning, origins, and audit procedure: `/ux-audit`.** The mechanically checkable ones are enforced in `test/unit/experience.test.ts`.
 
-**24.1 Never re-ask what someone just told you they don't know.**
-Uncertainty is absorbed by the system and routed to a human — never returned to the requester as another question. When a person answers "I'm not sure", the correct response is a *reassurance* that says who will find out, and confirmation that nothing is blocked while they do. Punishing honesty teaches people to guess, and a guess is worse for the assessment than an admitted unknown.
-*Origin: the AI question revealed "What does the AI do?" to someone who had just said they didn't know.*
-
-**24.2 One decision per screen; pace the journey.**
-A wall of fields is a worse instrument than the same fields in sequence — completion rates and answer quality both fall. Prefer stepped, carded progression over long scrolls; show where the person is and what remains.
-*Origin: S1 shipped its four intake sections as one long scroll.*
-
-**24.3 Every wait has a state; every failure has a cause and a next step.**
-No silent seconds. Pending, success, **and failure** are all designed states — failure says what happened, whether the person's work is safe, and exactly what to do now. A failure path that only stops spinning is not a state.
-*Origin: an 8-second silent submit read as broken; and a save with no error state at all.*
-
-**24.4 Reveal on evidence, and say why.**
-Conditional content always carries a plain-language reason for its appearance. Content that appears without explanation reads as a system malfunction.
-
-**24.5 Never make a person repeat themselves.**
-An answer given once is reused everywhere it applies, shown with its source, and remains changeable (FR-22). Asking twice both wastes time and manufactures contradictions.
-
-**24.6 The system absorbs complexity; the person answers in their own words.**
-Internal vocabulary — identifiers, acronym batteries, framework codes — stays inside the system. If a business user would need a glossary, the question is wrong, not the user.
-*Origin: the intake asked for "ARA, BIR, PIA, DPIA, AVA" by name.*
-
-**24.7 Show the whole journey honestly, including what isn't built.**
-Future stages appear as *upcoming*, never as broken or missing. A person should be able to see where this ends from the moment they start.
-
-**24.8 Progress is measured in what's left for the person**, not in internal counts. Never show a total that includes work the person cannot see or act on.
-*Origin: a review queue that claimed "274 to attest" on a 39-question assessment.*
-
+1. **Never re-ask what someone just told you they don't know.** Uncertainty is absorbed by the system and routed to a human — never returned as another question. The correct response to "I'm not sure" is a reassurance naming who will find out and confirming nothing is blocked.
+2. **One decision per screen; pace the journey.** Prefer stepped, carded progression over long scrolls.
+3. **Every wait has a state; every failure has a cause and a next step.** No silent seconds; failure is a designed state, not the absence of one.
+4. **Reveal on evidence, and say why.** Conditional content always carries a plain-language reason.
+5. **Never make a person repeat themselves.** An answer given once is reused where it applies, shown with its source, and remains changeable (FR-22).
+6. **The system absorbs complexity; the person answers in their own words.** If a business user would need a glossary, the question is wrong — not the user.
+7. **Show the whole journey honestly, including what isn't built** — future stages read as upcoming, never as broken.
+8. **Progress is measured in what's left for the person**, never in internal counts.
 
 ## 25. Error handling standard
 
-Failure is a designed state (§24.3). This section says how it is built, and applies to every action, route, and background job.
+Failure is a designed state (§24.3); this is how it is built. Applies to every action, route, and background job. **Pattern, message-writing guide, and tests: `/error-handling`.**
 
-**25.1 Expected failures are values, not exceptions.** Server actions return a typed result (`{ok:true, …} | Failure`) that the caller must branch on. A missing `catch` cannot silently swallow a failure, because there is nothing thrown to swallow.
-
-**25.2 Unexpected failures are caught at the boundary.** Every action wraps its work; nothing escapes to a stack-trace screen. Transport failures (offline, deploy mid-request) are caught client-side as their own case, because the action never ran.
-
-**25.3 The user gets a sentence; the log gets the truth.** No driver text, SQL, constraint name, or stack trace ever reaches a screen. The server logs the real error with a short **reference**, and the same reference is shown to the person so a support conversation starts with a fact.
-
-**25.4 Every user-facing error answers three questions**, in order: *what happened*, *is my work safe*, *what do I do now*. "Something went wrong" answers none of them and is not acceptable.
-
-**25.5 Distinguish retryable from permanent.** A retryable failure offers the action again ("Try again"); a permanent one tells the person what to do instead. Never invite a retry that cannot succeed.
-
-**25.6 Never lose the person's input.** A failed save leaves every answer on screen, unchanged and re-submittable. Work is never discarded to reach a clean state.
-
-**25.7 Errors are announced, not just displayed.** The failure lands in a live region so assistive technology reads it, with focus management that does not strand the keyboard user.
-
-**25.8 Validation is not error handling.** Preventable problems are caught before submission with inline guidance; the error path is for the unexpected.
-
-**25.9 Errors are tested.** Each error path has a test proving the message is safe (no internals), the reference is present, and the input survives. An untested error path is an untested feature.
-
+1. **Expected failures are values, not exceptions** — actions return a typed result the caller must branch on, so a missing `catch` cannot swallow a failure. Unexpected failures are caught at the boundary; transport failure is its own case.
+2. **The user gets a sentence; the log gets the truth.** No driver text, SQL, constraint name, or stack trace reaches a screen. The server logs the real error with a short reference, and the same reference is shown so support starts with a fact.
+3. **Every user-facing error answers three questions in order** — what happened, is my work safe, what do I do now. "Something went wrong" answers none and is not acceptable.
+4. **Retryable is distinguished from permanent**, and the person's input is never lost or cleared to reach a clean state.
+5. **Errors are announced, not merely displayed** (live region, no stranded focus), and **every error path has a test** proving the message is safe, the reference present, and the input preserved.
 
 ## 26. Cloud-native construction rules (workspace law)
 

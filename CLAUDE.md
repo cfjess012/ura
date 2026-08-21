@@ -24,13 +24,26 @@ pnpm e2e          # playwright against a running dev server
 pnpm typecheck
 ```
 
-## Every slice owes (SPEC §21)
+## Skills — load them at these moments (SPEC G-18)
 
-Pre-flight before starting; review after, containing: what changed · at
-least two self-critiques · what was deliberately not done · open questions
-with recommendations · a demoable artifact · the **agentic opportunity**
-registered for Phase 2 (§22) · **UI evidence** against the demo-ready
-standard (§23). Critique is owed in both directions (Build Rule 14).
+Procedures live in `.claude/skills/`, not here. Load the skill *before* the
+work, not after:
+
+| Before you… | Load |
+|---|---|
+| start or finish a slice | `slice-review` |
+| commit, or claim anything is done | `full-gates` |
+| write an action, mutation, or failure path | `error-handling` |
+| build or restyle any screen | `ui-craft` |
+| finish a screen or design a question's behaviour | `ux-audit` |
+| add a feature, utility, or data access path | `aws-ready` |
+| change any question, option, or condition | `instrument-change` |
+| hand the owner something to test | `uat-checkout` |
+
+Law lives in SPEC and is always true; procedure lives in skills and is
+loaded on demand; teeth live in tests and hooks. Loading is probabilistic —
+so anything that must ALWAYS hold is in SPEC or enforced by a test, never
+only in a skill.
 
 ## Workspace law: build for AWS from the first line (SPEC §26)
 
