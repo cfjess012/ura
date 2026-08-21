@@ -29,6 +29,7 @@ pnpm test         # vitest (PGlite applies REAL migrations — no docker needed)
 pnpm e2e          # playwright against a running dev server
 pnpm typecheck
 pnpm agent-map     # regenerates docs/agent-map.html from the repo itself
+pnpm uat:new S3    # UAT record skeleton for a slice (rows from SPEC §17/§20)
 ```
 
 ## Skills — load them at these moments (SPEC G-18)
@@ -46,6 +47,7 @@ work, not after:
 | add a feature, utility, or data access path | `aws-ready` |
 | challenge or design a question a person answers | `question-design` |
 | propose or spec anything an agent would do | `agentic-design` |
+| audit the instrument as a whole (tiers, rubrics, coverage) | `instrument-coherence` |
 | change any question, option, or condition | `instrument-change` |
 | hand the owner something to test | `uat-checkout` |
 

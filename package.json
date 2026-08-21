@@ -16,7 +16,8 @@
     "test:e2e": "playwright test",
     "verify": "pnpm typecheck && pnpm test:unit && pnpm test:integration",
     "instrument:seed": "node scripts/seed-instrument.mjs",
-    "agent-map": "node scripts/build-agent-map.mjs"
+    "agent-map": "node scripts/build-agent-map.mjs",
+    "uat:new": "node scripts/uat-skeleton.mjs"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.0",
