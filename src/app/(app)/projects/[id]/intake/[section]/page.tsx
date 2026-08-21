@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { CATEGORIES } from "@/lib/instrument";
+import { askableCategories } from "@/lib/instrument";
 import { INTAKE_SECTIONS, sectionByKey, sectionKey, sectionProgress } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
@@ -37,7 +37,7 @@ export default async function IntakeSectionPage({
   const previous = INTAKE_SECTIONS[index - 1];
   const nextHref = next
     ? `/projects/${id}/intake/${sectionKey(next.name)}`
-    : `/projects/${id}/assess/${CATEGORIES[0]!.key}`;
+    : `/projects/${id}/assess/${askableCategories()[0]!.key}`;
   const outstanding = progress.reduce((sum, s) => sum + s.missing.length, 0);
 
   return (

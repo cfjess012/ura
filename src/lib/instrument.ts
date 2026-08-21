@@ -24,6 +24,16 @@ export type Category = {
   text: string;
   help: string;
   prefill: GatePrefill[];
+  /**
+   * True where the area applies to every assessment, so asking is ceremony
+   * (audit C-8, G-36). The category is not removed and its risk coverage
+   * does not change — the *question* is. A gate answered the same way by
+   * everyone sorts nobody, and a question with a foregone answer spends a
+   * person's attention for nothing.
+   */
+  alwaysApplies?: boolean;
+  /** Why it always applies, in the words shown to the person. */
+  because?: string;
 };
 
 export type Instrument = {
@@ -55,6 +65,10 @@ function validate(candidate: Instrument): Instrument {
     ] as const) {
       if (!category[field]?.trim()) problems.push(`${where}: missing ${field}`);
     }
+    if (category.alwaysApplies && !category.because?.trim())
+      problems.push(`${where}: alwaysApplies needs a plain-language reason`);
+    if (category.alwaysApplies && (category.prefill ?? []).length > 0)
+      problems.push(`${where}: alwaysApplies cannot also carry prefill rules`);
     for (const rule of category.prefill ?? []) {
       if (rule.answer !== "Yes" && rule.answer !== "No")
         problems.push(`${where}: prefill answer must be Yes or No`);
@@ -87,6 +101,9 @@ export function prefillFor(
   category: Category,
   intake: AnswerLookup,
 ): Prefilled | null {
+  if (category.alwaysApplies) {
+    return { answer: "Yes", because: category.because! };
+  }
   for (const rule of category.prefill) {
     if (matches(rule.when, intake)) {
       return { answer: rule.answer, because: rule.because };
@@ -102,6 +119,8 @@ export type GateState = {
   /** True when the answer came from intake and nobody has confirmed it. */
   fromIntake: boolean;
   because: string | null;
+  /** True where nobody is asked because the area always applies (C-8). */
+  settled: boolean;
 };
 
 /** Fold stored answers and intake pre-fill into one state per category. */
@@ -110,6 +129,18 @@ export function gateStates(
   intake: AnswerLookup,
 ): GateState[] {
   return CATEGORIES.map((category) => {
+    if (category.alwaysApplies) {
+      return {
+        category,
+        answer: "Yes" as const,
+        // Not "from intake": nobody derived this from an answer, and it is
+        // not changeable. Presenting it as a pre-fill would invite a person
+        // to correct something that is not theirs to correct.
+        fromIntake: false,
+        because: category.because ?? null,
+        settled: true,
+      };
+    }
     const existing = stored[category.questionId];
     if (existing) {
       return {
@@ -120,6 +151,7 @@ export function gateStates(
           existing.source === "intake" && !existing.confirmed
             ? (prefillFor(category, intake)?.because ?? null)
             : null,
+        settled: false,
       };
     }
     const prefilled = prefillFor(category, intake);
@@ -128,6 +160,7 @@ export function gateStates(
       answer: prefilled?.answer ?? null,
       fromIntake: prefilled !== null,
       because: prefilled?.because ?? null,
+      settled: false,
     };
   });
 }
@@ -135,6 +168,11 @@ export function gateStates(
 /** Progress the person can act on (§24.8): categories still unanswered. */
 export function unansweredCount(states: GateState[]): number {
   return states.filter((s) => s.answer === null).length;
+}
+
+/** The categories a person is actually asked about — settled ones are not. */
+export function askableCategories(): Category[] {
+  return CATEGORIES.filter((c) => !c.alwaysApplies);
 }
 
 /**

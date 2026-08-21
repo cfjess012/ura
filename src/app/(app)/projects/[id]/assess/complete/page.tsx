@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CATEGORIES, gateStates, gateProgressHeadline,
-  unansweredCount } from "@/lib/instrument";
+import {
+  CATEGORIES,
+  askableCategories,
+  gateStates,
+  gateProgressHeadline,
+  unansweredCount,
+} from "@/lib/instrument";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
 import { NotYourAssessment } from "../../not-yours";
@@ -27,6 +32,10 @@ export default async function GatesCompletePage({
   const remaining = unansweredCount(states);
   const applies = states.filter((s) => s.answer === "Yes");
   const closed = states.filter((s) => s.answer === "No");
+  // Progress is measured against what a person is asked (§24.9): counting
+  // an area nobody was asked about as "answered" would flatter the number.
+  const asked = askableCategories();
+  const settled = states.filter((s) => s.settled);
 
   return (
     <main>
@@ -47,11 +56,11 @@ export default async function GatesCompletePage({
         <section>
           <p className="eyebrow">Step 2 · Risk areas</p>
           <h2 className="display">
-            {gateProgressHeadline(CATEGORIES.length - remaining, CATEGORIES.length)}
+            {gateProgressHeadline(asked.length - remaining, asked.length)}
           </h2>
           <p className="lede">
             {remaining === 0
-              ? `${applies.length} of ${CATEGORIES.length} areas apply to this activity. The rest are closed — you won't be asked about them again.`
+              ? `${applies.length} of ${CATEGORIES.length} areas apply to this activity. The rest are closed — you won't be asked about them again.${settled.length > 0 ? ` We didn't ask about ${settled.length === 1 ? "one of them" : `${settled.length} of them`} at all.` : ""}`
               : `Answer the remaining ${remaining} in the list, and we'll know which areas to ask about.`}
           </p>
 
@@ -64,6 +73,9 @@ export default async function GatesCompletePage({
                 {applies.map((s) => (
                   <li key={s.category.key}>
                     <strong>{s.category.name}</strong>
+                    {s.settled && s.because && (
+                      <span className="meta"> — {s.because}</span>
+                    )}
                     {s.fromIntake && s.because && (
                       <span className="meta"> — answered from your intake because {s.because}</span>
                     )}

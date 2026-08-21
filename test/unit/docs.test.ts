@@ -56,7 +56,19 @@ describe("the always-resident context stays thin", () => {
   it("SPEC keeps the law and does not grow procedure back", () => {
     // A guard, not a target: if this trips, extract to a skill rather than
     // raising the number.
-    expect(spec.split("\n").length).toBeLessThan(650);
+    //
+    // The governance log (§13) is excluded, and that is a correction rather
+    // than a loosening. It is append-only by design — every settled decision
+    // stays in it forever — so counting it meant the guard tightened by one
+    // line every time a decision was recorded, and the only ways to satisfy
+    // it were to delete history or to stop writing things down. Both are
+    // worse than a long file. What this measures is the part that is
+    // supposed to stay small: the law.
+    const lines = spec.split("\n");
+    const logStart = lines.findIndex((l) => l.startsWith("## 13."));
+    const logEnd = lines.findIndex((l) => l.startsWith("## 14."));
+    const law = lines.length - (logEnd - logStart);
+    expect(law, "SPEC's law sections have grown — extract to a skill").toBeLessThan(620);
   });
 });
 

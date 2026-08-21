@@ -1,6 +1,6 @@
 ---
 audit: instrument-coherence
-spec-version: 2026-08-21.3
+spec-version: 2026-08-21.4
 instrument: tier1-gates@2026-08-21.2 + intake (src/lib/intake.ts)
 run-on: 2026-08-21
 run-by: Claude, following .claude/skills/instrument-coherence
@@ -12,8 +12,14 @@ Scope: 18 intake fields across 4 sections, 11 Tier-1 gates, 5 pre-fill rules.
 Tier 2 and Tier 3 do not exist yet (S4, S6), so §3 rubric quality is not
 assessed — there are no anchored severity questions to assess.
 
-**Nothing in the instrument was changed.** Every item below is a proposal for
-the owner; changing what is asked is a governance event (§8).
+**Nothing was changed by this audit.** Every item below was written as a
+proposal for the owner; changing what is asked is a governance event (§8).
+
+**Owner decisions, same day** — C-2 accepted (G-35) and C-8 accepted for
+Governance only (G-36), both shipped in `tier1-gates@2026-08-21.3` along
+with the closing pre-fill rules from C-1 and the uncertainty carry-forward
+from C-9. Status of each finding is marked below. C-3, C-5, C-6, C-7 and
+C-10 remain open.
 
 Headline: the instrument is structurally sound — every gate honours the
 Tier-1 contract, every question is reachable, and no condition is
@@ -23,6 +29,9 @@ instrument does with the answers, and how much it can close.
 ---
 
 ## C-1 (structural) · Pre-fill can only open a risk area, never close one
+
+**Status: partly closed** — closing rules now exist for Third-Party and AI. The remaining close (public-only data) is blocked on C-3.
+
 
 All five pre-fill rules answer **Yes**. Not one closes a category, and the
 validator has always allowed `"answer": "No"` — so this is a content gap, not
@@ -57,6 +66,9 @@ which means a question. See C-2.
 
 ## C-2 (structural) · Closing Third-Party needs a question intake doesn't ask
 
+**Status: closed** — accepted by the owner, shipped as G-35.
+
+
 `vendorNames` is a free-text name list. Presence pre-fills Third-Party = Yes;
 absence proves nothing. Two consequences:
 
@@ -76,6 +88,9 @@ plainly knows, in their own words, and its answer is checkable. If that
 distinction doesn't hold up on reading, the finding should be rejected.
 
 ## C-3 (answer-type) · `dataClassification` is a multi-select asking for one answer
+
+**Status: open** — needs a migration converting stored arrays to a single value, so it is a decision, not a data edit.
+
 
 The help says *"Choose the highest classification of any data involved."* The
 control accepts several. Two people describing identical data produce
@@ -102,6 +117,9 @@ others in the control, and give "I'm not sure" the same reassurance treatment
 the AI question already has.
 
 ## C-5 (duplication) · Security & Resilience is answered by Solution Architecture
+
+**Status: open, and the proposed fix does not work as written.** Pre-fill rules read *intake* answers only; they cannot read another gate's answer. Gate-to-gate derivation is the condition engine's job and belongs in S3.
+
 
 Gate 7's own help says: *"If you're building, buying, or changing a system,
 this is usually Yes as well."* The instrument is telling the person that
@@ -141,6 +159,9 @@ the pilot — and say so, rather than implying coverage by a name.
 
 ## C-8 (discrimination) · Four gates look like they will be Yes almost every time
 
+**Status: partly closed** — Governance is now stated rather than asked (G-36). People & Capacity, Security & Resilience and Ethics & Conduct are unchanged pending real projects walked through Tier 1.
+
+
 §7's test is whether a question discriminates. These four look like ceremony:
 
 | Gate | Why it won't discriminate |
@@ -164,6 +185,9 @@ accountable for this? Will there be a new approval step? Will someone need to
 watch it after it launches?"*
 
 ## C-9 (§24.1) · "I'm not sure" about AI is asked again as a gate
+
+**Status: closed** — an unsure answer now opens the area with a reason that says exactly that, for both AI and Third-Party.
+
 
 Intake asks *"Does this use AI or machine learning?"* with a reassurance note
 on "I'm not sure": **"We'll find out for you."** Then Tier 1 asks the same

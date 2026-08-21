@@ -29,7 +29,7 @@ describe("intake structure (FR-1)", () => {
     expect(ids).toEqual([
       ["Description", ["projectName", "businessPurpose", "projectDescription", "usesAi", "aiUseCase", "usesAiUnsure"]],
       ["Ownership", ["businessOwner", "technicalOwner", "collaborators", "initiativeType", "priorAssessmentRef"]],
-      ["Categorization", ["businessUnit", "otherUnits", "targetGoLive", "vendorNames", "coupaOnboarded", "coupaUnsure"]],
+      ["Categorization", ["businessUnit", "otherUnits", "targetGoLive", "thirdPartyInvolved", "thirdPartyUnsure", "vendorNames", "coupaOnboarded", "coupaUnsure"]],
       ["Compliance & Data", ["dataClassification", "dataElements"]],
     ]);
   });
@@ -136,6 +136,7 @@ describe("completeness meter", () => {
       businessOwner: "O",
       initiativeType: "Brand new",
       businessUnit: "U",
+      thirdPartyInvolved: "No",
       dataClassification: ["Internal"],
     });
     expect(done).toEqual([]);
@@ -164,7 +165,18 @@ describe("helper text (§24.6 — the system absorbs complexity)", () => {
   it("tells people what to do when something does not apply to them", () => {
     // The vendor field is the case that prompted this: an in-house build
     // left a person staring at an empty box with no way to say "none".
-    expect(ALL_FIELDS.find((f) => f.id === "vendorNames")!.help).toMatch(/in-house/i);
+    // It is now answered structurally rather than by helper text — there is
+    // an explicit way to say no, and the name box never appears if you do
+    // (audit C-2). Helper text explaining a blank is the weaker fix; this
+    // test pins the stronger one.
+    const gateQuestion = ALL_FIELDS.find((f) => f.id === "thirdPartyInvolved")!;
+    expect(gateQuestion.options).toContain("No");
+    expect(gateQuestion.help).toMatch(/in-house/i);
+    const names = ALL_FIELDS.find((f) => f.id === "vendorNames")!;
+    expect(names.conditional).toEqual({
+      visibleWhen: "thirdPartyInvolved",
+      equalsAny: ["Yes"],
+    });
   });
 });
 

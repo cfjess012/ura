@@ -93,3 +93,8 @@
 .next-step { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
 .next-step h2 { margin-bottom: 0.2rem; }
 
+/* An area that applies to every assessment: settled, not awaiting anyone
+   (audit C-8). Distinct from "open" so the rail does not imply a person
+   answered it. */
+.rail-item.settled .rail-num { background: var(--surface-3); color: var(--navy); }
+.rail-item.settled .rail-name { color: var(--neutral-700); }

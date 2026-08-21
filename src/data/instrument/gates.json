@@ -1,6 +1,6 @@
 {
   "slug": "tier1-gates",
-  "version": "2026-08-21.2",
+  "version": "2026-08-21.3",
   "categories": [
     {
       "key": "third-party",
@@ -13,10 +13,32 @@
         {
           "answer": "Yes",
           "when": {
-            "field": "vendorNames",
-            "hasValue": true
+            "field": "thirdPartyInvolved",
+            "equalsAny": [
+              "Yes"
+            ]
           },
-          "because": "you named a vendor at intake"
+          "because": "you told us a company outside ours is involved"
+        },
+        {
+          "answer": "No",
+          "when": {
+            "field": "thirdPartyInvolved",
+            "equalsAny": [
+              "No"
+            ]
+          },
+          "because": "you told us this is built and run entirely in-house"
+        },
+        {
+          "answer": "Yes",
+          "when": {
+            "field": "thirdPartyInvolved",
+            "equalsAny": [
+              "I'm not sure"
+            ]
+          },
+          "because": "you weren't sure at intake, so we're treating it as in scope until a reviewer confirms"
         },
         {
           "answer": "Yes",
@@ -36,7 +58,7 @@
       "short": "Systems & apps",
       "questionId": "gate.solution_architecture",
       "text": "Will this activity create, build, deploy, integrate, or materially change an information system, application, or digital service?",
-      "help": "Building or buying software, connecting two systems together, moving something to a new platform, or changing how an existing system is set up. A change counts as material if it changes what the system does, who can reach it, or what data it holds \u2014 not routine maintenance or a cosmetic tweak.",
+      "help": "Building or buying software, connecting two systems together, moving something to a new platform, or changing how an existing system is set up. A change counts as material if it changes what the system does, who can reach it, or what data it holds — not routine maintenance or a cosmetic tweak.",
       "prefill": [
         {
           "answer": "Yes",
@@ -55,7 +77,7 @@
       "name": "AI & Model Risk",
       "short": "AI / ML",
       "questionId": "gate.ai",
-      "text": "Will this activity use artificial intelligence or machine learning in any product or service \u2014 internally built, vendor-embedded, or third-party?",
+      "text": "Will this activity use artificial intelligence or machine learning in any product or service — internally built, vendor-embedded, or third-party?",
       "help": "Includes AI features inside a product you buy, not only models you build yourself.",
       "prefill": [
         {
@@ -67,6 +89,26 @@
             ]
           },
           "because": "you told us at intake that this uses AI or machine learning"
+        },
+        {
+          "answer": "No",
+          "when": {
+            "field": "usesAi",
+            "equalsAny": [
+              "No"
+            ]
+          },
+          "because": "you told us at intake that this doesn't use AI or machine learning"
+        },
+        {
+          "answer": "Yes",
+          "when": {
+            "field": "usesAi",
+            "equalsAny": [
+              "I'm not sure"
+            ]
+          },
+          "because": "you weren't sure at intake, so we're treating it as in scope until a reviewer confirms"
         }
       ]
     },
@@ -76,7 +118,7 @@
       "short": "Data & privacy",
       "questionId": "gate.data_privacy",
       "text": "Will the activity collect, access, store, process, transmit, or share non-public enterprise data?",
-      "help": "Any information not approved for public release \u2014 customer or employee details, internal reports, financial records, credentials.",
+      "help": "Any information not approved for public release — customer or employee details, internal reports, financial records, credentials.",
       "prefill": [
         {
           "answer": "Yes",
@@ -98,7 +140,7 @@
       "short": "Legal & reg",
       "questionId": "gate.legal_regulatory",
       "text": "Does this involve customer-facing communications, money movement or financial reporting, records that must be kept for a set period, work or data crossing a border, or a new legal entity or operating model?",
-      "help": "These are the conditions that usually bring outside rules into play. You don't need to know which rules \u2014 if any of them describe your activity, answer Yes and a reviewer works out the rest.",
+      "help": "These are the conditions that usually bring outside rules into play. You don't need to know which rules — if any of them describe your activity, answer Yes and a reviewer works out the rest.",
       "prefill": []
     },
     {
@@ -107,7 +149,7 @@
       "short": "Operational",
       "questionId": "gate.operational",
       "text": "Does the activity introduce or materially change an operational process, service delivery, or workflow?",
-      "help": "A change to how work actually gets done day to day \u2014 new steps, new handoffs, new approvals, or a different way of delivering a service. A change counts as material if it changes what people do, who approves what, or where work happens \u2014 not routine maintenance or a cosmetic tweak.",
+      "help": "A change to how work actually gets done day to day — new steps, new handoffs, new approvals, or a different way of delivering a service. A change counts as material if it changes what people do, who approves what, or where work happens — not routine maintenance or a cosmetic tweak.",
       "prefill": []
     },
     {
@@ -116,7 +158,7 @@
       "short": "Security",
       "questionId": "gate.security_resilience",
       "text": "Does the activity introduce or change any technology component, integration, connectivity, or identity and access pattern?",
-      "help": "If you're building, buying, or changing a system, this is usually Yes as well \u2014 it asks specifically about the connections and access that change comes with: new ways in from outside, new links between systems, or changes to who can sign in.",
+      "help": "If you're building, buying, or changing a system, this is usually Yes as well — it asks specifically about the connections and access that change comes with: new ways in from outside, new links between systems, or changes to who can sign in.",
       "prefill": []
     },
     {
@@ -124,9 +166,11 @@
       "name": "Governance & Oversight",
       "short": "Governance",
       "questionId": "gate.governance",
-      "text": "Does the activity create or change accountable ownership, decision rights, oversight responsibilities, or ongoing monitoring?",
-      "help": "Who owns this, who decides, who approves exceptions, and who watches it once it is running.",
-      "prefill": []
+      "text": "Governance and oversight apply to every assessment.",
+      "help": "Every activity has someone accountable for it and someone who watches it once it is running, so there is nothing here for you to decide. We record it as applying and a reviewer covers it.",
+      "prefill": [],
+      "alwaysApplies": true,
+      "because": "governance and oversight apply to every assessment — we didn't need to ask"
     },
     {
       "key": "ethics-conduct",
@@ -134,7 +178,7 @@
       "short": "Ethics",
       "questionId": "gate.ethics_conduct",
       "text": "Does the activity make or influence decisions about individual people, communicate directly with customers, monitor behaviour, or rely on something that would be hard to explain if challenged?",
-      "help": "This isn't asking whether your project is ethical \u2014 it's asking whether it touches people in ways that deserve a second look. Most activities that affect individuals answer Yes here, and that's routine.",
+      "help": "This isn't asking whether your project is ethical — it's asking whether it touches people in ways that deserve a second look. Most activities that affect individuals answer Yes here, and that's routine.",
       "prefill": []
     },
     {
@@ -151,7 +195,7 @@
       "name": "Jurisdiction-Bound Execution",
       "short": "Jurisdiction",
       "questionId": "gate.jurisdiction",
-      "text": "Does any part of this have to happen in a specific country or region \u2014 for legal, licensing, or regulator reasons?",
+      "text": "Does any part of this have to happen in a specific country or region — for legal, licensing, or regulator reasons?",
       "help": "For example: data that must stay in one country, work only licensed staff may perform, or a regulator who expects to deal with a local entity.",
       "prefill": []
     }

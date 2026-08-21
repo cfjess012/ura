@@ -28,7 +28,10 @@ test("intake pre-answers gates; answers persist; No closes a category", async ({
   await page.getByRole("button", { name: /Next: Categorization/ }).click();
 
   await page.getByLabel("Responsible Business Unit").fill("Workforce Ops");
-  await page.getByLabel("Third-Party / Vendor Name(s)").fill("Cadenza Inc");
+  await page
+    .getByLabel("Does anything about this involve a company outside ours?")
+    .selectOption("Yes");
+  await page.getByLabel("Which companies?").fill("Cadenza Inc");
   await page
     .getByLabel("Has this vendor been onboarded through Procurement (Coupa)?")
     .selectOption("Yes");
@@ -42,7 +45,9 @@ test("intake pre-answers gates; answers persist; No closes a category", async ({
 
   // FR-22: pre-answered from intake, with its reason, and changeable.
   await expect(page.getByText("Answered from your intake")).toBeVisible();
-  await expect(page.getByText("you named a vendor at intake")).toBeVisible();
+  await expect(
+    page.getByText("you told us a company outside ours is involved"),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: /Yes, it applies/ })).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -76,4 +81,57 @@ test("intake pre-answers gates; answers persist; No closes a category", async ({
   await fresh.goto(url.replace(/assess\/.*$/, "assess/complete"));
   await expect(fresh.getByRole("heading", { name: /Coming next/ })).toBeVisible();
   await expect(fresh.getByText("Solution Architecture")).toBeVisible();
+});
+
+test("intake can CLOSE risk areas, and an area that applies to everyone is never asked", async ({
+  page,
+}) => {
+  // The audit's worst case: a process change with no technology, no vendor,
+  // no AI. It used to arrive at Tier 1 with nothing pre-answered and all
+  // eleven questions to work through (audits/instrument-2026-08-21.md, C-1).
+  await page.goto("/projects");
+  await page.getByLabel("Start a new assessment").fill(`Plain process ${Date.now()}`);
+  await page.getByRole("button", { name: "Start assessment" }).click();
+  await page.getByLabel("Business Purpose or Objective").fill("Fewer handoffs in month-end close.");
+  await page.getByLabel("Activity / Use-Case Description").fill("Reorder approval steps.");
+  await page.getByLabel("Does this use AI or machine learning?").selectOption("No");
+  await page.getByRole("button", { name: /Next: Ownership/ }).click();
+
+  await page.getByLabel("Business Owner").fill("P. Sharma");
+  await page
+    .getByLabel("Is this a new initiative, or an update to an existing one?")
+    .selectOption("Brand new");
+  await page.getByRole("button", { name: /Next: Categorization/ }).click();
+
+  await page.getByLabel("Responsible Business Unit").fill("Finance Ops");
+  await page
+    .getByLabel("Does anything about this involve a company outside ours?")
+    .selectOption("No");
+  // Saying No removes the follow-up entirely rather than leaving a blank box.
+  await expect(page.getByLabel("Which companies?")).toBeHidden();
+  await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
+
+  await page.getByRole("checkbox", { name: "Public" }).check();
+  await page.getByRole("button", { name: /Continue to the risk areas/ }).click();
+
+  // Two areas arrive already closed, each saying why.
+  await expect(page.getByRole("heading", { name: "Third-Party & Supply Chain" })).toBeVisible();
+  await expect(
+    page.getByText("you told us this is built and run entirely in-house"),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /No, it doesn't/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  const rail = page.getByRole("navigation", { name: "Risk areas" });
+  await expect(rail.getByRole("link", { name: /Third party/ })).toContainText("Not applicable");
+  await expect(rail.getByRole("link", { name: /AI/ })).toContainText("Not applicable");
+
+  // Governance applies to everyone, so it is stated rather than asked (C-8).
+  await expect(rail.getByRole("link", { name: /Governance/ })).toContainText(
+    "Applies · not asked",
+  );
+  await rail.getByRole("link", { name: /Governance/ }).click();
+  await expect(page.getByText("Nothing to answer")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Yes, it applies/ })).toHaveCount(0);
 });

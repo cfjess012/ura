@@ -37,6 +37,7 @@ export const projects = pgTable("projects", {
   businessUnit: text("business_unit").notNull().default(""),
   otherUnits: text("other_units").notNull().default(""),
   targetGoLive: date("target_go_live"),
+  thirdPartyInvolved: text("third_party_involved").notNull().default(""),
   vendorNames: text("vendor_names").notNull().default(""),
   coupaOnboarded: text("coupa_onboarded").notNull().default(""),
   dataClassification: jsonb("data_classification")

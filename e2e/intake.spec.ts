@@ -44,8 +44,16 @@ test("create → fill each section (conditionals reveal) → reopen → everythi
   await expect(page.getByLabel("Other Business Units Involved")).toBeVisible();
   await page.getByLabel("Target Go-Live / Launch Date").fill("2026-11-02");
   const coupa = page.getByLabel("Has this vendor been onboarded through Procurement (Coupa)?");
+  const names = page.getByLabel("Which companies?");
+  await expect(names).toBeHidden();
   await expect(coupa).toBeHidden();
-  await page.getByLabel("Third-Party / Vendor Name(s)").fill("Cadenza Inc");
+  // equalsAny reveal: the name box only exists once there is a third party.
+  await page
+    .getByLabel("Does anything about this involve a company outside ours?")
+    .selectOption("Yes");
+  await expect(names).toBeVisible();
+  await expect(page.getByText("Shown because an outside company is involved.")).toBeVisible();
+  await names.fill("Cadenza Inc");
   await expect(coupa).toBeVisible();
   await coupa.selectOption("I'm not sure");
   await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();

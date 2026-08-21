@@ -6,9 +6,9 @@
  * Design rules this file obeys:
  * - Plain language only; no GRC acronyms as the primary ask, no internal
  *   identifiers (NFR-9). Field ids are internal and never rendered.
- * - Nothing here is asked twice at Tier 1: fields that duplicate a gate are
- *   marked `prefillsGate` so S2 can pre-answer that gate visibly and
- *   changeably (FR-22). This file states the intent; S2 owns the mechanism.
+ * - Nothing here is asked twice at Tier 1: a field that duplicates a gate
+ *   pre-answers it visibly and changeably (FR-22). The rules that do that
+ *   live in the instrument seed, so there is one statement of the mapping.
  * - "Unknown" is a legitimate answer wherever a requester may genuinely
  *   lack visibility (FR-23) — the front door never manufactures certainty.
  */
@@ -39,7 +39,6 @@ export type IntakeField = {
    * instrument's own statement of intent; the consuming logic arrives with
    * the gates in S2 (SPEC Build Rule 5 — no building ahead).
    */
-  prefillsGate?: string;
 };
 
 export type IntakeSection = { name: string; fields: IntakeField[] };
@@ -84,7 +83,6 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         options: ["Yes", "No", "I'm not sure"],
         required: true,
         help: "Includes AI features inside a vendor's product, not just models you build.",
-        prefillsGate: "AI",
       },
       {
         id: "aiUseCase",
@@ -135,7 +133,6 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         type: "select",
         options: ["Brand new", ...UPDATE_TYPES, "Something else"],
         required: true,
-        prefillsGate: "TPR/SA",
       },
       {
         id: "priorAssessmentRef",
@@ -173,11 +170,33 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         help: "Leave blank if there isn't a date yet — reviewers would rather see blank than a guess.",
       },
       {
+        id: "thirdPartyInvolved",
+        label: "Does anything about this involve a company outside ours?",
+        type: "select",
+        options: ["Yes", "No", "I'm not sure"],
+        required: true,
+        help: "A software subscription (SaaS), a cloud provider, a consultancy, an outsourced team — anyone outside the company doing part of the work, including a renewal of something you already use. Answer No if everything is built and run in-house.",
+      },
+      {
+        id: "thirdPartyUnsure",
+        label: "We'll find out for you",
+        type: "note",
+        conditional: {
+          visibleWhen: "thirdPartyInvolved",
+          equalsAny: ["I'm not sure"],
+        },
+        body: "That's a fine answer. We'll treat third-party risk as in scope for now, and a reviewer confirms it rather than asking you to go and check.",
+      },
+      {
         id: "vendorNames",
-        label: "Third-Party / Vendor Name(s)",
+        label: "Which companies?",
         type: "text",
-        help: "Any outside company involved in delivering this — a software subscription (SaaS), a cloud provider, a consultancy, or an outsourced team. Leave blank if everything is built and run in-house.",
-        prefillsGate: "TPR",
+        conditional: {
+          visibleWhen: "thirdPartyInvolved",
+          equalsAny: ["Yes"],
+        },
+        revealNote: "Shown because an outside company is involved.",
+        help: "Names are enough — one per line or separated by commas. If you don't know all of them yet, name the ones you do.",
       },
       {
         id: "coupaOnboarded",
@@ -210,7 +229,6 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         type: "multi",
         options: ["Public", "Internal", "Confidential", "Restricted"],
         required: true,
-        prefillsGate: "DMP",
       },
       {
         id: "dataElements",

@@ -22,8 +22,9 @@ export function GateRail({
       <ol>
         {states.map((state, index) => {
           const active = state.category.key === currentKey;
-          const status =
-            state.answer === null
+          const status = state.settled
+            ? "settled"
+            : state.answer === null
               ? "unanswered"
               : state.answer === "No"
                 ? "closed"
@@ -42,13 +43,15 @@ export function GateRail({
                 </span>
                 <span className="rail-name">{state.category.short}</span>
                 <span className="rail-state">
-                  {status === "closed"
-                    ? "Not applicable"
-                    : status === "prefilled"
-                      ? "Yes · from intake"
-                      : status === "open"
-                        ? "Applies"
-                        : ""}
+                  {status === "settled"
+                    ? "Applies · not asked"
+                    : status === "closed"
+                      ? "Not applicable"
+                      : status === "prefilled"
+                        ? "Yes · from intake"
+                        : status === "open"
+                          ? "Applies"
+                          : ""}
                 </span>
               </Link>
             </li>

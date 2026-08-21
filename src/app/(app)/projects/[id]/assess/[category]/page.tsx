@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CATEGORIES, categoryByKey, gateStates, unansweredCount } from "@/lib/instrument";
+import { askableCategories, categoryByKey, gateStates, unansweredCount } from "@/lib/instrument";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
 import { NotYourAssessment } from "../../not-yours";
@@ -30,9 +30,12 @@ export default async function GatePage({
   const states = gateStates(stored, intake);
   const state = states.find((s) => s.category.key === key)!;
 
-  const index = CATEGORIES.findIndex((c) => c.key === key);
-  const next = CATEGORIES[index + 1];
-  const previous = CATEGORIES[index - 1];
+  // Navigation walks only what a person is actually asked (C-8): a settled
+  // area is shown in the rail and on the summary, never as a step to take.
+  const askable = askableCategories();
+  const index = askable.findIndex((c) => c.key === key);
+  const next = askable[index + 1];
+  const previous = askable[index - 1];
   const nextHref = next ? `/projects/${id}/assess/${next.key}` : `/projects/${id}/assess/complete`;
   const remaining = unansweredCount(states);
 
@@ -44,7 +47,7 @@ export default async function GatePage({
         nextLine={
           remaining === 0
             ? "Every risk area has an answer — the detail questions come next."
-            : `Say whether each risk area applies — ${remaining} of ${CATEGORIES.length} still to answer.`
+            : `Say whether each risk area applies — ${remaining} of ${askable.length} still to answer.`
         }
         currentStage={1}
       />
@@ -54,7 +57,9 @@ export default async function GatePage({
 
         <section>
           <p className="eyebrow">
-            Step 2 · Risk area {index + 1} of {CATEGORIES.length}
+            {state.settled
+              ? "Step 2 · Risk areas"
+              : `Step 2 · Risk area ${index + 1} of ${askable.length}`}
           </p>
           <h2 className="display gate-display">{category.name}</h2>
 
@@ -62,6 +67,18 @@ export default async function GatePage({
             <p className="gate-question">{category.text}</p>
             <p className="help gate-help">{category.help}</p>
 
+            {state.settled ? (
+              /* Reachable by link, never by the journey (C-8). Saying "there
+                 is no question here, and here is why" is the whole point of
+                 removing it — a silent redirect would look like a bug. */
+              <p className="prefill" role="note">
+                <span className="prefill-tag">Nothing to answer</span>
+                <span>
+                  We&rsquo;ve recorded this as applying because {state.because}. A
+                  reviewer covers it either way.
+                </span>
+              </p>
+            ) : (
             <GateForm
               projectId={id}
               categoryKey={key}
@@ -71,6 +88,7 @@ export default async function GatePage({
               because={state.because}
               nextHref={nextHref}
             />
+            )}
           </div>
 
           <div className="gate-nav">
@@ -84,7 +102,7 @@ export default async function GatePage({
               </Link>
             )}
             <Link className="btn ghost" href={nextHref}>
-              {state.answer ? "Next →" : "Skip for now →"}
+              {state.settled || state.answer ? "Next →" : "Skip for now →"}
             </Link>
           </div>
         </section>
