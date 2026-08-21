@@ -34,8 +34,17 @@ pnpm typecheck
 - Migrations: plain SQL in drizzle/, mirrored in src/lib/schema.ts; drift is
   caught by PGlite tests applying the real SQL.
 
-## Parts shelf
+## Parts shelf (SPEC G-8)
 
-The prior platform lives at ../riskassess (untouched, read-only). Salvage
-decisions happen per-slice per SPEC G-8 — first candidate moment is S3
-(condition engine).
+The prior platform lives at ../riskassess — READ-ONLY. Never edit, never
+run its dev server, never develop it further. It is a source of proven
+parts only; salvage decisions happen at the slice that needs the part.
+
+Salvage candidates and the slice that decides:
+- condition engine + its tests (packages/contract) ....... S3
+- reviewer workspace patterns (apps/web) ................. S8
+- verbatim matcher, basis/never-guess machinery .......... Phase 2
+- eval harness + agent service (apps/agent) .............. Phase 2
+
+Salvage = copy the code here, re-read it, keep what the SPEC requires,
+delete the rest, bring its tests. Never import across repos.
