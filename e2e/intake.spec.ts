@@ -12,7 +12,7 @@ test("create → fill each section (conditionals reveal) → reopen → everythi
   page,
   context,
 }) => {
-  await page.goto("/");
+  await page.goto("/projects");
   await page.getByLabel("Start a new assessment").fill(NAME);
   await page.getByRole("button", { name: "Start assessment" }).click();
   await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
@@ -92,6 +92,6 @@ test("create → fill each section (conditionals reveal) → reopen → everythi
 
   // The rail reports each section's state, and the list shows the project.
   await expect(fresh.getByRole("link", { name: /Description/ })).toBeVisible();
-  await fresh.goto("/");
+  await fresh.goto("/projects");
   await expect(fresh.getByRole("link", { name: NAME })).toBeVisible();
 });

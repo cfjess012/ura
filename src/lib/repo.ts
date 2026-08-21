@@ -153,8 +153,13 @@ export function postgresPeopleStore(): PeopleStore {
   });
   return {
     async list() {
-      const rows = await db.select().from(schema.people).orderBy(schema.people.name);
-      return rows.map(shape);
+      // Ordered by the journey — requester, then assessor, then admin —
+      // because that is the story the front door tells.
+      const order: Record<string, number> = { requester: 0, assessor: 1, admin: 2 };
+      const rows = await db.select().from(schema.people);
+      return rows
+        .map(shape)
+        .sort((a, b) => (order[a.role] ?? 9) - (order[b.role] ?? 9) || a.name.localeCompare(b.name));
     },
     async get(id) {
       const [row] = await db.select().from(schema.people).where(eq(schema.people.id, id));

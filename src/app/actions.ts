@@ -144,3 +144,11 @@ export async function switchPerson(formData: FormData): Promise<void> {
   jar.set(PERSON_COOKIE, id, { path: "/", sameSite: "lax", httpOnly: false });
   revalidatePath("/", "layout");
 }
+
+/** Choosing a persona on the front door, then into the product. */
+export async function choosePerson(formData: FormData): Promise<void> {
+  const id = String(formData.get("personId") ?? "");
+  const jar = await cookies();
+  jar.set(PERSON_COOKIE, id, { path: "/", sameSite: "lax", httpOnly: false });
+  redirect("/projects");
+}

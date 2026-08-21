@@ -5,8 +5,20 @@
  */
 import { expect, test } from "@playwright/test";
 
-test("switching persona changes role, navigation, and what is permitted", async ({ page }) => {
+test("the front door introduces the platform and asks who you are", async ({ page }) => {
   await page.goto("/");
+  await expect(page.getByRole("heading", { name: /One front door/ })).toBeVisible();
+  await expect(page.getByText("Roles are enforced for real, not simulated")).toBeVisible();
+  // It promises only what is built: no drafting, no AI claims.
+  await expect(page.getByText(/verbatim quote|drafts every/i)).toBeHidden();
+  // Choosing a persona enters the product.
+  await page.getByRole("button", { name: /Priya Sharma/ }).click();
+  await expect(page).toHaveURL(/\/projects$/);
+  await expect(page.getByRole("heading", { name: "One front door." })).toBeVisible();
+});
+
+test("switching persona changes role, navigation, and what is permitted", async ({ page }) => {
+  await page.goto("/projects");
 
   // A requester is the pilot default: no admin navigation.
   await expect(page.getByText("Requester", { exact: true })).toBeVisible();
@@ -20,7 +32,7 @@ test("switching persona changes role, navigation, and what is permitted", async 
   await expect(page.getByText("You are currently working as")).toBeVisible();
 
   // Switch to the administrator.
-  await page.goto("/");
+  await page.goto("/projects");
   await page.getByLabel("Switch person (pilot — not a sign-in)").selectOption({
     label: "Tom Holland · Administrator",
   });
@@ -36,7 +48,7 @@ test("switching persona changes role, navigation, and what is permitted", async 
   await expect(page.getByText("the persona switcher is a pilot device")).toBeVisible();
 
   // The Risk Assessor is a third, distinct role.
-  await page.goto("/");
+  await page.goto("/projects");
   await page.getByLabel("Switch person (pilot — not a sign-in)").selectOption({
     label: "Noah Kahan · Risk Assessor",
   });
@@ -47,7 +59,7 @@ test("switching persona changes role, navigation, and what is permitted", async 
 
 test("an answer records who gave it", async ({ page }) => {
   const name = `Attribution ${Date.now()}`;
-  await page.goto("/");
+  await page.goto("/projects");
   await page.getByLabel("Switch person (pilot — not a sign-in)").selectOption({
     label: "Priya Sharma · Requester",
   });

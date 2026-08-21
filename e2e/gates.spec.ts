@@ -12,7 +12,7 @@ test("intake pre-answers gates; answers persist; No closes a category", async ({
   context,
 }) => {
   // Intake, with the two answers that pre-fill gates.
-  await page.goto("/");
+  await page.goto("/projects");
   await page.getByLabel("Start a new assessment").fill(NAME);
   await page.getByRole("button", { name: "Start assessment" }).click();
   await page.getByLabel("Business Purpose or Objective").fill("Shorten scheduling effort.");
