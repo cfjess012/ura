@@ -12,6 +12,12 @@ import { ALL_FIELDS, type IntakeValues } from "./intake";
 /** Runtime-agnostic input: field id → the values submitted for it. */
 export type SubmittedEntries = Record<string, string[]>;
 
+/**
+ * Field ids the submission is responsible for. A submission covering part of
+ * the instrument must say so, or the rest of it gets treated as cleared.
+ */
+export const SCOPE_KEY = "__scope";
+
 /** What the persistence layer should store. `null` means "explicitly empty". */
 export type IntakePatch = Record<string, string | string[] | null>;
 
@@ -20,14 +26,23 @@ export type IntakePatch = Record<string, string | string[] | null>;
  *
  * Rules encoded here (and therefore testable without a database):
  * - notes ask nothing and store nothing;
- * - multi-selects always write an array, so clearing one persists;
+ * - **only fields the submission is responsible for are written.** A form
+ *   covering one section declares its scope; everything outside it is left
+ *   exactly as it was. Without this, saving one section silently erased the
+ *   multi-select answers in every other section — and the save reported
+ *   success (found by independent verification, G-28);
+ * - inside the declared scope a multi-select always writes an array, so
+ *   clearing one genuinely persists;
  * - a blank date stores null, never "" — blank means "no date yet";
  * - a blank project name is ignored: the identity record keeps its name.
  */
 export function intakePatchFrom(entries: SubmittedEntries): IntakePatch {
+  const declared = entries[SCOPE_KEY];
+  const scope = declared && declared.length > 0 ? new Set(declared) : null;
   const patch: IntakePatch = {};
   for (const field of ALL_FIELDS) {
     if (field.type === "note") continue;
+    if (scope && !scope.has(field.id)) continue; // not this submission's business
     const submitted = entries[field.id];
     if (field.type === "multi") {
       patch[field.id] = submitted ?? [];
@@ -63,4 +78,51 @@ export function intakeValuesFrom(row: Record<string, unknown>): IntakeValues {
     else values[field.id] = raw == null ? "" : String(raw);
   }
   return values;
+}
+
+/** One field's move from what it was to what it is now (F5). */
+export type IntakeChange = {
+  fieldId: string;
+  previousValue: string | string[] | null;
+  value: string | string[] | null;
+};
+
+/** True when two stored intake values are the same answer. */
+function sameValue(
+  a: string | string[] | null,
+  b: string | string[] | null,
+): boolean {
+  if (Array.isArray(a) || Array.isArray(b)) {
+    const left = Array.isArray(a) ? a : [];
+    const right = Array.isArray(b) ? b : [];
+    if (left.length !== right.length) return false;
+    return left.every((value, i) => value === right[i]);
+  }
+  return (a ?? "") === (b ?? "");
+}
+
+/**
+ * What actually changed in a submission — the input to the attributed,
+ * insert-only intake record.
+ *
+ * Only real moves are returned. A person who opens a section, changes one
+ * field and saves should produce one line of history, not thirty; a history
+ * padded with non-events is a history nobody reads.
+ */
+export function intakeChanges(
+  previous: Record<string, unknown>,
+  patch: IntakePatch,
+): IntakeChange[] {
+  const changes: IntakeChange[] = [];
+  for (const [fieldId, value] of Object.entries(patch)) {
+    const before = previous[fieldId];
+    const previousValue: string | string[] | null = Array.isArray(before)
+      ? (before as string[])
+      : before == null
+        ? null
+        : String(before);
+    if (sameValue(previousValue, value)) continue;
+    changes.push({ fieldId, previousValue, value });
+  }
+  return changes;
 }

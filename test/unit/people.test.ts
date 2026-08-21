@@ -7,11 +7,14 @@ import {
   canAdminister,
   canAnswer,
   canAttest,
+  canStartAssessment,
   isRole,
+  seesEveryAssessment,
   NotPermitted,
   ROLES,
   ROLE_LABEL,
   ROLE_SUMMARY,
+  type Role,
 } from "../../src/lib/people";
 
 describe("authority is decided by role, not by screen", () => {
@@ -49,5 +52,30 @@ describe("roles are legible to the people holding them (§24.6)", () => {
   it("a refusal names the role and the action in plain words", () => {
     const error = new NotPermitted("attest an answer", "requester");
     expect(error.message).toBe("Requester may not attest an answer");
+  });
+});
+
+describe("what each role may see and start (§2, F2)", () => {
+  it("shows a requester their own work and everyone else the whole queue", () => {
+    expect(seesEveryAssessment("requester")).toBe(false);
+    expect(seesEveryAssessment("assessor")).toBe(true);
+    expect(seesEveryAssessment("admin")).toBe(true);
+  });
+
+  it("does not let a Risk Assessor start an assessment they would then review", () => {
+    expect(canStartAssessment("requester")).toBe(true);
+    expect(canStartAssessment("assessor")).toBe(false);
+    expect(canStartAssessment("admin")).toBe(true);
+  });
+
+  it("gives every role at least one thing a different role cannot do", () => {
+    const powers = (role: Role) =>
+      [canAttest(role), canAdminister(role), canStartAssessment(role), seesEveryAssessment(role)]
+        .map((allowed) => (allowed ? "1" : "0"))
+        .join("");
+    // F2: the Risk Assessor's permissions were identical to a requester's,
+    // which made the role a label rather than a role.
+    const distinct = new Set(ROLES.map(powers));
+    expect(distinct.size).toBe(ROLES.length);
   });
 });

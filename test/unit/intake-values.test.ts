@@ -5,6 +5,8 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  intakeChanges,
+  SCOPE_KEY,
   intakePatchFrom,
   intakeValuesFrom,
   projectNameOrNull,
@@ -16,11 +18,33 @@ describe("intakePatchFrom (pure)", () => {
     expect(intakePatchFrom({ targetGoLive: ["2026-11-02"] }).targetGoLive).toBe("2026-11-02");
   });
 
-  it("always writes multi-selects, so clearing one persists", () => {
-    const cleared = intakePatchFrom({ businessOwner: ["P"] });
-    expect(cleared.dataClassification).toEqual([]);
-    expect(intakePatchFrom({ dataClassification: ["Internal", "Confidential"] }).dataClassification)
-      .toEqual(["Internal", "Confidential"]);
+  it("writes ONLY what the submission is responsible for (G-28)", () => {
+    // This test previously asserted the opposite and pinned a data-loss
+    // defect as correct: a submission covering one section wrote [] over
+    // every multi-select in every other section. Independent verification
+    // found it; the suite could not, because the suite encoded the bug.
+    const savingOwnershipOnly = intakePatchFrom({
+      [SCOPE_KEY]: ["businessOwner", "technicalOwner", "collaborators", "initiativeType"],
+      businessOwner: ["P. Sharma"],
+    });
+    expect(savingOwnershipOnly.businessOwner).toBe("P. Sharma");
+    expect(savingOwnershipOnly).not.toHaveProperty("dataClassification");
+    expect(savingOwnershipOnly).not.toHaveProperty("dataElements");
+  });
+
+  it("inside its own scope, clearing a multi-select still persists", () => {
+    const cleared = intakePatchFrom({
+      [SCOPE_KEY]: ["dataClassification", "dataElements"],
+      dataElements: ["Employee personal information"],
+    });
+    expect(cleared.dataClassification).toEqual([]); // in scope, unchecked
+    expect(cleared.dataElements).toEqual(["Employee personal information"]);
+  });
+
+  it("with no declared scope, behaves as a whole-instrument submission", () => {
+    const everything = intakePatchFrom({ dataClassification: ["Internal"] });
+    expect(everything.dataClassification).toEqual(["Internal"]);
+    expect(everything.dataElements).toEqual([]);
   });
 
   it("never stores notes — they ask nothing and hold nothing", () => {
@@ -57,5 +81,39 @@ describe("intakeValuesFrom (pure)", () => {
     expect(values.projectName).toBe("Cadenza");
     expect(values.targetGoLive).toBe("");
     expect(values.dataClassification).toEqual(["Internal"]);
+  });
+});
+
+describe("what changed, and what it was before (F5)", () => {
+  it("records only fields that actually moved", () => {
+    const before = { projectName: "Cadenza", businessOwner: "P. Sharma" };
+    const changes = intakeChanges(before, {
+      projectName: "Cadenza",
+      businessOwner: "N. Kahan",
+    });
+    expect(changes).toEqual([
+      { fieldId: "businessOwner", previousValue: "P. Sharma", value: "N. Kahan" },
+    ]);
+  });
+
+  it("keeps the list a multi-select used to hold, not a flattened string", () => {
+    const changes = intakeChanges(
+      { dataClassification: ["Internal", "Confidential"] },
+      { dataClassification: ["Internal"] },
+    );
+    expect(changes[0]!.previousValue).toEqual(["Internal", "Confidential"]);
+    expect(changes[0]!.value).toEqual(["Internal"]);
+  });
+
+  it("treats an absent previous value and an empty one as the same non-event", () => {
+    expect(intakeChanges({}, { businessOwner: "" })).toEqual([]);
+    expect(intakeChanges({ dataElements: [] }, { dataElements: [] })).toEqual([]);
+  });
+
+  it("records clearing a field as a change, with what was lost", () => {
+    const changes = intakeChanges({ targetGoLive: "2026-11-02" }, { targetGoLive: null });
+    expect(changes).toEqual([
+      { fieldId: "targetGoLive", previousValue: "2026-11-02", value: null },
+    ]);
   });
 });

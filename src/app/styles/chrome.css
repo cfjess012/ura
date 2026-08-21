@@ -1,0 +1,74 @@
+/* ---------- app chrome ---------- */
+.appbar {
+  background: var(--navy);
+  color: var(--neutral-0);
+  padding: 0.85rem 1.5rem;
+}
+.appbar-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.wordmark {
+  color: var(--neutral-0);
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 1.02rem;
+  letter-spacing: -0.01em;
+}
+.wordmark span { color: var(--accent); }
+.whoami { font-size: 0.9rem; color: #cfe0f0; }
+
+main { max-width: 1180px; margin: 0 auto; padding: 1.5rem 1.5rem 5rem; }
+
+/* ---------- project header (navy card + stepper) ---------- */
+.projhead {
+  background: linear-gradient(180deg, var(--navy) 0%, #00214a 100%);
+  color: var(--neutral-0);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem 1.1rem;
+  box-shadow: var(--shadow-lift);
+}
+.projhead-top { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+.projhead h1 { font-size: 1.35rem; margin: 0; letter-spacing: -0.01em; }
+.pill-status {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 0.15rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.nextline {
+  margin-top: 0.9rem;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+  display: flex;
+  gap: 0.7rem;
+  align-items: baseline;
+  font-size: 0.95rem;
+}
+.nextline .tag {
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+.stepper { display: flex; align-items: flex-start; gap: 0.5rem; margin-top: 1.1rem; flex-wrap: wrap; }
+.step { display: flex; gap: 0.55rem; align-items: flex-start; }
+.step .dot {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.78rem; font-weight: 800; flex: none;
+  border: 1.5px solid rgba(255, 255, 255, 0.35); color: #cfe0f0;
+}
+.step.current .dot { background: var(--accent); border-color: var(--accent); color: var(--navy); }
+.step.done .dot { background: rgba(198, 237, 8, 0.16); border-color: var(--accent); color: var(--accent); }
+.step .label { font-size: 0.86rem; font-weight: 700; line-height: 1.2; }
+.step .sub { font-size: 0.76rem; color: #a9c2d8; }
+.step-rule { flex: 1; height: 1px; background: rgba(255, 255, 255, 0.2); margin: 13px 0.4rem 0; min-width: 14px; }
+

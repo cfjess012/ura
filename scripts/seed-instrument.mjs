@@ -10,6 +10,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import postgres from "postgres";
 
+try {
+  process.loadEnvFile(".env");
+} catch {
+  // No .env: variables come from the environment (CI, ECS task definition).
+}
+
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL is not set");
 const sql = postgres(url, { max: 1 });

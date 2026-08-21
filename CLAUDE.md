@@ -11,7 +11,10 @@ implementation, stop on ambiguity.
 - S1 Intake — DONE
 - S2 Gates — DONE (built; owner review pending)
 - S2.5 People — DONE (roles enforced server-side; persona switcher is a
-  pilot device, NOT auth; every answer records who gave it)
+  pilot device, NOT auth; every answer AND every intake change records who
+  made it)
+- Independent verification of S1/S2/S2.5 ran 2026-08-21: FAIL, 14 findings,
+  all addressed (SPEC G-28..G-31; corrected rows in `uat/S*.md`).
 - S3..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
 
 Instrument data lives in `src/data/instrument/*.json`, imported at build
@@ -28,7 +31,9 @@ immutable, so a change means a new version string.
 pnpm dev          # web on :3100 (old-platform dev uses :3000)
 pnpm db:migrate   # DATABASE_URL from .env
 pnpm test         # vitest (PGlite applies REAL migrations — no docker needed)
-pnpm e2e          # playwright against a running dev server
+pnpm e2e          # playwright: its OWN server (:3101) + OWN database
+                  #   (E2E_DATABASE_URL) — never the one you demo from
+pnpm e2e:db       # create + migrate + seed that database (pnpm e2e runs it)
 pnpm typecheck
 pnpm agent-map     # regenerates docs/agent-map.html from the repo itself
 pnpm uat:new S3    # UAT record skeleton for a slice (rows from SPEC §17/§20)
@@ -87,7 +92,8 @@ only in a skill.
 - Instrument/intake content is DATA (src/lib/intake.ts now; seed files from
   S2). No hardcoded question content in components.
 - No internal identifiers in user-facing text (NFR-9). Labels only.
-- File budgets: new files ≤400 lines, hard ceiling 800 (NFR-6).
+- File budgets: ≤400 lines new, 800 hard (NFR-6) — stylesheets included;
+  `globals.css` is imports only, one sheet per area in `src/app/styles/`.
 - Demo-ready UI per slice (SPEC §23): designed states, accessible names,
   keyboard operable, plain language, screenshot in the review.
 - Migrations: plain SQL in drizzle/, mirrored in src/lib/schema.ts; drift is

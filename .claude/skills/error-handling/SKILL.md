@@ -23,7 +23,7 @@ export async function saveThing(id: string, input: X): Promise<Result<{ savedAt:
     return { ok: true as const, savedAt: new Date().toISOString() };
   } catch (error) {
     return failure("saveThing", error,
-      "Couldn't save — your answers are still on screen. Check your connection and try again.");
+      "Couldn't save just now — your answers are still on screen, so nothing was lost. Try again in a moment.");
   }
 }
 ```
@@ -39,6 +39,11 @@ Answer three questions in this order, in one sentence:
 2. **Is my work safe** — say it explicitly; this is the question people
    actually have.
 3. **What do I do now** — a next action, or who is handling it.
+
+Say what happened, never why you think it happened. "Check your connection"
+blames the reader for a server that may simply be down, and sends them to fix
+something that isn't broken. State the observable fact ("the server couldn't
+be reached") and the next action ("try again in a moment").
 
 Show the reference (`Reference AB12CD`) so a support conversation starts
 with a fact. "Something went wrong" answers none of the three and is not

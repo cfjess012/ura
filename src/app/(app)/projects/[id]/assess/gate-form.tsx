@@ -30,6 +30,9 @@ export function GateForm({
   const router = useRouter();
   const [choice, setChoice] = React.useState<"Yes" | "No" | null>(answer);
   const [saving, setSaving] = React.useState<"Yes" | "No" | null>(null);
+  // What the status region says out loud. A save that only redraws the screen
+  // is silent to a screen reader, so the outcome is stated (F12).
+  const [announcement, setAnnouncement] = React.useState("");
   const [error, setError] = React.useState<{
     message: string;
     ref: string;
@@ -39,6 +42,7 @@ export function GateForm({
     setChoice(value);
     setSaving(value);
     setError(null);
+    setAnnouncement("");
     try {
       const result = await answerGate(projectId, questionId, value);
       if (isFailure(result)) {
@@ -46,13 +50,18 @@ export function GateForm({
         setError({ message: result.message, ref: result.ref });
         return;
       }
+      setAnnouncement(
+        value === "Yes"
+          ? "Recorded: yes, this area applies. Opening the next risk area."
+          : "Recorded: no, this area does not apply. It will be skipped. Opening the next risk area.",
+      );
       router.push(nextHref);
     } catch (cause) {
       console.error("answerGate transport", cause);
       setChoice(answer);
       setError({
         message:
-          "Couldn't reach the server — nothing was recorded. Check your connection.",
+          "The server couldn't be reached, so this answer wasn't recorded. Everything you answered before is safe. Try again in a moment.",
         ref: "OFFLINE",
       });
     } finally {
@@ -86,6 +95,12 @@ export function GateForm({
             onClick={() => void choose(value)}
             className={`gate-choice ${choice === value ? "chosen" : ""}`}
           >
+            {/* Selection must not read as focus (F14): the chosen card carries
+                a mark and a weight of its own, so the two states never look
+                like the same state. */}
+            <span className="gate-choice-mark" aria-hidden="true">
+              {choice === value ? "\u2713" : ""}
+            </span>
             <span className="gate-choice-label">
               {saving === value
                 ? "Saving…"
@@ -113,7 +128,7 @@ export function GateForm({
             <span className="err-ref">Reference {error.ref}</span>
           </>
         ) : (
-          ""
+          announcement
         )}
       </p>
     </div>

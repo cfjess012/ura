@@ -95,3 +95,43 @@ test("create → fill each section (conditionals reveal) → reopen → everythi
   await fresh.goto("/projects");
   await expect(fresh.getByRole("link", { name: NAME })).toBeVisible();
 });
+
+/**
+ * Regression for the data-loss defect independent verification found (G-28):
+ * saving one section used to erase every multi-select in the others, and the
+ * save reported success. The original journey filled sections strictly
+ * forward and never revisited one, so it drove straight past the bug.
+ */
+test("saving a later section does not erase an earlier section's answers", async ({ page }) => {
+  const name = `Scope ${Date.now()}`;
+  await page.goto("/projects");
+  await page.getByLabel("Start a new assessment").fill(name);
+  await page.getByRole("button", { name: "Start assessment" }).click();
+  // Wait for the redirect to settle before reading the id out of the URL.
+  await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
+  const base = `/projects/${page.url().split("/projects/")[1]!.split("/")[0]!}`;
+
+  // Answer the LAST section first.
+  await page.goto(`${base}/intake/compliance-data`);
+  await page.getByRole("checkbox", { name: "Confidential" }).check();
+  await page.getByRole("checkbox", { name: "Employee personal information" }).check();
+  await page.getByRole("button", { name: /Continue to the risk areas/ }).click();
+  // Wait for the save to land where it says it will. Navigating away sooner
+  // races the write and tests the harness rather than the product.
+  await expect(page).toHaveURL(/\/assess\//);
+  await page.goto(`${base}/intake/compliance-data`);
+  await expect(page.getByRole("checkbox", { name: "Confidential" })).toBeChecked();
+
+  // Now go back and save an EARLIER section.
+  await page.goto(`${base}/intake/ownership`);
+  await page.getByLabel("Business Owner").fill("P. Sharma");
+  await page.getByRole("button", { name: /Next: Categorization/ }).click();
+  await expect(page.getByRole("heading", { name: "Categorization" })).toBeVisible();
+
+  // The later section's answers must be untouched.
+  await page.goto(`${base}/intake/compliance-data`);
+  await expect(page.getByRole("checkbox", { name: "Confidential" })).toBeChecked();
+  await expect(
+    page.getByRole("checkbox", { name: "Employee personal information" }),
+  ).toBeChecked();
+});

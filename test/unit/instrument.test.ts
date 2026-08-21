@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  gateProgressHeadline,
   CATEGORIES,
   INSTRUMENT,
   categoryByKey,
@@ -89,5 +90,20 @@ describe("gate state folding", () => {
     // Two pre-filled from intake still count as answered — they are visible
     // and changeable, not hidden work.
     expect(unansweredCount(gateStates({}, intake))).toBe(9);
+  });
+});
+
+describe("the progress headline tells the truth (F6)", () => {
+  it("does not say 'Nearly there.' with ten of eleven areas unanswered", () => {
+    expect(gateProgressHeadline(1, 11)).toBe("1 of 11 areas answered.");
+  });
+
+  it("earns encouragement only near the end", () => {
+    expect(gateProgressHeadline(9, 11)).toBe("Nearly there.");
+    expect(gateProgressHeadline(11, 11)).toBe("That's the whole map.");
+  });
+
+  it("invites a start rather than reporting zero", () => {
+    expect(gateProgressHeadline(0, 11)).toBe("Let's map the risk areas.");
   });
 });

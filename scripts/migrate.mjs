@@ -4,9 +4,18 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import postgres from "postgres";
 
+try {
+  process.loadEnvFile(".env");
+} catch {
+  // No .env: variables come from the environment (CI, ECS task definition).
+}
+
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL is not set");
-const sql = postgres(url, { max: 1 });
+// Notices ("relation already exists, skipping") are expected on every run
+// after the first. Printing them as raw objects made a healthy migration read
+// like a stack trace, so they are silenced; real errors still throw.
+const sql = postgres(url, { max: 1, onnotice: () => {} });
 
 await sql`create table if not exists _migrations (
   name text primary key, applied_at timestamptz not null default now()

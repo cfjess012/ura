@@ -11,8 +11,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { currentPerson, PERSON_COOKIE } from "@/lib/current-person";
 import { failure, type Result } from "@/lib/errors";
-import { canAnswer, NotPermitted } from "@/lib/people";
+import { canAnswer, canStartAssessment, NotPermitted } from "@/lib/people";
 import {
+  intakeChanges,
   intakePatchFrom,
   projectNameOrNull,
   type SubmittedEntries,
@@ -34,6 +35,11 @@ export async function createProject(formData: FormData) {
   const name = projectNameOrNull(formData.get("projectName"));
   if (!name) throw new Error("Give the assessment a project name to start.");
   const person = await currentPerson();
+  // §2: a Risk Assessor reviews activities, they do not own them. Checked
+  // here and not only in the markup — the UI is never the enforcement point.
+  if (!canStartAssessment(person.role)) {
+    throw new NotPermitted("start an assessment", person.role);
+  }
   const { id } = await projectStore().create(name, person.id);
   redirect(`/projects/${id}`);
 }
@@ -44,7 +50,18 @@ export async function saveIntake(
 ): Promise<Result<{ savedAt: string }>> {
   const patch = intakePatchFrom(entriesFrom(formData));
   try {
-    const existed = await projectStore().updateIntake(projectId, patch);
+    const person = await currentPerson();
+    const store = projectStore();
+    const before = await store.get(projectId);
+    // What moved, decided by pure logic, so the history is testable without
+    // a database (F5).
+    const changes = before
+      ? intakeChanges(before as unknown as Record<string, unknown>, patch)
+      : [];
+    const existed = await store.updateIntake(projectId, patch, {
+      changes,
+      changedBy: person.id,
+    });
     if (!existed) {
       return failure(
         "saveIntake",
@@ -59,7 +76,7 @@ export async function saveIntake(
     return failure(
       "saveIntake",
       error,
-      "Couldn't save — your answers are still on screen. Check your connection and try again.",
+      "Couldn't save just now — your answers are still on screen, so nothing was lost. Try again in a moment.",
     );
   }
 }
@@ -98,7 +115,7 @@ export async function answerGate(
     return failure(
       "answerGate",
       error,
-      "Couldn't record that answer — nothing was saved. Check your connection and try again.",
+      "That answer wasn't recorded, so nothing changed. Try again in a moment.",
     );
   }
 }

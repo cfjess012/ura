@@ -93,3 +93,42 @@ test("an answer records who gave it", async ({ page }) => {
   await page.getByRole("button", { name: /Yes, it applies/ }).click();
   await expect(page.getByRole("link", { name: /AI \/ ML/ }).getByText("Applies")).toBeVisible();
 });
+
+test("a requester sees their own assessments; a Risk Assessor sees the queue (F2)", async ({
+  page,
+}) => {
+  // The administrator starts one, so there is provably somebody else's work.
+  await page.goto("/projects");
+  await page.getByLabel(/Working as/).selectOption({ label: "Tom Holland · Administrator" });
+  const adminOwned = `Owned by admin ${Date.now()}`;
+  await page.getByLabel("Start a new assessment").fill(adminOwned);
+  await page.getByRole("button", { name: "Start assessment" }).click();
+  await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
+
+  // The requester's list is their own work only — not everything in the pilot.
+  await page.goto("/projects");
+  await page.getByLabel(/Working as/).selectOption({ label: "Priya Sharma · Requester" });
+  await expect(page.getByRole("heading", { name: "Your assessments" })).toBeVisible();
+  await expect(page.getByRole("link", { name: adminOwned })).toBeHidden();
+
+  // The Risk Assessor sees every assessment, and cannot start one.
+  await page.getByLabel(/Working as/).selectOption({ label: "Noah Kahan · Risk Assessor" });
+  await expect(page.getByRole("heading", { name: "All assessments" })).toBeVisible();
+  await expect(page.getByRole("link", { name: adminOwned })).toBeVisible();
+  await expect(page.getByLabel("Start a new assessment")).toHaveCount(0);
+  await expect(page.getByText(/you don.t open one on their behalf/i)).toBeVisible();
+});
+
+test("an intake change records who made it, and says so on the screen (F5)", async ({ page }) => {
+  await page.goto("/projects");
+  await page.getByLabel(/Working as/).selectOption({ label: "Priya Sharma · Requester" });
+  await page.getByLabel("Start a new assessment").fill(`Attributed ${Date.now()}`);
+  await page.getByRole("button", { name: "Start assessment" }).click();
+  await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
+
+  await page.getByLabel(/Business purpose/i).fill("Replace a spreadsheet used for shift planning.");
+  await page.getByRole("button", { name: /Next:/ }).click();
+  await expect(page.getByRole("heading", { name: "Ownership" })).toBeVisible();
+
+  await expect(page.getByText(/Last change to this intake/)).toContainText("Priya Sharma");
+});

@@ -23,9 +23,11 @@ export function TypedLine({ text }: { text: string }) {
     return () => window.clearInterval(timer);
   }, [text]);
 
+  // The animated span is decoration: a screen reader gets the finished
+  // sentence once, from the sr-only span, instead of hearing it twice.
   return (
     <>
-      <span>{shown}</span>
+      <span aria-hidden="true">{shown}</span>
       <span className="caret" aria-hidden="true" />
       <span className="sr-only">{text}</span>
     </>

@@ -136,3 +136,16 @@ export function gateStates(
 export function unansweredCount(states: GateState[]): number {
   return states.filter((s) => s.answer === null).length;
 }
+
+/**
+ * The headline on the risk-area summary. Kept here, and pure, because it is
+ * a claim about the person's progress and it must be true: the screen used
+ * to say "Nearly there." with ten of eleven areas unanswered (F6). Encourage
+ * only what the numbers actually support (§24.8).
+ */
+export function gateProgressHeadline(answered: number, total: number): string {
+  if (total > 0 && answered >= total) return "That's the whole map.";
+  if (answered === 0) return "Let's map the risk areas.";
+  if (total - answered <= 2) return "Nearly there.";
+  return `${answered} of ${total} areas answered.`;
+}

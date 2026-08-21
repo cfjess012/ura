@@ -1,0 +1,68 @@
+/* ============================================================================
+   Design tokens — salvaged from the prior platform's house palette (SPEC
+   G-8 parts shelf) because the owner adopted that visual language.
+
+   Every colour is named once here. Components reference tokens, never raw
+   hex, so the palette is provably in one place (SPEC §23.1). Provenance and
+   confidence-band tokens are deliberately NOT carried over: they belong to
+   the agentic layer and would be scaffolding for deferred work (Build
+   Rule 5). They stay on the shelf until Phase 2.
+   ============================================================================ */
+:root {
+  --font-sans: var(--font-figtree), -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Brand + interactive */
+  --brand: #0091da;
+  --primary: #0076cf;
+  --primary-hover: #005fb8;
+  --link: #0061a0;
+  --navy: #002855;
+  --navy-2: #013a76;
+  --focus-ring: #3871ff;
+  --accent: #c6ed08; /* signature accent — sparingly, on navy only */
+
+  /* Surface tints */
+  --surface-1: #f2f9fd;
+  --surface-2: #e5f3fb;
+  --surface-3: #cbe4f6;
+
+  /* Neutrals */
+  --neutral-0: #fcfcfc;
+  --neutral-50: #f8f9fa;
+  --neutral-100: #f0f2f4;
+  --neutral-200: #dadee2;
+  --neutral-300: #c6ccd2;
+  --neutral-500: #878f97;
+  --neutral-600: #6d767d;
+  --neutral-700: #565f66;
+  --neutral-800: #33393d;
+  --neutral-900: #22272a;
+
+  /* Status */
+  --success: #008744;
+  --warning: #f76800;
+  --warning-strong: #d64205;
+  --warning-bg: #fff0e5;
+  --error: #e40c0c;
+
+  /* Shape + motion */
+  --radius: 12px;
+  --radius-lg: 16px;
+  --shadow-card: 0 1px 2px rgba(0, 40, 85, 0.06), 0 1px 3px rgba(0, 40, 85, 0.04);
+  --shadow-lift: 0 4px 16px rgba(0, 40, 85, 0.1);
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-font-smoothing: antialiased; }
+
+body {
+  margin: 0;
+  background: var(--neutral-50);
+  color: var(--neutral-900);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+}
+

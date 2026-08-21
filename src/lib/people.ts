@@ -45,6 +45,28 @@ export function canAnswer(role: Role): boolean {
   return role === "requester" || role === "assessor" || role === "admin";
 }
 
+/**
+ * Whose assessments a person may see (§2). A requester sees their own work;
+ * a Risk Assessor and an administrator see everyone's, because triaging a
+ * queue you cannot see is not a job.
+ *
+ * This was the F2 finding: every role saw every project, under a heading
+ * that said "Your assessments".
+ */
+export function seesEveryAssessment(role: Role): boolean {
+  return role === "assessor" || role === "admin";
+}
+
+/**
+ * Who may start an assessment (§2). A Risk Assessor reviews activities; they
+ * do not own them, so the platform does not offer them a way to start one —
+ * and refuses server-side if the form is reached anyway (§2: the UI is never
+ * the enforcement point).
+ */
+export function canStartAssessment(role: Role): boolean {
+  return role === "requester" || role === "admin";
+}
+
 /** Thrown when authority is missing — callers turn it into a Failure (§25). */
 export class NotPermitted extends Error {
   constructor(action: string, role: Role) {

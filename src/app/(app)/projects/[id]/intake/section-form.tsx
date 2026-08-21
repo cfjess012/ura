@@ -8,6 +8,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { saveIntake } from "@/app/actions";
+import { SCOPE_KEY } from "@/lib/intake-values";
 import { isFailure } from "@/lib/errors";
 import {
   INTAKE_SECTIONS,
@@ -56,7 +57,11 @@ export function SectionForm({
     setError(null);
     try {
       const formData = new FormData();
-      // Send this section only; other sections keep their stored values.
+      // Declare the scope: this submission is responsible for this section's
+      // fields and no others. Anything outside it must be left alone.
+      for (const field of section.fields) {
+        if (field.type !== "note") formData.append(SCOPE_KEY, field.id);
+      }
       for (const field of section.fields) {
         if (field.type === "note") continue;
         if (!isFieldVisible(field, values)) {
@@ -81,7 +86,7 @@ export function SectionForm({
       console.error("saveIntake transport", cause);
       setError({
         message:
-          "Couldn't reach the server — your answers are still on screen. Check your connection.",
+          "The server couldn't be reached, so nothing was saved. Your answers are still on screen — try again in a moment.",
         ref: "OFFLINE",
       });
       return false;

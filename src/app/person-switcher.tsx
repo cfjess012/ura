@@ -12,11 +12,14 @@ import { ROLE_LABEL, type Person } from "@/lib/people";
  * It says what it is: a demonstration device, not a sign-in.
  */
 export function PersonSwitcher({ people, current }: { people: Person[]; current: Person }) {
-  const formRef = React.useRef<HTMLFormElement>(null);
-  const [switching, setSwitching] = React.useState(false);
+  // A transition, not a boolean: plain state stayed true forever because
+  // nothing tells a client component that a server action has finished, so
+  // the chooser disabled itself permanently after one switch. Found by the
+  // F2 scoping test, which switched persona twice.
+  const [switching, startSwitching] = React.useTransition();
 
   return (
-    <form action={switchPerson} ref={formRef} className="persona">
+    <form action={switchPerson} className="persona">
       <label className="persona-label" htmlFor="personId">
         <span className="persona-label-top">Working as</span>
         <span className="persona-role">{ROLE_LABEL[current.role]}</span>
@@ -28,8 +31,12 @@ export function PersonSwitcher({ people, current }: { people: Person[]; current:
         disabled={switching}
         aria-label="Working as — choose a person (pilot, not a sign-in)"
         onChange={(event) => {
-          setSwitching(true);
-          event.currentTarget.form?.requestSubmit();
+          const personId = event.currentTarget.value;
+          startSwitching(async () => {
+            const data = new FormData();
+            data.set("personId", personId);
+            await switchPerson(data);
+          });
         }}
       >
         {people.map((person) => (

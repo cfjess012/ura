@@ -21,6 +21,10 @@ export default async function IntakeSectionPage({
 
   const project = await projectStore().get(id);
   if (!project) notFound();
+  // Intake changes are attributed and kept (F5); the most recent one is
+  // shown so the person can see the record exists rather than take it on
+  // trust.
+  const lastChange = await projectStore().lastIntakeChange(id);
 
   const values = intakeValuesFrom(project as unknown as Record<string, unknown>);
   const progress = sectionProgress(values);
@@ -65,6 +69,15 @@ export default async function IntakeSectionPage({
             }
             previousLabel={previous ? "← Previous" : "← All projects"}
           />
+
+          {lastChange && (
+            <p className="attribution">
+              Last change to this intake:{" "}
+              <strong>{lastChange.byName ?? "recorded before attribution existed"}</strong>
+              {" · "}
+              {lastChange.at.toLocaleString()}
+            </p>
+          )}
         </section>
       </div>
     </main>

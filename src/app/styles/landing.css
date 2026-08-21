@@ -1,0 +1,93 @@
+/* ---------- persona switcher (pilot, not a sign-in) ---------- */
+.appbar-right { display: flex; align-items: center; gap: 1rem; }
+.appbar-link { color: #cfe0f0; text-decoration: none; font-size: 0.88rem; font-weight: 700; }
+.appbar-link:hover { color: var(--neutral-0); text-decoration: underline; }
+.persona { display: flex; align-items: center; gap: 0.5rem; }
+.persona-label { display: flex; flex-direction: column; line-height: 1.15; text-align: right; cursor: pointer; }
+.persona-label-top { font-size: 0.68rem; color: #9db8d0; }
+.persona-role { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+.persona select {
+  width: auto; font-size: 0.82rem; padding: 0.3rem 1.8rem 0.3rem 0.6rem;
+  background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); color: var(--neutral-0);
+}
+.persona select option { color: var(--neutral-900); }
+.persona-go {
+  font: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  background: rgba(255,255,255,0.12); color: var(--neutral-0);
+  border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; padding: 0.28rem 0.8rem;
+}
+.persona-go:hover { background: rgba(255,255,255,0.2); }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* ---------- landing: the front door ---------- */
+.landing { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; max-width: none; padding: 0; }
+@media (max-width: 900px) { .landing { grid-template-columns: 1fr; } }
+.landing-pitch {
+  background: radial-gradient(120% 100% at 0% 0%, #013a76 0%, var(--navy) 55%, #001a38 100%);
+  color: var(--neutral-0);
+  padding: 3rem 3.5rem;
+  display: flex; flex-direction: column;
+}
+@media (max-width: 640px) { .landing-pitch { padding: 2rem 1.5rem; } }
+.landing-mark { font-size: 1rem; margin: 0 0 4rem; }
+.landing-eyebrow {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--accent); margin: 0 0 0.9rem;
+}
+.landing-headline {
+  font-size: clamp(2.2rem, 3.6vw, 3.4rem); font-weight: 400; line-height: 1.08;
+  letter-spacing: -0.03em; margin: 0 0 1.4rem; text-wrap: balance; min-height: 1.1em;
+}
+.caret {
+  display: inline-block; width: 2px; height: 0.95em; background: var(--accent);
+  margin-left: 3px; vertical-align: text-bottom; animation: blink 1.05s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .caret { animation: none; opacity: 0; } }
+.landing-lede { color: #c3d6e6; max-width: 34rem; margin: 0 0 2.4rem; line-height: 1.6; }
+.landing-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.1rem; }
+.landing-steps li { display: flex; gap: 0.9rem; align-items: baseline; }
+.landing-steps strong { display: block; font-size: 0.98rem; font-weight: 700; }
+.landing-steps span span { display: block; font-size: 0.88rem; color: #9db8d0; }
+.step-n {
+  flex: none; width: 1.7rem; height: 1.7rem; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.28); color: #c3d6e6;
+  display: flex; align-items: center; justify-content: center; font-size: 0.76rem; font-weight: 700;
+}
+.landing-foot { margin: auto 0 0; padding-top: 2.5rem; font-size: 0.82rem; color: #8fa8bf; max-width: 26rem; }
+
+.landing-choose { background: var(--neutral-50); display: flex; align-items: center; padding: 3rem 3.5rem; }
+@media (max-width: 640px) { .landing-choose { padding: 2rem 1.5rem; } }
+.landing-choose-inner { width: 100%; max-width: 30rem; margin: 0 auto; }
+.persona-card {
+  display: flex; align-items: center; gap: 0.9rem; width: 100%; text-align: left;
+  font: inherit; cursor: pointer; color: var(--neutral-900);
+  background: var(--neutral-0); border: 1px solid var(--neutral-200);
+  border-radius: 12px; padding: 0.9rem 1rem; margin-bottom: 0.7rem;
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease), transform 0.15s var(--ease);
+}
+.persona-card:hover { border-color: var(--brand); box-shadow: var(--shadow-card); transform: translateY(-1px); }
+.persona-avatar {
+  flex: none; width: 2.6rem; height: 2.6rem; border-radius: 50%;
+  background: var(--navy); color: var(--neutral-0);
+  display: flex; align-items: center; justify-content: center; font-size: 0.82rem; font-weight: 800;
+}
+.persona-body { flex: 1; min-width: 0; }
+.persona-line { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.persona-card-name { font-weight: 700; font-size: 1rem; }
+.persona-tag {
+  font-size: 0.62rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  border-radius: 999px; padding: 0.12rem 0.5rem; background: var(--surface-2); color: var(--link);
+}
+.persona-desc { display: block; font-size: 0.86rem; color: var(--neutral-600); margin-top: 0.15rem; }
+.persona-arrow { color: var(--neutral-500); font-size: 1.1rem; }
+.persona-card:hover .persona-arrow { color: var(--brand); }
+.appbar-leave {
+  font: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+  background: none; border: 0; color: #cfe0f0; padding: 0.3rem 0;
+  border-bottom: 1px solid transparent;
+}
+.appbar-leave:hover { color: var(--neutral-0); border-bottom-color: var(--accent); }

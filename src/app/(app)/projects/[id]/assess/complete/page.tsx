@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CATEGORIES, gateStates, unansweredCount } from "@/lib/instrument";
+import { CATEGORIES, gateStates, gateProgressHeadline,
+  unansweredCount } from "@/lib/instrument";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { answerStore, projectStore } from "@/lib/repo";
 import { ProjectHeader } from "../../project-header";
@@ -42,7 +43,7 @@ export default async function GatesCompletePage({
         <section>
           <p className="eyebrow">Step 2 · Risk areas</p>
           <h2 className="display">
-            {remaining === 0 ? "That's the whole map." : "Nearly there."}
+            {gateProgressHeadline(CATEGORIES.length - remaining, CATEGORIES.length)}
           </h2>
           <p className="lede">
             {remaining === 0

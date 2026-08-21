@@ -87,3 +87,19 @@ export const people = pgTable("people", {
   title: text("title").notNull().default(""),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const intakeEvents = pgTable(
+  "intake_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id").notNull(),
+    fieldId: text("field_id").notNull(),
+    previousValue: jsonb("previous_value").$type<string | string[] | null>(),
+    value: jsonb("value").$type<string | string[] | null>(),
+    changedBy: text("changed_by"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("intake_events_by_project").on(t.projectId, t.createdAt)],
+);
+
+export type IntakeEventRow = typeof intakeEvents.$inferSelect;

@@ -81,6 +81,24 @@ describe("activated instrument versions are immutable (NFR-11)", () => {
     ).rejects.toThrow(/activated and immutable/);
   });
 
+  it("refuses deletion once activated — an assessment pins the version it was asked under (F4)", async () => {
+    await expect(
+      pg.query("delete from instrument_versions where id = $1", [versionId]),
+    ).rejects.toThrow(/activated and cannot be deleted/);
+  });
+
+  it("allows a draft version to be deleted — it was never asked", async () => {
+    const draft = await pg.query<{ id: string }>(
+      `insert into instrument_versions (slug, version, content)
+       values ('tier1-gates', 'draft.deletable', '{}'::jsonb) returning id`,
+    );
+    await pg.query("delete from instrument_versions where id = $1", [draft.rows[0]!.id]);
+    const gone = await pg.query("select 1 from instrument_versions where id = $1", [
+      draft.rows[0]!.id,
+    ]);
+    expect(gone.rows).toHaveLength(0);
+  });
+
   it("allows edits while a version is still a draft", async () => {
     const draft = await pg.query<{ id: string }>(
       `insert into instrument_versions (slug, version, content)
@@ -94,6 +112,49 @@ describe("activated instrument versions are immutable (NFR-11)", () => {
       [draft.rows[0]!.id],
     );
     expect(after.rows[0]!.activated_at).not.toBeNull();
+  });
+});
+
+describe("evidence outranks tidiness (F13)", () => {
+  it("refuses to delete a project once it holds answers, cascade or not", async () => {
+    // projects → answers is ON DELETE CASCADE, which reads like a licence to
+    // erase evidence. It is not: the cascade fires the insert-only trigger,
+    // and the whole delete fails. This test pins that, because the day the
+    // trigger is relaxed is the day the cascade quietly becomes real.
+    const doomed = await pg.query<{ id: string }>(
+      "insert into projects (project_name) values ('Doomed') returning id",
+    );
+    await pg.query(
+      `insert into answers (project_id, question_id, value, source, confirmed, instrument_version_id)
+       values ($1, 'gate.thirdParty', '"Yes"'::jsonb, 'person', true, $2)`,
+      [doomed.rows[0]!.id, versionId],
+    );
+    await expect(
+      pg.query("delete from projects where id = $1", [doomed.rows[0]!.id]),
+    ).rejects.toThrow(/insert-only/);
+  });
+});
+
+describe("intake history is evidence too (F5)", () => {
+  it("keeps the previous value and the author, and refuses to be rewritten", async () => {
+    await pg.query(
+      `insert into intake_events (project_id, field_id, previous_value, value, changed_by)
+       values ($1, 'dataClassification', '["Internal"]'::jsonb, '["Confidential"]'::jsonb, 'p.requester')`,
+      [projectId],
+    );
+    const row = await pg.query<{ id: string; previous_value: string[]; changed_by: string }>(
+      "select id, previous_value, changed_by from intake_events where project_id = $1",
+      [projectId],
+    );
+    expect(row.rows[0]!.previous_value).toEqual(["Internal"]);
+    expect(row.rows[0]!.changed_by).toBe("p.requester");
+
+    await expect(
+      pg.query("update intake_events set value = '[]'::jsonb where id = $1", [row.rows[0]!.id]),
+    ).rejects.toThrow(/insert-only/);
+    await expect(
+      pg.query("delete from intake_events where id = $1", [row.rows[0]!.id]),
+    ).rejects.toThrow(/insert-only/);
   });
 });
 

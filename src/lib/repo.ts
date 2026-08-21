@@ -12,9 +12,9 @@
  * store with a different query model still needs a real implementation —
  * what this guarantees is that only this file and its wiring change.
  */
-import { and, desc, eq, isNotNull } from "drizzle-orm";
+import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { getDb, schema } from "./db";
-import type { IntakePatch } from "./intake-values";
+import type { IntakeChange, IntakePatch } from "./intake-values";
 import type { Person, Role } from "./people";
 
 export type ProjectSummary = {
@@ -22,7 +22,19 @@ export type ProjectSummary = {
   projectName: string;
   businessUnit: string;
   updatedAt: Date;
+  /** Who started it. Null for rows created before people existed. */
+  startedBy: string | null;
 };
+
+/**
+ * Which assessments a listing covers. `createdBy` narrows it to one person's
+ * own work; omitting it means everyone's, which only a reviewer or an
+ * administrator may ask for (see `seesEveryAssessment`).
+ */
+export type ProjectScope = { createdBy?: string; limit?: number };
+
+/** The last attributed change to a project's intake (F5). */
+export type LastIntakeChange = { byName: string | null; at: Date };
 
 export type ProjectRecord = typeof schema.projects.$inferSelect;
 
@@ -51,26 +63,51 @@ export interface AnswerStore {
 }
 
 export interface ProjectStore {
-  list(): Promise<ProjectSummary[]>;
+  list(scope: ProjectScope): Promise<ProjectSummary[]>;
+  /** How many assessments the same scope covers, ignoring any limit. */
+  count(scope: ProjectScope): Promise<number>;
   get(id: string): Promise<ProjectRecord | null>;
   create(projectName: string, createdBy: string | null): Promise<{ id: string }>;
-  /** Returns false when the project no longer exists. */
-  updateIntake(id: string, patch: IntakePatch): Promise<boolean>;
+  /**
+   * Apply an intake patch and record what moved, attributed to a person.
+   * The two writes share a transaction: a change that is applied but not
+   * recorded would be exactly the gap F5 found. Returns false when the
+   * project no longer exists.
+   */
+  updateIntake(
+    id: string,
+    patch: IntakePatch,
+    record: { changes: IntakeChange[]; changedBy: string | null },
+  ): Promise<boolean>;
+  lastIntakeChange(projectId: string): Promise<LastIntakeChange | null>;
 }
 
 export function postgresProjectStore(): ProjectStore {
   const db = getDb();
   return {
-    async list() {
-      return db
+    async list(scope) {
+      const query = db
         .select({
           id: schema.projects.id,
           projectName: schema.projects.projectName,
           businessUnit: schema.projects.businessUnit,
           updatedAt: schema.projects.updatedAt,
+          startedBy: schema.people.name,
         })
         .from(schema.projects)
+        .leftJoin(schema.people, eq(schema.people.id, schema.projects.createdBy))
+        .where(scope.createdBy ? eq(schema.projects.createdBy, scope.createdBy) : undefined)
         .orderBy(desc(schema.projects.updatedAt));
+      // No limit means no limit. A silent internal cap would be the same
+      // quiet truncation F11 objected to, one layer down.
+      return scope.limit === undefined ? query : query.limit(scope.limit);
+    },
+    async count(scope) {
+      const [row] = await db
+        .select({ total: sql<number>`count(*)::int` })
+        .from(schema.projects)
+        .where(scope.createdBy ? eq(schema.projects.createdBy, scope.createdBy) : undefined);
+      return row?.total ?? 0;
     },
     async get(id) {
       const [row] = await db
@@ -86,13 +123,37 @@ export function postgresProjectStore(): ProjectStore {
         .returning({ id: schema.projects.id });
       return row!;
     },
-    async updateIntake(id, patch) {
-      const updated = await db
-        .update(schema.projects)
-        .set({ ...patch, updatedAt: new Date() })
-        .where(eq(schema.projects.id, id))
-        .returning({ id: schema.projects.id });
-      return updated.length > 0;
+    async updateIntake(id, patch, record) {
+      return db.transaction(async (tx) => {
+        const updated = await tx
+          .update(schema.projects)
+          .set({ ...patch, updatedAt: new Date() })
+          .where(eq(schema.projects.id, id))
+          .returning({ id: schema.projects.id });
+        if (updated.length === 0) return false;
+        if (record.changes.length > 0) {
+          await tx.insert(schema.intakeEvents).values(
+            record.changes.map((change) => ({
+              projectId: id,
+              fieldId: change.fieldId,
+              previousValue: change.previousValue,
+              value: change.value,
+              changedBy: record.changedBy,
+            })),
+          );
+        }
+        return true;
+      });
+    },
+    async lastIntakeChange(projectId) {
+      const [row] = await db
+        .select({ byName: schema.people.name, at: schema.intakeEvents.createdAt })
+        .from(schema.intakeEvents)
+        .leftJoin(schema.people, eq(schema.people.id, schema.intakeEvents.changedBy))
+        .where(eq(schema.intakeEvents.projectId, projectId))
+        .orderBy(desc(schema.intakeEvents.createdAt))
+        .limit(1);
+      return row ?? null;
     },
   };
 }
