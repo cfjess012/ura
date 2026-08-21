@@ -8,8 +8,14 @@ implementation, stop on ambiguity.
 
 ## Slice status
 
-- S1 Intake — DONE (review round 1 applied); UI upgrade to SPEC §23 pending
-- S2..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
+- S1 Intake — DONE
+- S2 Gates — DONE (built; owner review pending)
+- S3..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
+
+Instrument data lives in `src/data/instrument/*.json`, imported at build
+time (never read from disk at runtime). After editing it run
+`pnpm instrument:seed` to activate a new version — activated versions are
+immutable, so a change means a new version string.
 
 ## Commands
 

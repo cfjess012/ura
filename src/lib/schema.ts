@@ -4,11 +4,14 @@
  * through this schema (SPEC §10 migration safety).
  */
 import {
+  boolean,
   date,
+  index,
   jsonb,
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -44,3 +47,33 @@ export const projects = pgTable("projects", {
 });
 
 export type ProjectRow = typeof projects.$inferSelect;
+
+export const instrumentVersions = pgTable(
+  "instrument_versions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull(),
+    version: text("version").notNull(),
+    content: jsonb("content").notNull(),
+    activatedAt: timestamp("activated_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.slug, t.version)],
+);
+
+export const answers = pgTable(
+  "answers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id").notNull(),
+    questionId: text("question_id").notNull(),
+    value: jsonb("value").$type<string | string[]>().notNull(),
+    source: text("source").notNull(),
+    confirmed: boolean("confirmed").notNull().default(false),
+    instrumentVersionId: uuid("instrument_version_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("answers_current").on(t.projectId, t.questionId, t.createdAt)],
+);
+
+export type AnswerRow = typeof answers.$inferSelect;

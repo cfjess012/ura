@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import { missingRequired } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { projectStore } from "@/lib/repo";
+import Link from "next/link";
+import { CATEGORIES } from "@/lib/instrument";
 import { IntakeForm } from "./intake-form";
 import { ProjectHeader } from "./project-header";
 
@@ -42,9 +44,25 @@ export default async function ProjectPage({
 
       <IntakeForm projectId={row.id} initial={initial} />
 
-      <p className="meta" style={{ textAlign: "center", marginTop: "1.4rem" }}>
-        Everything you provide becomes the source material for the assessment.
-      </p>
+      {outstanding === 0 ? (
+        <div className="card next-step">
+          <div>
+            <h2>Next: the risk areas</h2>
+            <p className="help">
+              {CATEGORIES.length} short questions — one per risk area — to work out which parts of
+              the assessment apply to this activity. Some are already answered from what you told
+              us here.
+            </p>
+          </div>
+          <Link className="btn" href={`/projects/${row.id}/assess/${CATEGORIES[0]!.key}`}>
+            Continue →
+          </Link>
+        </div>
+      ) : (
+        <p className="meta" style={{ textAlign: "center", marginTop: "1.4rem" }}>
+          Everything you provide becomes the source material for the assessment.
+        </p>
+      )}
     </main>
   );
 }

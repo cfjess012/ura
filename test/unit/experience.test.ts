@@ -18,7 +18,9 @@ describe("§24.1 never re-ask what someone said they don't know", () => {
           f.conditional &&
           "equalsAny" in f.conditional &&
           f.conditional.visibleWhen === field.id &&
-          f.conditional.equalsAny.some((v) => unsure.includes(v)),
+          (f.conditional as { equalsAny: string[] }).equalsAny.some((v: string) =>
+            unsure.includes(v),
+          ),
       );
       for (const r of revealed) {
         expect(r.type, `${field.id} → ${r.id}`).toBe("note");

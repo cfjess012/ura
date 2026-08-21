@@ -14,7 +14,9 @@ import {
   projectNameOrNull,
   type SubmittedEntries,
 } from "@/lib/intake-values";
-import { projectStore } from "@/lib/repo";
+import { INSTRUMENT, prefillFor } from "@/lib/instrument";
+import { intakeValuesFrom } from "@/lib/intake-values";
+import { answerStore, projectStore } from "@/lib/repo";
 
 /** FormData is a web detail; the logic layer takes a plain record. */
 function entriesFrom(formData: FormData): SubmittedEntries {
@@ -55,5 +57,67 @@ export async function saveIntake(
       error,
       "Couldn't save — your answers are still on screen. Check your connection and try again.",
     );
+  }
+}
+
+/**
+ * Record a gate answer (FR-3). Answers are insert-only (NFR-1): this always
+ * inserts, never updates, and the newest row is the current answer.
+ *
+ * A person answering here always records source "person" and confirmed —
+ * even when they simply accept what intake pre-filled, because a human
+ * looking at it and agreeing is a different fact from a value derived on
+ * their behalf (FR-22).
+ */
+export async function answerGate(
+  projectId: string,
+  questionId: string,
+  value: "Yes" | "No",
+): Promise<Result<{ recorded: true }>> {
+  try {
+    const answers = answerStore();
+    const versionId = await answers.activeVersionId(INSTRUMENT.slug);
+    await answers.record({
+      projectId,
+      questionId,
+      value,
+      source: "person",
+      confirmed: true,
+      instrumentVersionId: versionId,
+    });
+    revalidatePath(`/projects/${projectId}/assess`);
+    return { ok: true as const, recorded: true as const };
+  } catch (error) {
+    return failure(
+      "answerGate",
+      error,
+      "Couldn't record that answer — nothing was saved. Check your connection and try again.",
+    );
+  }
+}
+
+/**
+ * Persist intake-derived gate answers so a reviewer can see where they came
+ * from (FR-22). Unconfirmed until a person visits the screen and agrees.
+ */
+export async function seedPrefilledGates(projectId: string): Promise<void> {
+  const project = await projectStore().get(projectId);
+  if (!project) return;
+  const intake = intakeValuesFrom(project as unknown as Record<string, unknown>);
+  const answers = answerStore();
+  const existing = await answers.current(projectId);
+  const versionId = await answers.activeVersionId(INSTRUMENT.slug);
+  for (const category of INSTRUMENT.categories) {
+    if (existing[category.questionId]) continue;
+    const prefilled = prefillFor(category, intake);
+    if (!prefilled) continue;
+    await answers.record({
+      projectId,
+      questionId: category.questionId,
+      value: prefilled.answer,
+      source: "intake",
+      confirmed: false,
+      instrumentVersionId: versionId,
+    });
   }
 }

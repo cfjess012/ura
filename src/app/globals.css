@@ -318,3 +318,80 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 @media (prefers-reduced-motion: reduce) { .note { animation: none; } }
 .save-failed { color: var(--error); font-weight: 700; font-size: 0.9rem; max-width: 46rem; }
 .err-ref { color: var(--neutral-600); font-weight: 600; white-space: nowrap; }
+
+/* ---------- Tier 1: gates ---------- */
+.assess-layout {
+  display: grid;
+  grid-template-columns: 15rem minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+  margin-top: 1.6rem;
+}
+@media (max-width: 900px) {
+  .assess-layout { grid-template-columns: 1fr; }
+}
+.rail { position: sticky; top: 1rem; }
+.rail-title {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--neutral-600); margin: 0 0 0.5rem;
+}
+.rail ol { list-style: none; margin: 0; padding: 0; }
+.rail-item {
+  display: grid; grid-template-columns: 1.4rem 1fr; gap: 0.15rem 0.5rem;
+  padding: 0.5rem 0.6rem; border-radius: 8px; text-decoration: none;
+  color: var(--neutral-800); border: 1px solid transparent;
+}
+.rail-item:hover { background: var(--surface-1); }
+.rail-item.current { background: var(--surface-2); border-color: var(--surface-3); }
+.rail-num {
+  grid-row: span 2; width: 1.4rem; height: 1.4rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; font-weight: 800;
+  background: var(--neutral-100); color: var(--neutral-600);
+}
+.rail-item.open .rail-num { background: var(--success); color: #fff; }
+.rail-item.prefilled .rail-num { background: var(--surface-3); color: var(--navy); }
+.rail-item.closed .rail-num { background: var(--neutral-200); color: var(--neutral-600); }
+.rail-name { font-size: 0.88rem; font-weight: 700; }
+.rail-item.closed .rail-name { color: var(--neutral-600); text-decoration: line-through; }
+.rail-state { font-size: 0.74rem; color: var(--neutral-600); }
+
+.gate-display { text-align: left; font-size: 1.7rem; margin-bottom: 1rem; }
+.gate-card { padding: 1.6rem; }
+.gate-question { font-size: 1.05rem; line-height: 1.5; margin: 0 0 0.5rem; font-weight: 500; }
+.gate-help { margin-bottom: 1.2rem; }
+.gate-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+@media (max-width: 640px) { .gate-choices { grid-template-columns: 1fr; } }
+.gate-choice {
+  font: inherit; text-align: left; cursor: pointer;
+  background: var(--neutral-0); border: 2px solid var(--neutral-200);
+  border-radius: 12px; padding: 0.9rem 1rem;
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.gate-choice:hover:not(:disabled) { border-color: var(--brand); background: var(--surface-1); }
+.gate-choice.chosen { border-color: var(--navy); background: var(--surface-2); }
+.gate-choice:disabled { opacity: 0.6; cursor: wait; }
+.gate-choice-label { display: block; font-weight: 700; }
+.gate-choice-note { display: block; font-size: 0.82rem; color: var(--neutral-600); margin-top: 0.15rem; }
+.gate-status { min-height: 1.2rem; margin: 0.7rem 0 0; }
+.prefill {
+  display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: baseline;
+  background: var(--surface-1); border: 1px solid var(--surface-3);
+  border-radius: 10px; padding: 0.7rem 0.9rem; margin: 0 0 1rem;
+  font-size: 0.9rem; color: var(--neutral-800);
+}
+.prefill-tag {
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--link); white-space: nowrap;
+}
+.gate-nav { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1.2rem; }
+.summary-list { margin: 0; padding-left: 1.1rem; font-size: 0.94rem; }
+.summary-list li { margin: 0.25rem 0; }
+.summary-list.closed li { color: var(--neutral-600); }
+/* Scoped: `.upcoming` alone also matched the stepper's upcoming stages and
+   drew dashed boxes around them (caught in a screenshot). */
+.card-upcoming { border-style: dashed; }
+.card-upcoming h2 { color: var(--neutral-600); }
+.card-upcoming p { font-size: 0.94rem; color: var(--neutral-700); margin: 0 0 0.9rem; }
+.next-step { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
+.next-step h2 { margin-bottom: 0.2rem; }

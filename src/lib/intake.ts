@@ -13,6 +13,10 @@
  *   lack visibility (FR-23) — the front door never manufactures certainty.
  */
 
+import { matches, type Condition } from "./conditions";
+
+/** Intake names its trigger `visibleWhen`; the rules are the shared ones,
+ *  evaluated by the single predicate in conditions.ts (NFR-2). */
 export type IntakeCondition =
   | { visibleWhen: string; hasValue: true }
   | { visibleWhen: string; equalsAny: string[] }
