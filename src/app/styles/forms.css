@@ -198,3 +198,15 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 .attribution strong { color: var(--neutral-800); font-weight: 700; }
 .start-card { flex-wrap: wrap; }
 .start-card .save-failed { flex-basis: 100%; margin: 0.2rem 0 0; }
+
+/* A required answer someone tried to move past (FR-28). Never colour alone:
+   the save bar names the fields and the live region reads them out. */
+.flagged,
+input.flagged,
+textarea.flagged,
+select.flagged {
+  border-color: var(--warning-strong);
+  background: var(--warning-bg);
+}
+.checks.flagged { border-radius: var(--radius); padding: 0.35rem; }
+.missing.blocked { color: var(--warning-strong); font-weight: 700; white-space: normal; }

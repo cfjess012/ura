@@ -289,6 +289,42 @@ export function missingRequired(values: IntakeValues): string[] {
   ).map((f) => f.label);
 }
 
+/**
+ * Required fields that are visible and unanswered, as field ids rather than
+ * labels — so a screen can point at the control, not just name it.
+ */
+export function missingRequiredFields(values: IntakeValues): IntakeField[] {
+  return ALL_FIELDS.filter(
+    (f) =>
+      f.required &&
+      isFieldVisible(f, values) &&
+      (Array.isArray(values[f.id])
+        ? (values[f.id] as string[]).length === 0
+        : !(values[f.id] as string | undefined)?.trim()),
+  );
+}
+
+/**
+ * Whether the identity record is complete enough to work from (FR-28).
+ *
+ * Intake is not a form to survive; it is what every later tier reasons
+ * from. An empty record reaches Tier 1 with nothing pre-answered, so the
+ * person is asked everything and the platform's whole claim — that it does
+ * not ask twice — silently stops being true. Partial saves stay allowed;
+ * what is refused is treating an unfinished record as finished.
+ */
+export function intakeIsComplete(values: IntakeValues): boolean {
+  return missingRequiredFields(values).length === 0;
+}
+
+/** The section a person must return to, or null when nothing is missing. */
+export function firstIncompleteSection(values: IntakeValues): string | null {
+  const missing = new Set(missingRequiredFields(values).map((f) => f.id));
+  if (missing.size === 0) return null;
+  const section = INTAKE_SECTIONS.find((s) => s.fields.some((f) => missing.has(f.id)));
+  return section ? sectionKey(section.name) : null;
+}
+
 /** URL-safe key for a section, so each one can be its own screen (§24.2). */
 export function sectionKey(name: string): string {
   return name

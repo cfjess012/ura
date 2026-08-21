@@ -4,6 +4,9 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  intakeIsComplete,
+  firstIncompleteSection,
+  missingRequiredFields,
   ALL_FIELDS,
   INTAKE_SECTIONS,
   isFieldVisible,
@@ -191,5 +194,50 @@ describe("questions say what to do when they don't apply (§24.1)", () => {
       .filter((f) => !/leave blank|if that|if it|if there|if you don't|not applicable|none/i.test(f.help ?? ""))
       .map((f) => f.label);
     expect(silent).toEqual([]);
+  });
+});
+
+describe("required means required (FR-28)", () => {
+  // The defect: four clicks through intake answering nothing landed on the
+  // risk areas with a completely empty identity record and no pre-fill —
+  // so the platform asked all eleven gates and its claim not to ask twice
+  // quietly stopped being true. `required: true` was decoration.
+  it("an empty record is not complete, and names where to go back to", () => {
+    expect(intakeIsComplete({})).toBe(false);
+    expect(firstIncompleteSection({})).toBe("description");
+  });
+
+  it("walks forward through the sections as each is satisfied", () => {
+    const values: Record<string, string | string[]> = {
+      projectName: "P",
+      businessPurpose: "B",
+      projectDescription: "D",
+      usesAi: "No",
+    };
+    expect(firstIncompleteSection(values)).toBe("ownership");
+    values.businessOwner = "O";
+    values.initiativeType = "Brand new";
+    expect(firstIncompleteSection(values)).toBe("categorization");
+    values.businessUnit = "U";
+    values.thirdPartyInvolved = "No";
+    expect(firstIncompleteSection(values)).toBe("compliance-data");
+    values.dataClassification = ["Public"];
+    expect(firstIncompleteSection(values)).toBeNull();
+    expect(intakeIsComplete(values)).toBe(true);
+  });
+
+  it("counts a required field only while it is visible", () => {
+    // A conditional field that is hidden cannot block anyone.
+    const hidden = missingRequiredFields({ usesAi: "No" }).map((f) => f.id);
+    expect(hidden).not.toContain("aiUseCase");
+  });
+
+  it("every required field can actually be answered — no unanswerable block", () => {
+    // A required select with no honest escape traps anyone who does not
+    // know (FR-23). Free text always has one; a select must offer it.
+    for (const f of ALL_FIELDS.filter((f) => f.required && f.type === "select")) {
+      expect(f.options, f.id).toBeTruthy();
+      expect(f.options!.length, f.id).toBeGreaterThan(1);
+    }
   });
 });

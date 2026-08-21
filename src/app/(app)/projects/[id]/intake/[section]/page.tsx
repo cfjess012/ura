@@ -14,10 +14,12 @@ export const dynamic = "force-dynamic";
 
 export default async function IntakeSectionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; section: string }>;
+  searchParams: Promise<{ needed?: string }>;
 }) {
-  const { id, section: key } = await params;
+  const [{ id, section: key }, { needed }] = await Promise.all([params, searchParams]);
   const section = sectionByKey(key);
   if (!section) notFound();
 
@@ -61,6 +63,19 @@ export default async function IntakeSectionPage({
             Step 1 · Section {index + 1} of {INTAKE_SECTIONS.length}
           </p>
           <h2 className="display gate-display">{section.name}</h2>
+
+          {needed && (
+            /* Arriving here from the risk areas: say why, rather than
+               bouncing someone back with no explanation (§25.3). */
+            <p className="prefill" role="note">
+              <span className="prefill-tag">Needed first</span>
+              <span>
+                The risk areas work from these answers — we ask you once here so
+                nobody asks you again later. Fill in what&rsquo;s marked and
+                you&rsquo;ll go straight through.
+              </span>
+            </p>
+          )}
 
           <SectionForm
             projectId={id}

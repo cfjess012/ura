@@ -13,6 +13,7 @@ import { isFailure } from "@/lib/errors";
 import {
   INTAKE_SECTIONS,
   isFieldVisible,
+  missingRequiredFields,
   type IntakeField,
   type IntakeValues,
 } from "@/lib/intake";
@@ -49,13 +50,14 @@ export function SectionForm({
   const set = (id: string, v: string | string[]) =>
     setValues((prev) => ({ ...prev, [id]: v }));
 
-  const missing = section.fields
-    .filter((f) => f.required && f.type !== "note" && isFieldVisible(f, values))
-    .filter((f) => {
-      const v = values[f.id];
-      return Array.isArray(v) ? v.length === 0 : !(v as string | undefined)?.trim();
-    })
-    .map((f) => f.label);
+  const missingFields = missingRequiredFields(values).filter((f) =>
+    section.fields.some((sf) => sf.id === f.id),
+  );
+  const missing = missingFields.map((f) => f.label);
+  // Only after someone tries to move on. Marking a field as a problem before
+  // they have had a chance to fill it in is scolding, not helping (§24.4).
+  const [flagged, setFlagged] = React.useState(false);
+  const flaggedIds = flagged ? new Set(missingFields.map((f) => f.id)) : new Set<string>();
 
   async function save(): Promise<boolean> {
     setSaving(true);
@@ -103,23 +105,48 @@ export function SectionForm({
 
   return (
     <form
+      noValidate
       onSubmit={async (event) => {
         event.preventDefault();
+        // Required means required (FR-28). Their work is still saved — what
+        // is refused is moving on, not the answers they did give.
+        if (missingFields.length > 0) {
+          setFlagged(true);
+          await save();
+          const first = missingFields[0]!;
+          document.getElementById(first.id)?.focus();
+          document
+            .getElementById(first.id)
+            ?.scrollIntoView({ block: "center", behavior: "smooth" });
+          return;
+        }
+        setFlagged(false);
         if (await save()) router.push(nextHref);
       }}
     >
       <div className="card">
         {section.fields.map((field) =>
           isFieldVisible(field, values) ? (
-            <Field key={field.id} field={field} values={values} set={set} />
+            <Field
+              key={field.id}
+              field={field}
+              values={values}
+              set={set}
+              flagged={flaggedIds.has(field.id)}
+            />
           ) : null,
         )}
       </div>
 
       <div className="savebar">
-        <span className="missing">
+        <span className={flagged && missing.length > 0 ? "missing blocked" : "missing"}>
           {missing.length === 0 ? (
             "Nothing outstanding in this section."
+          ) : flagged ? (
+            <>
+              Answer {missing.length === 1 ? "this first" : `these ${missing.length} first`} —{" "}
+              {missing.join(", ")}
+            </>
           ) : (
             <>
               <strong>{missing.length}</strong> still needed here — {missing.slice(0, 2).join(", ")}
@@ -131,6 +158,8 @@ export function SectionForm({
           <span role="status" aria-live="polite" className={error ? "save-failed" : "saved"}>
             {saving ? (
               "Saving…"
+            ) : flagged && missing.length > 0 ? (
+              `Saved. ${missing.length} answer${missing.length === 1 ? "" : "s"} still needed before the next section: ${missing.join(", ")}.`
             ) : error ? (
               <>
                 {error.message} <span className="err-ref">Reference {error.ref}</span>
@@ -169,10 +198,12 @@ function Field({
   field,
   values,
   set,
+  flagged,
 }: {
   field: IntakeField;
   values: IntakeValues;
   set: (id: string, v: string | string[]) => void;
+  flagged: boolean;
 }) {
   if (field.type === "note") {
     return (
@@ -204,7 +235,7 @@ function Field({
       {field.help && <p className="help">{field.help}</p>}
     </>
   );
-  const body = <Control field={field} values={values} set={set} />;
+  const body = <Control field={field} values={values} set={set} flagged={flagged} />;
   if (field.conditional) {
     return (
       <div className="reveal">
@@ -228,12 +259,21 @@ function Control({
   field,
   values,
   set,
+  flagged,
 }: {
   field: IntakeField;
   values: IntakeValues;
   set: (id: string, v: string | string[]) => void;
+  flagged: boolean;
 }) {
   const value = values[field.id];
+  // aria-required is on every required control, always. aria-invalid appears
+  // only once someone has tried to move on without it.
+  const validity = {
+    "aria-required": field.required || undefined,
+    "aria-invalid": flagged || undefined,
+    className: flagged ? "flagged" : undefined,
+  } as const;
   if (field.type === "text" || field.type === "date") {
     return (
       <input
@@ -241,6 +281,7 @@ function Control({
         type={field.type}
         value={(value as string) ?? ""}
         onChange={(e) => set(field.id, e.target.value)}
+        {...validity}
       />
     );
   }
@@ -250,6 +291,7 @@ function Control({
         id={field.id}
         value={(value as string) ?? ""}
         onChange={(e) => set(field.id, e.target.value)}
+        {...validity}
       />
     );
   }
@@ -259,6 +301,7 @@ function Control({
         id={field.id}
         value={(value as string) ?? ""}
         onChange={(e) => set(field.id, e.target.value)}
+        {...validity}
       >
         <option value="">Select…</option>
         {field.options!.map((o) => (
@@ -271,11 +314,21 @@ function Control({
   }
   const selected = (value as string[] | undefined) ?? [];
   return (
-    <div className="checks" role="group" aria-labelledby={`${field.id}-label`}>
-      {field.options!.map((o) => (
+    <div
+      className={flagged ? "checks flagged" : "checks"}
+      role="group"
+      aria-labelledby={`${field.id}-label`}
+      aria-required={field.required || undefined}
+      aria-invalid={flagged || undefined}
+      /* The group is the control here; the first checkbox carries the id so
+         focusing the "missing" field lands somewhere a keyboard can act. */
+      id={`${field.id}-group`}
+    >
+      {field.options!.map((o, i) => (
         <label key={o}>
           <input
             type="checkbox"
+            id={i === 0 ? field.id : undefined}
             checked={selected.includes(o)}
             onChange={(e) =>
               set(field.id, e.target.checked ? [...selected, o] : selected.filter((x) => x !== o))

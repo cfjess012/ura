@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { askableCategories, categoryByKey, gateStates, unansweredCount } from "@/lib/instrument";
+import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
 import { NotYourAssessment } from "../../not-yours";
@@ -26,6 +27,12 @@ export default async function GatePage({
   const project = access.project;
 
   const intake = intakeValuesFrom(project as unknown as Record<string, unknown>);
+  // The risk areas reason from the identity record, so an incomplete one is
+  // not a cosmetic problem: nothing pre-fills and the person is asked
+  // everything. Enforced here rather than only in the form, because the UI
+  // is never the enforcement point (FR-28, §2).
+  const incomplete = firstIncompleteSection(intake);
+  if (incomplete) redirect(`/projects/${id}/intake/${incomplete}?needed=1`);
   const stored = await answerStore().current(id);
   const states = gateStates(stored, intake);
   const state = states.find((s) => s.category.key === key)!;

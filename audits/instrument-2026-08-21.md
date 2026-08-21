@@ -1,6 +1,6 @@
 ---
 audit: instrument-coherence
-spec-version: 2026-08-21.4
+spec-version: 2026-08-21.5
 instrument: tier1-gates@2026-08-21.2 + intake (src/lib/intake.ts)
 run-on: 2026-08-21
 run-by: Claude, following .claude/skills/instrument-coherence

@@ -4,6 +4,7 @@
  * answer is there. Rendered-DOM assertions only (NFR-7).
  */
 import { expect, test } from "@playwright/test";
+import { completeIntake } from "./helpers";
 
 const NAME = `S1 proof ${Date.now()}`;
 const AI_DETAIL = "Drafts shift assignments; a supervisor approves before publishing.";
@@ -119,7 +120,11 @@ test("saving a later section does not erase an earlier section's answers", async
   await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
   const base = `/projects/${page.url().split("/projects/")[1]!.split("/")[0]!}`;
 
-  // Answer the LAST section first.
+  // Intake must be complete before the risk areas will open (FR-28), and
+  // this journey is about save scope rather than about intake.
+  await completeIntake(page, base);
+
+  // Answer the LAST section again, out of order.
   await page.goto(`${base}/intake/compliance-data`);
   await page.getByRole("checkbox", { name: "Confidential" }).check();
   await page.getByRole("checkbox", { name: "Employee personal information" }).check();
@@ -142,4 +147,40 @@ test("saving a later section does not erase an earlier section's answers", async
   await expect(
     page.getByRole("checkbox", { name: "Employee personal information" }),
   ).toBeChecked();
+});
+
+test("you cannot blast through intake — required means required (FR-28)", async ({ page }) => {
+  // Found in use by the owner, not by the suite: clicking Next four times
+  // answering nothing landed on the risk areas with an empty record.
+  await page.goto("/projects");
+  await page.getByLabel("Start a new assessment").fill(`Blast ${Date.now()}`);
+  await page.getByRole("button", { name: "Start assessment" }).click();
+  await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
+  const base = `/projects/${page.url().split("/projects/")[1]!.split("/")[0]!}`;
+
+  await page.getByRole("button", { name: /Next: Ownership/ }).click();
+
+  // Still here, told exactly what is missing, and the first one has focus.
+  await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
+  await expect(page.getByText(/Answer these 3 first/)).toBeVisible();
+  await expect(page.locator("[aria-invalid=true]")).toHaveCount(3);
+  await expect(page.getByLabel("Business Purpose or Objective")).toBeFocused();
+  // Not colour alone, and not silent: the live region carries the same list.
+  await expect(page.locator(".savebar [role=status]")).toContainText(
+    "Business Purpose or Objective",
+  );
+
+  // The form is not the enforcement point: the URL is refused too.
+  await page.goto(`${base}/assess/third-party`);
+  await expect(page).toHaveURL(/\/intake\/description\?needed=1$/);
+  await expect(page.getByText("Needed first")).toBeVisible();
+
+  // And nothing that was typed is lost on the way.
+  await page.getByLabel("Business Purpose or Objective").fill("Shorten scheduling effort.");
+  await page.getByRole("button", { name: /Next: Ownership/ }).click();
+  await expect(page.getByText(/Answer these 2 first/)).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Business Purpose or Objective")).toHaveValue(
+    "Shorten scheduling effort.",
+  );
 });

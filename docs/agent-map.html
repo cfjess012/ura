@@ -166,25 +166,47 @@ read the requirements.
    `await browser.close()`. If a script hangs twice, record it as
    &quot;could not verify&quot; with the reason and continue — a partial report
    delivered is worth more than a complete one that never arrives.
-3. **Regression.** Re-run every prior slice's journey. A slice that breaks
+3. **Adversarial input pass — every slice, every form, whether or not a
+   requirement mentions it.** Requirements describe the path the feature was
+   designed for; defects live off it. Do not wait to be asked. On every form
+   and every multi-step flow in the slice:
+   - submit it **empty**, and submit it with only some required answers;
+   - **skip ahead** — click the forward control repeatedly without answering,
+     and reach the next stage **by URL**, bypassing the form entirely;
+   - go **backwards** and re-submit; re-submit a stale form after the record
+     has changed underneath it;
+   - paste values a control did not intend (a very long string, a negative
+     number, a date in the past, HTML).
+
+   For each: was it refused, was the refusal *server-side*, was the person
+   told what to do, and was their input kept? A field marked required that
+   can be walked past is a **blocking** finding, not a note — every later
+   tier reasons from those answers.
+
+   This exists because clicking Next four times through intake, answering
+   nothing, landed on the risk areas with an empty record. No requirement
+   said &quot;required means required&quot;, so no test, no UAT row and no verification
+   pass covered it, and every journey in the suite filled the form in order.
+   The owner found it in ten seconds.
+4. **Regression.** Re-run every prior slice's journey. A slice that breaks
    an earlier slice's done-when is a FAIL regardless of its own quality.
-4. **Acceptance criteria.** Check the §19 criteria that apply to this
+5. **Acceptance criteria.** Check the §19 criteria that apply to this
    slice, including the negative cases (unanswered inputs, unknown
    severity, forged requests where relevant). Missing negative-case
    coverage is a finding.
-5. **Experience audit (§24).** **Read `SPEC.md` §24 and `.claude/skills/ux-audit/SKILL.md` first, and audit against every principle you find there — not against this list.** The laws grow; this file must never become a stale copy of them. Walk the surface as the person it is for, not as a tester, and report each principle as met or violated **with the screen and the exact wording at fault**.
+6. **Experience audit (§24).** **Read `SPEC.md` §24 and `.claude/skills/ux-audit/SKILL.md` first, and audit against every principle you find there — not against this list.** The laws grow; this file must never become a stale copy of them. Walk the surface as the person it is for, not as a tester, and report each principle as met or violated **with the screen and the exact wording at fault**.
 
    As of writing, §24 covers: never re-ask what someone said they don't know (24.1) · one decision per screen (24.2) · **a control responds to the action taken, with no confirming second click (24.3)** · every wait and failure speaks (24.4) · revealed content says why (24.5) · nobody repeats themselves (24.6) · no internal vocabulary on screen (24.7) · unbuilt stages read as upcoming (24.8) · progress counts only what the person can act on (24.9) · every question says what to do when it doesn't apply (24.10) · every question carries teaching helper text (24.11). If §24 contains principles beyond 24.11, audit those too and say so in your report.
-6. **UI audit (§23).** **Read `.claude/skills/ui-craft/SKILL.md` first.** For each new surface: accessible name on every
+7. **UI audit (§23).** **Read `.claude/skills/ui-craft/SKILL.md` first.** For each new surface: accessible name on every
    control, full keyboard operation, visible focus, designed empty /
    loading / error / disabled states, no state conveyed by colour alone,
    no internal identifiers in any user-facing string, and no silent
    waits. Capture a screenshot per surface into `/tmp`.
-7. **Invariant spot-check.** Confirm the slice did not weaken a §5
+8. **Invariant spot-check.** Confirm the slice did not weaken a §5
    invariant — especially insert-only records, server-side authority, and
    the one-visibility-predicate rule.
-8. **Error-path audit (§25).** **Read `.claude/skills/error-handling/SKILL.md` first.** Force at least one failure per slice (stop the database, break the network, submit a stale id) and confirm: a plain sentence with a reference, no internal detail on screen, the person's input still present, a retry offered only where retrying can work, and the failure announced to assistive technology. An error path with no test is a finding.
-9. **Scope check.** Confirm nothing outside the slice's requirements was
+9. **Error-path audit (§25).** **Read `.claude/skills/error-handling/SKILL.md` first.** Force at least one failure per slice (stop the database, break the network, submit a stale id) and confirm: a plain sentence with a reference, no internal detail on screen, the person's input still present, a retry offered only where retrying can work, and the failure announced to assistive technology. An error path with no test is a finding.
+10. **Scope check.** Confirm nothing outside the slice's requirements was
    built (Build Rule 5) and nothing was silently dropped: the pinned
    instrument field-set test and the file budgets both still hold.
 

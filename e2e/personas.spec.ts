@@ -4,6 +4,7 @@
  * merely what it shows.
  */
 import { expect, test } from "@playwright/test";
+import { completeIntake } from "./helpers";
 
 test("the front door introduces the platform and asks who you are", async ({ page }) => {
   await page.goto("/");
@@ -87,8 +88,10 @@ test("an answer records who gave it", async ({ page }) => {
   await page.getByRole("button", { name: "Start assessment" }).click();
   await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
 
-  // Answer a gate directly; the action attributes it server-side.
+  // Answer a gate directly; the action attributes it server-side. Intake
+  // has to be complete before the risk areas open (FR-28).
   const id = page.url().split("/projects/")[1]!.split("/")[0]!;
+  await completeIntake(page, `/projects/${id}`);
   await page.goto(`/projects/${id}/assess/ai`);
   await page.getByRole("button", { name: /Yes, it applies/ }).click();
   await expect(page.getByRole("link", { name: /AI \/ ML/ }).getByText("Applies")).toBeVisible();
@@ -127,6 +130,8 @@ test("an intake change records who made it, and says so on the screen (F5)", asy
   await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
 
   await page.getByLabel(/Business purpose/i).fill("Replace a spreadsheet used for shift planning.");
+  await page.getByLabel("Activity / Use-Case Description").fill("Shift planning replacement.");
+  await page.getByLabel("Does this use AI or machine learning?").selectOption("No");
   await page.getByRole("button", { name: /Next:/ }).click();
   await expect(page.getByRole("heading", { name: "Ownership" })).toBeVisible();
 
