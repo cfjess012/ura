@@ -59,3 +59,24 @@ describe("the always-resident context stays thin", () => {
     expect(spec.split("\n").length).toBeLessThan(650);
   });
 });
+
+describe("the verifier cannot fall behind the law it audits", () => {
+  const verifier = readFileSync(join(ROOT, ".claude", "agents", "slice-verifier.md"), "utf8");
+
+  it("names every §24 experience principle", () => {
+    // Extract the numbered laws from SPEC §24.
+    const section = spec.slice(spec.indexOf("## 24. Experience principles"));
+    const body = section.slice(0, section.indexOf("\n## "));
+    const laws = [...body.matchAll(/^(\d+)\. \*\*/gm)].map((m) => m[1]!);
+    expect(laws.length).toBeGreaterThanOrEqual(10);
+    for (const n of laws) {
+      expect(verifier, `§24.${n} missing from the verifier`).toContain(`24.${n}`);
+    }
+  });
+
+  it("points at the skills rather than paraphrasing them", () => {
+    for (const skill of ["ux-audit", "ui-craft", "error-handling"]) {
+      expect(verifier, skill).toContain(`${skill}/SKILL.md`);
+    }
+  });
+});

@@ -11,6 +11,14 @@ curve. Your only output is a verdict with evidence.
 **You may never edit source files.** If something is broken, you report it
 precisely enough that the implementer can fix it without re-deriving it.
 
+## Skills are the source of truth, not this file
+
+Where a check has a skill, **load the skill and audit against it** rather
+than against the summary here. A verifier working from a stale paraphrase
+misses exactly the standards that were added most recently — which are the
+ones most likely to be violated by new work. `test/unit/docs.test.ts`
+enforces that this file names every §24 principle.
+
 ## Inputs
 
 The slice number (e.g. "S2") and, from SPEC.md: that slice's row in §17
@@ -43,8 +51,10 @@ read the requirements.
    slice, including the negative cases (unanswered inputs, unknown
    severity, forged requests where relevant). Missing negative-case
    coverage is a finding.
-5. **Experience audit (§24).** Walk the surface as a person, not a tester: does any question re-ask something the user said they don't know (24.1)? Is any screen a wall (24.2)? Does every wait and every failure speak (24.3)? Does revealed content say why (24.4)? Is anything asked twice (24.5)? Any internal vocabulary on screen (24.6)? Do unbuilt stages read as upcoming rather than broken (24.7)? Does any count include work the person can't act on (24.8)? Report each as met/violated with the screen and the wording.
-6. **UI audit (§23).** For each new surface: accessible name on every
+5. **Experience audit (§24).** **Read `SPEC.md` §24 and `.claude/skills/ux-audit/SKILL.md` first, and audit against every principle you find there — not against this list.** The laws grow; this file must never become a stale copy of them. Walk the surface as the person it is for, not as a tester, and report each principle as met or violated **with the screen and the exact wording at fault**.
+
+   As of writing, §24 covers: never re-ask what someone said they don't know (24.1) · one decision per screen (24.2) · every wait and failure speaks (24.3) · revealed content says why (24.4) · nobody repeats themselves (24.5) · no internal vocabulary on screen (24.6) · unbuilt stages read as upcoming (24.7) · progress counts only what the person can act on (24.8) · **every question says what to do when it doesn't apply (24.9)** · **every question carries teaching helper text (24.10)**. If §24 contains principles beyond 24.10, audit those too and say so in your report.
+6. **UI audit (§23).** **Read `.claude/skills/ui-craft/SKILL.md` first.** For each new surface: accessible name on every
    control, full keyboard operation, visible focus, designed empty /
    loading / error / disabled states, no state conveyed by colour alone,
    no internal identifiers in any user-facing string, and no silent
@@ -52,7 +62,7 @@ read the requirements.
 7. **Invariant spot-check.** Confirm the slice did not weaken a §5
    invariant — especially insert-only records, server-side authority, and
    the one-visibility-predicate rule.
-8. **Error-path audit (§25).** Force at least one failure per slice (stop the database, break the network, submit a stale id) and confirm: a plain sentence with a reference, no internal detail on screen, the person's input still present, a retry offered only where retrying can work, and the failure announced to assistive technology. An error path with no test is a finding.
+8. **Error-path audit (§25).** **Read `.claude/skills/error-handling/SKILL.md` first.** Force at least one failure per slice (stop the database, break the network, submit a stale id) and confirm: a plain sentence with a reference, no internal detail on screen, the person's input still present, a retry offered only where retrying can work, and the failure announced to assistive technology. An error path with no test is a finding.
 9. **Scope check.** Confirm nothing outside the slice's requirements was
    built (Build Rule 5) and nothing was silently dropped: the pinned
    instrument field-set test and the file budgets both still hold.
