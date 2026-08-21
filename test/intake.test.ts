@@ -22,6 +22,35 @@ describe("intake structure (FR-1)", () => {
     ]);
   });
 
+  it("pins the exact field set — no field is added or dropped silently", () => {
+    // This test exists because a rewrite silently dropped a field once.
+    // Changing the instrument is a deliberate act: update this list with it.
+    const ids = INTAKE_SECTIONS.map((s) => [s.name, s.fields.map((f) => f.id)]);
+    expect(ids).toEqual([
+      ["Description", ["projectName", "businessPurpose", "projectDescription", "techNonTech", "usesAi", "aiUseCase"]],
+      ["Ownership", ["businessOwner", "technicalOwner", "collaborators", "initiativeType", "priorAssessmentRef"]],
+      ["Categorization", ["businessUnit", "otherUnits", "targetGoLive", "vendorNames", "coupaOnboarded"]],
+      ["Compliance & Data", ["dataClassification", "dataElements"]],
+    ]);
+  });
+
+  it("no GRC acronym soup or internal ids in any user-facing string (NFR-9)", () => {
+    const surfaces = ALL_FIELDS.flatMap((f) => [f.label, f.help ?? "", f.revealNote ?? ""]);
+    for (const text of surfaces) {
+      expect(text).not.toMatch(/\b(ARA|BIR|PIA|DPIA|AVA)\b/); // plain English asks
+      expect(text).not.toMatch(/[a-z]+\.[a-z_]+/); // dotted identifiers
+    }
+  });
+
+  it("offers an honest-uncertainty option wherever visibility may be missing (FR-23)", () => {
+    for (const id of ["usesAi", "coupaOnboarded"]) {
+      const field = byId(id);
+      expect(field.options, id).toContain("I'm not sure");
+    }
+    // A launch date is optional on purpose — blank beats a manufactured date.
+    expect(byId("targetGoLive").required).toBeUndefined();
+  });
+
   it("every conditional field carries a plain-language reveal reason (NFR-9/§9)", () => {
     for (const f of ALL_FIELDS.filter((f) => f.conditional)) {
       expect(f.revealNote, f.id).toBeTruthy();
@@ -31,19 +60,30 @@ describe("intake structure (FR-1)", () => {
 });
 
 describe("conditional visibility (FR-1)", () => {
+  it("equalsAny conditions fire only on the listed answers", () => {
+    const ai = byId("aiUseCase");
+    expect(isFieldVisible(ai, {})).toBe(false);
+    expect(isFieldVisible(ai, { usesAi: "No" })).toBe(false);
+    expect(isFieldVisible(ai, { usesAi: "Yes" })).toBe(true);
+    // "Not sure" still gathers the detail — uncertainty is not a closed door.
+    expect(isFieldVisible(ai, { usesAi: "I'm not sure" })).toBe(true);
+    const prior = byId("priorAssessmentRef");
+    expect(isFieldVisible(prior, { initiativeType: "Brand new" })).toBe(false);
+    expect(isFieldVisible(prior, { initiativeType: "A vendor renewal" })).toBe(true);
+  });
+
   it("hasValue conditions need a non-blank trigger", () => {
     const other = byId("otherUnits");
     expect(isFieldVisible(other, {})).toBe(false);
     expect(isFieldVisible(other, { businessUnit: "   " })).toBe(false);
     expect(isFieldVisible(other, { businessUnit: "Workforce Ops" })).toBe(true);
-    const coupa = byId("vendorNotInCoupa");
+    const coupa = byId("coupaOnboarded");
     expect(isFieldVisible(coupa, { vendorNames: "" })).toBe(false);
     expect(isFieldVisible(coupa, { vendorNames: "Cadenza Inc" })).toBe(true);
   });
 
   it("includesAny conditions need an actual selection", () => {
     const elements = byId("dataElements");
-    const pii = byId("piiTypes");
     expect(isFieldVisible(elements, {})).toBe(false);
     expect(isFieldVisible(elements, { dataClassification: ["Public"] })).toBe(
       false,
@@ -52,7 +92,7 @@ describe("conditional visibility (FR-1)", () => {
       isFieldVisible(elements, { dataClassification: ["Confidential"] }),
     ).toBe(true);
     expect(
-      isFieldVisible(pii, { dataClassification: ["Public", "Internal"] }),
+      isFieldVisible(elements, { dataClassification: ["Public", "Internal"] }),
     ).toBe(true);
   });
 });
@@ -62,20 +102,21 @@ describe("completeness meter", () => {
     const missing = missingRequired({});
     expect(missing).toContain("Project Name");
     expect(missing).toContain("Data Classification");
+    expect(missing).toContain("Does this use AI or machine learning?");
     // Conditional fields are optional AND hidden — never counted.
     expect(missing).not.toContain("Other Business Units Involved");
   });
 
-  it("empties when the nine required fields are answered", () => {
+  it("empties when every visible required field is answered", () => {
     const done = missingRequired({
       projectName: "P",
       businessPurpose: "B",
       projectDescription: "D",
       techNonTech: "Technology",
+      usesAi: "No",
       businessOwner: "O",
+      initiativeType: "Brand new",
       businessUnit: "U",
-      priority: "High",
-      lifecycleStage: "POC",
       dataClassification: ["Internal"],
     });
     expect(done).toEqual([]);

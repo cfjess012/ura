@@ -19,7 +19,7 @@ export async function createProject(formData: FormData) {
 
 export async function saveIntake(projectId: string, formData: FormData) {
   const db = getDb();
-  const values: Record<string, string | string[] | Date> = {
+  const values: Record<string, string | string[] | Date | null> = {
     updatedAt: new Date(),
   };
   for (const field of ALL_FIELDS) {
@@ -27,7 +27,10 @@ export async function saveIntake(projectId: string, formData: FormData) {
       values[field.id] = formData.getAll(field.id).map(String);
     } else {
       const v = formData.get(field.id);
-      if (v !== null) values[field.id] = String(v);
+      if (v !== null) {
+        // A date column stores null, never "" — blank means "no date yet".
+        values[field.id] = field.type === "date" && String(v).trim() === "" ? null : String(v);
+      }
     }
   }
   // The identity record must keep a name (mirrors the DB CHECK).

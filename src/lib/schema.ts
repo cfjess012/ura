@@ -3,7 +3,14 @@
  * the two is caught by the PGlite tests, which apply the real SQL and query
  * through this schema (SPEC §10 migration safety).
  */
-import { jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  date,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -17,26 +24,24 @@ export const projects = pgTable("projects", {
   businessPurpose: text("business_purpose").notNull().default(""),
   projectDescription: text("project_description").notNull().default(""),
   techNonTech: text("tech_non_tech").notNull().default(""),
+  usesAi: text("uses_ai").notNull().default(""),
+  aiUseCase: text("ai_use_case").notNull().default(""),
   businessOwner: text("business_owner").notNull().default(""),
   technicalOwner: text("technical_owner").notNull().default(""),
   collaborators: text("collaborators").notNull().default(""),
   relatedAssessments: text("related_assessments").notNull().default(""),
+  initiativeType: text("initiative_type").notNull().default(""),
+  priorAssessmentRef: text("prior_assessment_ref").notNull().default(""),
   businessUnit: text("business_unit").notNull().default(""),
   otherUnits: text("other_units").notNull().default(""),
-  priority: text("priority").notNull().default(""),
-  lifecycleStage: text("lifecycle_stage").notNull().default(""),
+  targetGoLive: date("target_go_live"),
   vendorNames: text("vendor_names").notNull().default(""),
-  vendorNotInCoupa: text("vendor_not_in_coupa").notNull().default(""),
-  complianceAreas: jsonb("compliance_areas")
-    .$type<string[]>()
-    .notNull()
-    .default([]),
+  coupaOnboarded: text("coupa_onboarded").notNull().default(""),
   dataClassification: jsonb("data_classification")
     .$type<string[]>()
     .notNull()
     .default([]),
   dataElements: jsonb("data_elements").$type<string[]>().notNull().default([]),
-  piiTypes: jsonb("pii_types").$type<string[]>().notNull().default([]),
 });
 
 export type ProjectRow = typeof projects.$inferSelect;

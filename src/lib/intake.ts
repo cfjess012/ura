@@ -1,29 +1,51 @@
 /**
- * The intake instrument as DATA (SPEC §3.1, FR-1) — four ordered sections,
- * conditional fields included, transcribed from the accepted reference
- * design. Components render this; no question content lives in components.
+ * The intake instrument as DATA (SPEC §3.1, FR-1) — ordered sections with
+ * conditional fields, transcribed from the accepted reference design and
+ * refined in the S1 review (2026-08-21).
  *
- * Field ids are internal; only labels reach the user (NFR-9).
+ * Design rules this file obeys:
+ * - Plain language only; no GRC acronyms as the primary ask, no internal
+ *   identifiers (NFR-9). Field ids are internal and never rendered.
+ * - Nothing here is asked twice at Tier 1: fields that duplicate a gate are
+ *   marked `prefillsGate` so S2 can pre-answer that gate visibly and
+ *   changeably (FR-22). This file states the intent; S2 owns the mechanism.
+ * - "Unknown" is a legitimate answer wherever a requester may genuinely
+ *   lack visibility (FR-23) — the front door never manufactures certainty.
  */
 
 export type IntakeCondition =
   | { visibleWhen: string; hasValue: true }
+  | { visibleWhen: string; equalsAny: string[] }
   | { visibleWhen: string; includesAny: string[] };
 
 export type IntakeField = {
   id: string;
   label: string;
-  type: "text" | "textarea" | "select" | "multi";
+  type: "text" | "textarea" | "select" | "multi" | "date";
   required?: boolean;
   options?: string[];
+  help?: string;
   conditional?: IntakeCondition;
   /** Plain-language reason shown when a conditional field reveals. */
   revealNote?: string;
+  /**
+   * FR-22: this answer also answers a Tier-1 gate. Recorded here as the
+   * instrument's own statement of intent; the consuming logic arrives with
+   * the gates in S2 (SPEC Build Rule 5 — no building ahead).
+   */
+  prefillsGate?: string;
 };
 
 export type IntakeSection = { name: string; fields: IntakeField[] };
 
 export type IntakeValues = Record<string, string | string[]>;
+
+/** Initiative types that mean "there is prior work to look up". */
+const UPDATE_TYPES = [
+  "An update or enhancement to something we already run",
+  "A vendor renewal",
+  "Moving a proof of concept into production",
+];
 
 export const INTAKE_SECTIONS: IntakeSection[] = [
   {
@@ -46,13 +68,38 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         label: "Activity / Use-Case Description",
         type: "textarea",
         required: true,
+        help: "What the activity does, who it touches, and how it works — in plain terms.",
       },
       {
+        // Kept as-is pending an owner decision: it currently routes nothing.
+        // Candidate job: "Non-Technology" pre-answers the systems/security
+        // gates as No. Open question in the S1 review.
         id: "techNonTech",
         label: "Technology / Non-Technology",
         type: "select",
         options: ["Technology", "Non-Technology"],
         required: true,
+      },
+      {
+        id: "usesAi",
+        label: "Does this use AI or machine learning?",
+        type: "select",
+        options: ["Yes", "No", "I'm not sure"],
+        required: true,
+        help: "Includes AI features inside a vendor's product, not just models you build.",
+        prefillsGate: "AI",
+      },
+      {
+        id: "aiUseCase",
+        label: "What does the AI do?",
+        type: "textarea",
+        conditional: {
+          visibleWhen: "usesAi",
+          equalsAny: ["Yes", "I'm not sure"],
+        },
+        revealNote:
+          "Shown because you told us this uses AI or machine learning.",
+        help: "What it decides or produces, what data it uses, and how much a person reviews before anything happens.",
       },
     ],
   },
@@ -68,9 +115,21 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
       { id: "technicalOwner", label: "Technical Owner", type: "text" },
       { id: "collaborators", label: "Collaborators", type: "text" },
       {
-        id: "relatedAssessments",
-        label: "Related / Prior Assessments (ARA, ISR, PIA, DPIA, AVA)",
+        id: "initiativeType",
+        label: "Is this a new initiative, or an update to an existing one?",
+        type: "select",
+        options: ["Brand new", ...UPDATE_TYPES, "Something else"],
+        required: true,
+        prefillsGate: "TPR/SA",
+      },
+      {
+        id: "priorAssessmentRef",
+        label: "Which assessment or ticket does it build on, if you know?",
         type: "text",
+        conditional: { visibleWhen: "initiativeType", equalsAny: UPDATE_TYPES },
+        revealNote:
+          "Shown because this builds on existing work — it helps reviewers find the prior file.",
+        help: "A name, number, or link is plenty. Leave blank if you don't know.",
       },
     ],
   },
@@ -91,37 +150,25 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         revealNote: "Shown because a responsible business unit was entered.",
       },
       {
-        id: "priority",
-        label: "Priority",
-        type: "select",
-        options: ["Critical", "High", "Medium", "Low"],
-        required: true,
-      },
-      {
-        id: "lifecycleStage",
-        label: "Lifecycle Stage",
-        type: "select",
-        options: [
-          "Backlog",
-          "Ideation",
-          "In Development",
-          "POC",
-          "In Production",
-          "Cancelled",
-        ],
-        required: true,
+        id: "targetGoLive",
+        label: "Target Go-Live / Launch Date",
+        type: "date",
+        help: "Leave blank if there isn't a date yet — reviewers would rather see blank than a guess.",
       },
       {
         id: "vendorNames",
         label: "Third-Party / Vendor Name(s)",
         type: "text",
+        prefillsGate: "TPR",
       },
       {
-        id: "vendorNotInCoupa",
-        label: "Third Parties Not in Coupa",
-        type: "text",
+        id: "coupaOnboarded",
+        label: "Has this vendor been onboarded through Procurement (Coupa)?",
+        type: "select",
+        options: ["Yes", "No", "I'm not sure"],
         conditional: { visibleWhen: "vendorNames", hasValue: true },
         revealNote: "Shown because vendor name(s) were entered.",
+        help: "If you don't have visibility into procurement, say so — a reviewer will check.",
       },
     ],
   },
@@ -129,30 +176,12 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
     name: "Compliance & Data",
     fields: [
       {
-        id: "complianceAreas",
-        label: "Compliance Obligation Areas",
-        type: "multi",
-        options: [
-          "Consumer protection/fair treatment",
-          "Financial crimes",
-          "InfoSec/cyber",
-          "Privacy/data protection",
-          "Records retention/eDiscovery",
-          "Accessibility",
-          "Marketing/advertising/comms",
-          "Third-party/outsourcing",
-          "Model/analytics governance",
-          "Employment/workforce",
-          "Other",
-          "Unknown",
-        ],
-      },
-      {
         id: "dataClassification",
         label: "Data Classification",
         type: "multi",
         options: ["Public", "Internal", "Confidential", "Restricted"],
         required: true,
+        prefillsGate: "DMP",
       },
       {
         id: "dataElements",
@@ -171,32 +200,7 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         },
         revealNote:
           "Shown because Internal, Confidential, or Restricted data was selected.",
-      },
-      {
-        id: "piiTypes",
-        label: "PII Type Details",
-        type: "multi",
-        options: [
-          "Name, address, phone, email",
-          "Government ID (SSN, DL, passport)",
-          "Account / policy numbers",
-          "Financial information",
-          "Authentication credentials",
-          "Device / online identifiers",
-          "Biometric",
-          "Geolocation",
-          "Health information",
-          "Background check / employment",
-          "Communications content",
-          "Children's data",
-          "Other",
-        ],
-        conditional: {
-          visibleWhen: "dataClassification",
-          includesAny: ["Internal", "Confidential", "Restricted"],
-        },
-        revealNote:
-          "Shown because Internal, Confidential, or Restricted data was selected.",
+        help: "High level only — the detailed data questions come later, and only if they apply.",
       },
     ],
   },
@@ -208,14 +212,18 @@ export function isFieldVisible(
   values: IntakeValues,
 ): boolean {
   if (!field.conditional) return true;
-  const v = values[field.conditional.visibleWhen];
-  if ("hasValue" in field.conditional) {
+  const condition = field.conditional;
+  const v = values[condition.visibleWhen];
+  if ("hasValue" in condition) {
     return Array.isArray(v)
       ? v.length > 0
       : typeof v === "string" && v.trim().length > 0;
   }
+  if ("equalsAny" in condition) {
+    return typeof v === "string" && condition.equalsAny.includes(v);
+  }
   const selected = Array.isArray(v) ? v : [];
-  return field.conditional.includesAny.some((o) => selected.includes(o));
+  return condition.includesAny.some((o) => selected.includes(o));
 }
 
 export const ALL_FIELDS: IntakeField[] = INTAKE_SECTIONS.flatMap(

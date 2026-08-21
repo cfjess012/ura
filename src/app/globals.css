@@ -86,3 +86,4 @@ textarea { min-height: 5.5rem; resize: vertical; }
 }
 .saved { color: var(--accent); font-weight: 600; font-size: 0.9rem; }
 .missing { color: var(--ink-soft); font-size: 0.86rem; }
+.help { color: var(--ink-soft); font-size: 0.84rem; margin: 0.1rem 0 0.3rem; }

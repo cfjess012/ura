@@ -1,11 +1,14 @@
 /**
  * S1 done-when, verbatim from SPEC §17: "Create a project, complete intake,
  * close the browser, reopen: everything is there." Rendered-DOM assertions
- * only (NFR-7).
+ * only (NFR-7). Covers all three conditional kinds and the honest-uncertainty
+ * options added in the S1 review.
  */
 import { expect, test } from "@playwright/test";
 
 const NAME = `S1 proof ${Date.now()}`;
+const AI_DETAIL =
+  "Drafts shift assignments; a supervisor approves before anything is published.";
 
 test("create → fill (conditionals reveal) → reopen → everything is there", async ({
   page,
@@ -17,7 +20,7 @@ test("create → fill (conditionals reveal) → reopen → everything is there",
   await page.getByRole("button", { name: "Start assessment" }).click();
   await expect(page.getByRole("heading", { name: NAME })).toBeVisible();
 
-  // Description.
+  // Description — equalsAny reveal on the AI question.
   await page
     .getByLabel("Business Purpose or Objective")
     .fill("Optimise shift scheduling.");
@@ -27,40 +30,55 @@ test("create → fill (conditionals reveal) → reopen → everything is there",
   await page
     .getByLabel("Technology / Non-Technology")
     .selectOption("Technology");
+  await expect(page.getByLabel("What does the AI do?")).toBeHidden();
+  await page
+    .getByLabel("Does this use AI or machine learning?")
+    .selectOption("Yes");
+  await expect(page.getByLabel("What does the AI do?")).toBeVisible();
+  await page.getByLabel("What does the AI do?").fill(AI_DETAIL);
 
-  // Ownership.
+  // Ownership — the prior-work pointer reveals only for updates.
+  const priorRef = page.getByLabel(
+    "Which assessment or ticket does it build on, if you know?",
+  );
   await page.getByLabel("Business Owner").fill("P. Sharma");
+  await expect(priorRef).toBeHidden();
+  await page
+    .getByLabel("Is this a new initiative, or an update to an existing one?")
+    .selectOption("Moving a proof of concept into production");
+  await expect(priorRef).toBeVisible();
+  await priorRef.fill("RISK-2291");
 
-  // Categorization — conditional reveals.
+  // Categorization — hasValue reveals, plus the optional launch date.
   await expect(page.getByLabel("Other Business Units Involved")).toBeHidden();
   await page.getByLabel("Responsible Business Unit").fill("Workforce Ops");
   await expect(page.getByLabel("Other Business Units Involved")).toBeVisible();
   await expect(
     page.getByText("Shown because a responsible business unit was entered."),
   ).toBeVisible();
-  await page.getByLabel("Priority").selectOption("High");
-  await page.getByLabel("Lifecycle Stage").selectOption("POC");
-  await expect(page.getByLabel("Third Parties Not in Coupa")).toBeHidden();
+  await page.getByLabel("Target Go-Live / Launch Date").fill("2026-11-02");
+  const coupa = page.getByLabel(
+    "Has this vendor been onboarded through Procurement (Coupa)?",
+  );
+  await expect(coupa).toBeHidden();
   await page.getByLabel("Third-Party / Vendor Name(s)").fill("Cadenza Inc");
-  await expect(page.getByLabel("Third Parties Not in Coupa")).toBeVisible();
+  await expect(coupa).toBeVisible();
+  await coupa.selectOption("I'm not sure");
 
   // Compliance & Data — includesAny reveal.
-  await expect(page.getByText("PII Type Details")).toBeHidden();
+  await expect(page.getByLabel("Data Elements")).toBeHidden();
   await page.getByRole("checkbox", { name: "Confidential" }).check();
-  await expect(page.getByText("PII Type Details")).toBeVisible();
+  await expect(page.getByLabel("Data Elements")).toBeVisible();
   await page
     .getByRole("checkbox", { name: "Employee personal information" })
-    .check();
-  await page
-    .getByRole("checkbox", { name: "Name, address, phone, email" })
     .check();
 
   // Completeness meter reflects reality.
   await expect(page.getByText("All required fields answered.")).toBeVisible();
 
   // Save — assert the dedicated status region, not loose page text (a
-  // substring match on "saved" collided with the page's "Last saved …"
-  // line and let the test close the page mid-save).
+  // substring match on "saved" collided with the page's "Last saved …" line
+  // and let the test close the page mid-save).
   await page.getByRole("button", { name: "Save intake" }).click();
   await expect(page.getByRole("status")).toHaveText("All changes stored");
 
@@ -73,13 +91,29 @@ test("create → fill (conditionals reveal) → reopen → everything is there",
   await expect(fresh.getByLabel("Business Purpose or Objective")).toHaveValue(
     "Optimise shift scheduling.",
   );
+  await expect(
+    fresh.getByLabel("Does this use AI or machine learning?"),
+  ).toHaveValue("Yes");
+  await expect(fresh.getByLabel("What does the AI do?")).toHaveValue(AI_DETAIL);
+  await expect(
+    fresh.getByLabel(
+      "Which assessment or ticket does it build on, if you know?",
+    ),
+  ).toHaveValue("RISK-2291");
   await expect(fresh.getByLabel("Responsible Business Unit")).toHaveValue(
     "Workforce Ops",
+  );
+  await expect(fresh.getByLabel("Target Go-Live / Launch Date")).toHaveValue(
+    "2026-11-02",
   );
   await expect(fresh.getByLabel("Third-Party / Vendor Name(s)")).toHaveValue(
     "Cadenza Inc",
   );
-  await expect(fresh.getByLabel("Third Parties Not in Coupa")).toBeVisible();
+  await expect(
+    fresh.getByLabel(
+      "Has this vendor been onboarded through Procurement (Coupa)?",
+    ),
+  ).toHaveValue("I'm not sure");
   await expect(
     fresh.getByRole("checkbox", { name: "Confidential" }),
   ).toBeChecked();

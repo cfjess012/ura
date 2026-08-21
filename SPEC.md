@@ -25,6 +25,8 @@ These rules bind any implementer, human or Claude Code, before a single line is 
 8. Do not silently resolve contradictions — when the spec is ambiguous or self-conflicting, **stop and name the ambiguity**; resolution is an owner decision.
 9. Do not add features because they seem useful. Prefer the simplest implementation consistent with the spec.
 10. Do not change settled decisions (§13) without explicitly flagging the change and obtaining a governance-log entry.
+11. **Every slice ends with the review protocol (§21), and no slice begins until the prior slice's review is closed.** Silence is never approval — from either side.
+12. **Critique is owed, not optional.** The implementer must surface disagreements, weaknesses, and risks in the owner's instructions as readily as in its own work. Agreeable implementation of a flawed instruction is a failure of this specification, not a courtesy.
 
 ## 1. Mission and purpose
 
@@ -264,6 +266,8 @@ Composite scoring policy (§14) · framework crosswalks (planned; will anchor to
 - **G-5 (settled):** No runtime instrument authoring; seed-PR governance only (§8).
 - **G-6 (settled):** The agentic layer's contract (§7) is normative now, even while dormant — nothing may be built that would violate it later.
 - **G-7 (settled):** AWS is the deployment target and §6.4's tiered migration is the plan of record. Phase 1 builds AWS-ready by construction (the five firm obligations in §6.4); cloud execution itself is Phase-3 work. The Bedrock model-access request is the standing critical-path item and is owner-owned.
+- **G-10 (settled):** Intake question set refined 2026-08-21 (S1 review): AI capture with a conditional detail field; plain-language "new vs. update" replacing the acronym list, with an optional prior-work pointer; objective launch date replacing self-reported priority; lifecycle stage retired (absorbed by initiative type); procurement status softened to Yes/No/Not-sure; compliance-obligation areas and granular PII detail removed from intake — both are asked at Tier 1/2 where they route (T1-LRC-2, T2-PRIV-1.C). Consequence: intake now carries routing-relevant answers, which is why FR-22 exists.
+- **G-9 (settled):** Delivery runs under the slice review protocol (§21) — pre-flight before each slice, structured review with mandatory self-critique after it, refinements applied and re-gated before the next slice. Adopted 2026-08-21 after the intake review demonstrated its value in both directions.
 - **G-8 (settled):** Execution route — **fresh repository, built slice by slice (§17)**. The prior repository is retained untouched as the **parts shelf**: proven components (condition engine, invariants schema, verbatim matcher, eval harness, agent service) are salvage candidates, and each salvage-or-rebuild decision is made at the slice that needs the part, recorded against that slice. The prior repository is never developed further and is decommissioned only after Phase-1 acceptance.
 
 ## 14. Open questions (decisions owed, not forgotten)
@@ -328,6 +332,8 @@ Phase 1 is delivered as **ten vertical slices, built strictly in order**. Each s
 
 Estimated ~6–7 focused days end to end; S1 is hours. A timing slip cuts between slices, never through one.
 
+**Every slice is additionally bracketed by the review protocol (§21): a pre-flight before it starts and a slice review when its done-when holds. A slice whose review is still open is not done, and the next slice does not begin.**
+
 ## 20. Requirements register
 
 The register and the slices are **synced by construction**: every Phase-1 requirement names its owning slice; every slice's done-when includes its owned requirements passing. A requirement without an owner, or an owner without a done-when, is a spec defect to fix before building. Phase-2/3 requirements are added to this register when their phase is authorized — never before.
@@ -336,7 +342,7 @@ The register and the slices are **synced by construction**: every Phase-1 requir
 
 | ID | Requirement | Detail | Slice |
 |---|---|---|---|
-| FR-1 | Structured intake in four ordered sections with conditional fields | §3.1 | S1 |
+| FR-1 | Structured intake in four ordered sections with conditional fields (hasValue · equalsAny · includesAny) | §3.1 | S1 |
 | FR-2 | Projects persist and resume; intake is the project's identity record | §3.1 | S1 |
 | FR-3 | One gate per category; No closes the category entirely | §3.1 | S2 |
 | FR-4 | Tier-1 selections activate paths; union semantics with reasons retained | §3.2.4 | S3 |
@@ -357,6 +363,8 @@ The register and the slices are **synced by construction**: every Phase-1 requir
 | FR-19 | Packaging blocked until all visible attested, zero open findings | §4.5 | S9 |
 | FR-20 | Insert-only replayable export; N-A exported as explicit reason strings | §4.5 | S9 |
 | FR-21 | Notes/questions attachable at any point; travel to the reviewer | §9 | S6 |
+| FR-22 | An intake answer that duplicates a Tier-1 gate pre-answers that gate — visibly, with its reason, and changeable | §3.1 | S2 |
+| FR-23 | Where a requester may genuinely lack visibility, "I'm not sure" is a first-class answer that routes to a reviewer rather than blocking | §3.2.1 | S1 |
 
 ### 20.2 Non-functional requirements (Phase 1)
 
@@ -431,6 +439,26 @@ Executable acceptance per major subsystem — each becomes a named test before i
 - Packaging with any visible unattested question fails, naming questions by text.
 - The export contains an explicit "N-A — reason" string for every N-A attestation, never a blank.
 - Re-export creates a new record; the prior export is byte-identical after.
+
+## 21. Slice review protocol (the refinement gate)
+
+Every slice is bracketed by two conversations. Building without them is a build-rule violation (§0.11), not a shortcut.
+
+**Pre-flight — before the first line of a slice:**
+1. The implementer restates the slice's owned requirements (§20) in its own words, names the design decisions it intends to make, and lists every ambiguity or assumption it would otherwise resolve silently.
+2. The owner confirms, corrects, or defers. Unresolved ambiguity blocks the slice (§0.8).
+
+**Slice review — when the done-when holds:**
+The implementer delivers, in one message:
+1. **What changed** — files, requirement IDs satisfied, tests added, gates passed.
+2. **Self-critique** — at least two things the implementer would challenge in its own work: weakest decision, likeliest bug, worst-aged assumption. "Nothing" is not an acceptable answer; if the work is genuinely clean, name what would break it first.
+3. **What was deliberately not done** — deferrals, with the reason and where they're recorded.
+4. **Open questions** — decisions the owner owes, each with a recommendation.
+5. **A demoable artifact** — running app, screenshot, or transcript. Never a claim without evidence.
+
+The owner then analyses and returns changes. **Refinements are applied and re-gated before the next slice starts**; if a refinement is large enough to change the instrument or a requirement, it updates §20 and the governance log first.
+
+**Why this exists:** the two failure modes of AI-assisted delivery are an implementer that agrees too readily and an owner reviewing only the finished pile. This protocol forces critical thinking at both ends, at the smallest reviewable unit of work. It is a gate, not a ceremony — a slice that skips it is not done.
 
 ---
 

@@ -102,10 +102,28 @@ function Field({
   set: (id: string, v: string | string[]) => void;
 }) {
   const body = <FieldControl field={field} values={values} set={set} />;
-  const label = (
-    <label className="field" htmlFor={field.id}>
+  // A checkbox group has no single control to point at: it is named by an
+  // element id via aria-labelledby, not by <label for>. Without this the
+  // group has no accessible name at all.
+  const labelId = `${field.id}-label`;
+  const text = (
+    <>
       {field.label} {field.required && <span className="req">*</span>}
-    </label>
+    </>
+  );
+  const label = (
+    <>
+      {field.type === "multi" ? (
+        <p className="field" id={labelId}>
+          {text}
+        </p>
+      ) : (
+        <label className="field" htmlFor={field.id}>
+          {text}
+        </label>
+      )}
+      {field.help && <p className="help">{field.help}</p>}
+    </>
   );
   if (field.conditional) {
     return (
@@ -134,11 +152,11 @@ function FieldControl({
   set: (id: string, v: string | string[]) => void;
 }) {
   const value = values[field.id];
-  if (field.type === "text") {
+  if (field.type === "text" || field.type === "date") {
     return (
       <input
         id={field.id}
-        type="text"
+        type={field.type}
         value={(value as string) ?? ""}
         onChange={(e) => set(field.id, e.target.value)}
       />
@@ -171,7 +189,7 @@ function FieldControl({
   }
   const selected = (value as string[] | undefined) ?? [];
   return (
-    <div className="checks" role="group" aria-labelledby={field.id}>
+    <div className="checks" role="group" aria-labelledby={`${field.id}-label`}>
       {field.options!.map((o) => (
         <label key={o}>
           <input
