@@ -1,21 +1,11 @@
 import Link from "next/link";
-import { desc } from "drizzle-orm";
-import { getDb, schema } from "@/lib/db";
+import { projectStore } from "@/lib/repo";
 import { createProject } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const db = getDb();
-  const rows = await db
-    .select({
-      id: schema.projects.id,
-      projectName: schema.projects.projectName,
-      businessUnit: schema.projects.businessUnit,
-      updatedAt: schema.projects.updatedAt,
-    })
-    .from(schema.projects)
-    .orderBy(desc(schema.projects.updatedAt));
+  const rows = await projectStore().list();
 
   return (
     <main>

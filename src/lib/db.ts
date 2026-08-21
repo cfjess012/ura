@@ -4,6 +4,7 @@
  */
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { config } from "./config";
 import * as schema from "./schema";
 
 declare global {
@@ -12,9 +13,9 @@ declare global {
 }
 
 function makeDb() {
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set");
-  const client = postgres(url);
+  // Env is read in exactly one place (§26.3); the pool stays small because
+  // serverless scales instances, not connections (§26.6).
+  const client = postgres(config.databaseUrl, { max: config.dbPoolMax });
   return drizzle(client, { schema });
 }
 

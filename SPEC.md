@@ -269,6 +269,7 @@ Composite scoring policy (§14) · framework crosswalks (planned; will anchor to
 - **G-5 (settled):** No runtime instrument authoring; seed-PR governance only (§8).
 - **G-6 (settled):** The agentic layer's contract (§7) is normative now, even while dormant — nothing may be built that would violate it later.
 - **G-7 (settled):** AWS is the deployment target and §6.4's tiered migration is the plan of record. Phase 1 builds AWS-ready by construction (the five firm obligations in §6.4); cloud execution itself is Phase-3 work. The Bedrock model-access request is the standing critical-path item and is owner-owned.
+- **G-16 (settled):** §26 cloud-native construction rules adopted 2026-08-21 as workspace law (NFR-14 to NFR-17): pure logic separated from executors, state and persistence externalised behind one interface, configuration only through a single validated env module, and three separately-runnable test tiers. The migration guide (§26.7) is a named deliverable before production. Recorded correction: development-time subagents do not migrate; the runtime agents are the Phase-2 features in §7.
 - **G-15 (settled):** §25 error-handling standard adopted 2026-08-21 (NFR-13): expected failures are typed values not exceptions; the user gets a sentence and a quotable reference while the log keeps the detail; every message says what happened, whether their work is safe, and what to do next; input is never lost; error paths are tested.
 - **G-14 (settled):** §24 experience principles adopted 2026-08-21 — each derived from a defect found in this build, audited by the slice-verifier, and binding on every surface. The first two, in the owner's framing: never re-ask what someone said they don't know, and pace the journey rather than presenting a wall.
 - **G-13 (settled):** Independent verification is a Phase-1 capability, not a Phase-2 one: the slice-verifier subagent runs UAT and regression against every slice before it advances, cannot edit code, and its report is part of the slice review. Adopted 2026-08-21.
@@ -386,6 +387,10 @@ The register and the slices are **synced by construction**: every Phase-1 requir
 | NFR-5 | AWS-ready by construction: the five §6.4 obligations | §6.4, G-7 | S1 onward, review-enforced |
 | NFR-6 | File budgets (≤400 new / ≤800 hard) + dead-code gate | §11 | Every slice; gate on from S10 |
 | NFR-7 | Every slice gated: tests green before advance; E2E on rendered DOM only | §0, §10 | Every slice |
+| NFR-14 | Pure logic separated from executors; no framework/driver/env imports in logic modules | §26.1 | Every slice |
+| NFR-15 | All persistence behind the store interface; no state in process memory or local files | §26.2 | Every slice |
+| NFR-16 | Configuration read only via the config module, validated at the boundary | §26.3 | Every slice |
+| NFR-17 | Tests in three separately-runnable tiers, each CI-container-ready | §26.4 | Every slice |
 | NFR-13 | Errors handled to the §25 standard: typed results, no internals on screen, referenced logs, input preserved, error paths tested | §25 | Every slice |
 | NFR-8 | Instrument entirely as versioned seed data; zero hardcoded content | §6.2 | S2 onward |
 | NFR-9 | No internal identifiers in any user-facing text | §9 | S1 onward |
@@ -567,6 +572,25 @@ Failure is a designed state (§24.3). This section says how it is built, and app
 **25.8 Validation is not error handling.** Preventable problems are caught before submission with inline guidance; the error path is for the unexpected.
 
 **25.9 Errors are tested.** Each error path has a test proving the message is safe (no internals), the reference is present, and the input survives. An untested error path is an untested feature.
+
+
+## 26. Cloud-native construction rules (workspace law)
+
+AWS is settled (§6.4, G-7). This section makes it a **construction** rule rather than a deployment plan: every feature, utility, and test is written so it can move to a serverless target without redesign. It binds all code, starting now.
+
+**26.1 Pure logic, separate executors.** Business rules live in modules that import no framework, no database driver, and no environment. The thing that *executes* — a server action, a route handler, later a Lambda handler or AgentCore task — reads the request, calls the pure function, calls the store, and returns. Any pure module must be liftable into a standalone function with no edit to its body. Web-specific shapes (`FormData`, `Request`) are converted at the boundary, never passed inward.
+
+**26.2 State is external; persistence is behind one interface.** No feature state lives in process memory, on the local filesystem, or in a hardcoded path. All reads and writes go through the store interface; no route, action, or component touches the driver. *Honest limit:* this makes a store swap **contained**, not free — a different query model still needs a real implementation. What is guaranteed is that only the store module and its wiring change.
+
+**26.3 Configuration only through the environment, read in one place.** No hardcoded secrets, hosts, or connection strings. Env is read in the config module alone, validated at the boundary, and fails with a message naming both the local fix and the AWS source (Secrets Manager / Parameter Store).
+
+**26.4 Lego-block tests.** Three tiers, separately runnable, each a candidate CI step: **unit** (pure logic, mocks everything external, needs nothing but Node), **integration** (real SQL against in-process Postgres, no daemon or local setup), **e2e** (the running app). Tests are grouped by feature domain, never a single tangled runner, and every tier must run inside an isolated CI container with no local terminal setup.
+
+**26.5 Migrations are a task, not a request path.** Schema changes are plain SQL applied by a standalone runner that can execute as a one-off ECS task or CodeBuild step.
+
+**26.6 Serverless-shaped defaults.** Connection pools stay small because serverless scales instances rather than connections (RDS Proxy fronts the database on AWS); containers build from the repo root; nothing assumes a warm process, local disk, or a long-lived server.
+
+**26.7 The migration guide is a deliverable.** Before production, a step-by-step guide is written plainly enough to be followed without prior AWS knowledge, covering: infrastructure and IAM; how the product's agentic layer (§7) becomes AgentCore runtimes with Gateway/OpenAPI wiring; how features map to Lambda or container tasks; and a checklist for running all three test tiers in the cloud to prove parity with local. **Terminology note:** the `.claude/agents/*.md` subagents are *development-time* tooling and do not migrate; the runtime agents are the Phase-2 product features in §7 and §22.1.
 
 ---
 

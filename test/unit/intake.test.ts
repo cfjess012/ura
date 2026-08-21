@@ -8,7 +8,7 @@ import {
   INTAKE_SECTIONS,
   isFieldVisible,
   missingRequired,
-} from "../src/lib/intake";
+} from "../../src/lib/intake";
 
 const byId = (id: string) => ALL_FIELDS.find((f) => f.id === id)!;
 

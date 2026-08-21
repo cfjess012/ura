@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { getDb, schema } from "@/lib/db";
-import { missingRequired, type IntakeValues } from "@/lib/intake";
+import { missingRequired } from "@/lib/intake";
+import { intakeValuesFrom } from "@/lib/intake-values";
+import { projectStore } from "@/lib/repo";
 import { IntakeForm } from "./intake-form";
 import { ProjectHeader } from "./project-header";
 
@@ -13,33 +13,10 @@ export default async function ProjectPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const db = getDb();
-  const [row] = await db
-    .select()
-    .from(schema.projects)
-    .where(eq(schema.projects.id, id));
+  const row = await projectStore().get(id);
   if (!row) notFound();
 
-  const initial: IntakeValues = {
-    projectName: row.projectName,
-    businessPurpose: row.businessPurpose,
-    projectDescription: row.projectDescription,
-    techNonTech: row.techNonTech,
-    usesAi: row.usesAi,
-    aiUseCase: row.aiUseCase,
-    businessOwner: row.businessOwner,
-    technicalOwner: row.technicalOwner,
-    collaborators: row.collaborators,
-    initiativeType: row.initiativeType,
-    priorAssessmentRef: row.priorAssessmentRef,
-    businessUnit: row.businessUnit,
-    otherUnits: row.otherUnits,
-    targetGoLive: row.targetGoLive ?? "",
-    vendorNames: row.vendorNames,
-    coupaOnboarded: row.coupaOnboarded,
-    dataClassification: row.dataClassification,
-    dataElements: row.dataElements,
-  };
+  const initial = intakeValuesFrom(row as unknown as Record<string, unknown>);
 
   const outstanding = missingRequired(initial).length;
   const nextLine =

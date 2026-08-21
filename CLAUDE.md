@@ -32,6 +32,22 @@ with recommendations · a demoable artifact · the **agentic opportunity**
 registered for Phase 2 (§22) · **UI evidence** against the demo-ready
 standard (§23). Critique is owed in both directions (Build Rule 14).
 
+## Workspace law: build for AWS from the first line (SPEC §26)
+
+- **Pure logic, separate executors.** Business rules import no framework, no
+  driver, no env — so any module lifts into a Lambda/AgentCore task
+  unchanged. Actions/routes only: read request → call pure fn → call store.
+  Convert FormData/Request at the boundary; never pass them inward.
+- **State is external.** No process memory, no local files, no hardcoded
+  paths. All reads/writes through `src/lib/repo.ts`; nothing else touches
+  the driver.
+- **Config in one place.** Only `src/lib/config.ts` reads process.env, and it
+  validates. Secrets Manager / Parameter Store swap in there alone.
+- **Three test tiers**: `pnpm test:unit` (pure, no deps) · `test:integration`
+  (PGlite, no daemon) · `test:e2e` (running app). Each is a CI step.
+- These are enforced by `test/unit/architecture.test.ts` — drift fails the
+  build, it does not rely on anyone remembering.
+
 ## Non-negotiables (from SPEC, enforced here)
 
 - AWS-ready by construction (SPEC §6.4): containerized, env-only config

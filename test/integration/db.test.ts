@@ -9,13 +9,13 @@ import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { eq } from "drizzle-orm";
 import { beforeAll, describe, expect, it } from "vitest";
-import { projects } from "../src/lib/schema";
+import { projects } from "../../src/lib/schema";
 
 let db: ReturnType<typeof drizzle>;
 
 beforeAll(async () => {
   const pg = new PGlite();
-  const dir = join(__dirname, "..", "drizzle");
+  const dir = join(__dirname, "..", "..", "drizzle");
   for (const file of readdirSync(dir)
     .filter((f) => f.endsWith(".sql"))
     .sort()) {

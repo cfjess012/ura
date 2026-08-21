@@ -3,7 +3,7 @@
  * the log gets the truth, and nothing internal ever crosses that line.
  */
 import { describe, expect, it, vi } from "vitest";
-import { errorRef, failure, isFailure } from "../src/lib/errors";
+import { errorRef, failure, isFailure } from "../../src/lib/errors";
 
 describe("failure()", () => {
   it("never leaks internal detail into the user-facing message", () => {
