@@ -68,6 +68,7 @@ work, not after:
 | audit the instrument as a whole (tiers, rubrics, coverage) | `instrument-coherence` |
 | change any question, option, or condition | `instrument-change` |
 | hand the owner something to test | `uat-checkout` |
+| write anything to the owner | `owner-brief` |
 
 Law lives in SPEC and is always true; procedure lives in skills and is
 loaded on demand; teeth live in tests and hooks. Loading is probabilistic —

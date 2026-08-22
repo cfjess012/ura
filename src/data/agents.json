@@ -81,6 +81,16 @@
           "where": ".claude/skills/instrument-coherence/SKILL.md"
         },
         {
+          "name": "owner-brief",
+          "status": "live",
+          "what": "How to write to the owner — short, sectioned, in human language",
+          "trigger": "whenever writing a message to the owner, not only at a slice review.",
+          "access": "None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.",
+          "gist": "The owner said it plainly on 2026-08-21: \"I find your responses overly verbose. I want your output going forward to be straight, broken up and formatted by section.",
+          "full": "Implements SPEC §21 (the owner's half of every conversation).\n\nThe owner said it plainly on 2026-08-21: **\"I find your responses overly\nverbose. I want your output going forward to be straight, broken up and\nformatted by section. Talk in human language.\"**\n\nA long message is not thoroughness. It is work handed back to the person\nwho asked for it — they now have to find the answer inside the prose.\n\n## The shape\n\n- **Lead with the answer.** First line says what happened or what is being\n  asked for. Not the journey to it.\n- **Sections with bold headers.** Three to five. If a message needs more,\n  it is two messages or a file.\n- **Short paragraphs.** Two or three sentences. One idea each.\n- **Bullets for lists of things.** Prose for reasoning. Never bullets for\n  reasoning — that is how a list of nine items pretends to be an argument.\n- **End with what is owed** — by whom, and by when if it matters.\n\n## Human language\n\n- Say \"the vendor list\" not \"the reference data layer\".\n- Say \"it broke when you left the box blank\" not \"a NOT NULL constraint\n  violation surfaced on the nullable pathway\".\n- Requirement IDs and G-numbers belong in the repo. Use one only when the\n  owner needs it to find something.\n- No throat-clearing. Never open with \"Great question\", \"You're right to\n  ask\", or a recap of what was just requested.\n- Do not narrate the work while doing it. Report it when it is done.\n\n## What still gets said in full\n\nBrevity is a format, not a licence to leave things out. These always\nappear, however short the message:\n\n- **A defect found.** Named, with what it means for the owner.\n- **A decision that is the owner's.** With a recommendation, not a menu.\n- **A disagreement.** Build Rule 16 — critique is owed, not optional. It\n  gets a section of its own, not a clause buried mid-paragraph.\n- **What is not verified.** Silence about a gap reads as a claim.\n\n## Test\n\nRead the message back and ask: could the owner act on this after reading\nonly the bold headers and the first line of each section? If not, it is\nstill a draft.",
+          "where": ".claude/skills/owner-brief/SKILL.md"
+        },
+        {
           "name": "question-design",
           "status": "live",
           "what": "Assess any question from the answering person's vantage point before it ships — can they answer it honestly, does it earn its place, what helper text do they need, and what would an agent do here later",

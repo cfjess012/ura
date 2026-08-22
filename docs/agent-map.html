@@ -752,6 +752,71 @@ event (§8).</pre>
   <article class="node live" data-status="live">
     <button type="button" class="node-head" aria-expanded="false">
       <span class="node-top">
+        <span class="node-name">owner-brief</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">How to write to the owner — short, sectioned, in human language</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>whenever writing a message to the owner, not only at a slice review.</p>
+      <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
+      <p><span class="label">In its own words</span><span class="gist">The owner said it plainly on 2026-08-21: &quot;I find your responses overly verbose. I want your output going forward to be straight, broken up and formatted by section.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>Implements SPEC §21 (the owner's half of every conversation).
+
+The owner said it plainly on 2026-08-21: **&quot;I find your responses overly
+verbose. I want your output going forward to be straight, broken up and
+formatted by section. Talk in human language.&quot;**
+
+A long message is not thoroughness. It is work handed back to the person
+who asked for it — they now have to find the answer inside the prose.
+
+## The shape
+
+- **Lead with the answer.** First line says what happened or what is being
+  asked for. Not the journey to it.
+- **Sections with bold headers.** Three to five. If a message needs more,
+  it is two messages or a file.
+- **Short paragraphs.** Two or three sentences. One idea each.
+- **Bullets for lists of things.** Prose for reasoning. Never bullets for
+  reasoning — that is how a list of nine items pretends to be an argument.
+- **End with what is owed** — by whom, and by when if it matters.
+
+## Human language
+
+- Say &quot;the vendor list&quot; not &quot;the reference data layer&quot;.
+- Say &quot;it broke when you left the box blank&quot; not &quot;a NOT NULL constraint
+  violation surfaced on the nullable pathway&quot;.
+- Requirement IDs and G-numbers belong in the repo. Use one only when the
+  owner needs it to find something.
+- No throat-clearing. Never open with &quot;Great question&quot;, &quot;You're right to
+  ask&quot;, or a recap of what was just requested.
+- Do not narrate the work while doing it. Report it when it is done.
+
+## What still gets said in full
+
+Brevity is a format, not a licence to leave things out. These always
+appear, however short the message:
+
+- **A defect found.** Named, with what it means for the owner.
+- **A decision that is the owner's.** With a recommendation, not a menu.
+- **A disagreement.** Build Rule 16 — critique is owed, not optional. It
+  gets a section of its own, not a clause buried mid-paragraph.
+- **What is not verified.** Silence about a gap reads as a claim.
+
+## Test
+
+Read the message back and ask: could the owner act on this after reading
+only the bold headers and the first line of each section? If not, it is
+still a draft.</pre>
+      </details>
+      <p class="where"><code>.claude/skills/owner-brief/SKILL.md</code></p>
+    </div>
+  </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
         <span class="node-name">question-design</span>
         <span class="chip live">Live</span>
       </span>
