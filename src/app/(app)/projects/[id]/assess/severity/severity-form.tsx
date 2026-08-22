@@ -145,7 +145,7 @@ export function SeverityForm({
         const band = bands[question.questionId];
         const showsDetail = detailFires(question, answers);
         return (
-          <section key={question.id} className="card q2">
+          <section key={question.id} className="card q2" data-focus={question.questionId}>
             <h3 className="q2-name">{question.name}</h3>
             <p className="gate-question" id={`${question.questionId}-label`}>
               {question.text}

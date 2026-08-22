@@ -26,6 +26,8 @@ export type Obligation = {
   questionLabel: string;
   askedByName: string;
   openFor: string;
+  /** Where the question actually lives (skill: alert-destination). */
+  href: string;
 };
 
 export type NewsItem = {
@@ -36,6 +38,7 @@ export type NewsItem = {
   questionLabel: string;
   authorName: string;
   createdAt: string;
+  href: string;
 };
 
 export function AlertBell({
@@ -68,9 +71,12 @@ export function AlertBell({
     };
   }, [open]);
 
-  const go = (projectId: string, handoffId: string) => {
+  // The destination comes with the alert, computed from what it points at.
+  // Building it here is how the first version ended up sending everyone to
+  // the project root, where the intake guard redirected them to a form.
+  const go = (href: string) => {
     setOpen(false);
-    router.push(`/projects/${projectId}?focus=${handoffId}`);
+    router.push(href);
   };
 
   return (
@@ -106,7 +112,7 @@ export function AlertBell({
                   type="button"
                   key={item.handoffId}
                   className="bell-row bell-row-obligation"
-                  onClick={() => go(item.projectId, item.handoffId)}
+                  onClick={() => go(item.href)}
                 >
                   <span className="bell-icon warn" aria-hidden="true">
                     !
@@ -152,7 +158,7 @@ export function AlertBell({
                   type="button"
                   key={item.replyId}
                   className="bell-row"
-                  onClick={() => go(item.projectId, item.handoffId)}
+                  onClick={() => go(item.href)}
                 >
                   <span className="bell-icon" aria-hidden="true">
                     ▤

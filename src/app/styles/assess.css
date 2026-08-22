@@ -148,3 +148,19 @@
   padding: 0.3rem 0.6rem; border-radius: 8px;
 }
 .rail-back-link:hover { background: var(--neutral-100); color: var(--neutral-900); }
+
+/* Landed here from an alert (skill: alert-destination). Outline plus a
+   brief lift, never colour alone, and it fades — a highlight that stays is
+   a highlight nobody sees. */
+.landed {
+  outline: 3px solid var(--brand);
+  outline-offset: 3px;
+  animation: landed-settle 2.6s var(--ease, ease) forwards;
+}
+@keyframes landed-settle {
+  0%, 60% { outline-color: var(--brand); }
+  100% { outline-color: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landed { animation: none; }
+}

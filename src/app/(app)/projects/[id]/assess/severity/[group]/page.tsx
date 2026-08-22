@@ -13,6 +13,8 @@ import {
 } from "@/lib/severity";
 import { NotYourAssessment } from "../../../not-yours";
 import { ProjectHeader } from "../../../project-header";
+import * as React from "react";
+import { FocusOnArrival } from "@/app/(app)/focus-on-arrival";
 import { SeverityForm, type SeverityItem } from "../severity-form";
 import { SeverityRail, groupKey, groupsFor } from "../severity-rail";
 
@@ -106,6 +108,9 @@ export default async function SeverityPage({
             situation land in the same place.
           </p>
 
+          <React.Suspense fallback={null}>
+            <FocusOnArrival />
+          </React.Suspense>
           <SeverityForm
             projectId={id}
             items={items}

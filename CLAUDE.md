@@ -70,6 +70,7 @@ work, not after:
 | hand the owner something to test | `uat-checkout` |
 | write anything to the owner | `owner-brief` |
 | answer design feedback or a screenshot | `design-mock` |
+| build an alert, notification, or attestation prompt | `alert-destination` |
 
 Law lives in SPEC and is always true; procedure lives in skills and is
 loaded on demand; teeth live in tests and hooks. Loading is probabilistic —

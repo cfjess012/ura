@@ -6,6 +6,7 @@ import { switchUser } from "@/app/actions";
 import { PersonSwitcher } from "../person-switcher";
 import { AlertBell } from "./alert-bell";
 import { openFor } from "@/lib/handoff";
+import { destinationFor } from "@/lib/destination";
 
 /**
  * The working chrome. The landing page sits outside this group deliberately
@@ -42,8 +43,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 questionLabel: h.questionLabel,
                 askedByName: h.askedByName,
                 openFor: openFor(h, now),
+                href:
+                  destinationFor(h.projectId, h.questionId)?.href ??
+                  `/projects/${h.projectId}`,
               }))}
-              news={news.map((n) => ({ ...n, createdAt: n.createdAt.toISOString() }))}
+              news={news.map((n) => ({
+                ...n,
+                createdAt: n.createdAt.toISOString(),
+                href:
+                  destinationFor(n.projectId, n.questionId)?.href ??
+                  `/projects/${n.projectId}`,
+              }))}
             />
             <PersonSwitcher people={people} current={current} />
             {/* The pilot equivalent of signing out: back to the front door. */}

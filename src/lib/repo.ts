@@ -372,6 +372,7 @@ export type News = {
   handoffId: string;
   projectId: string;
   projectName: string;
+  questionId: string;
   questionLabel: string;
   authorName: string;
   createdAt: Date;
@@ -479,6 +480,7 @@ function postgresHandoffStore(): HandoffStore {
           handoffId: r.handoffId,
           projectId: r.projectId,
           projectName: r.projectName,
+          questionId: r.questionId,
           questionLabel: questionLabelFor(r.questionId),
           authorName: r.authorName,
           createdAt: r.createdAt,

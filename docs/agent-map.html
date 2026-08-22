@@ -356,6 +356,78 @@ registered feature impossible later.</pre>
   <article class="node live" data-status="live">
     <button type="button" class="node-head" aria-expanded="false">
       <span class="node-top">
+        <span class="node-name">alert-destination</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Every alert, notification and attestation prompt lands the person ON the thing that needs addressing</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>whenever building anything that points a person at work elsewhere in the product.</p>
+      <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
+      <p><span class="label">In its own words</span><span class="gist">The owner set this rule on 2026-08-22, after clicking a notification about a question and arriving at the top of an intake form: &quot;The notification should take you directly to where the inquiry needs addressed.&quot; An alert that names a thing and then drops you near it has handed the work back. The pers</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>Implements SPEC §24 (the experience principles) and §23.
+
+The owner set this rule on 2026-08-22, after clicking a notification about a
+question and arriving at the top of an intake form: **&quot;The notification
+should take you directly to where the inquiry needs addressed.&quot;**
+
+An alert that names a thing and then drops you near it has handed the work
+back. The person now has to find it, and finding it is the job the alert
+was supposed to have done.
+
+## The rule
+
+**An alert carries a destination, and the destination is the thing itself.**
+
+Not the project. Not the section. The question, the answer, the finding —
+scrolled to, visible, and marked so the eye lands on it.
+
+## What every alert needs
+
+1. **A destination computed from what it points at**, never hardcoded at the
+   call site. One function maps a subject to its screen and anchor, so a
+   new alert type gets a destination by being a subject, not by someone
+   remembering to add a link.
+2. **An anchor in the URL** — `?focus=&lt;id&gt;`. The convention is one word and
+   it is the same everywhere.
+3. **A receiving surface that honours it**: scroll the thing into view, mark
+   it, and put keyboard focus on it. Marking is never colour alone.
+4. **An honest failure.** If the destination cannot be reached — an earlier
+   step is incomplete, the record moved, permission is missing — the person
+   is told where they landed and why, on arrival. A silent redirect to
+   somewhere else is the defect this rule exists to prevent, and it is what
+   shipped the first time.
+
+## What this rules out
+
+- Linking to a project root and hoping the person scrolls.
+- A destination assembled inside a component, so two alert types drift.
+- A guard that redirects and swallows the anchor, leaving the person on a
+  screen that says nothing about why they are there.
+- An anchor that survives navigation and re-marks the thing every time
+  someone comes back to the page. Focus is a one-time act.
+
+## The repeatable shape
+
+The same three pieces every time, whatever raises the alert:
+
+- **subject** — what it is about (a question id, an answer id, a finding id)
+- **destination** — where that subject lives, derived from it
+- **why** — the sentence the person reads on arrival, if the surface needs
+  one to make sense of why they are here
+
+Attestation prompts, findings, conflicts and review queues all take this
+shape. If a new one cannot be expressed in it, that is a sign the subject
+is not addressable yet — fix that rather than linking to the nearest page.</pre>
+      </details>
+      <p class="where"><code>.claude/skills/alert-destination/SKILL.md</code></p>
+    </div>
+  </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
         <span class="node-name">aws-ready</span>
         <span class="chip live">Live</span>
       </span>
