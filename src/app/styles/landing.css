@@ -87,3 +87,24 @@
   border-bottom: 1px solid transparent;
 }
 .appbar-leave:hover { color: var(--neutral-0); border-bottom-color: var(--accent); }
+
+/* Sign-in grouped by role (item 11). Fourteen ungrouped cards is a list;
+   grouped, it is an organisation. */
+.persona-group { margin: 0 0 1.4rem; }
+.persona-group-title {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--brand); margin: 0 0 0.15rem;
+}
+.persona-group-desc {
+  font-size: 0.82rem; color: var(--neutral-600); margin: 0 0 0.6rem;
+}
+/* The one in use. Never colour alone — the arrow reads "in use" as words. */
+.persona-card.current {
+  border-color: var(--brand);
+  background: var(--surface-1);
+  box-shadow: inset 3px 0 0 var(--brand);
+}
+.persona-card.current .persona-arrow {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--brand);
+}

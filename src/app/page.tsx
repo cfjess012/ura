@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { peopleStore } from "@/lib/repo";
-import { ROLE_SUMMARY } from "@/lib/people";
+import { cookies } from "next/headers";
+import { PERSON_COOKIE } from "@/lib/current-person";
+import { ROLES, ROLE_LABEL, ROLE_SUMMARY } from "@/lib/people";
 import { choosePerson } from "./actions";
 import { TypedLine } from "./typed-line";
 
@@ -15,6 +17,11 @@ export const dynamic = "force-dynamic";
  */
 export default async function Landing() {
   const people = await peopleStore().signIns();
+  // The raw cookie, not currentPerson(): that one always resolves to
+  // somebody, so it cannot tell "nobody has chosen yet" from "Priya is
+  // chosen" — and the front door needs to know the difference before it
+  // highlights a row.
+  const currentId = (await cookies()).get(PERSON_COOKIE)?.value ?? null;
   if (people.length === 0) redirect("/projects");
 
   const initials = (name: string) =>
@@ -90,32 +97,46 @@ export default async function Landing() {
             not a sign-in: anyone can choose any role.
           </p>
 
-          {people.map((person) => (
-            <form action={choosePerson} key={person.id}>
-              <input type="hidden" name="personId" value={person.id} />
-              <button type="submit" className="persona-card">
-                <span className="persona-avatar" aria-hidden="true">
-                  {initials(person.name)}
-                </span>
-                <span className="persona-body">
-                  <span className="persona-line">
-                    <span className="persona-card-name">{person.name}</span>
-                    <span className={`persona-tag ${person.role}`}>
-                      {person.role === "assessor"
-                        ? "Risk Assessor"
-                        : person.role === "admin"
-                          ? "Administrator"
-                          : "Requester"}
-                    </span>
-                  </span>
-                  <span className="persona-desc">{ROLE_SUMMARY[person.role]}</span>
-                </span>
-                <span className="persona-arrow" aria-hidden="true">
-                  →
-                </span>
-              </button>
-            </form>
-          ))}
+          {ROLES.map((role) => {
+            const inRole = people.filter((person) => person.role === role);
+            if (inRole.length === 0) return null;
+            return (
+              <div className="persona-group" key={role}>
+                <p className="persona-group-title">{ROLE_LABEL[role]}</p>
+                <p className="persona-group-desc">{ROLE_SUMMARY[role]}</p>
+                {inRole.map((person) => {
+                  const current = person.id === currentId;
+                  return (
+                    <form action={choosePerson} key={person.id}>
+                      <input type="hidden" name="personId" value={person.id} />
+                      <button
+                        type="submit"
+                        className={`persona-card${current ? " current" : ""}`}
+                        aria-current={current ? "true" : undefined}
+                      >
+                        <span className="persona-avatar" aria-hidden="true">
+                          {initials(person.name)}
+                        </span>
+                        <span className="persona-body">
+                          <span className="persona-line">
+                            <span className="persona-card-name">{person.name}</span>
+                            {/* What they cover, not what their role is called —
+                                the group heading already said the role. */}
+                            {person.title && (
+                              <span className="persona-tag">{person.title}</span>
+                            )}
+                          </span>
+                        </span>
+                        <span className="persona-arrow" aria-hidden="true">
+                          {current ? "in use" : "→"}
+                        </span>
+                      </button>
+                    </form>
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
       </section>
     </main>

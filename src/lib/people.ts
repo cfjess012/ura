@@ -22,6 +22,8 @@ export type Person = {
    * owner, which is what an IdP lookup gives you on day one (G-46).
    */
   signsIn: boolean;
+  /** The risk area this person owns, for assessors. Null for everyone else. */
+  riskDomain: string | null;
 };
 
 export function isRole(value: string): value is Role {

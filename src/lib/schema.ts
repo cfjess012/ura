@@ -87,6 +87,12 @@ export const people = pgTable("people", {
   email: text("email").notNull().default(""),
   /** Only the personas sign in; the rest of the directory exists to be chosen. */
   signsIn: boolean("signs_in").notNull().default(false),
+  /**
+   * Which risk area this assessor owns — a category key from the Tier-1
+   * instrument, or null. It is the routing table for a domain hand-off,
+   * grounded in the eleven areas rather than a second taxonomy (S4.7).
+   */
+  riskDomain: text("risk_domain"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

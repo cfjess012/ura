@@ -210,13 +210,16 @@ describe("only personas can be signed in as", () => {
     const personas = await pg.query<{ count: number }>(
       "select count(*)::int as count from people where signs_in",
     );
-    expect(personas.rows[0]!.count).toBe(3);
+    expect(personas.rows[0]!.count).toBeGreaterThan(2);
     expect(all.rows[0]!.count).toBeGreaterThan(personas.rows[0]!.count);
   });
 
-  it("the personas are exactly one of each role", async () => {
+  it("every role can be signed in as", async () => {
+    // Not a fixed count. This asserted "exactly three" the day it was
+    // written and was wrong within the hour, when the domain assessors
+    // arrived — a test pinned to today's data rather than to the rule.
     const rows = await pg.query<{ role: string }>(
-      "select role from people where signs_in order by role",
+      "select distinct role from people where signs_in order by role",
     );
     expect(rows.rows.map((r) => r.role)).toEqual(["admin", "assessor", "requester"]);
   });
@@ -230,5 +233,32 @@ describe("only personas can be signed in as", () => {
       expect(row.signs_in).toBe(false);
       expect(row.email).toMatch(/@stelly\.com$/);
     }
+  });
+
+  it("a risk domain names a real risk area, and only an assessor has one", async () => {
+    // The external reference: the instrument's own category keys. A domain
+    // hand-off routes by this column, so a typo here would route a question
+    // to nobody, silently.
+    const gates = JSON.parse(
+      readFileSync(join(__dirname, "..", "..", "src", "data", "instrument", "gates.json"), "utf8"),
+    ) as { categories: { key: string }[] };
+    const known = new Set(gates.categories.map((c) => c.key));
+    const rows = await pg.query<{ id: string; role: string; risk_domain: string | null }>(
+      "select id, role, risk_domain from people where risk_domain is not null",
+    );
+    expect(rows.rows.length).toBeGreaterThan(5);
+    for (const row of rows.rows) {
+      expect(row.role, row.id).toBe("assessor");
+      expect(known, `${row.id} owns "${row.risk_domain}", which is not a risk area`).toContain(
+        row.risk_domain!,
+      );
+    }
+  });
+
+  it("someone owns the questions that belong to no domain", async () => {
+    const rows = await pg.query<{ count: number }>(
+      "select count(*)::int as count from people where role = 'assessor' and risk_domain is null and signs_in",
+    );
+    expect(rows.rows[0]!.count).toBeGreaterThan(0);
   });
 });

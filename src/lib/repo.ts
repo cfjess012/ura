@@ -278,6 +278,7 @@ export function postgresPeopleStore(): PeopleStore {
     title: row.title,
     email: row.email,
     signsIn: row.signsIn,
+    riskDomain: row.riskDomain,
   });
   return {
     async list() {
