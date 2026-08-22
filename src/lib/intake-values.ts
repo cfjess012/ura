@@ -28,9 +28,8 @@ export type IntakePatch = Record<string, string | string[] | null>;
  * - notes ask nothing and store nothing;
  * - **only fields the submission is responsible for are written.** A form
  *   covering one section declares its scope; everything outside it is left
- *   exactly as it was. Without this, saving one section silently erased the
- *   multi-select answers in every other section — and the save reported
- *   success (found by independent verification, G-28);
+ *   exactly as it was. Without it, saving one section clears the
+ *   multi-select answers in every other one, and reports success (G-28);
  * - inside the declared scope a multi-select always writes an array, so
  *   clearing one genuinely persists;
  * - a blank date stores null, never "" — blank means "no date yet";
@@ -48,7 +47,6 @@ export function intakePatchFrom(entries: SubmittedEntries): IntakePatch {
       // Inside a declared scope, an absent multi-select means "cleared" and
       // must persist. With no scope declared we cannot tell "cleared" from
       // "not part of this form", so we leave it alone — the safe reading.
-      // The unsafe reading is what erased whole sections (G-28, N8).
       if (scope) patch[field.id] = submitted ?? [];
       else if (submitted !== undefined) patch[field.id] = submitted;
       continue;
@@ -85,7 +83,7 @@ export function intakeValuesFrom(row: Record<string, unknown>): IntakeValues {
   return values;
 }
 
-/** One field's move from what it was to what it is now (F5). */
+/** One field's move from what it was to what it is now. */
 export type IntakeChange = {
   fieldId: string;
   previousValue: string | string[] | null;

@@ -55,10 +55,10 @@ export type Category = {
   prefill: GatePrefill[];
   /**
    * True where the area applies to every assessment, so asking is ceremony
-   * (audit C-8, G-36). The category is not removed and its risk coverage
-   * does not change — the *question* is. A gate answered the same way by
-   * everyone sorts nobody, and a question with a foregone answer spends a
-   * person's attention for nothing.
+   * (G-36). The category is not removed and its risk coverage does not
+   * change — the *question* is. A gate answered the same way by everyone
+   * sorts nobody, and a question with a foregone answer spends a person's
+   * attention for nothing.
    */
   alwaysApplies?: boolean;
   /** Why it always applies, in the words shown to the person. */
@@ -74,12 +74,10 @@ export type Instrument = {
 };
 
 /**
- * Exported so its rules can be tested. It was module-private, which meant
- * the four reference checks added in S3 round 2 — unknown gate, `paths`
- * read before paths resolve, unknown category, unknown intake field —
- * were unreachable from the suite and pinned by nothing. A future edit
- * could have deleted them with every gate staying green (S4
- * verification, F10).
+ * Exported so its rules can be tested. Its four reference checks — unknown
+ * gate, `paths` read before paths resolve, unknown category, unknown
+ * intake field — are pinned by nothing else; module-private, an edit could
+ * delete them with every gate staying green.
  */
 export function validate(candidate: Instrument): Instrument {
   const problems: string[] = [];
@@ -135,11 +133,9 @@ export function validate(candidate: Instrument): Instrument {
   }
   // Derivations may read what a person CHOSE, never what another rule
   // derived. Checked across the whole instrument rather than per category,
-  // because a rule can reference any category's paths — the earlier
-  // per-category check inspected one field name and missed every other
-  // shape, so a chained rule passed validation and then silently never
-  // fired. A rule that looks correct and does nothing is worse than one
-  // that is rejected.
+  // because a rule can reference any category's paths. A chained rule
+  // validates as well-formed and then never fires — and a rule that looks
+  // correct and does nothing is worse than one that is rejected.
   const derivedIds = new Set(
     (candidate.categories ?? []).flatMap((c) => (c.derivedPaths ?? []).map((d) => d.id)),
   );
@@ -168,7 +164,7 @@ export function validate(candidate: Instrument): Instrument {
   // surface evaluating it can actually see. A rule referring to a gate key
   // with a typo, or to `paths` from a gate pre-fill (which is resolved
   // before any path is chosen), validates as well-formed and then never
-  // fires — the silent no-op B3 was raised for, in its general form.
+  // fires — the silent no-op, in its general form.
   const categoryKeys = new Set((candidate.categories ?? []).map((c) => c.key));
   const knownField = (field: string, where: string, canSeePaths: boolean) => {
     if (field === "paths" || field.startsWith("path.")) {
@@ -262,7 +258,7 @@ export type GateState = {
  * Fold stored answers and pre-fill into one state per category.
  *
  * Two passes, because a gate may be answered by another gate: "a system is
- * being built" answers "connections and access change" (audit C-5). The
+ * being built" answers "connections and access change". The
  * first pass resolves everything a person or intake settled; the second
  * lets the remaining gates read those answers. One level only — a gate may
  * not pre-fill from a gate that was itself pre-filled — so there is no
@@ -319,9 +315,7 @@ export function gateStates(
 
   // Settle what people and intake alone establish, then keep resolving
   // until nothing new appears. A fixed point rather than a fixed number of
-  // passes: two passes silently capped derivation at one hop, so a rule
-  // that read a gate two steps upstream validated fine and then did
-  // nothing — chain depth quietly decided whether an authored rule worked.
+  // passes, so chain depth never decides whether an authored rule works.
   let states = categories.map((category) => settle(category, intake, "intake"));
   for (let pass = 0; pass < categories.length; pass++) {
     const lookup: AnswerLookup = { ...intake };
@@ -353,9 +347,8 @@ export function askableCategories(): Category[] {
 
 /**
  * The headline on the risk-area summary. Kept here, and pure, because it is
- * a claim about the person's progress and it must be true: the screen used
- * to say "Nearly there." with ten of eleven areas unanswered (F6). Encourage
- * only what the numbers actually support (§24.8).
+ * a claim about the person's progress and it must be true: encourage only
+ * what the numbers actually support (§24.8).
  */
 export function gateProgressHeadline(answered: number, total: number): string {
   if (total > 0 && answered >= total) return "That's the whole map.";

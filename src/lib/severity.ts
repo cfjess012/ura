@@ -75,7 +75,7 @@ export type SeverityDoc = {
   controls: Record<string, { name: string; family: string; objective?: string }>;
 };
 
-/** Exported for the same reason as the Tier-1 validator (F10). */
+/** Exported so its reference checks are reachable from the suite. */
 export function validate(doc: SeverityDoc) {
   const problems: string[] = [];
   const ids = new Set<string>();
@@ -103,13 +103,11 @@ export function validate(doc: SeverityDoc) {
         problems.push(`${q.id}: derived mapping for "${value}" is not a band`);
     }
   }
-  // A reference that does not resolve is the silent-no-op class again: a
-  // question whose `path` names nothing is simply never asked, and a
-  // `derivedFrom.from` naming nothing returns null forever. Both look
-  // correct in the data and do nothing — the exact hole the Tier-1
-  // validator was extended to close in S3 round 2, left open in the new
-  // file (S4 verification, F8). The reference is external: the Tier-1
-  // instrument's own path options and intake field ids.
+  // A reference that does not resolve is a silent no-op: a question whose
+  // `path` names nothing is simply never asked, and a `derivedFrom.from`
+  // naming nothing returns null forever. Both look correct in the data and
+  // do nothing. The reference is external — the Tier-1 instrument's own
+  // path options and intake field ids — so only this check can catch it.
   const pathIds = new Set(
     CATEGORIES.flatMap((c) => [
       ...(c.pathQuestion?.options ?? []).map((o) => o.id),
@@ -125,10 +123,9 @@ export function validate(doc: SeverityDoc) {
   }
 
   // Every control objective a question can pull in must have a human name
-  // in the catalogue. Without this the screen falls back to the code —
-  // which is what shipped, and what NFR-9 forbids (S4 verification, B1).
-  // The check is here rather than in a test so a control added without a
-  // name cannot boot, let alone reach a person.
+  // in the catalogue, or the screen falls back to the code — which NFR-9
+  // forbids. The check is here rather than in a test so a control added
+  // without a name cannot boot, let alone reach a person.
   const named = new Set(Object.keys(doc.controls ?? {}));
   const cited = new Set<string>();
   for (const q of doc.questions ?? []) {
@@ -231,10 +228,9 @@ export function detailFires(question: SeverityQuestion, answers: AnswerLookup): 
  * The catalogue entry for a control objective — the owner's own, taken
  * from their instrument, keyed by their code.
  *
- * It exists because the code was the on-screen label. NFR-9 forbids an
- * internal identifier in user-facing text, and "T3-RES-01" tells a
- * business owner nothing about what is being asked of them; "Backup &
- * Recovery" tells them most of it (S4 verification, B1).
+ * NFR-9 forbids an internal identifier in user-facing text: "T3-RES-01"
+ * tells a business owner nothing about what is being asked of them;
+ * "Backup & Recovery" tells them most of it.
  */
 export type ControlObjective = {
   name: string;
@@ -342,20 +338,14 @@ export function severitySubmissionProblems(
 /**
  * What a severity screen may actually write, given what is on it.
  *
- * Two rules, and the second is the one that was missing. A band is written
- * only when the person answered it. A **detail question is written only
- * when it is on screen** — its parent band answered, and answered at or
- * above the threshold that reveals it.
+ * Two rules. A band is written only when the person answered it. A
+ * **detail question is written only when it is on screen** — its parent
+ * band answered, and answered at or above the threshold that reveals it.
  *
- * Without the second rule, pressing the forward control on an untouched
- * screen recorded an empty list against every detail question in the
- * group, including ones below their threshold and ones whose parent was
- * unanswered. An empty list is not "no answer" in this instrument: it is
- * the substantive answer *none of these apply*, insert-only, attributed,
- * and confirmed. That is G-42 one tier down — the autosave half of the
- * lesson was applied and the submit half was not, because submitting
- * writes the whole screen and nothing asked which of the screen was
- * showing (found by independent verification of S4, B2).
+ * The second rule matters because an empty list is not "no answer" in this
+ * instrument: it is the substantive answer *none of these apply*,
+ * insert-only, attributed and confirmed. Writing one for a question nobody
+ * was shown records a claim on their behalf, permanently (G-42).
  *
  * It lives here rather than in the form so it is provable without a
  * browser (§26.1).
@@ -366,12 +356,10 @@ export function writableSeverityAnswers(
   details: Record<string, string[]>,
   touched: string[],
   /**
-   * What is already recorded. An answer identical to the one on file is
-   * not an event: autosave stored the band, then the forward control
-   * stored it again, and the history filled with the same fact twice
-   * (S4 verification, N3). Insert-only makes that permanent noise, and
-   * a history padded with non-events is a history nobody reads — the
-   * same rule `intakeChanges()` applies one tier up.
+   * What is already recorded. An answer identical to the one on file is not
+   * an event, and insert-only would make it permanent: a history padded
+   * with non-events is a history nobody reads. `intakeChanges()` applies
+   * the same rule one tier up.
    */
   persisted: Record<string, string | string[] | undefined> = {},
 ): Record<string, string | string[]> {

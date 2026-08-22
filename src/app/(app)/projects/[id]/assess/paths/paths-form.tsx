@@ -43,9 +43,8 @@ export function PathsForm({
   const everyArea = areas.map((a) => a.category.key);
 
   // One call covering every area named: all of them land or none do, so the
-  // message below can be true. Saving them in a loop meant a failure halfway
-  // committed the first areas while telling the person nothing had been
-  // saved — and the unsaved ticks then vanished on reload.
+  // savebar's message can be true. Saved in a loop, a failure halfway
+  // commits the first areas while the person is told nothing was saved.
   const write = (selections: Record<string, string[]>, areaKeys: string[]) =>
     answerPaths(
       projectId,
@@ -56,13 +55,12 @@ export function PathsForm({
       ),
     );
 
-  // Ticks are saved as they are made, not only on submit. Leaving by the
-  // rail — the primary navigation on this very screen — used to discard them
-  // silently, which is the one thing §24.3 says a control must never do. The
-  // submit button still exists: it saves and moves on.
+  // Ticks are saved as they are made, not only on submit: the rail is the
+  // primary navigation on this very screen, and leaving by it must not
+  // discard them silently (§24.3). The submit button saves and moves on.
   function toggle(key: string, id: string, on: boolean) {
     // Computed outside setPicked: a state updater must be pure, and saving
-    // from inside one made React's double-invoke toggle the tick twice.
+    // from inside one makes React's double-invoke toggle the tick twice.
     const current = picked[key] ?? [];
     const next = {
       ...picked,
@@ -70,8 +68,8 @@ export function PathsForm({
     };
     setPicked(next);
     autosave.touched.current.add(key);
-    // Only the areas this person has touched: ticking one box used to commit
-    // a positive "none of these apply" for every other open area.
+    // Only the areas this person has touched — ticking one box must not
+    // commit a positive "none of these apply" for every other open area.
     autosave.save(() => write(next, [...autosave.touched.current]));
   }
 

@@ -53,8 +53,6 @@ export type LitPath = {
    * Two rules can both be satisfied for one path, and the second reason is
    * not redundant — it is a separate fact about the assessment, and a
    * reviewer who sees only the first is reading an incomplete record.
-   * Independent verification found the previous single-string version
-   * silently discarding the second.
    */
   because: string[];
 };
