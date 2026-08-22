@@ -1,0 +1,26 @@
+{
+  "slug": "vendors",
+  "version": "2026-08-21.1",
+  "label": "Vendors",
+  "note": "Synthetic, for the pilot. A real deployment resolves this from the sourcing system (Coupa) rather than a file — that connector is Phase 2, registered in §22.1, not built here. Real product names are used because a vendor list of invented companies makes the demo read as a mock; nothing about them is asserted beyond the name.",
+  "allowsUnlisted": true,
+  "entries": [
+    { "id": "V_AWS", "label": "Amazon Web Services" },
+    { "id": "V_ANTHROPIC", "label": "Anthropic" },
+    { "id": "V_ATLASSIAN", "label": "Atlassian" },
+    { "id": "V_COUPA", "label": "Coupa" },
+    { "id": "V_DATABRICKS", "label": "Databricks" },
+    { "id": "V_DELOITTE", "label": "Deloitte" },
+    { "id": "V_GOOGLE", "label": "Google Cloud" },
+    { "id": "V_IBM", "label": "IBM" },
+    { "id": "V_MICROSOFT", "label": "Microsoft" },
+    { "id": "V_OKTA", "label": "Okta" },
+    { "id": "V_ORACLE", "label": "Oracle" },
+    { "id": "V_SALESFORCE", "label": "Salesforce" },
+    { "id": "V_SAP", "label": "SAP" },
+    { "id": "V_SERVICENOW", "label": "ServiceNow" },
+    { "id": "V_SNOWFLAKE", "label": "Snowflake" },
+    { "id": "V_WORKDAY", "label": "Workday" },
+    { "id": "V_ZOOM", "label": "Zoom" }
+  ]
+}

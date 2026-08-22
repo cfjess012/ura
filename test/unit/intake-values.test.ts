@@ -3,6 +3,8 @@
  * environment. These are the tests that will run unchanged as a CodeBuild
  * step, and the reason the same logic can move into a Lambda handler.
  */
+import { UNLISTED_OPTION, unlistedKey } from "../../src/lib/intake-values";
+import { listBySlug } from "../../src/lib/reference";
 import { describe, expect, it } from "vitest";
 import {
   intakeChanges,
@@ -25,9 +27,9 @@ describe("intakePatchFrom (pure)", () => {
     // found it; the suite could not, because the suite encoded the bug.
     const savingOwnershipOnly = intakePatchFrom({
       [SCOPE_KEY]: ["businessOwner", "technicalOwner", "collaborators", "initiativeType"],
-      businessOwner: ["P. Sharma"],
+      collaborators: ["Wei Chen, Petra Novak"],
     });
-    expect(savingOwnershipOnly.businessOwner).toBe("P. Sharma");
+    expect(savingOwnershipOnly.collaborators).toBe("Wei Chen, Petra Novak");
     expect(savingOwnershipOnly).not.toHaveProperty("dataClassification");
     expect(savingOwnershipOnly).not.toHaveProperty("dataElements");
   });
@@ -91,13 +93,13 @@ describe("intakeValuesFrom (pure)", () => {
 
 describe("what changed, and what it was before (F5)", () => {
   it("records only fields that actually moved", () => {
-    const before = { projectName: "Cadenza", businessOwner: "P. Sharma" };
+    const before = { projectName: "Cadenza", collaborators: "P. Sharma" };
     const changes = intakeChanges(before, {
       projectName: "Cadenza",
-      businessOwner: "N. Kahan",
+      collaborators: "N. Kahan",
     });
     expect(changes).toEqual([
-      { fieldId: "businessOwner", previousValue: "P. Sharma", value: "N. Kahan" },
+      { fieldId: "collaborators", previousValue: "P. Sharma", value: "N. Kahan" },
     ]);
   });
 
@@ -111,7 +113,7 @@ describe("what changed, and what it was before (F5)", () => {
   });
 
   it("treats an absent previous value and an empty one as the same non-event", () => {
-    expect(intakeChanges({}, { businessOwner: "" })).toEqual([]);
+    expect(intakeChanges({}, { collaborators: "" })).toEqual([]);
     expect(intakeChanges({ dataElements: [] }, { dataElements: [] })).toEqual([]);
   });
 
@@ -120,5 +122,109 @@ describe("what changed, and what it was before (F5)", () => {
     expect(changes).toEqual([
       { fieldId: "targetGoLive", previousValue: "2026-11-02", value: null },
     ]);
+  });
+});
+
+/**
+ * S4.5 — a picked answer is a record of what the person saw, not a string
+ * (FR-29, FR-30, NFR-22; G-46, G-47).
+ */
+describe("reference-backed fields", () => {
+  const DIRECTORY = [
+    { id: "d.chen", label: "Wei Chen" },
+    { id: "d.novak", label: "Petra Novak" },
+  ];
+  const scope = (...ids: string[]) => ({ [SCOPE_KEY]: ids });
+
+  it("stores the entry, the label shown, and the list version", () => {
+    const patch = intakePatchFrom(
+      { ...scope("businessUnit"), businessUnit: ["BU_LEG"] },
+      DIRECTORY,
+    );
+    expect(patch.businessUnit).toEqual({
+      id: "BU_LEG",
+      label: "Legal",
+      version: listBySlug("business-units")!.version,
+    });
+  });
+
+  it("stores a person's name beside their id — names change too", () => {
+    const patch = intakePatchFrom(
+      { ...scope("businessOwner"), businessOwner: ["d.chen"] },
+      DIRECTORY,
+    );
+    expect(patch.businessOwner).toMatchObject({ id: "d.chen", label: "Wei Chen" });
+  });
+
+  it("takes several for a pick-many, in the order they were given", () => {
+    const patch = intakePatchFrom(
+      { ...scope("vendorNames"), vendorNames: ["V_SNOWFLAKE", "V_MICROSOFT"] },
+      DIRECTORY,
+    );
+    expect((patch.vendorNames as { label: string }[]).map((v) => v.label)).toEqual([
+      "Snowflake",
+      "Microsoft",
+    ]);
+  });
+
+  it("records an off-list answer as its own shape, never as an id", () => {
+    const patch = intakePatchFrom(
+      {
+        ...scope("vendorNames"),
+        vendorNames: [UNLISTED_OPTION],
+        [unlistedKey("vendorNames")]: ["Novara Health"],
+      },
+      DIRECTORY,
+    );
+    expect(patch.vendorNames).toEqual([{ unlisted: "Novara Health" }]);
+  });
+
+  it("keeps listed and off-list answers side by side", () => {
+    const patch = intakePatchFrom(
+      {
+        ...scope("vendorNames"),
+        vendorNames: ["V_SAP", UNLISTED_OPTION],
+        [unlistedKey("vendorNames")]: ["Novara Health"],
+      },
+      DIRECTORY,
+    );
+    expect(patch.vendorNames).toEqual([
+      { id: "V_SAP", label: "SAP", version: listBySlug("vendors")!.version },
+      { unlisted: "Novara Health" },
+    ]);
+  });
+
+  it("drops an off-list choice with nothing typed rather than storing a blank", () => {
+    const patch = intakePatchFrom(
+      {
+        ...scope("vendorNames"),
+        vendorNames: [UNLISTED_OPTION],
+        [unlistedKey("vendorNames")]: ["   "],
+      },
+      DIRECTORY,
+    );
+    expect(patch.vendorNames).toEqual([]);
+  });
+
+  it("drops an id that is not on the list rather than inventing an answer", () => {
+    const patch = intakePatchFrom(
+      { ...scope("businessUnit"), businessUnit: ["BU_INVENTED"] },
+      DIRECTORY,
+    );
+    expect(patch.businessUnit).toBeNull();
+  });
+
+  it("clearing a pick-many inside its own scope persists as empty", () => {
+    const patch = intakePatchFrom(scope("vendorNames"), DIRECTORY);
+    expect(patch.vendorNames).toEqual([]);
+  });
+
+  it("a changed list version is a changed answer, not a non-event", () => {
+    // The version is part of what the record says, so re-pinning it has to
+    // show up in the history.
+    const before = { businessUnit: { id: "BU_LEG", label: "Legal", version: "2026-01-01.1" } };
+    const after = { businessUnit: { id: "BU_LEG", label: "Legal", version: "2026-08-21.1" } };
+    expect(intakeChanges(before, after)).toHaveLength(1);
+    expect(intakeChanges(before, before)).toEqual([]);
   });
 });

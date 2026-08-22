@@ -3,6 +3,7 @@
  * the two is caught by the PGlite tests, which apply the real SQL and query
  * through this schema (SPEC §10 migration safety).
  */
+import type { IntakeStored } from "./intake-values";
 import {
   boolean,
   date,
@@ -28,17 +29,17 @@ export const projects = pgTable("projects", {
   projectDescription: text("project_description").notNull().default(""),
   usesAi: text("uses_ai").notNull().default(""),
   aiUseCase: text("ai_use_case").notNull().default(""),
-  businessOwner: text("business_owner").notNull().default(""),
-  technicalOwner: text("technical_owner").notNull().default(""),
+  businessOwner: jsonb("business_owner"),
+  technicalOwner: jsonb("technical_owner"),
   collaborators: text("collaborators").notNull().default(""),
   relatedAssessments: text("related_assessments").notNull().default(""),
   initiativeType: text("initiative_type").notNull().default(""),
   priorAssessmentRef: text("prior_assessment_ref").notNull().default(""),
-  businessUnit: text("business_unit").notNull().default(""),
-  otherUnits: text("other_units").notNull().default(""),
+  businessUnit: jsonb("business_unit"),
+  otherUnits: jsonb("other_units").notNull().default([]),
   targetGoLive: date("target_go_live"),
   thirdPartyInvolved: text("third_party_involved").notNull().default(""),
-  vendorNames: text("vendor_names").notNull().default(""),
+  vendorNames: jsonb("vendor_names").notNull().default([]),
   coupaOnboarded: text("coupa_onboarded").notNull().default(""),
   dataClassification: text("data_classification").notNull().default(""),
   dataElements: jsonb("data_elements").$type<string[]>().notNull().default([]),
@@ -83,6 +84,9 @@ export const people = pgTable("people", {
   name: text("name").notNull(),
   role: text("role").notNull(),
   title: text("title").notNull().default(""),
+  email: text("email").notNull().default(""),
+  /** Only the personas sign in; the rest of the directory exists to be chosen. */
+  signsIn: boolean("signs_in").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -92,8 +96,10 @@ export const intakeEvents = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     projectId: uuid("project_id").notNull(),
     fieldId: text("field_id").notNull(),
-    previousValue: jsonb("previous_value").$type<string | string[] | null>(),
-    value: jsonb("value").$type<string | string[] | null>(),
+    // Reference answers are objects, so the history column carries them too
+    // — it already was jsonb, only the type was narrower than the data.
+    previousValue: jsonb("previous_value").$type<IntakeStored>(),
+    value: jsonb("value").$type<IntakeStored>(),
     changedBy: text("changed_by"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

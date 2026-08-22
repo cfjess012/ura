@@ -25,7 +25,28 @@ export type IntakeCondition =
 export type IntakeField = {
   id: string;
   label: string;
-  type: "text" | "textarea" | "select" | "choice" | "multi" | "date" | "note";
+  type:
+    | "text"
+    | "textarea"
+    | "select"
+    | "choice"
+    | "multi"
+    | "date"
+    | "note"
+    /** One name chosen from a reference list, or one typed off-list. */
+    | "pick"
+    /** Several names from a reference list, plus any typed off-list. */
+    | "pick-many";
+  /**
+   * Which list a `pick` offers (FR-29). A slug from `reference.ts`, or
+   * `"people"` for the employee directory — which is operational rather
+   * than versioned, because a real deployment resolves it from an IdP
+   * rather than a file (G-46's deliberate exception).
+   *
+   * Named here, in the instrument, so no component ever holds a list of
+   * names. That is the specific laziness S4.5 exists to avoid.
+   */
+  list?: string;
   required?: boolean;
   options?: string[];
   /**
@@ -117,14 +138,16 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
       {
         id: "businessOwner",
         label: "Business Owner",
-        help: "The person accountable for this activity — usually whoever owns the budget or the outcome.",
-        type: "text",
+        help: "The person accountable for this activity — usually whoever owns the budget or the outcome. Start typing to find them.",
+        type: "pick",
+        list: "people",
         required: true,
       },
       {
         id: "technicalOwner",
         label: "Technical Owner",
-        type: "text",
+        type: "pick",
+        list: "people",
         help: "Whoever builds or runs it, if that's someone else. Leave blank if it's the same person, or if there's nothing technical.",
       },
       {
@@ -158,7 +181,8 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
       {
         id: "businessUnit",
         label: "Responsible Business Unit",
-        type: "text",
+        type: "pick",
+        list: "business-units",
         required: true,
         help: "The team or department that owns this activity — the one accountable if it goes wrong, not necessarily the one building it.",
       },
@@ -166,7 +190,8 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         id: "otherUnits",
         label: "Other Business Units Involved",
         help: "Teams outside your own who use it, depend on it, or share the data. Leave blank if it's only your team.",
-        type: "text",
+        type: "pick-many",
+        list: "business-units",
         conditional: { visibleWhen: "businessUnit", hasValue: true },
         revealNote: "Shown because a responsible business unit was entered.",
       },
@@ -197,13 +222,14 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
       {
         id: "vendorNames",
         label: "Which companies?",
-        type: "text",
+        type: "pick-many",
+        list: "vendors",
         conditional: {
           visibleWhen: "thirdPartyInvolved",
           equalsAny: ["Yes"],
         },
         revealNote: "Shown because an outside company is involved.",
-        help: "Names are enough — one per line or separated by commas. If you don't know all of them yet, name the ones you do.",
+        help: "Pick the ones you know. If a company isn't listed, add it — it goes on your assessment straight away, and reaches everyone else's list once an administrator confirms it.",
       },
       {
         id: "coupaOnboarded",

@@ -1,0 +1,27 @@
+{
+  "slug": "business-units",
+  "version": "2026-08-21.1",
+  "label": "Business units",
+  "note": "Synthetic, for the pilot. A real deployment sources this from the HR or finance system of record. Deliberately generic across industries so the demo reads as familiar rather than as one company's org chart.",
+  "allowsUnlisted": true,
+  "entries": [
+    { "id": "BU_FIN", "label": "Finance" },
+    { "id": "BU_HR", "label": "Human Resources" },
+    { "id": "BU_LEG", "label": "Legal" },
+    { "id": "BU_MKT", "label": "Marketing" },
+    { "id": "BU_OPS", "label": "Operations" },
+    { "id": "BU_SALES", "label": "Sales" },
+    { "id": "BU_CS", "label": "Customer Service" },
+    { "id": "BU_IT", "label": "Information Technology" },
+    { "id": "BU_SEC", "label": "Information Security" },
+    { "id": "BU_DATA", "label": "Data & Analytics" },
+    { "id": "BU_PROD", "label": "Product" },
+    { "id": "BU_ENG", "label": "Engineering" },
+    { "id": "BU_SUP", "label": "Supply Chain & Procurement" },
+    { "id": "BU_FAC", "label": "Facilities & Real Estate" },
+    { "id": "BU_RISK", "label": "Risk & Compliance" },
+    { "id": "BU_AUD", "label": "Internal Audit" },
+    { "id": "BU_COMMS", "label": "Corporate Communications" },
+    { "id": "BU_STRAT", "label": "Strategy & Corporate Development" }
+  ]
+}

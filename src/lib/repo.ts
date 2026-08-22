@@ -16,11 +16,13 @@ import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDb, schema } from "./db";
 import type { IntakeChange, IntakePatch } from "./intake-values";
 import type { Person, Role } from "./people";
+import { labelOf, type ReferenceAnswer } from "./reference";
 
 export type ProjectSummary = {
   id: string;
   projectName: string;
-  businessUnit: string;
+  /** The label as it was chosen, or null — never re-read from today's list. */
+  businessUnit: string | null;
   updatedAt: Date;
   /** Who started it. Null for rows created before people existed. */
   startedBy: string | null;
@@ -134,7 +136,13 @@ export function postgresProjectStore(): ProjectStore {
         .orderBy(desc(schema.projects.updatedAt));
       // No limit means no limit. A silent internal cap would be the same
       // quiet truncation F11 objected to, one layer down.
-      return scope.limit === undefined ? query : query.limit(scope.limit);
+      const rows = await (scope.limit === undefined ? query : query.limit(scope.limit));
+      // The stored label, never today's list — that is what makes a rename
+      // safe (NFR-22).
+      return rows.map((row) => ({
+        ...row,
+        businessUnit: row.businessUnit ? labelOf(row.businessUnit as ReferenceAnswer) : null,
+      }));
     },
     async count(scope) {
       const [row] = await db
