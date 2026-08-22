@@ -11,6 +11,11 @@
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+// One parser for "which slices are done", shared with the Stop gate. There
+// used to be two, each with a different hole: this one could not match a
+// dotted id at all, so the real S2.5 line was already invisible to it
+// (enforcement-layer verification, gate 2).
+import { doneSlices } from "../../scripts/lib/slices.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const spec = readFileSync(join(ROOT, "SPEC.md"), "utf8");
@@ -121,4 +126,29 @@ describe("UAT records exist and are complete", () => {
       });
     });
   }
+});
+
+/**
+ * The skeleton and the gate must agree about what a record contains.
+ * `pnpm uat:new S6` produced a file the Stop gate immediately rejected,
+ * because the required-section list was duplicated as prose in one place
+ * and as an array in the other with nothing tying them together
+ * (enforcement-layer verification, gate 2).
+ */
+describe("the record skeleton produces a record the gate accepts", () => {
+  const skeleton = readFileSync(join(ROOT, "scripts", "uat-skeleton.mjs"), "utf8");
+  const gate = readFileSync(join(ROOT, "scripts", "hooks", "stop-gate.mjs"), "utf8");
+  const required = [...gate.matchAll(/heading: "(## [^"]+)"/g)].map((m) => m[1]!);
+
+  it("the gate requires at least the three known sections", () => {
+    expect(required).toContain("## Findings");
+    expect(required).toContain("## Not verified");
+    expect(required).toContain("## Agentic opportunity");
+  });
+
+  it("the skeleton emits every section the gate requires", () => {
+    for (const heading of required) {
+      expect(skeleton, `uat-skeleton.mjs never writes ${heading}`).toContain(heading);
+    }
+  });
 });

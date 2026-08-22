@@ -23,5 +23,9 @@
     ".next/types/**/*.ts",
     ".next-e2e/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "scripts"]
+  // scripts/ holds plain .mjs (hooks run under bare node, no build step),
+  // which allowJs:false already ignores. Only its .d.ts files are wanted —
+  // the shared slice parser is imported by tests (enforcement-layer
+  // verification, gate 2).
+  "exclude": ["node_modules"]
 }

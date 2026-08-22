@@ -14,8 +14,10 @@
  * fail for environmental reasons. The full chain is `pnpm verify`.
  */
 import { execSync } from "node:child_process";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { doneSlices } from "../lib/slices.mjs";
 
 const ROOT = process.cwd();
 const problems = [];
@@ -30,14 +32,30 @@ try {
 
 // ---- 2. Generated artifacts are current -----------------------------------
 // A generated file nobody regenerates is a snapshot with better manners.
+//
+// Regenerate into a temp directory and COMPARE — never write. The old
+// version regenerated in place, which meant it repaired what it was
+// meant to report and left the working tree dirty by the clock. Both
+// outputs are checked: the HTML page was regenerated and never compared,
+// so hand-editing the transparency page passed silently
+// (enforcement-layer verification, gate 1).
 try {
-  const before = readFileSync(join(ROOT, "src", "data", "agents.json"), "utf8");
-  execSync("node scripts/build-agent-map.mjs", { stdio: "pipe", cwd: ROOT });
-  const after = readFileSync(join(ROOT, "src", "data", "agents.json"), "utf8");
-  const strip = (t) => t.replace(/"generated":\s*"[^"]*"/, "");
-  if (strip(before) !== strip(after)) {
+  const scratch = mkdtempSync(join(tmpdir(), "stop-gate-"));
+  const html = join(scratch, "agent-map.html");
+  const data = join(scratch, "agents.json");
+  execSync(`node scripts/build-agent-map.mjs ${html} ${data}`, { stdio: "pipe", cwd: ROOT });
+  // The generation date moves every day by design; nothing else may.
+  const strip = (t) => t.replace(/"?generated"?:?\s*"?[0-9]{4}-[0-9]{2}-[0-9]{2}"?/g, "");
+  const stale = [
+    ["src/data/agents.json", data],
+    ["docs/agent-map.html", html],
+  ].filter(([committed, fresh]) => {
+    const on = readFileSync(join(ROOT, committed), "utf8");
+    return strip(on) !== strip(readFileSync(fresh, "utf8"));
+  });
+  if (stale.length > 0) {
     problems.push(
-      "the agent map was stale and has been regenerated — review the diff and commit it (`git diff src/data/agents.json docs/agent-map.html`).",
+      `${stale.map(([f]) => f).join(" and ")} ${stale.length === 1 ? "is" : "are"} stale. Run \`pnpm agent-map\`, review the diff and commit it.`,
     );
   }
 } catch (error) {
@@ -45,27 +63,50 @@ try {
 }
 
 // ---- 3. Every finished slice carries its record ----------------------------
-// Required sections, not just a file: a record missing its agentic section
-// is how "register the agentic opportunity" quietly stopped happening.
+// Required sections WITH SUBSTANCE, not just a heading. `body.includes()`
+// was satisfied by typing the heading and leaving it empty — and the whole
+// reason this check exists is that "register the agentic opportunity"
+// stopped happening when it relied on someone remembering. A check a
+// person passes by typing four words has not fixed that
+// (enforcement-layer verification, gate 2).
 const REQUIRED = [
-  { heading: "## Findings", what: "a Findings section" },
-  { heading: "## Not verified", what: "a Not verified section" },
-  { heading: "## Agentic opportunity", what: "an Agentic opportunity section (§21 item 6)" },
+  { heading: "## Findings", what: "a Findings section", least: 80 },
+  { heading: "## Not verified", what: "a Not verified section", least: 80 },
+  {
+    heading: "## Agentic opportunity",
+    what: "an Agentic opportunity section (§21 item 6) — what was registered, or an explicit \"none, and why\"",
+    least: 120,
+  },
 ];
+
+/** What a section actually says: its body, minus placeholder italics. */
+function sectionBody(document, heading) {
+  const at = document.indexOf(heading);
+  if (at === -1) return null;
+  const rest = document.slice(at + heading.length);
+  const end = rest.search(/\n## /);
+  return (end === -1 ? rest : rest.slice(0, end))
+    .replace(/_[^_]*_/g, "") // the skeleton's italic prompts are not content
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 try {
   const claude = readFileSync(join(ROOT, "CLAUDE.md"), "utf8");
-  // Global, not per line: CLAUDE.md packs two slices onto one line to stay
-  // inside its size budget, and a line-anchored match found only the first.
-  const done = [...claude.matchAll(/\b(S[\d.]+)[^—\n]{0,40}— DONE/g)].map((m) => m[1]);
-  for (const slice of done) {
+  for (const slice of doneSlices(claude)) {
     const record = join(ROOT, "uat", `${slice}.md`);
     if (!existsSync(record)) {
       problems.push(`slice ${slice} is marked DONE but has no uat/${slice}.md (G-24).`);
       continue;
     }
     const body = readFileSync(record, "utf8");
-    for (const { heading, what } of REQUIRED) {
-      if (!body.includes(heading)) problems.push(`uat/${slice}.md is missing ${what}.`);
+    for (const { heading, what, least } of REQUIRED) {
+      const said = sectionBody(body, heading);
+      if (said === null) problems.push(`uat/${slice}.md is missing ${what}.`);
+      else if (said.length < least)
+        problems.push(
+          `uat/${slice}.md has ${heading} but says almost nothing under it (${said.length} characters). It needs ${what}.`,
+        );
     }
   }
 } catch (error) {
@@ -79,7 +120,7 @@ try {
 try {
   const readiness = readFileSync(join(ROOT, "demo", "readiness.md"), "utf8");
   const claude = readFileSync(join(ROOT, "CLAUDE.md"), "utf8");
-  const done = [...claude.matchAll(/\b(S[\d.]+)[^—\n]{0,40}— DONE/g)].map((m) => m[1]).sort();
+  const done = doneSlices(claude).sort();
   const covered = (readiness.match(/^slices-covered:\s*(.+)$/m)?.[1] ?? "")
     .split(",")
     .map((s) => s.trim())

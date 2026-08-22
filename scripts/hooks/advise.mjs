@@ -21,24 +21,40 @@ import { join } from "node:path";
  * on without flooding the context of a one-line edit.
  */
 function checklist(skill) {
+  const path = join(process.cwd(), ".claude", "skills", skill, "SKILL.md");
+  let text;
   try {
-    const text = readFileSync(join(process.cwd(), ".claude", "skills", skill, "SKILL.md"), "utf8");
-    // Skills are written as prose under headings, so the headings ARE the
-    // checklist. Bold leads are used too; take whichever the file has.
-    const bold = [...text.matchAll(/^\*\*(.+?)\*\*/gm)].map((m) => m[1]);
-    const headings = [...text.matchAll(/^#{2,3} (.+)$/gm)].map((m) => m[1]);
-    const bullets = [...text.matchAll(/^- \*\*(.+?)\*\*/gm)].map((m) => m[1]);
-    const rules = [...new Set([...headings, ...bold, ...bullets])]
-      .map((r) => r.replace(/\s+/g, " ").replace(/[.:]$/, "").trim())
-      .filter((r) => r.length > 3 && r.length < 140)
-      .slice(0, 9);
-    if (rules.length === 0) return "";
-    return `\n   ${skill} — its own checklist, so you do not have to load it:\n${rules
-      .map((r) => `     · ${r}`)
-      .join("\n")}`;
+    text = readFileSync(path, "utf8");
   } catch {
-    return "";
+    // Never silent. A missing skill used to produce a note with the block
+    // simply absent, so the standard a session was told to follow could
+    // vanish without a word (enforcement-layer verification, gate 4).
+    return `\n   ${skill} — MISSING. .claude/skills/${skill}/SKILL.md could not be read, so its checklist is not below. Do not proceed as if the standard does not exist.`;
   }
+  // Skills are written as prose under headings, so the headings ARE the
+  // checklist. Bold leads are used too; take whichever the file has.
+  //
+  // The bold pattern is /s-flagged and allows a wrapped run: `**a rule
+  // that continues\non the next line**` used to match nothing, which is
+  // exactly how §24.10 — "every question says what to do when it doesn't
+  // apply" — never once reached a session, silently.
+  const bold = [...text.matchAll(/^\*\*(.+?)\*\*/gms)].map((m) => m[1]);
+  const headings = [...text.matchAll(/^#{2,3} (.+)$/gm)].map((m) => m[1]);
+  const bullets = [...text.matchAll(/^- \*\*(.+?)\*\*/gms)].map((m) => m[1]);
+  const rules = [...new Set([...headings, ...bold, ...bullets])]
+    .map((r) => r.replace(/\s+/g, " ").replace(/[.:]$/, "").trim())
+    .filter((r) => r.length > 3 && r.length < 140);
+  if (rules.length === 0) {
+    return `\n   ${skill} — its SKILL.md has no headings or bold rules to extract. Load it before you continue.`;
+  }
+  // Everything, never a slice. The old cap of nine dropped §24.8, §24.9
+  // and §24.11 off the end of ux-audit without a word — a hook whose
+  // whole purpose is making a standard deterministic, quietly emitting
+  // two thirds of it. If a checklist is long, that is a fact about the
+  // standard, not a reason to hide part of it.
+  return `\n   ${skill} — its own checklist, so you do not have to load it:\n${rules
+    .map((r) => `     · ${r}`)
+    .join("\n")}`;
 }
 
 let payload = "";

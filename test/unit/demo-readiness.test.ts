@@ -9,6 +9,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { doneSlices } from "../../scripts/lib/slices.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const doc = readFileSync(join(ROOT, "demo", "readiness.md"), "utf8");
@@ -27,7 +28,7 @@ describe("the demo readiness record is complete", () => {
     // The teeth: finish a slice without revisiting what it changed for the
     // demo and this fails, which forces the conversation rather than
     // hoping someone starts it.
-    const done = [...claudeMd.matchAll(/\b(S[\d.]+)[^—\n]{0,40}— DONE/g)].map((m) => m[1]!);
+    const done = doneSlices(claudeMd);
     const covered = (doc.match(/^slices-covered:\s*(.+)$/m)?.[1] ?? "")
       .split(",")
       .map((s) => s.trim())

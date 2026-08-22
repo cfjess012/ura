@@ -14,16 +14,39 @@ const skillNames = readdirSync(SKILLS);
 const skillBody = (name: string) => readFileSync(join(SKILLS, name, "SKILL.md"), "utf8");
 
 describe("SPEC ↔ skills stay in sync", () => {
-  it("every skill named in SPEC or CLAUDE.md exists on disk", () => {
-    // Derived from what exists, never an allowlist that rots.
-    const known = new Set(skillNames);
-    const named = new Set(
-      [...spec.matchAll(/`\/?([a-z-]+)`/g), ...claudeMd.matchAll(/`\/?([a-z-]+)`/g)]
-        .map((m) => m[1]!)
-        .filter((candidate) => known.has(candidate)),
-    );
-    expect(named.size).toBeGreaterThan(0);
-    for (const name of named) expect(skillNames, name).toContain(name);
+  /**
+   * This used to be a tautology. It gathered every backtick token in the
+   * two documents, **filtered them by whether they existed on disk**, and
+   * then asserted the survivors existed on disk — so deleting a skill that
+   * CLAUDE.md, SPEC and the slice-verifier all route work to left every
+   * gate green. The comment claimed it was "derived from what exists,
+   * never an allowlist that rots"; the derivation had removed the
+   * reference entirely (enforcement-layer verification).
+   *
+   * The reference now is the routing table in CLAUDE.md — the document
+   * that tells a working session which procedure to load. A name in it is
+   * a promise that the procedure is there.
+   */
+  const routed = [...claudeMd.matchAll(/^\| [^|]+ \| `([a-z-]+)` \|$/gm)].map((m) => m[1]!);
+
+  it("the skills table routes work to real skills", () => {
+    expect(routed.length, "no skills table found in CLAUDE.md").toBeGreaterThan(5);
+    for (const name of routed) expect(skillNames, `${name} is routed to but does not exist`).toContain(name);
+  });
+
+  it("every skill on disk is routed to from CLAUDE.md", () => {
+    // The other direction: a procedure nobody is told to load is a
+    // procedure that does not run.
+    for (const name of skillNames)
+      expect(routed, `${name} exists but no moment in CLAUDE.md loads it`).toContain(name);
+  });
+
+  it("the verifier's own references resolve", () => {
+    // .claude/agents/slice-verifier.md names skills to audit against. A
+    // dangling name there is silent: the verifier simply skips a standard.
+    const verifier = readFileSync(join(ROOT, ".claude", "agents", "slice-verifier.md"), "utf8");
+    for (const m of verifier.matchAll(/\.claude\/skills\/([a-z-]+)\/SKILL\.md/g))
+      expect(skillNames, `slice-verifier points at ${m[1]}, which does not exist`).toContain(m[1]!);
   });
 
   it("every skill declares the SPEC section it implements", () => {
@@ -74,10 +97,22 @@ describe("the always-resident context stays thin", () => {
     // it were to delete history or to stop writing things down. Both are
     // worse than a long file. What this measures is the part that is
     // supposed to stay small: the law.
+    // §22.1 is excluded for exactly the same reason, found the same way.
+    // The agent register is append-only too: every slice registers the
+    // agentic opportunity it designed, forever. Counted, it tightened the
+    // guard on every registration, and the only ways to pass would have
+    // been to delete law or to stop registering — the failure mode this
+    // test's own comment says it corrected for (enforcement-layer
+    // verification). It was at 616 of 620: four more registrations away.
     const lines = spec.split("\n");
-    const logStart = lines.findIndex((l) => l.startsWith("## 13."));
-    const logEnd = lines.findIndex((l) => l.startsWith("## 14."));
-    const law = lines.length - (logEnd - logStart);
+    const spanOf = (from: string, to: RegExp) => {
+      const start = lines.findIndex((l) => l.startsWith(from));
+      if (start === -1) return 0;
+      const after = lines.slice(start + 1).findIndex((l) => to.test(l));
+      return after === -1 ? lines.length - start : after + 1;
+    };
+    const appendOnly = spanOf("## 13.", /^## 14\./) + spanOf("### 22.1", /^#{2,3} /);
+    const law = lines.length - appendOnly;
     expect(law, "SPEC's law sections have grown — extract to a skill").toBeLessThan(620);
   });
 });

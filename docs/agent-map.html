@@ -88,7 +88,7 @@
   @media (prefers-reduced-motion:reduce){ *{transition:none!important;} }
 </style>
 <main>
-  <p class="kicker">Universal Risk Assessment · generated 2026-08-21</p>
+  <p class="kicker">Universal Risk Assessment · generated 2026-08-22</p>
   <h1>Agent Topology</h1>
   <p class="lede">
     Every agent in this project, what triggers it, what it can see, and its full instruction set.
@@ -1155,11 +1155,11 @@ audited against the wrong list (N7). `test/unit/docs.test.ts` now checks it.</pr
         <span class="node-name">advise (PostToolUse)</span>
         <span class="chip live">Live</span>
       </span>
-      <span class="node-what">Names the governing standard the instant a governed file is edited</span>
+      <span class="node-what">Puts the governing standard's own checklist in front of the work, the instant a governed file is edited</span>
     </button>
     <div class="detail hidden">
-      <p><span class="label">How and when it runs</span>Automatically, after every file edit. Nothing has to remember to call it.</p>
-      <p><span class="label">What it can see</span>Sees the path of the file just edited and reads that one file. Nothing else — no network, no database, no other files.</p>
+      <p><span class="label">How and when it runs</span>Automatically, after every Edit, Write, MultiEdit. Nothing has to remember to call it.</p>
+      <p><span class="label">What it can see</span>Sees the path of the file just edited, and reads the standards that apply to it. No network, no database, no other files.</p>
       <p><span class="label">In its own words</span><span class="gist">PostToolUse advisory (SPEC G-18, &quot;teeth in hooks&quot;).
 Skills load probabilistically. This hook makes the trigger deterministic:
 when a file is edited that a standard governs, it does not merely *name*
@@ -1190,24 +1190,40 @@ import { join } from &quot;node:path&quot;;
  * on without flooding the context of a one-line edit.
  */
 function checklist(skill) {
+  const path = join(process.cwd(), &quot;.claude&quot;, &quot;skills&quot;, skill, &quot;SKILL.md&quot;);
+  let text;
   try {
-    const text = readFileSync(join(process.cwd(), &quot;.claude&quot;, &quot;skills&quot;, skill, &quot;SKILL.md&quot;), &quot;utf8&quot;);
-    // Skills are written as prose under headings, so the headings ARE the
-    // checklist. Bold leads are used too; take whichever the file has.
-    const bold = [...text.matchAll(/^\*\*(.+?)\*\*/gm)].map((m) =&gt; m[1]);
-    const headings = [...text.matchAll(/^#{2,3} (.+)$/gm)].map((m) =&gt; m[1]);
-    const bullets = [...text.matchAll(/^- \*\*(.+?)\*\*/gm)].map((m) =&gt; m[1]);
-    const rules = [...new Set([...headings, ...bold, ...bullets])]
-      .map((r) =&gt; r.replace(/\s+/g, &quot; &quot;).replace(/[.:]$/, &quot;&quot;).trim())
-      .filter((r) =&gt; r.length &gt; 3 &amp;&amp; r.length &lt; 140)
-      .slice(0, 9);
-    if (rules.length === 0) return &quot;&quot;;
-    return `\n   ${skill} — its own checklist, so you do not have to load it:\n${rules
-      .map((r) =&gt; `     · ${r}`)
-      .join(&quot;\n&quot;)}`;
+    text = readFileSync(path, &quot;utf8&quot;);
   } catch {
-    return &quot;&quot;;
+    // Never silent. A missing skill used to produce a note with the block
+    // simply absent, so the standard a session was told to follow could
+    // vanish without a word (enforcement-layer verification, gate 4).
+    return `\n   ${skill} — MISSING. .claude/skills/${skill}/SKILL.md could not be read, so its checklist is not below. Do not proceed as if the standard does not exist.`;
   }
+  // Skills are written as prose under headings, so the headings ARE the
+  // checklist. Bold leads are used too; take whichever the file has.
+  //
+  // The bold pattern is /s-flagged and allows a wrapped run: `**a rule
+  // that continues\non the next line**` used to match nothing, which is
+  // exactly how §24.10 — &quot;every question says what to do when it doesn't
+  // apply&quot; — never once reached a session, silently.
+  const bold = [...text.matchAll(/^\*\*(.+?)\*\*/gms)].map((m) =&gt; m[1]);
+  const headings = [...text.matchAll(/^#{2,3} (.+)$/gm)].map((m) =&gt; m[1]);
+  const bullets = [...text.matchAll(/^- \*\*(.+?)\*\*/gms)].map((m) =&gt; m[1]);
+  const rules = [...new Set([...headings, ...bold, ...bullets])]
+    .map((r) =&gt; r.replace(/\s+/g, &quot; &quot;).replace(/[.:]$/, &quot;&quot;).trim())
+    .filter((r) =&gt; r.length &gt; 3 &amp;&amp; r.length &lt; 140);
+  if (rules.length === 0) {
+    return `\n   ${skill} — its SKILL.md has no headings or bold rules to extract. Load it before you continue.`;
+  }
+  // Everything, never a slice. The old cap of nine dropped §24.8, §24.9
+  // and §24.11 off the end of ux-audit without a word — a hook whose
+  // whole purpose is making a standard deterministic, quietly emitting
+  // two thirds of it. If a checklist is long, that is a fact about the
+  // standard, not a reason to hide part of it.
+  return `\n   ${skill} — its own checklist, so you do not have to load it:\n${rules
+    .map((r) =&gt; `     · ${r}`)
+    .join(&quot;\n&quot;)}`;
 }
 
 let payload = &quot;&quot;;
@@ -1290,11 +1306,11 @@ process.stdin.on(&quot;end&quot;, () =&gt; {
         <span class="node-name">stop-gate (Stop)</span>
         <span class="chip live">Live</span>
       </span>
-      <span class="node-what">Work cannot conclude on a red build</span>
+      <span class="node-what">Work cannot conclude on a red build, a stale generated artifact, a slice with no record, or a demo nobody has thought about</span>
     </button>
     <div class="detail hidden">
       <p><span class="label">How and when it runs</span>Automatically, whenever a working session tries to finish.</p>
-      <p><span class="label">What it can see</span>Runs two commands — the type checker and the unit tests. It reads their output and nothing else.</p>
+      <p><span class="label">What it can see</span>Runs the type checker and the unit tests, regenerates the map into a scratch directory to compare it, and reads CLAUDE.md, every uat/ record and demo/readiness.md. It writes nothing.</p>
       <p><span class="label">In its own words</span><span class="gist">Stop gate (SPEC §0 Build Rule 3): work does not conclude on a red build,
 on a stale generated artifact, or on a slice that skipped its record.
 Everything here is mechanical. That is the point: three rounds of
@@ -1318,8 +1334,10 @@ prose line firing </span></p>
  * fail for environmental reasons. The full chain is `pnpm verify`.
  */
 import { execSync } from &quot;node:child_process&quot;;
-import { readFileSync, existsSync } from &quot;node:fs&quot;;
+import { readFileSync, existsSync, mkdtempSync } from &quot;node:fs&quot;;
+import { tmpdir } from &quot;node:os&quot;;
 import { join } from &quot;node:path&quot;;
+import { doneSlices } from &quot;../lib/slices.mjs&quot;;
 
 const ROOT = process.cwd();
 const problems = [];
@@ -1334,14 +1352,30 @@ try {
 
 // ---- 2. Generated artifacts are current -----------------------------------
 // A generated file nobody regenerates is a snapshot with better manners.
+//
+// Regenerate into a temp directory and COMPARE — never write. The old
+// version regenerated in place, which meant it repaired what it was
+// meant to report and left the working tree dirty by the clock. Both
+// outputs are checked: the HTML page was regenerated and never compared,
+// so hand-editing the transparency page passed silently
+// (enforcement-layer verification, gate 1).
 try {
-  const before = readFileSync(join(ROOT, &quot;src&quot;, &quot;data&quot;, &quot;agents.json&quot;), &quot;utf8&quot;);
-  execSync(&quot;node scripts/build-agent-map.mjs&quot;, { stdio: &quot;pipe&quot;, cwd: ROOT });
-  const after = readFileSync(join(ROOT, &quot;src&quot;, &quot;data&quot;, &quot;agents.json&quot;), &quot;utf8&quot;);
-  const strip = (t) =&gt; t.replace(/&quot;generated&quot;:\s*&quot;[^&quot;]*&quot;/, &quot;&quot;);
-  if (strip(before) !== strip(after)) {
+  const scratch = mkdtempSync(join(tmpdir(), &quot;stop-gate-&quot;));
+  const html = join(scratch, &quot;agent-map.html&quot;);
+  const data = join(scratch, &quot;agents.json&quot;);
+  execSync(`node scripts/build-agent-map.mjs ${html} ${data}`, { stdio: &quot;pipe&quot;, cwd: ROOT });
+  // The generation date moves every day by design; nothing else may.
+  const strip = (t) =&gt; t.replace(/&quot;?generated&quot;?:?\s*&quot;?[0-9]{4}-[0-9]{2}-[0-9]{2}&quot;?/g, &quot;&quot;);
+  const stale = [
+    [&quot;src/data/agents.json&quot;, data],
+    [&quot;docs/agent-map.html&quot;, html],
+  ].filter(([committed, fresh]) =&gt; {
+    const on = readFileSync(join(ROOT, committed), &quot;utf8&quot;);
+    return strip(on) !== strip(readFileSync(fresh, &quot;utf8&quot;));
+  });
+  if (stale.length &gt; 0) {
     problems.push(
-      &quot;the agent map was stale and has been regenerated — review the diff and commit it (`git diff src/data/agents.json docs/agent-map.html`).&quot;,
+      `${stale.map(([f]) =&gt; f).join(&quot; and &quot;)} ${stale.length === 1 ? &quot;is&quot; : &quot;are&quot;} stale. Run \`pnpm agent-map\`, review the diff and commit it.`,
     );
   }
 } catch (error) {
@@ -1349,27 +1383,50 @@ try {
 }
 
 // ---- 3. Every finished slice carries its record ----------------------------
-// Required sections, not just a file: a record missing its agentic section
-// is how &quot;register the agentic opportunity&quot; quietly stopped happening.
+// Required sections WITH SUBSTANCE, not just a heading. `body.includes()`
+// was satisfied by typing the heading and leaving it empty — and the whole
+// reason this check exists is that &quot;register the agentic opportunity&quot;
+// stopped happening when it relied on someone remembering. A check a
+// person passes by typing four words has not fixed that
+// (enforcement-layer verification, gate 2).
 const REQUIRED = [
-  { heading: &quot;## Findings&quot;, what: &quot;a Findings section&quot; },
-  { heading: &quot;## Not verified&quot;, what: &quot;a Not verified section&quot; },
-  { heading: &quot;## Agentic opportunity&quot;, what: &quot;an Agentic opportunity section (§21 item 6)&quot; },
+  { heading: &quot;## Findings&quot;, what: &quot;a Findings section&quot;, least: 80 },
+  { heading: &quot;## Not verified&quot;, what: &quot;a Not verified section&quot;, least: 80 },
+  {
+    heading: &quot;## Agentic opportunity&quot;,
+    what: &quot;an Agentic opportunity section (§21 item 6) — what was registered, or an explicit \&quot;none, and why\&quot;&quot;,
+    least: 120,
+  },
 ];
+
+/** What a section actually says: its body, minus placeholder italics. */
+function sectionBody(document, heading) {
+  const at = document.indexOf(heading);
+  if (at === -1) return null;
+  const rest = document.slice(at + heading.length);
+  const end = rest.search(/\n## /);
+  return (end === -1 ? rest : rest.slice(0, end))
+    .replace(/_[^_]*_/g, &quot;&quot;) // the skeleton's italic prompts are not content
+    .replace(/\s+/g, &quot; &quot;)
+    .trim();
+}
+
 try {
   const claude = readFileSync(join(ROOT, &quot;CLAUDE.md&quot;), &quot;utf8&quot;);
-  // Global, not per line: CLAUDE.md packs two slices onto one line to stay
-  // inside its size budget, and a line-anchored match found only the first.
-  const done = [...claude.matchAll(/\b(S[\d.]+)[^—\n]{0,40}— DONE/g)].map((m) =&gt; m[1]);
-  for (const slice of done) {
+  for (const slice of doneSlices(claude)) {
     const record = join(ROOT, &quot;uat&quot;, `${slice}.md`);
     if (!existsSync(record)) {
       problems.push(`slice ${slice} is marked DONE but has no uat/${slice}.md (G-24).`);
       continue;
     }
     const body = readFileSync(record, &quot;utf8&quot;);
-    for (const { heading, what } of REQUIRED) {
-      if (!body.includes(heading)) problems.push(`uat/${slice}.md is missing ${what}.`);
+    for (const { heading, what, least } of REQUIRED) {
+      const said = sectionBody(body, heading);
+      if (said === null) problems.push(`uat/${slice}.md is missing ${what}.`);
+      else if (said.length &lt; least)
+        problems.push(
+          `uat/${slice}.md has ${heading} but says almost nothing under it (${said.length} characters). It needs ${what}.`,
+        );
     }
   }
 } catch (error) {
@@ -1383,7 +1440,7 @@ try {
 try {
   const readiness = readFileSync(join(ROOT, &quot;demo&quot;, &quot;readiness.md&quot;), &quot;utf8&quot;);
   const claude = readFileSync(join(ROOT, &quot;CLAUDE.md&quot;), &quot;utf8&quot;);
-  const done = [...claude.matchAll(/\b(S[\d.]+)[^—\n]{0,40}— DONE/g)].map((m) =&gt; m[1]).sort();
+  const done = doneSlices(claude).sort();
   const covered = (readiness.match(/^slices-covered:\s*(.+)$/m)?.[1] ?? &quot;&quot;)
     .split(&quot;,&quot;)
     .map((s) =&gt; s.trim())

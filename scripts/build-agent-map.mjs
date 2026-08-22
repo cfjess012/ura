@@ -13,7 +13,14 @@ import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
+// Both outputs move together. A test that regenerated into a temp
+// directory still overwrote `src/data/agents.json` at the repo root,
+// which silently repaired a tampered artifact *before* the Stop gate
+// could notice it was stale — so the gate's staleness branch was
+// unreachable dead code, and a hand-edited artifact went red once and
+// green on the retry (enforcement-layer verification, gate 1).
 const OUT = process.argv[2] ?? join(ROOT, "docs", "agent-map.html");
+const DATA_OUT = process.argv[3] ?? join(ROOT, "src", "data", "agents.json");
 
 const esc = (s) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -99,21 +106,51 @@ build.push({
 });
 
 const hooksDir = join(ROOT, "scripts", "hooks");
+// Prose nobody derives, describing machinery that changes. Both entries
+// had already drifted into falsehood: advise no longer merely *names* the
+// standard, and the stop gate does far more than run two commands — it
+// reads CLAUDE.md, every uat record and the demo file. A map that lies
+// about a guardrail is worse than no map, so the wiring below comes from
+// .claude/settings.json and these strings are kept to what stays true
+// (enforcement-layer verification).
 const HOOK_META = {
   "advise.mjs": {
-    name: "advise (PostToolUse)",
-    what: "Names the governing standard the instant a governed file is edited",
-    trigger: "Automatically, after every file edit. Nothing has to remember to call it.",
+    name: "advise",
+    what: "Puts the governing standard's own checklist in front of the work, the instant a governed file is edited",
     access:
-      "Sees the path of the file just edited and reads that one file. Nothing else — no network, no database, no other files.",
+      "Sees the path of the file just edited, and reads the standards that apply to it. No network, no database, no other files.",
   },
   "stop-gate.mjs": {
-    name: "stop-gate (Stop)",
-    what: "Work cannot conclude on a red build",
-    trigger: "Automatically, whenever a working session tries to finish.",
+    name: "stop-gate",
+    what: "Work cannot conclude on a red build, a stale generated artifact, a slice with no record, or a demo nobody has thought about",
     access:
-      "Runs two commands — the type checker and the unit tests. It reads their output and nothing else.",
+      "Runs the type checker and the unit tests, regenerates the map into a scratch directory to compare it, and reads CLAUDE.md, every uat/ record and demo/readiness.md. It writes nothing.",
   },
+};
+
+/**
+ * When a hook runs, read from the wiring rather than asserted in prose.
+ * The map used to report a hook as live because its FILE existed, so
+ * deleting the wiring left the page still promising the gate ran.
+ */
+const WIRING = JSON.parse(readFileSync(join(ROOT, ".claude", "settings.json"), "utf8")).hooks ?? {};
+const wiringFor = (file) => {
+  for (const [event, entries] of Object.entries(WIRING)) {
+    for (const entry of entries) {
+      for (const hook of entry.hooks ?? []) {
+        if (hook.command?.includes(file)) return { event, matcher: entry.matcher };
+      }
+    }
+  }
+  return null;
+};
+const triggerFor = (file) => {
+  const wired = wiringFor(file);
+  if (!wired) return "NOT WIRED — this hook exists as a file but nothing runs it.";
+  if (wired.event === "Stop") return "Automatically, whenever a working session tries to finish.";
+  if (wired.matcher)
+    return `Automatically, after every ${wired.matcher.replace(/\|/g, ", ")}. Nothing has to remember to call it.`;
+  return `Automatically, on ${wired.event}.`;
 };
 build.push({
   group: "Hooks — mechanical, and they do not rely on anyone reading anything",
@@ -122,10 +159,14 @@ build.push({
     .map((file) => {
       const source = readFileSync(join(hooksDir, file), "utf8");
       const doc = source.match(/\/\*\*([\s\S]*?)\*\//);
-      const meta = HOOK_META[file] ?? { name: file, what: "", trigger: "", access: "" };
+      const meta = HOOK_META[file] ?? { name: file, what: "", access: "" };
+      const wired = wiringFor(file);
       return {
         ...meta,
-        status: "live",
+        name: wired ? `${meta.name} (${wired.event})` : `${meta.name} (not wired)`,
+        trigger: triggerFor(file),
+        // "live" is a claim about the wiring, not about the file existing.
+        status: wired ? "live" : "inert",
         gist: doc ? doc[1].replace(/^\s*\*\s?/gm, "").trim().slice(0, 300) : "",
         full: source,
         where: `scripts/hooks/${file}`,
@@ -139,7 +180,22 @@ const spec = readFileSync(join(ROOT, "SPEC.md"), "utf8");
 // and "S3+" and silently rejected "S1 Intake", "S1–S2" and "S3.5+", so five
 // registered features never reached the map (found by the owner, who
 // remembered there were more agents than it showed).
-const registerRows = [...spec.matchAll(/^\| (S[^|]*?) \| \*\*(.+?)\*\* \| (.+?) \| (.+?) \|$/gm)]
+//
+// Scoped to §22.1's own table, not the whole document. It used to regex
+// every four-column row in SPEC.md whose first cell began with "S" — which
+// happens to yield exactly the register today, but §18's table sits one
+// near-miss away (a fourth column would enrol its rows as "registered
+// agents" and the count test would then fail with a misleading message).
+// The reference should be the section the register lives in
+// (enforcement-layer verification, gate 3).
+const registerSection = (() => {
+  const at = spec.indexOf("### 22.1");
+  if (at === -1) throw new Error("SPEC §22.1 not found — the agent register has moved or been renamed");
+  const rest = spec.slice(at);
+  const end = rest.search(/\n#{2,3} /);
+  return end === -1 ? rest : rest.slice(0, end);
+})();
+const registerRows = [...registerSection.matchAll(/^\| (S[^|]*?) \| \*\*(.+?)\*\* \| (.+?) \| (.+?) \|$/gm)]
   .map((m) => [m[0], m[1].trim(), m[2].trim(), m[3].trim(), m[4].trim()]);
 
 const RUNTIME_ACCESS = {
@@ -438,9 +494,8 @@ writeFileSync(OUT, page);
 // The same data, for the in-app transparency page. Written as a module the
 // app imports at BUILD time — never read from disk at request time, so the
 // page works unchanged in a Lambda or a container (§26.1).
-const appData = join(ROOT, "src", "data", "agents.json");
 writeFileSync(
-  appData,
+  DATA_OUT,
   JSON.stringify(
     {
       generated: DATA.generated,

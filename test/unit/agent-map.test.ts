@@ -41,11 +41,18 @@ describe("the published agent map matches the repository", () => {
 
   it("regenerating produces identical data — the committed copy is current", () => {
     const scratch = mkdtempSync(join(tmpdir(), "agent-map-"));
-    execFileSync("node", ["scripts/build-agent-map.mjs", join(scratch, "out.html")], {
-      cwd: ROOT,
-      stdio: "pipe",
-    });
-    const regenerated = JSON.parse(readFileSync(join(ROOT, "src", "data", "agents.json"), "utf8"));
+    // BOTH outputs go to the scratch directory. This test used to send the
+    // HTML to a temp path while the generator wrote `src/data/agents.json`
+    // at the repo root regardless — so running the suite silently repaired
+    // a tampered artifact, the Stop gate's staleness check could never
+    // fire, and a hand-edited file went red once then green on the retry
+    // (enforcement-layer verification, gate 1).
+    execFileSync(
+      "node",
+      ["scripts/build-agent-map.mjs", join(scratch, "out.html"), join(scratch, "agents.json")],
+      { cwd: ROOT, stdio: "pipe" },
+    );
+    const regenerated = JSON.parse(readFileSync(join(scratch, "agents.json"), "utf8"));
     // Ignore the generation date, which moves every day by design.
     const strip = (d: { generated?: string }) => ({ ...d, generated: undefined });
     expect(strip(regenerated)).toEqual(strip(committed));

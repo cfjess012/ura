@@ -77,6 +77,12 @@ ${rows}
 
 _Anything observed that was not a requirement — with severity and follow-up._
 
+## Agentic opportunity
+
+_Required by SPEC §21 item 6 and enforced by the Stop gate. What agentic
+capability this slice designed and registered — or an explicit "none, and
+why". Phase 1 ships no agent; it may not ship anything that forecloses one._
+
 ## Not verified
 
 _Always present. Name the gaps in this run's coverage rather than implying
