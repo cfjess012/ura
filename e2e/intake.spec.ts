@@ -28,7 +28,7 @@ test("create → fill each section (conditionals reveal) → reopen → everythi
   await page.getByRole("button", { name: /Next: Ownership/ }).click();
 
   // Ownership — the prior-work pointer reveals only for updates.
-  const priorRef = page.getByLabel("Which assessment or ticket does it build on, if you know?");
+  const priorRef = page.getByLabel("What has already been assessed?");
   await expect(page.getByRole("heading", { name: "Ownership" })).toBeVisible();
   await page.getByLabel("Business Owner").selectOption("d.chen");
   await expect(priorRef).toBeHidden();
@@ -87,7 +87,7 @@ test("create → fill each section (conditionals reveal) → reopen → everythi
 
   await fresh.goto(`${base}/intake/ownership`);
   await expect(
-    fresh.getByLabel("Which assessment or ticket does it build on, if you know?"),
+    fresh.getByLabel("What has already been assessed?"),
   ).toHaveValue("RISK-2291");
 
   await fresh.goto(`${base}/intake/categorization`);

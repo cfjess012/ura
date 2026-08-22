@@ -1,6 +1,6 @@
 {
   "slug": "tier1-gates",
-  "version": "2026-08-21.6",
+  "version": "2026-08-21.7",
   "categories": [
     {
       "key": "third-party",
@@ -96,6 +96,25 @@
             }
           ],
           "because": "every supplier gets this one — how hard would they be to replace?"
+        },
+        {
+          "id": "TPR_4P",
+          "name": "Subcontractor Reliance (Fourth Parties)",
+          "when": [
+            {
+              "field": "gate.ai",
+              "equalsAny": [
+                "Yes"
+              ]
+            },
+            {
+              "field": "gate.third-party",
+              "equalsAny": [
+                "Yes"
+              ]
+            }
+          ],
+          "because": "you told us this uses AI and involves a company outside ours, so the model provider behind it is a fourth party"
         }
       ]
     },

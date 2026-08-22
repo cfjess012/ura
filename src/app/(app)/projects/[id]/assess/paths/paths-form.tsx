@@ -136,9 +136,14 @@ export function PathsForm({
 
           {area.derived.map((path) => (
             <p className="prefill derived" role="note" key={path.id}>
-              <span className="prefill-tag">Added for you</span>
+              <span className="prefill-tag">
+                {path.source === "derived" ? "Added for you" : "You ticked this"}
+              </span>
               <span>
-                <strong>{path.name}</strong> — {path.because.join("; and ")}
+                <strong>{path.name}</strong> —{" "}
+                {path.source === "derived"
+                  ? path.because.join("; and ")
+                  : `it would have applied anyway, because ${path.because.join("; and ")}`}
               </span>
             </p>
           ))}

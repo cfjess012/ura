@@ -166,12 +166,16 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
       },
       {
         id: "priorAssessmentRef",
-        label: "Which assessment or ticket does it build on, if you know?",
-        type: "text",
+        // Reworded on owner feedback (item 1). The old wording asked what the
+        // activity builds on; a reviewer actually wants to know what work has
+        // already been assessed, and naming the real artifacts is what tells
+        // someone which drawer to look in.
+        label: "What has already been assessed?",
+        type: "textarea",
         conditional: { visibleWhen: "initiativeType", equalsAny: UPDATE_TYPES },
         revealNote:
           "Shown because this builds on existing work — it helps reviewers find the prior file.",
-        help: "A name, number, or link is plenty. Leave blank if you don't know.",
+        help: "Anything that points a reviewer at the prior work — a Risk Assessment number, an Architectural Risk Assessment (ARA-100), a Privacy Impact Assessment (PIA), a ticket, or a link. More than one is fine, and you can attach the documents below. Leave it blank if you don't know of any.",
       },
     ],
   },

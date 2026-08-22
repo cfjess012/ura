@@ -72,8 +72,12 @@ export default async function PathsPage({
     return {
       category,
       selected: selections[category.key] ?? [],
+      // Anything the engine can explain, not only what it added. A path the
+      // person ticked that WOULD have applied anyway carries its reason too,
+      // and that reason used to be computed and then thrown away because the
+      // filter asked about the source instead of the explanation (FR-33).
       derived: litPathsFor(category, selections[category.key] ?? [], lookup).filter(
-        (p) => p.source === "derived",
+        (p) => p.because.length > 0,
       ),
       // §24.1: this area is open only because the person said they did not
       // know. Asking them five sharper questions about it is the same

@@ -40,10 +40,25 @@ describe("§24.1 never re-ask what someone said they don't know", () => {
 });
 
 describe("§24.7 the system absorbs complexity", () => {
-  it("no internal identifiers or acronym batteries in anything a person reads", () => {
+  // Acronyms are allowed where they name a document a person is holding, and
+  // only when spelled out beside it — see the reasoning in intake.test.ts.
+  // The letters were never the harm; an unexplained vocabulary test was.
+  const SPELLED_OUT: Record<string, RegExp> = {
+    ARA: /Architectural Risk Assessment/i,
+    PIA: /Privacy Impact Assessment/i,
+    DPIA: /Data Protection Impact Assessment/i,
+    BIR: /Business Impact Review/i,
+    AVA: /Application Vulnerability Assessment/i,
+  };
+
+  it("no internal identifiers, and no acronym a person cannot decode", () => {
     for (const f of ALL_FIELDS) {
       for (const text of [f.label, f.help ?? "", f.revealNote ?? "", f.body ?? ""]) {
-        expect(text, f.id).not.toMatch(/\b(ARA|BIR|PIA|DPIA|AVA)\b/);
+        for (const [acronym, expansion] of Object.entries(SPELLED_OUT)) {
+          if (new RegExp(`\\b${acronym}\\b`).test(text)) {
+            expect(text, `${f.id}: ${acronym} is not spelled out`).toMatch(expansion);
+          }
+        }
         expect(text, f.id).not.toMatch(/[a-z]+\.[a-z_]{3,}/);
       }
     }

@@ -18,7 +18,7 @@ One row per beat. A beat with a blank cell is not a beat, it is a hope.
 
 | # | What the audience sees | Delivered by | Built | Walked by a person | If it breaks live |
 |---|---|---|---|---|---|
-| 1 | Intake closes whole risk areas before Tier 1 begins | S2 + instrument 2026-08-21.6 | yes | yes — owner | Say the number out loud instead: five intake answers decided six of eleven areas |
+| 1 | Intake closes whole risk areas before Tier 1 begins | S2 + instrument 2026-08-21.7 | yes | yes — owner | Say the number out loud instead: five intake answers decided six of eleven areas |
 | 2 | Areas pre-answered from intake, each showing its reason | S2 · FR-22 | yes | yes — owner | Fall back to the gate screen, which states the same reason |
 | 3 | Governance applies to everyone, so it is never asked | instrument · G-36 | yes | no | Point at the rail entry "Applies · not asked" |
 | 4 | One selection tailors the rest of the assessment | S3 · FR-4 | yes | no | Show the summary's "What we'll ask about" list instead |

@@ -37,10 +37,35 @@ describe("intake structure (FR-1)", () => {
     ]);
   });
 
-  it("no GRC acronym soup or internal ids in any user-facing string (NFR-9)", () => {
+  /**
+   * An acronym may name a document a person is holding, but it may never
+   * arrive unexplained (NFR-9, §24.7).
+   *
+   * The rule used to ban ARA / PIA / DPIA outright, and the owner asked for
+   * exactly those words — because they are what their people call the
+   * documents, and "the prior assessment" sends someone hunting while
+   * "ARA-100" sends them to the right drawer. Banning them outright was the
+   * wrong shape of protection: the harm is not the letters, it is a
+   * vocabulary test. So the rule became "spell it out at first use", which
+   * keeps the acronym useful to the person who knows it and teaches the
+   * person who does not.
+   */
+  const SPELLED_OUT: Record<string, RegExp> = {
+    ARA: /Architectural Risk Assessment/i,
+    PIA: /Privacy Impact Assessment/i,
+    DPIA: /Data Protection Impact Assessment/i,
+    BIR: /Business Impact Review/i,
+    AVA: /Application Vulnerability Assessment/i,
+  };
+
+  it("an acronym a person reads is spelled out where it appears (NFR-9)", () => {
     const surfaces = ALL_FIELDS.flatMap((f) => [f.label, f.help ?? "", f.revealNote ?? ""]);
     for (const text of surfaces) {
-      expect(text).not.toMatch(/\b(ARA|BIR|PIA|DPIA|AVA)\b/); // plain English asks
+      for (const [acronym, expansion] of Object.entries(SPELLED_OUT)) {
+        if (new RegExp(`\\b${acronym}\\b`).test(text)) {
+          expect(text, `${acronym} appears without being spelled out`).toMatch(expansion);
+        }
+      }
       expect(text).not.toMatch(/[a-z]+\.[a-z_]+/); // dotted identifiers
     }
   });
