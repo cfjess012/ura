@@ -164,3 +164,44 @@
 @media (prefers-reduced-motion: reduce) {
   .landed { animation: none; }
 }
+
+/* "Leave this to us" and the conversation that settles it (S4.7). */
+.handoff-open {
+  margin-top: 0.9rem; border: 1px dashed var(--neutral-300); background: transparent;
+  border-radius: 10px; padding: 0.5rem 0.9rem; cursor: pointer;
+  font-size: 0.85rem; font-weight: 600; color: var(--neutral-700);
+}
+.handoff-open:hover { border-color: var(--brand); color: var(--brand); }
+.handoff-ask {
+  margin-top: 0.9rem; padding: 0.9rem; border-radius: 10px;
+  background: var(--surface-1); border: 1px solid var(--neutral-200);
+  display: flex; flex-direction: column; gap: 0.35rem;
+}
+.handoff-actions { display: flex; gap: 0.6rem; margin-top: 0.5rem; }
+.handoff-error { margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--warning-strong); }
+.handoff-thread {
+  margin-top: 0.9rem; padding: 0.9rem; border-radius: 10px;
+  background: var(--warning-bg); border-left: 3px solid var(--warning);
+}
+.handoff-thread.settled {
+  background: var(--surface-1); border-left-color: var(--ok, var(--brand));
+}
+.handoff-status { margin: 0 0 0.6rem; font-size: 0.88rem; color: var(--neutral-800); }
+.handoff-tag {
+  font-size: 0.68rem; font-weight: 800; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--warning-strong);
+}
+.handoff-thread.settled .handoff-tag { color: var(--neutral-600); }
+.handoff-meta { color: var(--neutral-600); font-size: 0.8rem; }
+.handoff-post { padding: 0.45rem 0; }
+.handoff-child { border-left: 2px solid var(--neutral-200); padding-left: 0.7rem; }
+.handoff-who { font-weight: 700; color: var(--navy); font-size: 0.85rem; }
+.handoff-when { color: var(--neutral-600); font-size: 0.75rem; margin-left: 0.4rem; }
+.handoff-body { margin: 0.15rem 0 0.2rem; font-size: 0.88rem; color: var(--neutral-800); }
+.handoff-reply { margin-top: 0.7rem; }
+.handoff-replying { font-size: 0.78rem; color: var(--neutral-600); margin: 0 0 0.3rem; }
+.linkish {
+  border: 0; background: transparent; padding: 0; cursor: pointer;
+  font-size: 0.78rem; font-weight: 700; color: var(--link);
+}
+.linkish:hover { text-decoration: underline; }

@@ -14,6 +14,9 @@ import {
 import { NotYourAssessment } from "../../../not-yours";
 import { ProjectHeader } from "../../../project-header";
 import * as React from "react";
+import { handoffStore, peopleStore } from "@/lib/repo";
+import { mayResolve, recipientLabel } from "@/lib/handoff";
+import type { HandoffView, Recipient } from "../handoff-panel";
 import { FocusOnArrival } from "@/app/(app)/focus-on-arrival";
 import { SeverityForm, type SeverityItem } from "../severity-form";
 import { SeverityRail, groupKey, groupsFor } from "../severity-rail";
@@ -77,6 +80,54 @@ export default async function SeverityPage({
     };
   });
 
+  // Hand-offs on the questions this screen shows, plus who they could go to.
+  const [allHandoffs, everyone] = await Promise.all([
+    handoffStore().forProject(id),
+    peopleStore().list(),
+  ]);
+  const onThisScreen = allHandoffs.filter((h) =>
+    here.questions.some(
+      (q: SeverityQuestion) => q.questionId === h.questionId || q.detail?.questionId === h.questionId,
+    ),
+  );
+  const replies = await handoffStore().repliesFor(onThisScreen.map((h) => h.id));
+  const nameOf = (personId: string) =>
+    everyone.find((person) => person.id === personId)?.name ?? "someone";
+  const recipients: Recipient[] = [
+    ...CATEGORIES.map((c) => ({ id: c.key, label: c.name, kind: "domain" as const })),
+    ...everyone
+      .filter((person) => person.role === "assessor")
+      .map((person) => ({
+        id: person.id,
+        label: person.title ? `${person.name} — ${person.title}` : person.name,
+        kind: "person" as const,
+      })),
+  ];
+  // A map, not a function: a function cannot cross into a client component,
+  // and the set of questions on this screen is already known.
+  const handoffs: Record<string, HandoffView> = Object.fromEntries(
+    onThisScreen.map((found) => [
+      found.questionId,
+      {
+        id: found.id,
+        toLabel: recipientLabel(
+          found,
+          nameOf,
+          (key) => CATEGORIES.find((c) => c.key === key)?.name ?? "a risk area",
+        ),
+        note: found.note,
+        askedByName: found.askedByName,
+        createdAt: found.createdAt.toISOString(),
+        resolvedAt: found.resolvedAt?.toISOString() ?? null,
+        resolvedByName: found.resolvedBy ? nameOf(found.resolvedBy) : null,
+        mayResolve: mayResolve(found, access.person),
+        replies: replies
+          .filter((r) => r.handoffId === found.id)
+          .map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+      },
+    ]),
+  );
+
   const index = groups.findIndex((g) => g.key === group);
   const next = groups[index + 1];
   const answeredEverywhere = asked.filter((q) => stored[q.questionId]).length;
@@ -114,6 +165,8 @@ export default async function SeverityPage({
           <SeverityForm
             projectId={id}
             items={items}
+            recipients={recipients}
+            handoffs={handoffs}
             nextHref={
               next
                 ? `/projects/${id}/assess/severity/${next.key}`

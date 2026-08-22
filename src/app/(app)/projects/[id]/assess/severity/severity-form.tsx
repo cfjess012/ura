@@ -22,6 +22,7 @@ import {
   type SeverityQuestion,
 } from "@/lib/severity";
 import { SaveBar, useAutosave } from "../autosave";
+import { HandoffPanel, type HandoffView, type Recipient } from "./handoff-panel";
 
 export type SeverityItem = {
   question: SeverityQuestion;
@@ -36,11 +37,16 @@ export function SeverityForm({
   items,
   nextHref,
   nextLabel,
+  recipients,
+  handoffs,
 }: {
   projectId: string;
   items: SeverityItem[];
   nextHref: string;
   nextLabel: string;
+  recipients: Recipient[];
+  /** Hand-offs on this screen's questions, by question id (S4.7). */
+  handoffs: Record<string, HandoffView>;
 }) {
   const [bands, setBands] = React.useState<Record<string, Band | null>>(
     Object.fromEntries(items.map((i) => [i.question.questionId, i.band])),
@@ -227,6 +233,18 @@ export function SeverityForm({
                 );
               })}
             </div>
+
+            {/*
+              The way out for a question a person genuinely cannot answer.
+              It is not an answer and is never recorded as one — the record
+              says the question moved to someone else (S4.7).
+            */}
+            <HandoffPanel
+              projectId={projectId}
+              questionId={question.questionId}
+              recipients={recipients}
+              existing={handoffs[question.questionId] ?? null}
+            />
 
             {showsDetail && (
               <div className="detail reveal">
