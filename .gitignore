@@ -16,3 +16,6 @@ playwright-report/
 # ran last — dev's .next or the e2e suite's .next-e2e. Committing it means a
 # spurious diff after every test run; `pnpm typecheck` passes without it.
 next-env.d.ts
+
+# Subagent worktrees — isolated copies, never part of the repo
+.claude/worktrees/
