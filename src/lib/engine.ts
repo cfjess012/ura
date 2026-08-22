@@ -7,11 +7,12 @@
  * That is the point of the slice: *derived state is computed, never
  * persisted*, so it cannot drift away from the answers it came from.
  *
- * One namespace, one predicate. Intake fields, gate answers and path
- * selections are folded into a single lookup so a rule can read any of
- * them without a second evaluator existing anywhere (NFR-2).
+ * One namespace, one predicate. Intake fields, gate answers, path
+ * selections and severity bands are folded into a single lookup so a rule
+ * can read any of them without a second evaluator existing anywhere
+ * (NFR-2, §3.3).
  */
-import { matches, type AnswerLookup, type Condition } from "./conditions";
+import { matches, type AnswerLookup, type Band, type Condition } from "./conditions";
 import type { Category, GateState } from "./instrument";
 
 /** Prefix for a gate's answer in the shared namespace: `gate.third-party`. */
@@ -19,7 +20,9 @@ const GATE = (key: string) => `gate.${key}`;
 /** Prefix for a category's path selections: `path.third-party`. */
 const PATH = (key: string) => `path.${key}`;
 /** Every lit path id, flattened — so a rule can ask `includesAny: ["PRIV"]`. */
-const ALL_PATHS = "paths";
+export const ALL_PATHS = "paths";
+/** A Tier-2 answer in the namespace: `severity.sev.sh_1`. */
+export const SEVERITY_OF = (questionId: string) => `severity.${questionId}`;
 
 /**
  * All conditions must hold. The one predicate stays one predicate: this
@@ -65,20 +68,24 @@ export type LitPath = {
  * a new shape.
  */
 export function assessmentLookup(input: {
-  intake: AnswerLookup;
-  gates: GateState[];
-  pathSelections: Record<string, string[]>;
+  intake?: AnswerLookup;
+  gates?: GateState[];
+  pathSelections?: Record<string, string[]>;
+  /** Tier-2 answers, so a rule can name a band the way it names a gate. */
+  severities?: Record<string, Band | null | undefined>;
 }): AnswerLookup {
   const lookup: AnswerLookup = { ...input.intake };
-  for (const state of input.gates) {
+  for (const state of input.gates ?? []) {
     if (state.answer) lookup[GATE(state.category.key)] = state.answer;
   }
   const everyPath: string[] = [];
-  for (const [categoryKey, selected] of Object.entries(input.pathSelections)) {
+  for (const [categoryKey, selected] of Object.entries(input.pathSelections ?? {})) {
     lookup[PATH(categoryKey)] = selected;
     everyPath.push(...selected);
   }
   lookup[ALL_PATHS] = everyPath;
+  for (const [questionId, band] of Object.entries(input.severities ?? {}))
+    if (band) lookup[SEVERITY_OF(questionId)] = band;
   return lookup;
 }
 

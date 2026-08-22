@@ -12,6 +12,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { answerSeverity } from "@/app/actions";
+import { assessmentLookup } from "@/lib/engine";
 import { errorRef, isFailure } from "@/lib/errors";
 import {
   BANDS,
@@ -159,6 +160,7 @@ export function SeverityForm({
   }
 
   // Recomputed on every render from what is on screen, never stored.
+  const answers = assessmentLookup({ severities: bands });
   const owed = accumulateControls(
     items.map((i) => i.question),
     bands as Record<string, Band | undefined>,
@@ -184,7 +186,7 @@ export function SeverityForm({
     >
       {items.map(({ question, derived }) => {
         const band = bands[question.questionId];
-        const showsDetail = detailFires(question, band ?? null);
+        const showsDetail = detailFires(question, answers);
         return (
           <section key={question.id} className="card q2">
             <h3 className="q2-name">{question.name}</h3>

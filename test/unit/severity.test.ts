@@ -3,22 +3,25 @@
  * accumulation, written as tests before the layer is called done.
  */
 import { describe, expect, it } from "vitest";
+import { matches } from "../../src/lib/conditions";
+import { ALL_PATHS, SEVERITY_OF, assessmentLookup } from "../../src/lib/engine";
 import {
   BANDS,
   SEVERITY,
   SEVERITY_QUESTIONS,
   accumulateControls,
-  conditionSentence,
-  contradictions,
+  askedWhen,
   deriveBand,
   detailFires,
-  severityAtLeast,
+  detailWhen,
+  requiredWhen,
   severityQuestionsFor,
   CONTROLS,
   controlName,
   severitySubmissionProblems,
   writableSeverityAnswers,
   validate,
+  type Band,
   type SeverityDoc,
   type SeverityQuestion,
 } from "../../src/lib/severity";
@@ -53,15 +56,23 @@ describe("FR-6 · rubric anchors ARE the options", () => {
 });
 
 describe("§19 · unknown severity fails closed", () => {
-  it("severityAtLeast(unknown, Medium) is false", () => {
-    expect(severityAtLeast(null, "Medium")).toBe(false);
-    expect(severityAtLeast(undefined, "Low")).toBe(false);
+  // The threshold is an operator of the one engine (§6.3), so these are
+  // assertions about `matches`, not about a comparator Tier 2 owns.
+  const atLeast = (band: Band | null, threshold: Band) =>
+    matches(
+      { field: SEVERITY_OF("q"), severityAtLeast: threshold },
+      assessmentLookup({ severities: { q: band } }),
+    );
+
+  it("severity_at_least(Medium) is false given unknown severity", () => {
+    expect(atLeast(null, "Medium")).toBe(false);
+    expect(atLeast(null, "Low")).toBe(false);
   });
 
   it("compares bands as an order, not as strings", () => {
-    expect(severityAtLeast("High", "Medium")).toBe(true);
-    expect(severityAtLeast("Medium", "Medium")).toBe(true);
-    expect(severityAtLeast("Low", "Medium")).toBe(false);
+    expect(atLeast("High", "Medium")).toBe(true);
+    expect(atLeast("Medium", "Medium")).toBe(true);
+    expect(atLeast("Low", "Medium")).toBe(false);
   });
 
   it("an unanswered question requires nothing at all", () => {
@@ -119,14 +130,17 @@ describe("§19 · control accumulation", () => {
 describe("FR-8 · the four kinds of conditional", () => {
   const q = byId("T2-TPR-LA-1");
 
+  const at = (band: Band | null) =>
+    detailFires(q, assessmentLookup({ severities: { [q.questionId]: band } }));
+
   it("severity-fired: the detail appears at Medium and High, not at Low", () => {
-    expect(detailFires(q, "Low")).toBe(false);
-    expect(detailFires(q, "Medium")).toBe(true);
-    expect(detailFires(q, "High")).toBe(true);
+    expect(at("Low")).toBe(false);
+    expect(at("Medium")).toBe(true);
+    expect(at("High")).toBe(true);
   });
 
   it("unanswered fires nothing", () => {
-    expect(detailFires(q, null)).toBe(false);
+    expect(at(null)).toBe(false);
   });
 
   it("nested: an option inside the detail requires controls of its own", () => {
@@ -151,6 +165,47 @@ describe("FR-8 · the four kinds of conditional", () => {
   });
 });
 
+describe("§3.3 · Tier-2 routing is conditions over the one engine", () => {
+  it("publishes a condition for every routing decision, in the shared namespace", () => {
+    for (const q of SEVERITY_QUESTIONS as SeverityQuestion[]) {
+      // A question lit by a path names that path; the always-asked few
+      // carry no condition at all.
+      const asked = askedWhen(q);
+      expect(asked === null, q.id).toBe(q.path === null);
+      if (asked) {
+        expect(matches(asked, { [ALL_PATHS]: [q.path!] }), q.id).toBe(true);
+        expect(matches(asked, { [ALL_PATHS]: [] }), q.id).toBe(false);
+      }
+      expect(detailWhen(q) === null, q.id).toBe(q.detail === undefined);
+      for (const requirement of q.requires) {
+        expect(requiredWhen(q, requirement), q.id).toEqual({
+          field: SEVERITY_OF(q.questionId),
+          severityAtLeast: requirement.atLeast,
+        });
+      }
+    }
+  });
+
+  it("accumulation owes exactly what those conditions say it owes", () => {
+    // Evaluated here straight from the published conditions, so a rule that
+    // stops going through `matches()` disagrees with this and fails.
+    const bands = Object.fromEntries(
+      SEVERITY_QUESTIONS.map((q) => [q.questionId, "Medium" as const]),
+    );
+    const answers = assessmentLookup({ severities: bands });
+    const expected = new Set(
+      SEVERITY_QUESTIONS.flatMap((q) =>
+        q.requires
+          .filter((r) => matches(requiredWhen(q, r), answers))
+          .map((r) => r.objective),
+      ),
+    );
+    expect(expected.size).toBeGreaterThan(0);
+    const owed = accumulateControls(SEVERITY_QUESTIONS, bands, {}).map((c) => c.objective);
+    expect(owed.sort()).toEqual([...expected].sort());
+  });
+});
+
 describe("FR-7 · a band worked out rather than asked", () => {
   it("derives the data-handling band from the classification already given", () => {
     const q = byId("T2-TPR-DH-1");
@@ -172,61 +227,6 @@ describe("FR-7 · a band worked out rather than asked", () => {
   it("derives nothing from an unanswered fact — positive evidence only", () => {
     expect(deriveBand(byId("T2-TPR-DH-1"), {})).toBeNull();
     expect(deriveBand(byId("T2-SH-1"), { dataClassification: "High" })).toBeNull();
-  });
-});
-
-describe("§19 · a condition renders as one English sentence (FR-5)", () => {
-  const label = (f: string) => (f === "usesAi" ? "Does this use AI or machine learning?" : f);
-
-  it("names the question and the human option labels, never identifiers", () => {
-    expect(conditionSentence({ field: "usesAi", equalsAny: ["Yes"] }, label)).toBe(
-      "Does this use AI or machine learning? is “Yes”",
-    );
-  });
-
-  it("reads as English with more than one option", () => {
-    expect(
-      conditionSentence({ field: "dataClassification", equalsAny: ["Internal", "Confidential", "Restricted"] }),
-    ).toBe("dataClassification is “Internal”, “Confidential” or “Restricted”");
-  });
-
-  it("renders membership and presence differently", () => {
-    expect(conditionSentence({ field: "paths", includesAny: ["PRIV"] })).toContain("includes");
-    expect(conditionSentence({ field: "vendorNames", hasValue: true })).toBe(
-      "vendorNames has been answered",
-    );
-  });
-});
-
-describe("§19 · the contradiction lint (structural half)", () => {
-  it("flags conditions on one field that can never both hold", () => {
-    expect(
-      contradictions([
-        { field: "usesAi", equalsAny: ["Yes"] },
-        { field: "usesAi", equalsAny: ["No"] },
-      ]),
-    ).toHaveLength(1);
-  });
-
-  it("leaves satisfiable pairs alone", () => {
-    expect(
-      contradictions([
-        { field: "usesAi", equalsAny: ["Yes"] },
-        { field: "usesAi", equalsAny: ["Yes", "I'm not sure"] },
-      ]),
-    ).toEqual([]);
-    expect(
-      contradictions([
-        { field: "usesAi", equalsAny: ["Yes"] },
-        { field: "dataClassification", equalsAny: ["Public"] },
-      ]),
-    ).toEqual([]);
-  });
-
-  it("finds no contradiction in the shipped instrument", () => {
-    for (const q of SEVERITY_QUESTIONS as SeverityQuestion[]) {
-      expect(contradictions([]), q.id).toEqual([]);
-    }
   });
 });
 

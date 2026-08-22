@@ -99,6 +99,53 @@ describe("§26.3 configuration is read in one place", () => {
   });
 });
 
+describe("§3.3 there is no second evaluator", () => {
+  /**
+   * Tier 2 shipped with a parallel implementation of the engine:
+   * `firesAt.includes(band)`, a band-rank map of its own, and set
+   * membership on `q.path`. Nothing in Tier 2 ever called `matches()`, and
+   * no gate said so — which is why it shipped. §3.3 is explicit that
+   * accumulation is "activation conditions over the same engine", and §18
+   * puts one predicate under MUST EXIST NOW. These are the tests that
+   * would have failed.
+   */
+  const severity = read(join(SRC, "lib/severity.ts"));
+
+  it("Tier-2 routing is expressed as conditions the one predicate evaluates", () => {
+    expect(severity).toMatch(/import \{[^}]*\bmatches\b[^}]*\} from "\.\/conditions"/s);
+    // The three routing decisions Tier 2 makes, each published as a
+    // condition rather than decided in place.
+    for (const emitter of ["askedWhen", "detailWhen", "requiredWhen"])
+      expect(severity, emitter).toMatch(new RegExp(`function ${emitter}\\(`));
+    expect((severity.match(/\bmatches\(/g) ?? []).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("every Tier-2 routing decision is taken by the predicate", () => {
+    // Not "the file mentions matches somewhere": each of the three
+    // deciding functions must reach it. The originals decided in place —
+    // firesAt.includes(band), a rank comparison, a Set of lit path ids.
+    for (const fn of ["severityQuestionsFor", "detailFires", "accumulateControls"]) {
+      const from = severity.indexOf(`export function ${fn}`);
+      expect(from, `${fn} is gone`).toBeGreaterThan(-1);
+      const body = severity.slice(from, severity.indexOf("\n}\n", from));
+      expect(body, `${fn} decides without the predicate`).toMatch(/matches\(/);
+    }
+    expect(severity, "a band list read directly is a second evaluator").not.toMatch(
+      /firesAt\.(includes|indexOf|some|filter)/,
+    );
+  });
+
+  it("only the engine knows the order of the bands", () => {
+    // The rank map that made severityAtLeast a second implementation of an
+    // operator §6.3 already assigns to the engine.
+    const offenders = filesUnder(SRC)
+      .filter((f) => rel(f) !== "lib/conditions.ts")
+      .filter((f) => /(Low|Medium|High)"?\s*:\s*[0-9]/.test(read(f)))
+      .map(rel);
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("§25 error handling is structural", () => {
   it("server actions return typed results rather than throwing on failure", () => {
     const source = read(join(SRC, "app/actions.ts"));
