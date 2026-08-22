@@ -262,3 +262,27 @@ describe("only personas can be signed in as", () => {
     expect(rows.rows[0]!.count).toBeGreaterThan(0);
   });
 });
+
+/**
+ * Owner call: an assessor is known by the office they speak for, and the
+ * list runs down the risk areas in the instrument's own order — because a
+ * requester looking for who owns privacy is scanning risk areas, not names.
+ */
+describe("assessors are offices, in the instrument's order", () => {
+  it("every risk area has exactly one office, and none is a job title", async () => {
+    const gates = JSON.parse(
+      readFileSync(join(__dirname, "..", "..", "src", "data", "instrument", "gates.json"), "utf8"),
+    ) as { categories: { key: string }[] };
+    const rows = await pg.query<{ risk_domain: string; title: string }>(
+      "select risk_domain, title from people where role = 'assessor' and risk_domain is not null",
+    );
+    const owned = rows.rows.map((r) => r.risk_domain).sort();
+    expect(owned).toEqual(gates.categories.map((c) => c.key).sort());
+    expect(new Set(owned).size, "two people own the same risk area").toBe(owned.length);
+    for (const row of rows.rows) {
+      // "Privacy Officer" is HR's word for the person; "Privacy Office" is
+      // where a question goes. The second is what a requester needs.
+      expect(row.title, row.risk_domain).not.toMatch(/\b(Officer|Manager|Lead|Partner|Advisor|Counsel|Architect)\b/);
+    }
+  });
+});

@@ -17,6 +17,7 @@ import { getDb, schema } from "./db";
 import type { IntakeChange, IntakePatch } from "./intake-values";
 import type { Person, Role } from "./people";
 import { labelOf, type ReferenceAnswer } from "./reference";
+import { CATEGORIES } from "./instrument";
 
 export type ProjectSummary = {
   id: string;
@@ -284,11 +285,24 @@ export function postgresPeopleStore(): PeopleStore {
     async list() {
       // Ordered by the journey — requester, then assessor, then admin —
       // because that is the story the front door tells.
+      //
+      // Within the assessors the order is the INSTRUMENT'S, not the
+      // alphabet's: a requester looking for who owns privacy is scanning
+      // risk areas, and the areas already have an order that the whole
+      // product uses. The generalist sits last, after every named owner.
       const order: Record<string, number> = { requester: 0, assessor: 1, admin: 2 };
+      const domainOrder = new Map(CATEGORIES.map((c, i) => [c.key, i]));
+      const byDomain = (person: Person) =>
+        person.riskDomain ? (domainOrder.get(person.riskDomain) ?? 998) : 999;
       const rows = await db.select().from(schema.people);
       return rows
         .map(shape)
-        .sort((a, b) => (order[a.role] ?? 9) - (order[b.role] ?? 9) || a.name.localeCompare(b.name));
+        .sort(
+          (a, b) =>
+            (order[a.role] ?? 9) - (order[b.role] ?? 9) ||
+            byDomain(a) - byDomain(b) ||
+            a.name.localeCompare(b.name),
+        );
     },
     async signIns() {
       return (await this.list()).filter((person) => person.signsIn);
