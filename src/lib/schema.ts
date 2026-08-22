@@ -93,6 +93,8 @@ export const people = pgTable("people", {
    * grounded in the eleven areas rather than a second taxonomy (S4.7).
    */
   riskDomain: text("risk_domain"),
+  /** Everything before this has been read. News is derived, not stored. */
+  newsClearedAt: timestamp("news_cleared_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

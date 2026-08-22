@@ -282,6 +282,7 @@ export function postgresPeopleStore(): PeopleStore {
     email: row.email,
     signsIn: row.signsIn,
     riskDomain: row.riskDomain,
+    newsClearedAt: row.newsClearedAt,
   });
   return {
     async list() {
@@ -355,7 +356,26 @@ export interface HandoffStore {
    * nothing that can go stale.
    */
   waitingOn(person: Person): Promise<Handoff[]>;
+  /**
+   * Replies this person has not seen — the NEWS class. Derived from the
+   * replies themselves against one watermark per person, so there is no
+   * message table and nothing that can disagree with the conversation it
+   * describes.
+   */
+  newsFor(person: Person): Promise<News[]>;
+  clearNews(personId: string): Promise<void>;
 }
+
+/** One thing somebody said that this person has not read yet. */
+export type News = {
+  replyId: string;
+  handoffId: string;
+  projectId: string;
+  projectName: string;
+  questionLabel: string;
+  authorName: string;
+  createdAt: Date;
+};
 
 function postgresHandoffStore(): HandoffStore {
   const db = getDb();
@@ -419,6 +439,56 @@ function postgresHandoffStore(): HandoffStore {
         .where(inArray(schema.handoffReplies.handoffId, handoffIds))
         .orderBy(schema.handoffReplies.createdAt);
       return rows;
+    },
+    async newsFor(person) {
+      const rows = await db
+        .select({
+          replyId: schema.handoffReplies.id,
+          handoffId: schema.handoffs.id,
+          projectId: schema.handoffs.projectId,
+          projectName: schema.projects.projectName,
+          questionId: schema.handoffs.questionId,
+          authorName: schema.people.name,
+          authorId: schema.handoffReplies.authorId,
+          createdAt: schema.handoffReplies.createdAt,
+          toPersonId: schema.handoffs.toPersonId,
+          toDomain: schema.handoffs.toDomain,
+          askedBy: schema.handoffs.askedBy,
+          resolvedAt: schema.handoffs.resolvedAt,
+        })
+        .from(schema.handoffReplies)
+        .innerJoin(schema.handoffs, eq(schema.handoffs.id, schema.handoffReplies.handoffId))
+        .innerJoin(schema.projects, eq(schema.projects.id, schema.handoffs.projectId))
+        .innerJoin(schema.people, eq(schema.people.id, schema.handoffReplies.authorId))
+        .orderBy(desc(schema.handoffReplies.createdAt))
+        .limit(50);
+      const since = person.newsClearedAt;
+      return rows
+        .filter((r) => r.authorId !== person.id)
+        .filter((r) => (since ? r.createdAt > since : true))
+        // Yours if you asked, or if it is waiting on you. Scoped here rather
+        // than left global: the prior platform showed every reviewer every
+        // other team's counts.
+        .filter(
+          (r) =>
+            r.askedBy === person.id ||
+            isWaitingOn(r, person),
+        )
+        .map((r) => ({
+          replyId: r.replyId,
+          handoffId: r.handoffId,
+          projectId: r.projectId,
+          projectName: r.projectName,
+          questionLabel: questionLabelFor(r.questionId),
+          authorName: r.authorName,
+          createdAt: r.createdAt,
+        }));
+    },
+    async clearNews(personId) {
+      await db
+        .update(schema.people)
+        .set({ newsClearedAt: new Date() })
+        .where(eq(schema.people.id, personId));
     },
     async waitingOn(person) {
       // Scoped in SQL to what can possibly be theirs, then filtered by the

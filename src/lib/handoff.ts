@@ -76,7 +76,9 @@ export function depthOf(node: ThreadNode, depth = 0): number {
  * owns that risk area — and on the generalist, who covers what has no named
  * owner, so a question can never sit in a queue nobody reads.
  */
-export function isWaitingOn(handoff: Handoff, person: Person): boolean {
+export type Assignment = Pick<Handoff, "toPersonId" | "toDomain" | "resolvedAt">;
+
+export function isWaitingOn(handoff: Assignment, person: Person): boolean {
   if (handoff.resolvedAt !== null) return false;
   if (handoff.toPersonId) return handoff.toPersonId === person.id;
   if (person.role !== "assessor") return false;

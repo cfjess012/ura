@@ -24,6 +24,8 @@ export type Person = {
   signsIn: boolean;
   /** The risk area this person owns, for assessors. Null for everyone else. */
   riskDomain: string | null;
+  /** Everything said before this has been read (S4.7). */
+  newsClearedAt: Date | null;
 };
 
 export function isRole(value: string): value is Role {

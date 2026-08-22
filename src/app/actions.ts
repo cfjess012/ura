@@ -448,3 +448,16 @@ export async function resolveHandoff(
     );
   }
 }
+
+/**
+ * Mark everything said so far as read.
+ *
+ * One watermark on the person, not a row per message. There is nothing to
+ * mark read individually because there are no message rows — news is
+ * derived from the replies themselves.
+ */
+export async function clearNews(): Promise<void> {
+  const person = await currentPerson();
+  await handoffStore().clearNews(person.id);
+  revalidatePath("/", "layout");
+}

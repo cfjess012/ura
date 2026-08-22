@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { currentPerson } from "@/lib/current-person";
 import { canAdminister } from "@/lib/people";
-import { peopleStore } from "@/lib/repo";
+import { handoffStore, peopleStore } from "@/lib/repo";
 import { switchUser } from "@/app/actions";
 import { PersonSwitcher } from "../person-switcher";
+import { AlertBell } from "./alert-bell";
+import { openFor } from "@/lib/handoff";
 
 /**
  * The working chrome. The landing page sits outside this group deliberately
@@ -11,6 +13,14 @@ import { PersonSwitcher } from "../person-switcher";
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const [people, current] = await Promise.all([peopleStore().signIns(), currentPerson()]);
+  // Both classes are DERIVED — nothing is stored as a message, so there is
+  // nothing to poll, nothing to mark read one by one, and nothing that can
+  // disagree with the conversation it describes.
+  const [waiting, news] = await Promise.all([
+    handoffStore().waitingOn(current),
+    handoffStore().newsFor(current),
+  ]);
+  const now = new Date();
   return (
     <>
       <header className="appbar">
@@ -24,6 +34,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 Agents
               </Link>
             )}
+            <AlertBell
+              obligations={waiting.map((h) => ({
+                handoffId: h.id,
+                projectId: h.projectId,
+                projectName: h.projectName,
+                questionLabel: h.questionLabel,
+                askedByName: h.askedByName,
+                openFor: openFor(h, now),
+              }))}
+              news={news.map((n) => ({ ...n, createdAt: n.createdAt.toISOString() }))}
+            />
             <PersonSwitcher people={people} current={current} />
             {/* The pilot equivalent of signing out: back to the front door. */}
             <form action={switchUser}>
