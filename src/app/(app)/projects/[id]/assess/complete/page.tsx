@@ -105,7 +105,7 @@ export default async function GatesCompletePage({
         <GateRail projectId={id} states={states} currentKey="" />
 
         <section>
-          <p className="eyebrow">Step 2 · Risk areas</p>
+          <p className="eyebrow">Where this assessment stands</p>
           <h2 className="display">
             {gateProgressHeadline(asked.length - remaining, asked.length)}
           </h2>
@@ -147,8 +147,7 @@ export default async function GatesCompletePage({
               </ul>
               <p className="help" style={{ marginTop: ".6rem" }}>
                 {lit.filter((p) => p.source === "derived").length} of these were
-                worked out from answers you already gave. The detailed questions
-                for each arrive in the next phase.
+                worked out from answers you already gave.
               </p>
             </div>
           )}
@@ -158,13 +157,13 @@ export default async function GatesCompletePage({
               <h2>What this assessment requires</h2>
               <p className="help">
                 Assembled from your severity answers — each control names the
-                answer that pulled it in. The control questions themselves
-                come in the next phase.
+                answer that pulled it in. The detailed questions inside each
+                control come later; this is the workplan they will follow.
               </p>
               <ul className="summary-list">
                 {owed.map((control) => (
                   <li key={control.objective}>
-                    <strong>{control.objective}</strong>
+                    <strong>{control.name}</strong>
                     <span className="meta"> — {control.because.join("; and ")}</span>
                   </li>
                 ))}
@@ -178,7 +177,10 @@ export default async function GatesCompletePage({
               <p>
                 {severityQuestions.length - severityAnswered} severity question
                 {severityQuestions.length - severityAnswered === 1 ? "" : "s"} have no
-                answer yet, so the control list above is incomplete.
+                answer yet
+                {owed.length > 0
+                  ? ", so the list above is incomplete."
+                  : ", so we can't yet say what this activity will require."}
               </p>
               <Link className="btn" href={`/projects/${id}/assess/severity/${severityGroupKey}`}>
                 Answer them &rarr;
@@ -236,13 +238,19 @@ export default async function GatesCompletePage({
             </div>
           )}
 
-          {/* Honest about what does not exist yet (§24.7). */}
+          {/*
+            Honest about what does not exist yet (§24.8) — and honest in the
+            other direction too. This card used to say the severity screens
+            "are still being built" to a person who had just finished them,
+            which is the same defect as claiming an unbuilt stage is ready
+            (S4 verification, F3).
+          */}
           <div className="card card-upcoming">
             <h2>Coming next</h2>
             <p>
-              The detail questions for each area that applies, then a severity rating, then the
-              controls those ratings call for. Those screens are still being built — your answers
-              so far are saved.
+              A reviewer picks this up, and the detailed control questions
+              behind each requirement above are asked. Those screens are still
+              being built — everything you have answered is saved.
             </p>
             <Link className="btn ghost" href={`/projects/${id}`}>
               Back to the assessment

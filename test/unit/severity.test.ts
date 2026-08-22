@@ -4,6 +4,8 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  BANDS,
+  SEVERITY,
   SEVERITY_QUESTIONS,
   accumulateControls,
   conditionSentence,
@@ -12,6 +14,12 @@ import {
   detailFires,
   severityAtLeast,
   severityQuestionsFor,
+  CONTROLS,
+  controlName,
+  severitySubmissionProblems,
+  writableSeverityAnswers,
+  validate,
+  type SeverityDoc,
   type SeverityQuestion,
 } from "../../src/lib/severity";
 
@@ -219,5 +227,264 @@ describe("§19 · the contradiction lint (structural half)", () => {
     for (const q of SEVERITY_QUESTIONS as SeverityQuestion[]) {
       expect(contradictions([]), q.id).toEqual([]);
     }
+  });
+});
+
+/**
+ * B2 (S4 verification) — an empty list is a substantive answer in this
+ * instrument, so a screen may only write questions that were on it. The
+ * old rule wrote every detail question in the group on submit, hidden or
+ * not, which recorded "none of these apply" against questions nobody was
+ * ever shown. Insert-only means those rows are permanent.
+ */
+describe("a severity screen writes only what was on screen", () => {
+  const parent = SEVERITY_QUESTIONS.find((q) => q.detail)! as SeverityQuestion;
+  const detailId = parent.detail!.questionId;
+  const everything = [parent.questionId, detailId];
+
+  it("does not write a detail question whose parent is unanswered", () => {
+    const payload = writableSeverityAnswers([parent], {}, { [detailId]: [] }, everything);
+    expect(payload).toEqual({});
+  });
+
+  it("does not write a detail question below its threshold", () => {
+    // Low is beneath every shipped detail's firesAt, so the detail is not
+    // on screen even though its parent has been answered.
+    expect(parent.detail!.firesAt).not.toContain("Low");
+    const payload = writableSeverityAnswers(
+      [parent],
+      { [parent.questionId]: "Low" },
+      { [detailId]: [] },
+      everything,
+    );
+    expect(payload).toEqual({ [parent.questionId]: "Low" });
+    expect(payload[detailId]).toBeUndefined();
+  });
+
+  it("writes an empty detail only when the question is actually showing", () => {
+    const band = parent.detail!.firesAt[0]!;
+    const payload = writableSeverityAnswers(
+      [parent],
+      { [parent.questionId]: band },
+      { [detailId]: [] },
+      everything,
+    );
+    // Now it IS a real answer: the person saw the question and ticked
+    // nothing. That is "none of these apply", and it must persist.
+    expect(payload).toEqual({ [parent.questionId]: band, [detailId]: [] });
+  });
+
+  it("writes nothing for a question the person never touched", () => {
+    const band = parent.detail!.firesAt[0]!;
+    const payload = writableSeverityAnswers(
+      [parent],
+      { [parent.questionId]: band },
+      { [detailId]: ["whatever"] },
+      [],
+    );
+    expect(payload).toEqual({});
+  });
+});
+
+/**
+ * F2 (S4 verification) — the refusal rule was pinned by nothing, exactly
+ * as `pathSubmissionProblems` had been one slice earlier. §25.5: every
+ * error path carries a test.
+ */
+describe("severitySubmissionProblems refuses what the instrument does not contain", () => {
+  const parent = SEVERITY_QUESTIONS.find((q) => q.detail)! as SeverityQuestion;
+
+  it("accepts a real band and a real detail option", () => {
+    expect(
+      severitySubmissionProblems({
+        [parent.questionId]: "High",
+        [parent.detail!.questionId]: [parent.detail!.options[0]!],
+      }),
+    ).toEqual([]);
+  });
+
+  it("refuses a question that is not in the instrument", () => {
+    const problems = severitySubmissionProblems({ "sev.not_a_question": "High" });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("no such question");
+  });
+
+  it("refuses a value that is not a band", () => {
+    const problems = severitySubmissionProblems({ [parent.questionId]: "Catastrophic" });
+    expect(problems[0]).toContain("not one of Low, Medium or High");
+  });
+
+  it("refuses a list where a band belongs", () => {
+    const problems = severitySubmissionProblems({
+      [parent.questionId]: ["High"] as unknown as string,
+    });
+    expect(problems[0]).toContain("not one of Low, Medium or High");
+  });
+
+  it("refuses a detail option the question does not offer", () => {
+    const problems = severitySubmissionProblems({
+      [parent.detail!.questionId]: [parent.detail!.options[0]!, "invented"],
+    });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("unknown option");
+    expect(problems[0]).toContain("invented");
+  });
+
+  it("accepts an empty detail list — none of these apply is an answer", () => {
+    expect(severitySubmissionProblems({ [parent.detail!.questionId]: [] })).toEqual([]);
+  });
+});
+
+/**
+ * B1 (S4 verification) — NFR-9: no internal identifier in any user-facing
+ * text. The shipped screen printed "T3-GOV-03 — Business Criticality is
+ * High — oversight" as the label of a required control.
+ *
+ * It slipped because the test that existed asserted no identifier appears
+ * in the *reason*, and the identifier was in the *label* — a guard on the
+ * field next door. So this suite asserts over every user-facing string an
+ * accumulated control has, by name, and the last case fails if a new one
+ * is added and left uncovered.
+ */
+describe("NFR-9 · a person never reads a control code", () => {
+  const CODE = /T[0-9]-[A-Z]{2,5}-[0-9]/;
+
+  it("every control a question can require has a name in the catalogue", () => {
+    for (const q of SEVERITY_QUESTIONS as SeverityQuestion[]) {
+      for (const requirement of q.requires) {
+        expect(CONTROLS[requirement.objective]?.name, requirement.objective).toBeTruthy();
+      }
+      for (const objectives of Object.values(q.detail?.optionRequires ?? {})) {
+        for (const objective of objectives) {
+          expect(CONTROLS[objective]?.name, objective).toBeTruthy();
+        }
+      }
+    }
+  });
+
+  it("no catalogue name is itself a code", () => {
+    for (const [code, control] of Object.entries(CONTROLS)) {
+      expect(control.name, code).not.toMatch(CODE);
+      expect(control.name.length, code).toBeGreaterThan(3);
+    }
+  });
+
+  it("accumulation carries a name, and nothing a person reads is a code", () => {
+    // Every question at its worst band, so every reachable control appears.
+    const owed = accumulateControls(
+      SEVERITY_QUESTIONS as SeverityQuestion[],
+      Object.fromEntries(SEVERITY_QUESTIONS.map((q) => [q.questionId, "High" as const])),
+      Object.fromEntries(
+        SEVERITY_QUESTIONS.filter((q) => q.detail).map((q) => [
+          q.detail!.questionId,
+          q.detail!.options,
+        ]),
+      ),
+    );
+    expect(owed.length).toBeGreaterThan(0);
+    for (const control of owed) {
+      // Every string a screen renders from this object, enumerated. The
+      // `objective` code is deliberately kept for the record and the
+      // destination — it is the one field no surface may print.
+      const onScreen = [control.name, ...control.because];
+      for (const text of onScreen) expect(text, control.objective).not.toMatch(CODE);
+      expect(control.name).toBe(controlName(control.objective));
+    }
+  });
+
+  it("an accumulated control has exactly the fields this suite covers", () => {
+    const [first] = accumulateControls(
+      SEVERITY_QUESTIONS as SeverityQuestion[],
+      { [SEVERITY_QUESTIONS[0]!.questionId]: "High" },
+      {},
+    );
+    // If a field is added, this fails until someone decides whether it is
+    // user-facing and covers it above. A hand-maintained list of fields to
+    // check decays; a list of fields that exist cannot.
+    expect(Object.keys(first!).sort()).toEqual(["because", "name", "objective"]);
+  });
+});
+
+/**
+ * N3 (S4 verification) — autosave wrote the band, then the forward control
+ * wrote the same band again 24 seconds later. Insert-only makes that
+ * permanent, and a history padded with non-events is a history nobody
+ * reads. Same rule `intakeChanges()` applies to intake.
+ */
+describe("an answer identical to the one on file is not an event", () => {
+  const q = SEVERITY_QUESTIONS.find((x) => x.detail)! as SeverityQuestion;
+  const detailId = q.detail!.questionId;
+  const band = q.detail!.firesAt[0]!;
+
+  it("skips a band that is already recorded", () => {
+    expect(
+      writableSeverityAnswers([q], { [q.questionId]: band }, {}, [q.questionId], {
+        [q.questionId]: band,
+      }),
+    ).toEqual({});
+  });
+
+  it("writes a band that changed", () => {
+    const other = BANDS.find((b) => b !== band)!;
+    expect(
+      writableSeverityAnswers([q], { [q.questionId]: other }, {}, [q.questionId], {
+        [q.questionId]: band,
+      }),
+    ).toEqual({ [q.questionId]: other });
+  });
+
+  it("compares a detail list by its contents, not its identity", () => {
+    const chosen = [q.detail!.options[0]!];
+    const bands = { [q.questionId]: band };
+    const touched = [q.questionId, detailId];
+    expect(
+      writableSeverityAnswers([q], bands, { [detailId]: [...chosen] }, touched, {
+        [q.questionId]: band,
+        [detailId]: [...chosen],
+      }),
+    ).toEqual({});
+    expect(
+      writableSeverityAnswers([q], bands, { [detailId]: [] }, touched, {
+        [q.questionId]: band,
+        [detailId]: [...chosen],
+      }),
+    ).toEqual({ [detailId]: [] });
+  });
+});
+
+/**
+ * F8 (S4 verification) — the same silent-no-op hole the Tier-1 validator
+ * was extended to close in S3 round 2, left open in the new file. A
+ * question lit by a path that does not exist is never asked; a band
+ * derived from a field that does not exist is never worked out. Neither
+ * errors, and both look right in the data.
+ *
+ * The reference is external — the Tier-1 instrument's own path options
+ * and the intake field ids — not the severity file describing itself.
+ */
+describe("the severity validator rejects references that resolve to nothing", () => {
+  const doc = () => JSON.parse(JSON.stringify(SEVERITY)) as SeverityDoc;
+
+  it("accepts the shipped instrument", () => {
+    expect(() => validate(doc())).not.toThrow();
+  });
+
+  it("rejects a question lit by a path no risk area offers", () => {
+    const d = doc();
+    d.questions[0]!.path = "NOT_A_PATH";
+    expect(() => validate(d)).toThrow(/no risk area offers/);
+  });
+
+  it("rejects a band derived from a field that is not in intake", () => {
+    const d = doc();
+    const derived = d.questions.find((q) => q.derivedFrom)!;
+    derived.derivedFrom!.from = "notAField";
+    expect(() => validate(d)).toThrow(/not an intake field/);
+  });
+
+  it("rejects a control that would show as its code", () => {
+    const d = doc();
+    delete (d.controls as Record<string, unknown>)[d.questions[0]!.requires[0]!.objective];
+    expect(() => validate(d)).toThrow(/would show as its code/);
   });
 });

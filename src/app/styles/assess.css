@@ -136,3 +136,15 @@
 .q2 .detail { border-top: 1px dashed var(--neutral-200); margin-top: .9rem; padding-top: .7rem; }
 .owed { border-left: 4px solid var(--success); }
 .owed h2 { color: var(--success); }
+
+/* A way back out of Tier 2 — see severity-rail.tsx (S4 verification, F5). */
+.rail-back {
+  display: flex; flex-direction: column; gap: 0.35rem;
+  margin-top: 0.9rem; padding-top: 0.75rem;
+  border-top: 1px solid var(--neutral-200);
+}
+.rail-back-link {
+  font-size: 0.82rem; color: var(--neutral-700); text-decoration: none;
+  padding: 0.3rem 0.6rem; border-radius: 8px;
+}
+.rail-back-link:hover { background: var(--neutral-100); color: var(--neutral-900); }

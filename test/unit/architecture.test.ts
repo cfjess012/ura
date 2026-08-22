@@ -21,17 +21,38 @@ const read = (p: string) => readFileSync(p, "utf8");
 const rel = (p: string) => p.slice(SRC.length + 1);
 
 describe("§26.1 pure logic is liftable", () => {
-  // Modules that must run unchanged inside a Lambda or AgentCore task.
-  const PURE = [
-    "lib/intake.ts",
-    "lib/intake-values.ts",
-    "lib/errors.ts",
-    // Added after independent verification pointed out that the UAT cited
-    // this test as evidence for modules it never covered.
-    "lib/engine.ts",
-    "lib/conditions.ts",
-    "lib/people.ts",
-  ];
+  /**
+   * Every module under `lib/` except the ones that exist to touch the
+   * outside world. **Derived, not listed.** The hand-maintained version of
+   * this list decayed twice — engine/conditions/people were missing when
+   * round-1 verification cited this test as their evidence, and severity/
+   * instrument were missing again one slice later. A list of what to check
+   * rots every time someone adds a file; a list of what is *exempt* fails
+   * loudly when a new file appears, because the new file is checked by
+   * default (S4 verification, F9).
+   */
+  const IMPURE = new Set([
+    "lib/db.ts", // opens the connection
+    "lib/repo.ts", // speaks to the driver
+    "lib/schema.ts", // drizzle table definitions
+    "lib/config.ts", // the one module that may read process.env
+    "lib/current-person.ts", // reads the request's cookies
+    "lib/project-access.ts", // asks the store who may open a project
+  ]);
+  const PURE = readdirSync(join(SRC, "lib"))
+    .filter((f) => f.endsWith(".ts"))
+    .map((f) => `lib/${f}`)
+    .filter((f) => !IMPURE.has(f));
+
+  it("covers every module under lib/ that is not declared impure", () => {
+    // The certification is only worth what it covers. If a module is added
+    // and it is neither pure nor declared impure, this suite must be the
+    // thing that says so — not a verifier, one slice later.
+    const all = readdirSync(join(SRC, "lib")).filter((f) => f.endsWith(".ts"));
+    expect(PURE.length + IMPURE.size).toBe(all.length);
+    expect(PURE).toContain("lib/severity.ts");
+    expect(PURE).toContain("lib/instrument.ts");
+  });
 
   it("imports no framework, driver, or environment", () => {
     for (const file of PURE) {

@@ -12,6 +12,10 @@
  */
 import severityDoc from "@/data/instrument/severity.json";
 import { matches, type AnswerLookup, type Condition } from "./conditions";
+import { CATEGORIES } from "./instrument";
+import { ALL_FIELDS } from "./intake";
+
+const INTAKE_FIELD_IDS = new Set(ALL_FIELDS.map((f) => f.id));
 
 export const BANDS = ["Low", "Medium", "High"] as const;
 export type Band = (typeof BANDS)[number];
@@ -55,7 +59,16 @@ export type SeverityQuestion = {
   };
 };
 
-function validate(doc: { questions: SeverityQuestion[]; slug: string; version: string }) {
+export type SeverityDoc = {
+  questions: SeverityQuestion[];
+  slug: string;
+  version: string;
+  /** The owner's control catalogue, keyed by their code. */
+  controls: Record<string, { name: string; family: string; objective?: string }>;
+};
+
+/** Exported for the same reason as the Tier-1 validator (F10). */
+export function validate(doc: SeverityDoc) {
   const problems: string[] = [];
   const ids = new Set<string>();
   for (const q of doc.questions ?? []) {
@@ -82,14 +95,53 @@ function validate(doc: { questions: SeverityQuestion[]; slug: string; version: s
         problems.push(`${q.id}: derived mapping for "${value}" is not a band`);
     }
   }
+  // A reference that does not resolve is the silent-no-op class again: a
+  // question whose `path` names nothing is simply never asked, and a
+  // `derivedFrom.from` naming nothing returns null forever. Both look
+  // correct in the data and do nothing — the exact hole the Tier-1
+  // validator was extended to close in S3 round 2, left open in the new
+  // file (S4 verification, F8). The reference is external: the Tier-1
+  // instrument's own path options and intake field ids.
+  const pathIds = new Set(
+    CATEGORIES.flatMap((c) => [
+      ...(c.pathQuestion?.options ?? []).map((o) => o.id),
+      ...(c.derivedPaths ?? []).map((d) => d.id),
+    ]),
+  );
+  for (const q of doc.questions ?? []) {
+    if (q.path !== null && !pathIds.has(q.path))
+      problems.push(`${q.id}: lit by path "${q.path}", which no risk area offers — it can never be asked`);
+    const from = q.derivedFrom?.from;
+    if (from && !INTAKE_FIELD_IDS.has(from))
+      problems.push(`${q.id}: derived from "${from}", which is not an intake field — it can never fire`);
+  }
+
+  // Every control objective a question can pull in must have a human name
+  // in the catalogue. Without this the screen falls back to the code —
+  // which is what shipped, and what NFR-9 forbids (S4 verification, B1).
+  // The check is here rather than in a test so a control added without a
+  // name cannot boot, let alone reach a person.
+  const named = new Set(Object.keys(doc.controls ?? {}));
+  const cited = new Set<string>();
+  for (const q of doc.questions ?? []) {
+    for (const requirement of q.requires ?? []) cited.add(requirement.objective);
+    for (const objectives of Object.values(q.detail?.optionRequires ?? {}))
+      for (const objective of objectives) cited.add(objective);
+  }
+  for (const code of cited)
+    if (!doc.controls?.[code]?.name?.trim())
+      problems.push(`control ${code} has no name — it would show as its code`);
+  // And a catalogue that grows entries nothing cites is dead weight that
+  // rots: the names are the owner's, but the set of them is ours to keep
+  // honest.
+  for (const code of named)
+    if (!cited.has(code)) problems.push(`control ${code} is in the catalogue but nothing requires it`);
   if (problems.length > 0)
     throw new Error(`Severity instrument is invalid:\n- ${problems.join("\n- ")}`);
   return doc;
 }
 
-export const SEVERITY = validate(
-  severityDoc as unknown as { questions: SeverityQuestion[]; slug: string; version: string },
-);
+export const SEVERITY = validate(severityDoc as unknown as SeverityDoc);
 export const SEVERITY_QUESTIONS = SEVERITY.questions;
 
 const RANK: Record<Band, number> = { Low: 1, Medium: 2, High: 3 };
@@ -141,9 +193,40 @@ export function detailFires(question: SeverityQuestion, band: Band | null): bool
   return question.detail.firesAt.includes(band);
 }
 
+/**
+ * The catalogue entry for a control objective — the owner's own, taken
+ * from their instrument, keyed by their code.
+ *
+ * It exists because the code was the on-screen label. NFR-9 forbids an
+ * internal identifier in user-facing text, and "T3-RES-01" tells a
+ * business owner nothing about what is being asked of them; "Backup &
+ * Recovery" tells them most of it (S4 verification, B1).
+ */
+export type ControlObjective = {
+  name: string;
+  family: string;
+  /** The full objective sentence, where the owner's catalogue carries one. */
+  objective?: string;
+};
+
+export const CONTROLS: Record<string, ControlObjective> = SEVERITY.controls;
+
+/**
+ * What to call a control objective on screen. Never the code.
+ *
+ * A code with no catalogue entry is a defect the validator refuses at
+ * boot, so this cannot silently fall back to showing one.
+ */
+export function controlName(code: string): string {
+  return CONTROLS[code]?.name ?? code;
+}
+
 /** One control objective this assessment requires, and every reason why. */
 export type AccumulatedControl = {
+  /** The owner's code — for the record and the destination, not the screen. */
   objective: string;
+  /** What a person reads (NFR-9). */
+  name: string;
   /** Every reason, not the first — §19 routing criterion. */
   because: string[];
 };
@@ -184,8 +267,9 @@ export function accumulateControls(
     }
   }
   return [...owed.entries()]
-    .map(([objective, because]) => ({ objective, because }))
-    .sort((a, b) => a.objective.localeCompare(b.objective));
+    .map(([objective, because]) => ({ objective, name: controlName(objective), because }))
+    // Sorted by what a person reads, not by the internal code.
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**
@@ -273,4 +357,69 @@ export function severitySubmissionProblems(
       problems.push(`${questionId}: unknown option${unknown.length > 1 ? "s" : ""} ${unknown.join(", ")}`);
   }
   return problems;
+}
+
+/**
+ * What a severity screen may actually write, given what is on it.
+ *
+ * Two rules, and the second is the one that was missing. A band is written
+ * only when the person answered it. A **detail question is written only
+ * when it is on screen** — its parent band answered, and answered at or
+ * above the threshold that reveals it.
+ *
+ * Without the second rule, pressing the forward control on an untouched
+ * screen recorded an empty list against every detail question in the
+ * group, including ones below their threshold and ones whose parent was
+ * unanswered. An empty list is not "no answer" in this instrument: it is
+ * the substantive answer *none of these apply*, insert-only, attributed,
+ * and confirmed. That is G-42 one tier down — the autosave half of the
+ * lesson was applied and the submit half was not, because submitting
+ * writes the whole screen and nothing asked which of the screen was
+ * showing (found by independent verification of S4, B2).
+ *
+ * It lives here rather than in the form so it is provable without a
+ * browser (§26.1).
+ */
+export function writableSeverityAnswers(
+  questions: SeverityQuestion[],
+  bands: Record<string, Band | null | undefined>,
+  details: Record<string, string[]>,
+  touched: string[],
+  /**
+   * What is already recorded. An answer identical to the one on file is
+   * not an event: autosave stored the band, then the forward control
+   * stored it again, and the history filled with the same fact twice
+   * (S4 verification, N3). Insert-only makes that permanent noise, and
+   * a history padded with non-events is a history nobody reads — the
+   * same rule `intakeChanges()` applies one tier up.
+   */
+  persisted: Record<string, string | string[] | undefined> = {},
+): Record<string, string | string[]> {
+  const covered = new Set(touched);
+  const payload: Record<string, string | string[]> = {};
+  const unchanged = (id: string, value: string | string[]) => {
+    const before = persisted[id];
+    if (before === undefined) return false;
+    if (Array.isArray(value) || Array.isArray(before)) {
+      const a = Array.isArray(before) ? before : [before];
+      const b = Array.isArray(value) ? value : [value];
+      return a.length === b.length && a.every((v, i) => v === b[i]);
+    }
+    return before === value;
+  };
+  for (const question of questions) {
+    const band = bands[question.questionId] ?? null;
+    if (covered.has(question.questionId) && band && !unchanged(question.questionId, band))
+      payload[question.questionId] = band;
+    if (
+      question.detail &&
+      covered.has(question.detail.questionId) &&
+      detailFires(question, band)
+    ) {
+      const chosen = details[question.detail.questionId] ?? [];
+      if (!unchanged(question.detail.questionId, chosen))
+        payload[question.detail.questionId] = chosen;
+    }
+  }
+  return payload;
 }

@@ -12,6 +12,7 @@ import {
   gateStates,
   prefillFor,
   unansweredCount,
+  validate,
 } from "../../src/lib/instrument";
 import {
   litPaths,
@@ -411,5 +412,63 @@ describe("a path submission is refused, never narrowed (N9)", () => {
 
   it("accepts a genuinely empty selection — 'none of these apply' is an answer", () => {
     expect(pathSubmissionProblems(CATEGORIES, { "data-privacy": [] })).toEqual([]);
+  });
+});
+
+/**
+ * F10 (S4 verification) — the four reference checks added in S3 round 2
+ * lived in a module-private function, so nothing could reach them. They
+ * were verified once, by hand, by a verifier who re-exported the module;
+ * a later edit could have removed them with every gate green.
+ *
+ * Each case below is a rule that *looks* correct and silently never fires
+ * — the failure mode worse than a rejection, because nobody goes looking.
+ */
+describe("the instrument validator rejects rules that can never fire (B3, F10)", () => {
+  /** The shipped instrument with one category's condition replaced. */
+  const withCondition = (patch: Record<string, unknown>) => {
+    const clone = JSON.parse(JSON.stringify(INSTRUMENT));
+    clone.categories[0].prefill = [
+      { answer: "Yes", when: patch, because: "test fixture" },
+    ];
+    return clone;
+  };
+
+  it("accepts the shipped instrument", () => {
+    expect(() => validate(JSON.parse(JSON.stringify(INSTRUMENT)))).not.toThrow();
+  });
+
+  it("rejects a rule naming a gate that does not exist", () => {
+    expect(() => validate(withCondition({ field: "gate.nosuchgate", equalsAny: ["Yes"] }))).toThrow(
+      /unknown gate "nosuchgate"/,
+    );
+  });
+
+  it("rejects a gate pre-fill reading paths, which are not resolved yet", () => {
+    expect(() => validate(withCondition({ field: "paths", includesAny: ["PRIV"] }))).toThrow(
+      /not resolved yet when gates are settled/,
+    );
+  });
+
+  it("rejects a derived path reading the paths of a category that does not exist", () => {
+    // Paths are visible here — a derived path is resolved after the gates
+    // settle — so this reaches the category check rather than the
+    // ordering one above.
+    const clone = JSON.parse(JSON.stringify(INSTRUMENT));
+    clone.categories[0].derivedPaths = [
+      {
+        id: "TEST_X",
+        name: "Test",
+        when: [{ field: "path.nope", includesAny: ["X"] }],
+        because: "test fixture",
+      },
+    ];
+    expect(() => validate(clone)).toThrow(/unknown category "nope"/);
+  });
+
+  it("rejects a rule naming a field that is not intake, gate, or path", () => {
+    expect(() => validate(withCondition({ field: "inventedField", equalsAny: ["Yes"] }))).toThrow(
+      /not an intake field, a gate, or a path/,
+    );
   });
 });

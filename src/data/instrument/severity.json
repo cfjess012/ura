@@ -1,6 +1,6 @@
 {
   "slug": "tier2-severity",
-  "version": "2026-08-21.1",
+  "version": "2026-08-21.2",
   "questions": [
     {
       "id": "T2-SH-1",
@@ -1260,5 +1260,226 @@
         }
       ]
     }
-  ]
+  ],
+  "controls": {
+    "T3-AI-01": {
+      "name": "Model Governance & Validation",
+      "family": "AI"
+    },
+    "T3-AI-02": {
+      "name": "Human Oversight",
+      "family": "AI"
+    },
+    "T3-AI-03": {
+      "name": "Fairness & Bias Testing",
+      "family": "AI"
+    },
+    "T3-AI-05": {
+      "name": "Explainability & Documentation",
+      "family": "AI"
+    },
+    "T3-AI-06": {
+      "name": "Output Safety & Quality",
+      "family": "AI"
+    },
+    "T3-AI-07": {
+      "name": "PI in AI & Prompt/Output Handling",
+      "family": "AI"
+    },
+    "T3-AI-08": {
+      "name": "Bounded Autonomy & Action Authority",
+      "family": "AI"
+    },
+    "T3-AI-09": {
+      "name": "Retrieval Entitlement Enforcement",
+      "family": "AI"
+    },
+    "T3-AI-10": {
+      "name": "Training-Data Governance",
+      "family": "AI"
+    },
+    "T3-AI-11": {
+      "name": "Feedback & Recourse",
+      "family": "AI"
+    },
+    "T3-CMP-02": {
+      "name": "Communications Compliance Review",
+      "family": "CMP"
+    },
+    "T3-CMP-03": {
+      "name": "Cross-Border & Jurisdictional Compliance",
+      "family": "CMP"
+    },
+    "T3-CMP-04": {
+      "name": "Statutory, Tax & Financial Reporting",
+      "family": "CMP"
+    },
+    "T3-DP-01": {
+      "name": "Encryption (In Transit & At Rest)",
+      "family": "DP",
+      "objective": "Establish, implement, and maintain encryption standards to protect sensitive data in transit and at rest."
+    },
+    "T3-DP-04": {
+      "name": "Data Minimization & De-identification",
+      "family": "DP",
+      "objective": "Ensure data is limited to only what is necessary for the activity (data minimization), with justification for any sensitive data."
+    },
+    "T3-DP-05": {
+      "name": "Retention, Deletion & Disposal",
+      "family": "DP",
+      "objective": "Ensure data is retained only as long as required and securely disposed of, with disposal verified."
+    },
+    "T3-DP-06": {
+      "name": "Secrets & Configuration Protection",
+      "family": "DP",
+      "objective": "Ensure credentials, secrets, keys, and sensitive configuration are protected against unauthorized access and modification."
+    },
+    "T3-DP-07": {
+      "name": "Media Protection",
+      "family": "DP",
+      "objective": "Ensure physical and removable media containing sensitive data is protected during storage, use, and transport."
+    },
+    "T3-GOV-02": {
+      "name": "Approvals & Risk Acceptance",
+      "family": "GOV"
+    },
+    "T3-GOV-03": {
+      "name": "Ongoing Oversight & Reporting",
+      "family": "GOV"
+    },
+    "T3-HR-01": {
+      "name": "Personnel Screening",
+      "family": "HR"
+    },
+    "T3-HR-02": {
+      "name": "Security Awareness & Training",
+      "family": "HR"
+    },
+    "T3-IAM-01": {
+      "name": "Access Management & Authorization",
+      "family": "IAM",
+      "objective": "Ensure logical access to systems and data is formally authorized, documented, and restricted based on role and least privilege."
+    },
+    "T3-IAM-02": {
+      "name": "Multi-Factor Authentication",
+      "family": "IAM",
+      "objective": "Ensure multi-factor authentication is enforced for access to systems and data commensurate with resource sensitivity."
+    },
+    "T3-IAM-03": {
+      "name": "Privileged Access Management",
+      "family": "IAM",
+      "objective": "Ensure privileged and administrative access is restricted, separated, and subject to stronger controls than standard access."
+    },
+    "T3-IAM-05": {
+      "name": "Access Review & Recertification",
+      "family": "IAM",
+      "objective": "Ensure access rights are periodically reviewed and recertified to confirm they remain appropriate."
+    },
+    "T3-IAM-06": {
+      "name": "Access & Credential Lifecycle",
+      "family": "IAM",
+      "objective": "Ensure user access and credentials are provisioned, changed, and de-provisioned through a controlled lifecycle."
+    },
+    "T3-IAM-10": {
+      "name": "Remote Access",
+      "family": "IAM",
+      "objective": "Ensure remote-access methods are governed with documented usage restrictions, connection requirements, and monitoring."
+    },
+    "T3-LOG-01": {
+      "name": "Security Event Logging",
+      "family": "LOG"
+    },
+    "T3-LOG-02": {
+      "name": "Continuous Monitoring",
+      "family": "LOG"
+    },
+    "T3-NB-01": {
+      "name": "Boundary Protection & Segmentation",
+      "family": "NB",
+      "objective": "Ensure network boundaries are protected and segmented to control traffic and prevent unauthorized access."
+    },
+    "T3-NB-02": {
+      "name": "WAF / External Endpoint Protection",
+      "family": "NB",
+      "objective": "Ensure externally exposed endpoints are protected by web application firewall and API gateway controls."
+    },
+    "T3-NB-03": {
+      "name": "API & Interface Security",
+      "family": "NB",
+      "objective": "Ensure APIs and system interfaces are secured through approved, benchmarked, and monitored configurations."
+    },
+    "T3-NB-05": {
+      "name": "Availability / DoS Protection",
+      "family": "NB",
+      "objective": "Establish and maintain controls to protect against and limit the effects of denial-of-service conditions."
+    },
+    "T3-OPS-04": {
+      "name": "Documented Procedures & QC",
+      "family": "OPS"
+    },
+    "T3-PRIV-02": {
+      "name": "Consent & Lawful Basis",
+      "family": "PRIV"
+    },
+    "T3-PRIV-03": {
+      "name": "Data-Subject Rights",
+      "family": "PRIV"
+    },
+    "T3-PRIV-04": {
+      "name": "Transparency & Notice",
+      "family": "PRIV"
+    },
+    "T3-PRIV-05": {
+      "name": "Special-Category, Profiling & ADM Safeguards",
+      "family": "PRIV"
+    },
+    "T3-RES-01": {
+      "name": "Backup & Recovery",
+      "family": "RES"
+    },
+    "T3-RES-02": {
+      "name": "Incident Response",
+      "family": "RES"
+    },
+    "T3-RES-03": {
+      "name": "Business Continuity & Disaster Recovery",
+      "family": "RES"
+    },
+    "T3-SDLC-03": {
+      "name": "Vulnerability Management",
+      "family": "SDLC"
+    },
+    "T3-SDLC-04": {
+      "name": "Penetration Testing & AppSec Assessment",
+      "family": "SDLC"
+    },
+    "T3-SDLC-05": {
+      "name": "Malicious Code Protection",
+      "family": "SDLC"
+    },
+    "T3-SDLC-06": {
+      "name": "Patch Management",
+      "family": "SDLC"
+    },
+    "T3-TPR-01": {
+      "name": "Contractual Data Protection & Flow-Down",
+      "family": "TPR"
+    },
+    "T3-TPR-02": {
+      "name": "Independent Assurance",
+      "family": "TPR"
+    },
+    "T3-TPR-03": {
+      "name": "Fourth-Party / Subcontractor Management",
+      "family": "TPR"
+    },
+    "T3-TPR-04": {
+      "name": "Third-Party Access Governance",
+      "family": "TPR"
+    },
+    "T3-TPR-05": {
+      "name": "Third-Party Physical Access",
+      "family": "TPR"
+    }
+  }
 }

@@ -61,6 +61,21 @@ export function SeverityRail({
           );
         })}
       </ol>
+      {/*
+        A way back into the flow. Tier 2 replaced the risk-areas rail with
+        this one and offered no route up, so someone who realised mid-way
+        that they had ticked the wrong thread could only reach it through
+        the URL bar (S4 verification, F5). Changing a thread here changes
+        which severity questions exist, so this is not a nicety.
+      */}
+      <div className="rail-back">
+        <Link href={`/projects/${projectId}/assess/paths`} className="rail-back-link">
+          ← Change which parts apply
+        </Link>
+        <Link href={`/projects/${projectId}/assess/complete`} className="rail-back-link">
+          Where this assessment stands
+        </Link>
+      </div>
     </nav>
   );
 }

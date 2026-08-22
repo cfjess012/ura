@@ -73,7 +73,15 @@ export type Instrument = {
   categories: Category[];
 };
 
-function validate(candidate: Instrument): Instrument {
+/**
+ * Exported so its rules can be tested. It was module-private, which meant
+ * the four reference checks added in S3 round 2 — unknown gate, `paths`
+ * read before paths resolve, unknown category, unknown intake field —
+ * were unreachable from the suite and pinned by nothing. A future edit
+ * could have deleted them with every gate staying green (S4
+ * verification, F10).
+ */
+export function validate(candidate: Instrument): Instrument {
   const problems: string[] = [];
   if (!candidate.slug || !candidate.version)
     problems.push("missing slug or version");
