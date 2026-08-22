@@ -15,6 +15,8 @@ implementation, stop on ambiguity.
   derived path carries its reason; parts shelf declined, G-40)
 - S4 Tier 2 — DONE (rubric anchors ARE the options; a derived band is offered,
   never pre-answered; controls accumulate carrying every reason)
+- S4.5 Reference data — NEXT (§17, G-46..G-49): pickers over versioned lists,
+  off-list answers as their own shape, provenance that survives the click
 - S3.5 Destinations — SPEC'd not built (§27): ServiceNow AI Use Case Record
 - S5..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
 - Verified 3× on 2026-08-21, FAIL each time, all addressed (G-28..G-44); each
