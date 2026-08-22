@@ -11,14 +11,22 @@
  * the owner's own instrument.
  */
 import severityDoc from "@/data/instrument/severity.json";
-import { matches, type AnswerLookup, type Condition } from "./conditions";
+import {
+  BANDS,
+  matches,
+  type AnswerLookup,
+  type Band,
+  type Condition,
+} from "./conditions";
+import { ALL_PATHS, SEVERITY_OF, assessmentLookup } from "./engine";
 import { CATEGORIES } from "./instrument";
 import { ALL_FIELDS } from "./intake";
 
 const INTAKE_FIELD_IDS = new Set(ALL_FIELDS.map((f) => f.id));
 
-export const BANDS = ["Low", "Medium", "High"] as const;
-export type Band = (typeof BANDS)[number];
+// The bands and their order belong to the engine that compares them (§6.3);
+// re-exported here because this is where the instrument speaks of them.
+export { BANDS, type Band };
 
 /** A control objective a severity answer requires, at or above a threshold. */
 export type Requirement = { objective: string; atLeast: Band; why: string };
@@ -67,7 +75,7 @@ export type SeverityDoc = {
   controls: Record<string, { name: string; family: string; objective?: string }>;
 };
 
-/** Exported for the same reason as the Tier-1 validator (F10). */
+/** Exported so its reference checks are reachable from the suite. */
 export function validate(doc: SeverityDoc) {
   const problems: string[] = [];
   const ids = new Set<string>();
@@ -95,13 +103,11 @@ export function validate(doc: SeverityDoc) {
         problems.push(`${q.id}: derived mapping for "${value}" is not a band`);
     }
   }
-  // A reference that does not resolve is the silent-no-op class again: a
-  // question whose `path` names nothing is simply never asked, and a
-  // `derivedFrom.from` naming nothing returns null forever. Both look
-  // correct in the data and do nothing — the exact hole the Tier-1
-  // validator was extended to close in S3 round 2, left open in the new
-  // file (S4 verification, F8). The reference is external: the Tier-1
-  // instrument's own path options and intake field ids.
+  // A reference that does not resolve is a silent no-op: a question whose
+  // `path` names nothing is simply never asked, and a `derivedFrom.from`
+  // naming nothing returns null forever. Both look correct in the data and
+  // do nothing. The reference is external — the Tier-1 instrument's own
+  // path options and intake field ids — so only this check can catch it.
   const pathIds = new Set(
     CATEGORIES.flatMap((c) => [
       ...(c.pathQuestion?.options ?? []).map((o) => o.id),
@@ -117,10 +123,9 @@ export function validate(doc: SeverityDoc) {
   }
 
   // Every control objective a question can pull in must have a human name
-  // in the catalogue. Without this the screen falls back to the code —
-  // which is what shipped, and what NFR-9 forbids (S4 verification, B1).
-  // The check is here rather than in a test so a control added without a
-  // name cannot boot, let alone reach a person.
+  // in the catalogue, or the screen falls back to the code — which NFR-9
+  // forbids. The check is here rather than in a test so a control added
+  // without a name cannot boot, let alone reach a person.
   const named = new Set(Object.keys(doc.controls ?? {}));
   const cited = new Set<string>();
   for (const q of doc.questions ?? []) {
@@ -144,25 +149,49 @@ export function validate(doc: SeverityDoc) {
 export const SEVERITY = validate(severityDoc as unknown as SeverityDoc);
 export const SEVERITY_QUESTIONS = SEVERITY.questions;
 
-const RANK: Record<Band, number> = { Low: 1, Medium: 2, High: 3 };
-
 /**
- * §19: "Given unknown severity, `severity_at_least(Medium)` returns false."
+ * Tier-2 routing, as conditions over the one engine (§3.3: "accumulation is
+ * expressed as activation conditions over the same engine — there is no
+ * second evaluator").
  *
- * Unknown fails closed in the direction that does not manufacture safety:
- * an unanswered severity requires nothing yet, so it can never silently
- * satisfy a threshold. It also never *suppresses* anything, because
- * nothing has been accumulated to suppress.
+ * The instrument authors its routing in the owner's vocabulary — a path
+ * name, a list of bands, a threshold. These three functions are the only
+ * place that turns that vocabulary into conditions; `matches()` does every
+ * evaluation, and unknown fails closed there rather than here (§19).
  */
-export function severityAtLeast(band: Band | null | undefined, threshold: Band): boolean {
-  if (!band) return false;
-  return RANK[band] >= RANK[threshold];
+export function askedWhen(question: SeverityQuestion): Condition | null {
+  // The always-asked few carry no condition at all.
+  return question.path === null
+    ? null
+    : { field: ALL_PATHS, includesAny: [question.path] };
+}
+
+/** The bands at which a question's detail is on screen (FR-8). */
+export function detailWhen(question: SeverityQuestion): Condition | null {
+  return question.detail
+    ? { field: SEVERITY_OF(question.questionId), equalsAny: question.detail.firesAt }
+    : null;
+}
+
+/** The band at or above which a requirement is owed (§6.3 severity-at-least). */
+export function requiredWhen(
+  question: SeverityQuestion,
+  requirement: Requirement,
+): Condition {
+  return {
+    field: SEVERITY_OF(question.questionId),
+    severityAtLeast: requirement.atLeast,
+  };
 }
 
 /** Which severity questions are asked, given the Tier-1 paths that are lit. */
 export function severityQuestionsFor(litPathIds: string[]): SeverityQuestion[] {
-  const lit = new Set(litPathIds);
-  return SEVERITY_QUESTIONS.filter((q) => q.path === null || lit.has(q.path));
+  // The one key these rules read, under the name the engine gives it.
+  const answers: AnswerLookup = { [ALL_PATHS]: litPathIds };
+  return SEVERITY_QUESTIONS.filter((q) => {
+    const when = askedWhen(q);
+    return when === null || matches(when, answers);
+  });
 }
 
 /** A band worked out from a fact already given, with the sentence to show. */
@@ -182,25 +211,26 @@ export function deriveBand(
     .map((v) => rule.map[v])
     .filter((b): b is Band => Boolean(b));
   if (candidates.length === 0) return null;
-  const band = candidates.reduce((worst, b) => (RANK[b] > RANK[worst] ? b : worst));
+  const band = candidates.reduce((worst, b) =>
+    BANDS.indexOf(b) > BANDS.indexOf(worst) ? b : worst,
+  );
   const named = Array.isArray(value) ? value.join(", ") : String(value);
   return { band, because: rule.because.replace("{value}", named) };
 }
 
-/** Whether a question's detail is showing, given its band (FR-8). */
-export function detailFires(question: SeverityQuestion, band: Band | null): boolean {
-  if (!question.detail || !band) return false;
-  return question.detail.firesAt.includes(band);
+/** Whether a question's detail is showing, given the answers so far (FR-8). */
+export function detailFires(question: SeverityQuestion, answers: AnswerLookup): boolean {
+  const when = detailWhen(question);
+  return when !== null && matches(when, answers);
 }
 
 /**
  * The catalogue entry for a control objective — the owner's own, taken
  * from their instrument, keyed by their code.
  *
- * It exists because the code was the on-screen label. NFR-9 forbids an
- * internal identifier in user-facing text, and "T3-RES-01" tells a
- * business owner nothing about what is being asked of them; "Backup &
- * Recovery" tells them most of it (S4 verification, B1).
+ * NFR-9 forbids an internal identifier in user-facing text: "T3-RES-01"
+ * tells a business owner nothing about what is being asked of them;
+ * "Backup & Recovery" tells them most of it.
  */
 export type ControlObjective = {
   name: string;
@@ -245,6 +275,7 @@ export function accumulateControls(
   bands: Record<string, Band | undefined>,
   details: Record<string, string[] | undefined>,
 ): AccumulatedControl[] {
+  const answers = assessmentLookup({ severities: bands });
   const owed = new Map<string, string[]>();
   const add = (objective: string, why: string) => {
     const reasons = owed.get(objective) ?? [];
@@ -253,12 +284,12 @@ export function accumulateControls(
   };
   for (const question of questions) {
     const band = bands[question.questionId];
-    if (!band) continue; // unknown requires nothing (§19)
+    if (!band) continue; // so the reason below can name the band
     for (const requirement of question.requires) {
-      if (!severityAtLeast(band, requirement.atLeast)) continue;
+      if (!matches(requiredWhen(question, requirement), answers)) continue;
       add(requirement.objective, `${question.name} is ${band} — ${requirement.why}`);
     }
-    if (!detailFires(question, band)) continue;
+    if (!detailFires(question, answers)) continue;
     const chosen = details[question.detail!.questionId] ?? [];
     for (const option of chosen) {
       for (const objective of question.detail!.optionRequires[option] ?? []) {
@@ -270,61 +301,6 @@ export function accumulateControls(
     .map(([objective, because]) => ({ objective, name: controlName(objective), because }))
     // Sorted by what a person reads, not by the internal code.
     .sort((a, b) => a.name.localeCompare(b.name));
-}
-
-/**
- * A condition, rendered as one English sentence (§19, FR-5 — carried from
- * S3 where it was correctly marked not met).
- *
- * Deterministic on purpose. This sentence is what an auditor reads to
- * understand why a question was asked; generating it with a model would
- * make provenance non-reproducible, and non-reproducible provenance is
- * worse than none.
- */
-export function conditionSentence(
-  condition: Condition,
-  label: (field: string) => string = (f) => f,
-): string {
-  const subject = label(condition.field);
-  if ("hasValue" in condition) return `${subject} has been answered`;
-  const list = "equalsAny" in condition ? condition.equalsAny : condition.includesAny;
-  const options = list.map((o) => `“${o}”`);
-  const joined =
-    options.length === 1
-      ? options[0]!
-      : `${options.slice(0, -1).join(", ")} or ${options[options.length - 1]}`;
-  return "equalsAny" in condition
-    ? `${subject} is ${joined}`
-    : `${subject} includes ${joined}`;
-}
-
-/**
- * Conditions that can never both hold (§19 contradiction lint, structural
- * half only — the semantic half is registered as an agentic opportunity and
- * is deliberately not attempted here).
- */
-export function contradictions(conditions: Condition[]): string[] {
-  const found: string[] = [];
-  for (let i = 0; i < conditions.length; i++) {
-    for (let j = i + 1; j < conditions.length; j++) {
-      const a = conditions[i]!;
-      const b = conditions[j]!;
-      if (a.field !== b.field) continue;
-      if ("equalsAny" in a && "equalsAny" in b) {
-        const overlap = a.equalsAny.filter((v) => b.equalsAny.includes(v));
-        if (overlap.length === 0)
-          found.push(
-            `${a.field} cannot be ${a.equalsAny.join("/")} and ${b.equalsAny.join("/")} at once`,
-          );
-      }
-    }
-  }
-  return found;
-}
-
-/** Does the whole condition set ever match anything? */
-export function isSatisfiable(conditions: Condition[], example: AnswerLookup): boolean {
-  return conditions.every((c) => matches(c, example));
 }
 
 /**
@@ -362,20 +338,14 @@ export function severitySubmissionProblems(
 /**
  * What a severity screen may actually write, given what is on it.
  *
- * Two rules, and the second is the one that was missing. A band is written
- * only when the person answered it. A **detail question is written only
- * when it is on screen** — its parent band answered, and answered at or
- * above the threshold that reveals it.
+ * Two rules. A band is written only when the person answered it. A
+ * **detail question is written only when it is on screen** — its parent
+ * band answered, and answered at or above the threshold that reveals it.
  *
- * Without the second rule, pressing the forward control on an untouched
- * screen recorded an empty list against every detail question in the
- * group, including ones below their threshold and ones whose parent was
- * unanswered. An empty list is not "no answer" in this instrument: it is
- * the substantive answer *none of these apply*, insert-only, attributed,
- * and confirmed. That is G-42 one tier down — the autosave half of the
- * lesson was applied and the submit half was not, because submitting
- * writes the whole screen and nothing asked which of the screen was
- * showing (found by independent verification of S4, B2).
+ * The second rule matters because an empty list is not "no answer" in this
+ * instrument: it is the substantive answer *none of these apply*,
+ * insert-only, attributed and confirmed. Writing one for a question nobody
+ * was shown records a claim on their behalf, permanently (G-42).
  *
  * It lives here rather than in the form so it is provable without a
  * browser (§26.1).
@@ -386,15 +356,14 @@ export function writableSeverityAnswers(
   details: Record<string, string[]>,
   touched: string[],
   /**
-   * What is already recorded. An answer identical to the one on file is
-   * not an event: autosave stored the band, then the forward control
-   * stored it again, and the history filled with the same fact twice
-   * (S4 verification, N3). Insert-only makes that permanent noise, and
-   * a history padded with non-events is a history nobody reads — the
-   * same rule `intakeChanges()` applies one tier up.
+   * What is already recorded. An answer identical to the one on file is not
+   * an event, and insert-only would make it permanent: a history padded
+   * with non-events is a history nobody reads. `intakeChanges()` applies
+   * the same rule one tier up.
    */
   persisted: Record<string, string | string[] | undefined> = {},
 ): Record<string, string | string[]> {
+  const answers = assessmentLookup({ severities: bands });
   const covered = new Set(touched);
   const payload: Record<string, string | string[]> = {};
   const unchanged = (id: string, value: string | string[]) => {
@@ -414,7 +383,7 @@ export function writableSeverityAnswers(
     if (
       question.detail &&
       covered.has(question.detail.questionId) &&
-      detailFires(question, band)
+      detailFires(question, answers)
     ) {
       const chosen = details[question.detail.questionId] ?? [];
       if (!unchanged(question.detail.questionId, chosen))
