@@ -69,6 +69,7 @@ work, not after:
 | change any question, option, or condition | `instrument-change` |
 | hand the owner something to test | `uat-checkout` |
 | write anything to the owner | `owner-brief` |
+| answer design feedback or a screenshot | `design-mock` |
 
 Law lives in SPEC and is always true; procedure lives in skills and is
 loaded on demand; teeth live in tests and hooks. Loading is probabilistic —

@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * promise a capability the product does not have (§24.7).
  */
 export default async function Landing() {
-  const people = await peopleStore().list();
+  const people = await peopleStore().signIns();
   if (people.length === 0) redirect("/projects");
 
   const initials = (name: string) =>

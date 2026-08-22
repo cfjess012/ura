@@ -14,12 +14,12 @@ test("open areas narrow down; the engine adds paths and says why", async ({ page
   await page.getByLabel("Does this use AI or machine learning?").selectOption("Yes");
   await page.getByLabel("What does the AI do?").fill("Drafts shifts for a supervisor to approve.");
   await page.getByRole("button", { name: /Next: Ownership/ }).click();
-  await page.getByLabel("Business Owner").fill("P. Sharma");
+  await page.getByLabel("Business Owner").selectOption("d.chen");
   await page.getByLabel("Is this a new initiative, or an update to an existing one?").selectOption("Brand new");
   await page.getByRole("button", { name: /Next: Categorization/ }).click();
-  await page.getByLabel("Responsible Business Unit").fill("Workforce Ops");
+  await page.getByLabel("Responsible Business Unit").selectOption("BU_OPS");
   await page.getByLabel("Does anything about this involve a company outside ours?").selectOption("Yes");
-  await page.getByLabel("Which companies?").fill("Cadenza Inc");
+  await page.locator('input[name="vendorNames"][value="V_SNOWFLAKE"]').check();
   await page.getByLabel(/Procurement \(Coupa\)/).selectOption("Yes");
   await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
   await page.getByRole("radio", { name: /Confidential/ }).check();
@@ -85,10 +85,10 @@ test("answering No to everything still reaches the summary (B2)", async ({ page 
   await page.getByLabel("Activity / Use-Case Description").fill("A process change, no technology.");
   await page.getByLabel("Does this use AI or machine learning?").selectOption("No");
   await page.getByRole("button", { name: /Next: Ownership/ }).click();
-  await page.getByLabel("Business Owner").fill("P. Sharma");
+  await page.getByLabel("Business Owner").selectOption("d.chen");
   await page.getByLabel("Is this a new initiative, or an update to an existing one?").selectOption("Brand new");
   await page.getByRole("button", { name: /Next: Categorization/ }).click();
-  await page.getByLabel("Responsible Business Unit").fill("Finance Ops");
+  await page.getByLabel("Responsible Business Unit").selectOption("BU_OPS");
   await page.getByLabel("Does anything about this involve a company outside ours?").selectOption("No");
   await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
   const publicLevel = page.getByRole("radio", { name: /Public/ });
@@ -141,12 +141,12 @@ test("a gate answered by another gate does not claim to come from intake (N2)", 
   await page.getByLabel("Activity / Use-Case Description").fill("Promote a proof of concept.");
   await page.getByLabel("Does this use AI or machine learning?").selectOption("No");
   await page.getByRole("button", { name: /Next: Ownership/ }).click();
-  await page.getByLabel("Business Owner").fill("P. Sharma");
+  await page.getByLabel("Business Owner").selectOption("d.chen");
   await page
     .getByLabel("Is this a new initiative, or an update to an existing one?")
     .selectOption("Moving a proof of concept into production");
   await page.getByRole("button", { name: /Next: Categorization/ }).click();
-  await page.getByLabel("Responsible Business Unit").fill("Platform");
+  await page.getByLabel("Responsible Business Unit").selectOption("BU_OPS");
   await page.getByLabel("Does anything about this involve a company outside ours?").selectOption("No");
   await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
   await page.getByRole("radio", { name: /Internal/ }).check();

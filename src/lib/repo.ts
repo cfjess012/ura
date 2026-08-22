@@ -54,7 +54,17 @@ export type CurrentAnswer = {
 };
 
 export interface PeopleStore {
+  /**
+   * Everyone the platform knows about, including the directory-only people
+   * who exist to be *chosen* as an owner. Do not use this for sign-in.
+   */
   list(): Promise<Person[]>;
+  /**
+   * Only the people who can be signed in as. The directory arrived with
+   * S4.5 and every sign-in surface kept calling list(), so the front door
+   * offered all fifteen — twelve of whom are not personas at all.
+   */
+  signIns(): Promise<Person[]>;
   get(id: string): Promise<Person | null>;
 }
 
@@ -278,6 +288,9 @@ export function postgresPeopleStore(): PeopleStore {
       return rows
         .map(shape)
         .sort((a, b) => (order[a.role] ?? 9) - (order[b.role] ?? 9) || a.name.localeCompare(b.name));
+    },
+    async signIns() {
+      return (await this.list()).filter((person) => person.signsIn);
     },
     async get(id) {
       const [row] = await db.select().from(schema.people).where(eq(schema.people.id, id));

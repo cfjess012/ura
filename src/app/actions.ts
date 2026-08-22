@@ -288,6 +288,11 @@ export async function answerSeverity(
  */
 export async function switchPerson(formData: FormData): Promise<void> {
   const id = String(formData.get("personId") ?? "");
+  // Only a sign-in persona may be assumed. Neither action validated this,
+  // so setting the cookie by hand made you any of the fifteen people in the
+  // directory — including twelve who were never personas (S4.5).
+  const allowed = await peopleStore().signIns();
+  if (!allowed.some((person) => person.id === id)) return;
   const jar = await cookies();
   jar.set(PERSON_COOKIE, id, { path: "/", sameSite: "lax", httpOnly: false });
   revalidatePath("/", "layout");
@@ -307,6 +312,11 @@ export async function switchUser(): Promise<void> {
 /** Choosing a persona on the front door, then into the product. */
 export async function choosePerson(formData: FormData): Promise<void> {
   const id = String(formData.get("personId") ?? "");
+  // Only a sign-in persona may be assumed. Neither action validated this,
+  // so setting the cookie by hand made you any of the fifteen people in the
+  // directory — including twelve who were never personas (S4.5).
+  const allowed = await peopleStore().signIns();
+  if (!allowed.some((person) => person.id === id)) return;
   const jar = await cookies();
   jar.set(PERSON_COOKIE, id, { path: "/", sameSite: "lax", httpOnly: false });
   redirect("/projects");

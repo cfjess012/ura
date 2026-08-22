@@ -10,7 +10,7 @@ import { PersonSwitcher } from "../person-switcher";
  * — it is the front door, not a screen inside the product.
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const [people, current] = await Promise.all([peopleStore().list(), currentPerson()]);
+  const [people, current] = await Promise.all([peopleStore().signIns(), currentPerson()]);
   return (
     <>
       <header className="appbar">

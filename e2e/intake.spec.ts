@@ -30,7 +30,7 @@ test("create → fill each section (conditionals reveal) → reopen → everythi
   // Ownership — the prior-work pointer reveals only for updates.
   const priorRef = page.getByLabel("Which assessment or ticket does it build on, if you know?");
   await expect(page.getByRole("heading", { name: "Ownership" })).toBeVisible();
-  await page.getByLabel("Business Owner").fill("P. Sharma");
+  await page.getByLabel("Business Owner").selectOption("d.chen");
   await expect(priorRef).toBeHidden();
   await page
     .getByLabel("Is this a new initiative, or an update to an existing one?")
@@ -41,20 +41,24 @@ test("create → fill each section (conditionals reveal) → reopen → everythi
 
   // Categorization — hasValue reveals.
   await expect(page.getByLabel("Other Business Units Involved")).toBeHidden();
-  await page.getByLabel("Responsible Business Unit").fill("Workforce Ops");
+  await page.getByLabel("Responsible Business Unit").selectOption("BU_OPS");
   await expect(page.getByLabel("Other Business Units Involved")).toBeVisible();
   await page.getByLabel("Target Go-Live / Launch Date").fill("2026-11-02");
   const coupa = page.getByLabel("Has this vendor been onboarded through Procurement (Coupa)?");
-  const names = page.getByLabel("Which companies?");
-  await expect(names).toBeHidden();
+  // A pick-many is a checkbox group, so its presence is its options.
+  const names = page.locator('input[name="vendorNames"]');
+  await expect(names).toHaveCount(0);
   await expect(coupa).toBeHidden();
   // equalsAny reveal: the name box only exists once there is a third party.
   await page
     .getByLabel("Does anything about this involve a company outside ours?")
     .selectOption("Yes");
-  await expect(names).toBeVisible();
+  await expect(names.first()).toBeVisible();
   await expect(page.getByText("Shown because an outside company is involved.")).toBeVisible();
-  await names.fill("Cadenza Inc");
+  await page.locator('input[name="vendorNames"][value="V_SNOWFLAKE"]').check();
+  // The escape hatch: a company the list does not hold (FR-30, G-47).
+  await page.locator('input[name="vendorNames"][value="__something-else__"]').check();
+  await page.locator("#vendorNames__unlisted").fill("Novara Health");
   await expect(coupa).toBeVisible();
   await coupa.selectOption("I'm not sure");
   await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
@@ -87,7 +91,12 @@ test("create → fill each section (conditionals reveal) → reopen → everythi
   ).toHaveValue("RISK-2291");
 
   await fresh.goto(`${base}/intake/categorization`);
-  await expect(fresh.getByLabel("Responsible Business Unit")).toHaveValue("Workforce Ops");
+  await expect(fresh.getByLabel("Responsible Business Unit")).toHaveValue("BU_OPS");
+  // Both kinds of answer come back: the one on the list, and the one not.
+  await expect(
+    fresh.locator('input[name="vendorNames"][value="V_SNOWFLAKE"]'),
+  ).toBeChecked();
+  await expect(fresh.locator("#vendorNames__unlisted")).toHaveValue("Novara Health");
   await expect(fresh.getByLabel("Target Go-Live / Launch Date")).toHaveValue("2026-11-02");
   await expect(
     fresh.getByLabel("Has this vendor been onboarded through Procurement (Coupa)?"),
@@ -137,7 +146,7 @@ test("saving a later section does not erase an earlier section's answers", async
 
   // Now go back and save an EARLIER section.
   await page.goto(`${base}/intake/ownership`);
-  await page.getByLabel("Business Owner").fill("P. Sharma");
+  await page.getByLabel("Business Owner").selectOption("d.chen");
   await page.getByRole("button", { name: /Next: Categorization/ }).click();
   await expect(page.getByRole("heading", { name: "Categorization" })).toBeVisible();
 

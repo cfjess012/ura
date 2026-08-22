@@ -195,3 +195,40 @@ describe("attribution (S2.5)", () => {
     expect(anonymous.rows[0]!.answered_by).toBeNull();
   });
 });
+
+/**
+ * S4.5 — the employee directory is not a list of logins (G-46).
+ *
+ * Adding the directory made every one of the fifteen people a sign-in
+ * persona on the front door, and moved the default person from Priya
+ * Sharma to whoever sorted first alphabetically. Both surfaces called
+ * `list()`, which is right for an owner picker and wrong for a door.
+ */
+describe("only personas can be signed in as", () => {
+  it("the directory is bigger than the sign-in list", async () => {
+    const all = await pg.query<{ count: number }>("select count(*)::int as count from people");
+    const personas = await pg.query<{ count: number }>(
+      "select count(*)::int as count from people where signs_in",
+    );
+    expect(personas.rows[0]!.count).toBe(3);
+    expect(all.rows[0]!.count).toBeGreaterThan(personas.rows[0]!.count);
+  });
+
+  it("the personas are exactly one of each role", async () => {
+    const rows = await pg.query<{ role: string }>(
+      "select role from people where signs_in order by role",
+    );
+    expect(rows.rows.map((r) => r.role)).toEqual(["admin", "assessor", "requester"]);
+  });
+
+  it("directory people carry an address and cannot sign in", async () => {
+    const rows = await pg.query<{ email: string; signs_in: boolean }>(
+      "select email, signs_in from people where id like 'd.%'",
+    );
+    expect(rows.rows.length).toBeGreaterThan(5);
+    for (const row of rows.rows) {
+      expect(row.signs_in).toBe(false);
+      expect(row.email).toMatch(/@stelly\.com$/);
+    }
+  });
+});

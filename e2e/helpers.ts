@@ -17,14 +17,14 @@ export async function completeIntake(page: Page, base: string): Promise<void> {
   await page.getByRole("button", { name: /Next: Ownership/ }).click();
 
   await expect(page.getByRole("heading", { name: "Ownership" })).toBeVisible();
-  await page.getByLabel("Business Owner").fill("P. Sharma");
+  await page.getByLabel("Business Owner").selectOption("d.chen");
   await page
     .getByLabel("Is this a new initiative, or an update to an existing one?")
     .selectOption("Brand new");
   await page.getByRole("button", { name: /Next: Categorization/ }).click();
 
   await expect(page.getByRole("heading", { name: "Categorization" })).toBeVisible();
-  await page.getByLabel("Responsible Business Unit").fill("Workforce Ops");
+  await page.getByLabel("Responsible Business Unit").selectOption("BU_OPS");
   await page
     .getByLabel("Does anything about this involve a company outside ours?")
     .selectOption("No");

@@ -21,17 +21,17 @@ test("intake pre-answers gates; answers persist; No closes a category", async ({
   await page.getByLabel("What does the AI do?").fill("Drafts shifts for a supervisor to approve.");
   await page.getByRole("button", { name: /Next: Ownership/ }).click();
 
-  await page.getByLabel("Business Owner").fill("P. Sharma");
+  await page.getByLabel("Business Owner").selectOption("d.chen");
   await page
     .getByLabel("Is this a new initiative, or an update to an existing one?")
     .selectOption("Brand new");
   await page.getByRole("button", { name: /Next: Categorization/ }).click();
 
-  await page.getByLabel("Responsible Business Unit").fill("Workforce Ops");
+  await page.getByLabel("Responsible Business Unit").selectOption("BU_OPS");
   await page
     .getByLabel("Does anything about this involve a company outside ours?")
     .selectOption("Yes");
-  await page.getByLabel("Which companies?").fill("Cadenza Inc");
+  await page.locator('input[name="vendorNames"][value="V_SNOWFLAKE"]').check();
   await page
     .getByLabel("Has this vendor been onboarded through Procurement (Coupa)?")
     .selectOption("Yes");
@@ -97,13 +97,13 @@ test("intake can CLOSE risk areas, and an area that applies to everyone is never
   await page.getByLabel("Does this use AI or machine learning?").selectOption("No");
   await page.getByRole("button", { name: /Next: Ownership/ }).click();
 
-  await page.getByLabel("Business Owner").fill("P. Sharma");
+  await page.getByLabel("Business Owner").selectOption("d.chen");
   await page
     .getByLabel("Is this a new initiative, or an update to an existing one?")
     .selectOption("Brand new");
   await page.getByRole("button", { name: /Next: Categorization/ }).click();
 
-  await page.getByLabel("Responsible Business Unit").fill("Finance Ops");
+  await page.getByLabel("Responsible Business Unit").selectOption("BU_OPS");
   await page
     .getByLabel("Does anything about this involve a company outside ours?")
     .selectOption("No");
