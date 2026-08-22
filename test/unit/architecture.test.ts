@@ -146,6 +146,28 @@ describe("§3.3 there is no second evaluator", () => {
   });
 });
 
+describe("§24.3 the assessment screens autosave the same way, once", () => {
+  // paths-form and severity-form hand-rolled the same in-flight ref, touched
+  // set, failure shape and savebar. A defect fixed in one survived in the
+  // other until a verifier found it twice.
+  const FORMS = [
+    "app/(app)/projects/[id]/assess/paths/paths-form.tsx",
+    "app/(app)/projects/[id]/assess/severity/severity-form.tsx",
+  ];
+
+  it("both take the machinery from one place rather than repeating it", () => {
+    for (const form of FORMS) {
+      const source = read(join(SRC, form));
+      expect(source, form).toMatch(/from "\.\.\/autosave"/);
+      expect(source, form).toMatch(/<SaveBar\b/);
+      // Each piece that was duplicated, named so a copy is caught by name.
+      expect(source, `${form} tracks its own in-flight save`).not.toMatch(/inFlight/);
+      expect(source, `${form} renders its own save status`).not.toMatch(/role="status"/);
+      expect(source, `${form} shapes its own failure`).not.toMatch(/retryable/);
+    }
+  });
+});
+
 describe("§25 error handling is structural", () => {
   it("server actions return typed results rather than throwing on failure", () => {
     const source = read(join(SRC, "app/actions.ts"));
