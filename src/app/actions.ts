@@ -22,7 +22,7 @@ import { CATEGORIES, INSTRUMENT } from "@/lib/instrument";
 import { pathSubmissionProblems } from "@/lib/engine";
 import { SEVERITY, severitySubmissionProblems } from "@/lib/severity";
 import { editableProject } from "@/lib/project-access";
-import { answerStore, projectStore } from "@/lib/repo";
+import { answerStore, peopleStore, projectStore } from "@/lib/repo";
 
 /** FormData is a web detail; the logic layer takes a plain record. */
 function entriesFrom(formData: FormData): SubmittedEntries {
@@ -71,11 +71,18 @@ export async function saveIntake(
   projectId: string,
   formData: FormData,
 ): Promise<Result<{ savedAt: string }>> {
-  const patch = intakePatchFrom(entriesFrom(formData));
   try {
     // Whose assessment this is, decided before anything is written (N1).
     const allowed = await editableProject(projectId, "saveIntake");
     if (isFailure(allowed)) return allowed;
+    // The directory is read here and handed to the pure function, which is
+    // why that function stays liftable: people are operational data and a
+    // real deployment resolves them from an IdP (G-46, §26.1).
+    const directory = (await peopleStore().list()).map((person) => ({
+      id: person.id,
+      label: person.title ? `${person.name} — ${person.title}` : person.name,
+    }));
+    const patch = intakePatchFrom(entriesFrom(formData), directory);
     const { project: before, person } = allowed;
     // What moved, decided by pure logic, so the history is testable without
     // a database (F5).

@@ -11,6 +11,7 @@ import { ALL_FIELDS, type IntakeValues } from "./intake";
 import {
   answerFor,
   entriesOf,
+  isUnlisted,
   type ReferenceAnswer,
   type ReferenceEntry,
 } from "./reference";
@@ -54,18 +55,13 @@ function optionsFor(list: string, directory: Directory): ReferenceEntry[] {
   return list === "people" ? directory : entriesOf(list);
 }
 
-/** One chosen id, or one typed name, as the answer that gets stored. */
+/** One chosen id as the answer that gets stored. */
 function referenceAnswer(
   list: string,
   chosen: string,
-  typed: string,
   directory: Directory,
   version: string,
 ): ReferenceAnswer | null {
-  if (chosen === UNLISTED_OPTION) {
-    const name = typed.trim();
-    return name === "" ? null : { unlisted: name };
-  }
   if (list === "people") {
     const person = directory.find((p) => p.id === chosen);
     // The label is stored beside the id even here: a person's name changes,
@@ -73,6 +69,11 @@ function referenceAnswer(
     return person ? { id: person.id, label: person.label, version } : null;
   }
   return answerFor(list, chosen);
+}
+
+/** Names typed into the off-list box. A pick-many takes one per line. */
+function typedNames(raw: string, many: boolean): string[] {
+  return (many ? raw.split(/[\n,]/) : [raw]).map((n) => n.trim()).filter(Boolean);
 }
 
 /**
@@ -101,19 +102,26 @@ export function intakePatchFrom(
     if (scope && !scope.has(field.id)) continue; // not this submission's business
     const submitted = entries[field.id];
     if (field.type === "pick" || field.type === "pick-many") {
+      const many = field.type === "pick-many";
       const list = field.list!;
       const typed = entries[unlistedKey(field.id)]?.[0] ?? "";
       const chosen = submitted ?? (scope ? [] : undefined);
       if (chosen === undefined) continue;
-      // "people" has no version of its own — it is operational. The date
-      // the answer was given is what a reader needs, and the row already
-      // carries that.
+      // "people" has no version of its own — it is operational, and the row
+      // already records when the answer was given.
       const version = list === "people" ? "directory" : "";
-      const answers = chosen
-        .filter((id) => id !== "")
-        .map((id) => referenceAnswer(list, id, typed, directory, version))
-        .filter((a): a is ReferenceAnswer => a !== null);
-      patch[field.id] = field.type === "pick" ? (answers[0] ?? null) : answers;
+      const answers: ReferenceAnswer[] = [];
+      for (const id of chosen) {
+        if (id === "") continue;
+        if (id === UNLISTED_OPTION) {
+          for (const name of typedNames(typed, many)) answers.push({ unlisted: name });
+          continue;
+        }
+        const answer = referenceAnswer(list, id, directory, version);
+        // An id that is not on the list is dropped rather than guessed at.
+        if (answer) answers.push(answer);
+      }
+      patch[field.id] = many ? answers : (answers[0] ?? null);
       continue;
     }
     if (field.type === "multi") {
@@ -144,19 +152,39 @@ export function projectNameOrNull(raw: unknown): string | null {
   return name.length > 0 ? name : null;
 }
 
-/** Present values for a form, from whatever the store returned. */
+/**
+ * Present values for a form, from whatever the store returned.
+ *
+ * A reference answer comes back as the ids the picker should show selected,
+ * plus the typed text in its own key — the exact inverse of what
+ * `intakePatchFrom` consumes, so a saved answer reloads as what the person
+ * chose rather than as something approximating it.
+ */
 export function intakeValuesFrom(row: Record<string, unknown>): IntakeValues {
   const values: IntakeValues = {};
   for (const field of ALL_FIELDS) {
     if (field.type === "note") continue;
     const raw = row[field.id];
+    if (field.type === "pick" || field.type === "pick-many") {
+      const stored = (Array.isArray(raw) ? raw : raw ? [raw] : []) as ReferenceAnswer[];
+      const ids: string[] = [];
+      const typed: string[] = [];
+      for (const answer of stored) {
+        if (isUnlisted(answer)) {
+          typed.push(answer.unlisted);
+          if (!ids.includes(UNLISTED_OPTION)) ids.push(UNLISTED_OPTION);
+        } else if (answer?.id) ids.push(answer.id);
+      }
+      values[field.id] = field.type === "pick-many" ? ids : (ids[0] ?? "");
+      values[unlistedKey(field.id)] = typed.join("\n");
+      continue;
+    }
     if (Array.isArray(raw)) values[field.id] = raw as string[];
     else values[field.id] = raw == null ? "" : String(raw);
   }
   return values;
 }
 
-/** One field's move from what it was to what it is now. */
 export type IntakeStored = string | string[] | ReferenceAnswer | ReferenceAnswer[] | null;
 
 export type IntakeChange = {

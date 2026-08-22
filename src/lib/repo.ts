@@ -266,6 +266,8 @@ export function postgresPeopleStore(): PeopleStore {
     name: row.name,
     role: row.role as Role,
     title: row.title,
+    email: row.email,
+    signsIn: row.signsIn,
   });
   return {
     async list() {

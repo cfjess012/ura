@@ -228,3 +228,38 @@ describe("reference-backed fields", () => {
     expect(intakeChanges(before, before)).toEqual([]);
   });
 });
+
+describe("a saved answer reloads as what the person chose", () => {
+  it("round-trips listed and off-list values back into the form", () => {
+    const stored = {
+      vendorNames: [
+        { id: "V_SAP", label: "SAP", version: "2026-08-21.1" },
+        { unlisted: "Novara Health" },
+        { unlisted: "Aster Labs" },
+      ],
+      businessUnit: { id: "BU_LEG", label: "Legal", version: "2026-08-21.1" },
+    };
+    const values = intakeValuesFrom(stored);
+    expect(values.vendorNames).toEqual(["V_SAP", UNLISTED_OPTION]);
+    expect(values[unlistedKey("vendorNames")]).toBe("Novara Health\nAster Labs");
+    expect(values.businessUnit).toBe("BU_LEG");
+  });
+
+  it("survives a full round trip unchanged", () => {
+    const submitted = {
+      [SCOPE_KEY]: ["vendorNames"],
+      vendorNames: ["V_SAP", UNLISTED_OPTION],
+      [unlistedKey("vendorNames")]: ["Novara Health\nAster Labs"],
+    };
+    const patch = intakePatchFrom(submitted, []);
+    const values = intakeValuesFrom(patch as Record<string, unknown>);
+    expect(intakePatchFrom(
+      {
+        [SCOPE_KEY]: ["vendorNames"],
+        vendorNames: values.vendorNames as string[],
+        [unlistedKey("vendorNames")]: [values[unlistedKey("vendorNames")] as string],
+      },
+      [],
+    )).toEqual(patch);
+  });
+});

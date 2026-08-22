@@ -8,8 +8,9 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { saveIntake } from "@/app/actions";
-import { SCOPE_KEY } from "@/lib/intake-values";
+import { UNLISTED_OPTION, unlistedKey, SCOPE_KEY } from "@/lib/intake-values";
 import { errorRef, isFailure } from "@/lib/errors";
+import { entriesOf, type ReferenceEntry } from "@/lib/reference";
 import {
   ALL_FIELDS,
   INTAKE_SECTIONS,
@@ -34,6 +35,7 @@ export function SectionForm({
   previousHref,
   previousLabel,
   sectionKey,
+  people,
   lastChange,
 }: {
   projectId: string;
@@ -47,6 +49,8 @@ export function SectionForm({
   previousHref: string;
   previousLabel: string;
   sectionKey: string;
+  /** The employee directory, read on the server — people are operational. */
+  people: ReferenceEntry[];
   lastChange: { by: string; at: string } | null;
 }) {
   const router = useRouter();
@@ -83,7 +87,7 @@ export function SectionForm({
       let changed = false;
       for (const field of ALL_FIELDS) {
         if (field.type === "note") continue;
-        if (field.type === "multi") {
+        if (field.type === "multi" || field.type === "pick-many") {
           const got = submitted.getAll(field.id).map(String);
           const before = (prev[field.id] as string[] | undefined) ?? [];
           if (got.length !== before.length || got.some((v, i) => v !== before[i])) {
@@ -124,14 +128,18 @@ export function SectionForm({
       for (const field of section.fields) {
         if (field.type === "note") continue;
         if (!isFieldVisible(field, values)) {
-          if (field.type !== "multi") formData.set(field.id, "");
+          if (field.type !== "multi" && field.type !== "pick-many") formData.set(field.id, "");
           continue;
         }
         const v = values[field.id];
-        if (field.type === "multi") {
+        if (field.type === "multi" || field.type === "pick-many") {
           for (const item of (v as string[] | undefined) ?? []) formData.append(field.id, item);
         } else {
           formData.set(field.id, (v as string | undefined) ?? "");
+        }
+        // The name typed for an off-list answer travels with its field.
+        if (field.type === "pick" || field.type === "pick-many") {
+          formData.set(unlistedKey(field.id), (values[unlistedKey(field.id)] as string) ?? "");
         }
       }
       const result = await saveIntake(projectId, formData);
@@ -231,6 +239,7 @@ export function SectionForm({
               values={values}
               set={set}
               flagged={flaggedIds.has(field.id)}
+              people={people}
             />
           ) : null,
         )}
@@ -306,11 +315,14 @@ function Field({
   values,
   set,
   flagged,
+  people,
 }: {
   field: IntakeField;
   values: IntakeValues;
   set: (id: string, v: string | string[]) => void;
   flagged: boolean;
+  /** The employee directory, loaded on the server (G-46's exception). */
+  people: ReferenceEntry[];
 }) {
   if (field.type === "note") {
     return (
@@ -330,7 +342,7 @@ function Field({
   );
   const label = (
     <>
-      {field.type === "multi" ? (
+      {field.type === "multi" || field.type === "pick-many" ? (
         <p className="field" id={labelId}>
           {text}
         </p>
@@ -342,7 +354,16 @@ function Field({
       {field.help && <p className="help">{field.help}</p>}
     </>
   );
-  const body = <Control field={field} values={values} set={set} flagged={flagged} />;
+  const body = (
+    <Control
+      field={field}
+      values={values}
+      set={set}
+      flagged={flagged}
+      people={people}
+      labelId={labelId}
+    />
+  );
   if (field.conditional) {
     return (
       <div className="reveal">
@@ -367,13 +388,18 @@ function Control({
   values,
   set,
   flagged,
+  people,
+  labelId,
 }: {
   field: IntakeField;
   values: IntakeValues;
   set: (id: string, v: string | string[]) => void;
   flagged: boolean;
+  people: ReferenceEntry[];
+  labelId: string;
 }) {
   const value = values[field.id];
+  const directory = field.list === "people" ? people : null;
   // aria-required is on every required control, always. aria-invalid appears
   // only once someone has tried to move on without it.
   const validity = {
@@ -381,6 +407,108 @@ function Control({
     "aria-invalid": flagged || undefined,
     className: flagged ? "flagged" : undefined,
   } as const;
+  if (field.type === "pick" || field.type === "pick-many") {
+    const many = field.type === "pick-many";
+    const chosen = many ? ((value as string[]) ?? []) : [(value as string) ?? ""];
+    const offList = chosen.includes(UNLISTED_OPTION);
+    const typedKey = unlistedKey(field.id);
+    const typed = (values[typedKey] as string) ?? "";
+    // The options come from the instrument's declared list — this component
+    // holds no names of its own, which is the rule S4.5 exists to keep
+    // (FR-29, G-46).
+    const options = directory
+      ? directory
+      : field.list
+        ? entriesOf(field.list)
+        : [];
+
+    const toggle = (id: string, on: boolean) => {
+      if (!many) {
+        set(field.id, on ? id : "");
+        return;
+      }
+      const next = on ? [...chosen, id] : chosen.filter((c) => c !== id);
+      set(field.id, next);
+    };
+
+    return (
+      <>
+        {many ? (
+          <div className="checks pickopts" role="group" aria-labelledby={labelId}>
+            {options.map((option) => (
+              <label key={option.id} className="pickopt">
+                <input
+                  type="checkbox"
+                  name={field.id}
+                  value={option.id}
+                  checked={chosen.includes(option.id)}
+                  onChange={(e) => toggle(option.id, e.target.checked)}
+                />
+                <span>{option.label}</span>
+              </label>
+            ))}
+            <label className="pickopt pickopt-other">
+              <input
+                type="checkbox"
+                name={field.id}
+                value={UNLISTED_OPTION}
+                checked={offList}
+                onChange={(e) => toggle(UNLISTED_OPTION, e.target.checked)}
+              />
+              <span>Something else — not on this list</span>
+            </label>
+          </div>
+        ) : (
+          <select
+            id={field.id}
+            name={field.id}
+            value={chosen[0] ?? ""}
+            onChange={(e) => set(field.id, e.target.value)}
+            {...validity}
+          >
+            <option value="">Select…</option>
+            {options.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+            <option value={UNLISTED_OPTION}>Something else — not on this list</option>
+          </select>
+        )}
+        {offList && (
+          /* FR-31: the escape hatch is never a dead end. Choosing it asks
+             for the name, and says what happens to it — a person who types
+             one should not have to wonder whether it went anywhere. */
+          <div className="reveal unlisted-box">
+            <label className="field" htmlFor={typedKey}>
+              {many ? "Which ones? One per line." : "What is it called?"}
+            </label>
+            {many ? (
+              <textarea
+                id={typedKey}
+                name={typedKey}
+                value={typed}
+                rows={3}
+                onChange={(e) => set(typedKey, e.target.value)}
+              />
+            ) : (
+              <input
+                id={typedKey}
+                name={typedKey}
+                type="text"
+                value={typed}
+                onChange={(e) => set(typedKey, e.target.value)}
+              />
+            )}
+            <p className="help">
+              This goes on your assessment straight away. It reaches everyone
+              else&rsquo;s list once an administrator confirms it.
+            </p>
+          </div>
+        )}
+      </>
+    );
+  }
   if (field.type === "text" || field.type === "date") {
     return (
       <input

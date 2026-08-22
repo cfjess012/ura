@@ -4,7 +4,7 @@ import { askableCategories } from "@/lib/instrument";
 import { INTAKE_SECTIONS, sectionByKey, sectionKey, sectionProgress } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
-import { projectStore } from "@/lib/repo";
+import { peopleStore, projectStore } from "@/lib/repo";
 import { NotYourAssessment } from "../../not-yours";
 import { SectionForm } from "../section-form";
 
@@ -30,6 +30,15 @@ export default async function IntakeSectionPage({
   // trust.
   const lastChange = await projectStore().lastIntakeChange(id);
 
+  // The employee directory, read on the server. People are operational
+  // rather than versioned (G-46), so the picker's options come from here
+  // and not from a file — and never from the component.
+  const directory = (await peopleStore().list()).map((person) => ({
+    id: person.id,
+    // Title beside the name: two people share a name, and picking an owner
+    // is choosing a role as much as a person.
+    label: person.title ? `${person.name} — ${person.title}` : person.name,
+  }));
   const values = intakeValuesFrom(project as unknown as Record<string, unknown>);
   const progress = sectionProgress(values);
   const index = INTAKE_SECTIONS.findIndex((s) => sectionKey(s.name) === key);
@@ -56,6 +65,7 @@ export default async function IntakeSectionPage({
         }
         previousLabel={previous ? "← Previous" : "← All projects"}
         sectionKey={key}
+        people={directory}
         lastChange={
           lastChange
             ? {

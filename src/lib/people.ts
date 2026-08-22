@@ -10,7 +10,19 @@
 export const ROLES = ["requester", "assessor", "admin"] as const;
 export type Role = (typeof ROLES)[number];
 
-export type Person = { id: string; name: string; role: Role; title: string };
+export type Person = {
+  id: string;
+  name: string;
+  role: Role;
+  title: string;
+  email: string;
+  /**
+   * Whether this person can be chosen at the pilot sign-in. The directory
+   * is bigger than the personas: most of it exists to be *picked* as an
+   * owner, which is what an IdP lookup gives you on day one (G-46).
+   */
+  signsIn: boolean;
+};
 
 export function isRole(value: string): value is Role {
   return (ROLES as readonly string[]).includes(value);
