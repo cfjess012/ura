@@ -113,3 +113,35 @@ export const intakeEvents = pgTable(
 );
 
 export type IntakeEventRow = typeof intakeEvents.$inferSelect;
+
+/** S4.7 — a question handed to a person or an office. */
+export const handoffs = pgTable(
+  "handoffs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id").notNull(),
+    questionId: text("question_id").notNull(),
+    toPersonId: text("to_person_id"),
+    toDomain: text("to_domain"),
+    note: text("note").notNull().default(""),
+    askedBy: text("asked_by").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    resolvedBy: text("resolved_by"),
+  },
+  (t) => [index("handoffs_by_project").on(t.projectId, t.createdAt)],
+);
+
+/** The conversation that settles a hand-off. Threaded, insert-only. */
+export const handoffReplies = pgTable(
+  "handoff_replies",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    handoffId: uuid("handoff_id").notNull(),
+    parentId: uuid("parent_id"),
+    authorId: text("author_id").notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("handoff_replies_by_handoff").on(t.handoffId, t.createdAt)],
+);

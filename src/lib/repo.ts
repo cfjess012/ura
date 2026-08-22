@@ -12,12 +12,14 @@
  * store with a different query model still needs a real implementation —
  * what this guarantees is that only this file and its wiring change.
  */
-import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { getDb, schema } from "./db";
 import type { IntakeChange, IntakePatch } from "./intake-values";
 import type { Person, Role } from "./people";
 import { labelOf, type ReferenceAnswer } from "./reference";
 import { CATEGORIES } from "./instrument";
+import { isWaitingOn, type Handoff, type Reply } from "./handoff";
+import { questionLabelFor } from "./question-label";
 
 export type ProjectSummary = {
   id: string;
@@ -325,4 +327,130 @@ export function answerStore(): AnswerStore {
 /** The wiring point — the one line that changes when the store changes. */
 export function projectStore(): ProjectStore {
   return postgresProjectStore();
+}
+
+/** S4.7 — hand-offs and the conversations that settle them. */
+export interface HandoffStore {
+  open(input: {
+    projectId: string;
+    questionId: string;
+    toPersonId: string | null;
+    toDomain: string | null;
+    note: string;
+    askedBy: string;
+  }): Promise<string>;
+  reply(input: {
+    handoffId: string;
+    parentId: string | null;
+    authorId: string;
+    body: string;
+  }): Promise<void>;
+  resolve(id: string, by: string): Promise<void>;
+  /** Every hand-off on one assessment, newest last, with names hydrated. */
+  forProject(projectId: string): Promise<Handoff[]>;
+  repliesFor(handoffIds: string[]): Promise<Reply[]>;
+  /**
+   * Everything still waiting on this person — the derived obligation.
+   * Nothing is stored as a message, so there is nothing to mark read and
+   * nothing that can go stale.
+   */
+  waitingOn(person: Person): Promise<Handoff[]>;
+}
+
+function postgresHandoffStore(): HandoffStore {
+  const db = getDb();
+  const hydrate = () =>
+    db
+      .select({
+        id: schema.handoffs.id,
+        projectId: schema.handoffs.projectId,
+        projectName: schema.projects.projectName,
+        questionId: schema.handoffs.questionId,
+        toPersonId: schema.handoffs.toPersonId,
+        toDomain: schema.handoffs.toDomain,
+        note: schema.handoffs.note,
+        askedBy: schema.handoffs.askedBy,
+        askedByName: schema.people.name,
+        createdAt: schema.handoffs.createdAt,
+        resolvedAt: schema.handoffs.resolvedAt,
+        resolvedBy: schema.handoffs.resolvedBy,
+      })
+      .from(schema.handoffs)
+      .innerJoin(schema.projects, eq(schema.projects.id, schema.handoffs.projectId))
+      .innerJoin(schema.people, eq(schema.people.id, schema.handoffs.askedBy));
+
+  return {
+    async open(input) {
+      const [row] = await db
+        .insert(schema.handoffs)
+        .values(input)
+        .returning({ id: schema.handoffs.id });
+      return row!.id;
+    },
+    async reply(input) {
+      await db.insert(schema.handoffReplies).values(input);
+    },
+    async resolve(id, by) {
+      await db
+        .update(schema.handoffs)
+        .set({ resolvedAt: new Date(), resolvedBy: by })
+        .where(eq(schema.handoffs.id, id));
+    },
+    async forProject(projectId) {
+      const rows = await hydrate()
+        .where(eq(schema.handoffs.projectId, projectId))
+        .orderBy(schema.handoffs.createdAt);
+      return rows.map(shapeHandoff);
+    },
+    async repliesFor(handoffIds) {
+      if (handoffIds.length === 0) return [];
+      const rows = await db
+        .select({
+          id: schema.handoffReplies.id,
+          handoffId: schema.handoffReplies.handoffId,
+          parentId: schema.handoffReplies.parentId,
+          authorId: schema.handoffReplies.authorId,
+          authorName: schema.people.name,
+          body: schema.handoffReplies.body,
+          createdAt: schema.handoffReplies.createdAt,
+        })
+        .from(schema.handoffReplies)
+        .innerJoin(schema.people, eq(schema.people.id, schema.handoffReplies.authorId))
+        .where(inArray(schema.handoffReplies.handoffId, handoffIds))
+        .orderBy(schema.handoffReplies.createdAt);
+      return rows;
+    },
+    async waitingOn(person) {
+      // Scoped in SQL to what can possibly be theirs, then filtered by the
+      // pure rule so one statement of "is this yours" governs both the
+      // count and the screen. The prior platform queried obligations
+      // globally and every reviewer saw every other team's counts.
+      if (person.role === "requester") return [];
+      const rows = await hydrate().where(isNull(schema.handoffs.resolvedAt));
+      return rows.map(shapeHandoff).filter((h) => isWaitingOn(h, person));
+    },
+  };
+}
+
+function shapeHandoff(row: {
+  id: string;
+  projectId: string;
+  projectName: string;
+  questionId: string;
+  toPersonId: string | null;
+  toDomain: string | null;
+  note: string;
+  askedBy: string;
+  askedByName: string;
+  createdAt: Date;
+  resolvedAt: Date | null;
+  resolvedBy: string | null;
+}): Handoff {
+  // The question's own words are resolved on the way out, never stored: the
+  // instrument owns the wording and a copy here would drift from it.
+  return { ...row, questionLabel: questionLabelFor(row.questionId) };
+}
+
+export function handoffStore(): HandoffStore {
+  return postgresHandoffStore();
 }
