@@ -117,6 +117,7 @@ export default async function SeverityPage({
         ),
         note: found.note,
         askedByName: found.askedByName,
+        askedByRole: found.askedByRole,
         createdAt: found.createdAt.toISOString(),
         resolvedAt: found.resolvedAt?.toISOString() ?? null,
         resolvedByName: found.resolvedBy ? nameOf(found.resolvedBy) : null,

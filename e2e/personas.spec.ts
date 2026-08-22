@@ -3,8 +3,19 @@
  * the server, so switching persona changes what the platform permits, not
  * merely what it shows.
  */
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { completeIntake } from "./helpers";
+
+/**
+ * Switching is a deliberate act through the front door now, not a select in
+ * the chrome — the owner's call, mirroring the prior platform. The helper
+ * keeps every journey reading the same as before.
+ */
+async function becomePerson(page: Page, name: string) {
+  await page.goto("/");
+  await page.getByRole("button", { name: new RegExp(name) }).click();
+  await page.waitForURL(/\/projects/);
+}
 
 test("the front door introduces the platform and asks who you are", async ({ page }) => {
   await page.goto("/");
@@ -20,10 +31,10 @@ test("the front door introduces the platform and asks who you are", async ({ pag
 
 test("choosing a person switches immediately — no second click", async ({ page }) => {
   await page.goto("/projects");
-  await expect(page.locator(".persona-role")).toHaveText("Requester");
-  await page.getByLabel(/Working as/).selectOption({ label: "Noah Kahan · Risk Assessor" });
+  await expect(page.locator(".whoami-role")).toHaveText("Requester");
+  await becomePerson(page, "Noah Kahan");
   // No further interaction: the interface must respond to the action taken.
-  await expect(page.locator(".persona-role")).toHaveText("Risk Assessor");
+  await expect(page.locator(".whoami-role")).toHaveText("Risk Assessor");
   // No confirming button beside the chooser. ("Switch user" is a different
   // control — it leaves the product entirely — so match exactly.)
   await expect(page.getByRole("button", { name: "Switch", exact: true })).toHaveCount(0);
@@ -33,7 +44,7 @@ test("switching persona changes role, navigation, and what is permitted", async 
   await page.goto("/projects");
 
   // A requester is the pilot default: no admin navigation.
-  await expect(page.locator(".persona-role")).toHaveText("Requester");
+  await expect(page.locator(".whoami-role")).toHaveText("Requester");
   await expect(page.getByRole("link", { name: "Agents" })).toBeHidden();
 
   // The server refuses the admin surface by role, not by hiding a link.
@@ -47,8 +58,8 @@ test("switching persona changes role, navigation, and what is permitted", async 
   await page.goto("/projects");
   // Choosing IS the action — no confirming click. A control that needs a
   // second press reads as broken (found in use, not by this suite).
-  await page.getByLabel(/Working as/).selectOption({ label: "Tom Holland · Administrator" });
-  await expect(page.locator(".persona-role")).toHaveText("Administrator");
+  await becomePerson(page, "Tom Holland");
+  await expect(page.locator(".whoami-role")).toHaveText("Administrator");
   await expect(page.getByRole("link", { name: "Agents" })).toBeVisible();
 
   // Now the page opens, and it is honest about what the switcher is.
@@ -60,8 +71,8 @@ test("switching persona changes role, navigation, and what is permitted", async 
 
   // The Risk Assessor is a third, distinct role.
   await page.goto("/projects");
-  await page.getByLabel(/Working as/).selectOption({ label: "Noah Kahan · Risk Assessor" });
-  await expect(page.locator(".persona-role")).toHaveText("Risk Assessor");
+  await becomePerson(page, "Noah Kahan");
+  await expect(page.locator(".whoami-role")).toHaveText("Risk Assessor");
   await expect(page.getByRole("link", { name: "Agents" })).toBeHidden();
 });
 
@@ -69,7 +80,7 @@ test("Switch user leaves the product and returns to the front door", async ({ pa
   await page.goto("/");
   await page.getByRole("button", { name: /Tom Holland/ }).click();
   await expect(page).toHaveURL(/\/projects$/);
-  await expect(page.locator(".persona-role")).toHaveText("Administrator");
+  await expect(page.locator(".whoami-role")).toHaveText("Administrator");
 
   await page.getByRole("button", { name: "Switch user" }).click();
   await expect(page).toHaveURL(/\/$/);
@@ -83,7 +94,7 @@ test("Switch user leaves the product and returns to the front door", async ({ pa
 test("an answer records who gave it", async ({ page }) => {
   const name = `Attribution ${Date.now()}`;
   await page.goto("/projects");
-  await page.getByLabel(/Working as/).selectOption({ label: "Priya Sharma · Requester" });
+  await becomePerson(page, "Priya Sharma");
   await page.getByLabel("Start a new assessment").fill(name);
   await page.getByRole("button", { name: "Start assessment" }).click();
   await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
@@ -102,7 +113,7 @@ test("a requester sees their own assessments; a Risk Assessor sees the queue (F2
 }) => {
   // The administrator starts one, so there is provably somebody else's work.
   await page.goto("/projects");
-  await page.getByLabel(/Working as/).selectOption({ label: "Tom Holland · Administrator" });
+  await becomePerson(page, "Tom Holland");
   const adminOwned = `Owned by admin ${Date.now()}`;
   await page.getByLabel("Start a new assessment").fill(adminOwned);
   await page.getByRole("button", { name: "Start assessment" }).click();
@@ -110,12 +121,12 @@ test("a requester sees their own assessments; a Risk Assessor sees the queue (F2
 
   // The requester's list is their own work only — not everything in the pilot.
   await page.goto("/projects");
-  await page.getByLabel(/Working as/).selectOption({ label: "Priya Sharma · Requester" });
+  await becomePerson(page, "Priya Sharma");
   await expect(page.getByRole("heading", { name: "Your assessments" })).toBeVisible();
   await expect(page.getByRole("link", { name: adminOwned })).toBeHidden();
 
   // The Risk Assessor sees every assessment, and cannot start one.
-  await page.getByLabel(/Working as/).selectOption({ label: "Noah Kahan · Risk Assessor" });
+  await becomePerson(page, "Noah Kahan");
   await expect(page.getByRole("heading", { name: "All assessments" })).toBeVisible();
   await expect(page.getByRole("link", { name: adminOwned })).toBeVisible();
   await expect(page.getByLabel("Start a new assessment")).toHaveCount(0);
@@ -124,7 +135,7 @@ test("a requester sees their own assessments; a Risk Assessor sees the queue (F2
 
 test("an intake change records who made it, and says so on the screen (F5)", async ({ page }) => {
   await page.goto("/projects");
-  await page.getByLabel(/Working as/).selectOption({ label: "Priya Sharma · Requester" });
+  await becomePerson(page, "Priya Sharma");
   await page.getByLabel("Start a new assessment").fill(`Attributed ${Date.now()}`);
   await page.getByRole("button", { name: "Start assessment" }).click();
   await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
@@ -143,7 +154,7 @@ test("an assessment cannot be opened or edited by someone it doesn't belong to (
 }) => {
   // The administrator starts one, so the URL under test belongs to someone else.
   await page.goto("/projects");
-  await page.getByLabel(/Working as/).selectOption({ label: "Tom Holland · Administrator" });
+  await becomePerson(page, "Tom Holland");
   await page.getByLabel("Start a new assessment").fill(`Admin private ${Date.now()}`);
   await page.getByRole("button", { name: "Start assessment" }).click();
   await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
@@ -151,7 +162,7 @@ test("an assessment cannot be opened or edited by someone it doesn't belong to (
 
   // Switch to the requester and go straight at the URL — the listing is not
   // the enforcement point, so hiding the row proves nothing.
-  await page.getByLabel(/Working as/).selectOption({ label: "Priya Sharma · Requester" });
+  await becomePerson(page, "Priya Sharma");
   for (const path of [base, `${base}/intake/ownership`, `${base}/assess/complete`]) {
     await page.goto(path);
     await expect(
@@ -166,11 +177,11 @@ test("a Risk Assessor is refused in writing when they try to start an assessment
   page,
 }) => {
   await page.goto("/projects");
-  await page.getByLabel(/Working as/).selectOption({ label: "Priya Sharma · Requester" });
+  await becomePerson(page, "Priya Sharma");
   // Fill the form as the requester, then become the assessor before submitting:
   // the server must refuse what the markup no longer offers.
   await page.getByLabel("Start a new assessment").fill(`Should be refused ${Date.now()}`);
-  await page.getByLabel(/Working as/).selectOption({ label: "Noah Kahan · Risk Assessor" });
-  await expect(page.locator(".persona-role")).toHaveText("Risk Assessor");
+  await becomePerson(page, "Noah Kahan");
+  await expect(page.locator(".whoami-role")).toHaveText("Risk Assessor");
   await expect(page.getByLabel("Start a new assessment")).toHaveCount(0);
 });

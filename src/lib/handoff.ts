@@ -24,6 +24,7 @@ export type Handoff = {
   note: string;
   askedBy: string;
   askedByName: string;
+  askedByRole: string;
   createdAt: Date;
   resolvedAt: Date | null;
   resolvedBy: string | null;
@@ -35,6 +36,8 @@ export type Reply = {
   parentId: string | null;
   authorId: string;
   authorName: string;
+  /** Shown as a pill beside the name — who is speaking matters here. */
+  authorRole: string;
   body: string;
   createdAt: Date;
 };
@@ -142,4 +145,28 @@ export function timeAgo(when: Date, now: Date): string {
 /** How long it has been open, for a pinned alert that should feel its age. */
 export function openFor(handoff: Handoff, now: Date): string {
   return timeAgo(handoff.createdAt, now).replace(" ago", "");
+}
+
+/** Two letters for an avatar, from whatever name we have. */
+export function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0]!.slice(0, 1).toUpperCase();
+  return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
+}
+
+/**
+ * When something was said, absolutely.
+ *
+ * A thread is a record, and "3d ago" stops meaning anything the moment
+ * somebody reads it a week later. The bell uses relative time because it is
+ * about what is new; a conversation uses the date because it is about what
+ * happened.
+ */
+export function saidAt(when: Date): string {
+  const month = when.toLocaleString("en-US", { month: "short" });
+  const time = when
+    .toLocaleString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
+    .replace(/\s/, " ");
+  return `${month} ${when.getDate()}, ${time}`;
 }

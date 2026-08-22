@@ -205,3 +205,46 @@
   font-size: 0.78rem; font-weight: 700; color: var(--link);
 }
 .linkish:hover { text-decoration: underline; }
+
+/* The conversation, mirrored from the prior platform: avatar, name, role
+   pill, absolute time, then the words. A thread is a record — relative time
+   stops meaning anything once somebody reads it a week later. */
+.handoff-post { display: flex; gap: 0.7rem; padding: 0.5rem 0; }
+.handoff-avatar {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  height: 2.2rem; width: 2.2rem; border-radius: 999px;
+  background: var(--navy); color: var(--neutral-0);
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.02em;
+}
+.handoff-said { min-width: 0; flex: 1; }
+.handoff-head {
+  margin: 0 0 0.1rem; display: flex; align-items: center; flex-wrap: wrap;
+  gap: 0.45rem; font-size: 0.85rem;
+}
+.handoff-who { font-weight: 700; color: var(--navy); }
+.handoff-role {
+  font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--link);
+  background: var(--surface-2); border-radius: 999px; padding: 0.15rem 0.5rem;
+}
+.handoff-when { color: var(--neutral-600); font-size: 0.78rem; }
+.handoff-body { margin: 0; font-size: 0.95rem; color: var(--neutral-800); line-height: 1.45; }
+
+/* The composer: one rounded field and a round send button. */
+.handoff-composer {
+  display: flex; align-items: center; gap: 0.6rem; margin-top: 0.6rem;
+}
+.handoff-composer input {
+  flex: 1; border-radius: 999px; border: 1px solid var(--neutral-200);
+  background: var(--neutral-0); padding: 0.65rem 1rem; font-size: 0.9rem;
+}
+.handoff-composer input:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.handoff-send {
+  display: flex; align-items: center; justify-content: center; flex: none;
+  height: 2.6rem; width: 2.6rem; border-radius: 999px; border: 0;
+  background: var(--brand); color: var(--neutral-0); cursor: pointer;
+  font-size: 0.95rem; transition: background 0.15s var(--ease, ease);
+}
+.handoff-send:disabled { background: var(--neutral-300); cursor: not-allowed; }
+.handoff-send:not(:disabled):hover { background: var(--navy-2); }
+.handoff-resolve { margin-top: 0.5rem; }

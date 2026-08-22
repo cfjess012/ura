@@ -12,7 +12,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { handOffQuestion, replyToHandoff, resolveHandoff } from "@/app/actions";
 import { isFailure } from "@/lib/errors";
-import { thread, timeAgo, type Reply } from "@/lib/handoff";
+import { initialsOf, saidAt, thread, timeAgo, type Reply } from "@/lib/handoff";
 
 export type Recipient = { id: string; label: string; kind: "person" | "domain" };
 
@@ -21,6 +21,7 @@ export type HandoffView = {
   toLabel: string;
   note: string;
   askedByName: string;
+  askedByRole: string;
   createdAt: string;
   resolvedAt: string | null;
   resolvedByName: string | null;
@@ -187,15 +188,13 @@ function Thread({ projectId, handoff }: { projectId: string; handoff: HandoffVie
         </span>
       </p>
 
-      <div className="handoff-post">
-        <span className="handoff-who">{handoff.askedByName}</span>
-        <span className="handoff-when">
-          {timeAgo(new Date(handoff.createdAt), now)}
-        </span>
-        <p className="handoff-body">
-          {handoff.note || <em>handed this over without a note</em>}
-        </p>
-      </div>
+      <Post
+        name={handoff.askedByName}
+        role={handoff.askedByRole}
+        at={new Date(handoff.createdAt)}
+        body={handoff.note || "Handed this over without a note."}
+        actions={null}
+      />
 
       {nodes.map((node) => (
         <ReplyNode
@@ -218,23 +217,35 @@ function Thread({ projectId, handoff }: { projectId: string; handoff: HandoffVie
               </button>
             </p>
           )}
-          <textarea
-            rows={2}
-            value={body}
-            placeholder="Add to the conversation…"
-            aria-label="Add to the conversation"
-            onChange={(event) => setBody(event.target.value)}
-          />
-          <div className="handoff-actions">
-            <button type="button" className="btn" disabled={busy} onClick={() => void post()}>
-              {busy ? "Posting…" : "Reply"}
+          <div className="handoff-composer">
+            <input
+              type="text"
+              value={body}
+              placeholder="Add to the conversation…"
+              aria-label="Add to the conversation"
+              onChange={(event) => setBody(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  void post();
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="handoff-send"
+              disabled={busy || body.trim() === ""}
+              aria-label="Post this reply"
+              onClick={() => void post()}
+            >
+              <span aria-hidden="true">➤</span>
             </button>
-            {handoff.mayResolve && (
-              <button type="button" className="btn ghost" disabled={busy} onClick={() => void close()}>
-                Mark resolved
-              </button>
-            )}
           </div>
+          {handoff.mayResolve && (
+            <button type="button" className="linkish handoff-resolve" disabled={busy} onClick={() => void close()}>
+              Mark resolved
+            </button>
+          )}
         </div>
       )}
       {error && (
@@ -264,15 +275,20 @@ function ReplyNode({
   const indent = Math.min(depth, 4);
   return (
     <>
-      <div className="handoff-post handoff-child" style={{ marginLeft: `${indent * 1.1}rem` }}>
-        <span className="handoff-who">{node.authorName}</span>
-        <span className="handoff-when">{timeAgo(node.createdAt, now)}</span>
-        <p className="handoff-body">{node.body}</p>
-        {open && (
-          <button type="button" className="linkish" onClick={() => onReply(node.id)}>
-            Reply
-          </button>
-        )}
+      <div style={{ marginLeft: `${indent * 1.6}rem` }}>
+        <Post
+          name={node.authorName}
+          role={node.authorRole}
+          at={node.createdAt}
+          body={node.body}
+          actions={
+            open ? (
+              <button type="button" className="linkish" onClick={() => onReply(node.id)}>
+                Reply
+              </button>
+            ) : null
+          }
+        />
       </div>
       {node.children.map((child) => (
         <ReplyNode
@@ -287,3 +303,42 @@ function ReplyNode({
     </>
   );
 }
+
+
+/** One thing somebody said — avatar, who they are, when, and the words. */
+function Post({
+  name,
+  role,
+  at,
+  body,
+  actions,
+}: {
+  name: string;
+  role: string;
+  at: Date;
+  body: string;
+  actions: React.ReactNode;
+}) {
+  return (
+    <div className="handoff-post">
+      <span className="handoff-avatar" aria-hidden="true">
+        {initialsOf(name)}
+      </span>
+      <div className="handoff-said">
+        <p className="handoff-head">
+          <span className="handoff-who">{name}</span>
+          <span className="handoff-role">{ROLE_PILL[role] ?? role}</span>
+          <span className="handoff-when">{saidAt(at)}</span>
+          {actions}
+        </p>
+        <p className="handoff-body">{body}</p>
+      </div>
+    </div>
+  );
+}
+
+const ROLE_PILL: Record<string, string> = {
+  requester: "Requester",
+  assessor: "Risk Assessor",
+  admin: "Administrator",
+};

@@ -392,6 +392,7 @@ function postgresHandoffStore(): HandoffStore {
         note: schema.handoffs.note,
         askedBy: schema.handoffs.askedBy,
         askedByName: schema.people.name,
+        askedByRole: schema.people.role,
         createdAt: schema.handoffs.createdAt,
         resolvedAt: schema.handoffs.resolvedAt,
         resolvedBy: schema.handoffs.resolvedBy,
@@ -432,6 +433,7 @@ function postgresHandoffStore(): HandoffStore {
           parentId: schema.handoffReplies.parentId,
           authorId: schema.handoffReplies.authorId,
           authorName: schema.people.name,
+          authorRole: schema.people.role,
           body: schema.handoffReplies.body,
           createdAt: schema.handoffReplies.createdAt,
         })
@@ -514,6 +516,7 @@ function shapeHandoff(row: {
   note: string;
   askedBy: string;
   askedByName: string;
+  askedByRole: string;
   createdAt: Date;
   resolvedAt: Date | null;
   resolvedBy: string | null;

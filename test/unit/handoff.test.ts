@@ -40,6 +40,7 @@ const handoff = (over: Partial<Handoff> = {}): Handoff => ({
   note: "",
   askedBy: "p.requester",
   askedByName: "Priya Sharma",
+  askedByRole: "requester",
   createdAt: new Date("2026-08-22T00:00:00Z"),
   resolvedAt: null,
   resolvedBy: null,
@@ -115,6 +116,7 @@ describe("the conversation", () => {
     parentId,
     authorId: "a",
     authorName: "A",
+  authorRole: "assessor",
     body: id,
     createdAt: new Date(),
   });

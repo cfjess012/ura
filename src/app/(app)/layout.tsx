@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { currentPerson } from "@/lib/current-person";
-import { canAdminister } from "@/lib/people";
-import { handoffStore, peopleStore } from "@/lib/repo";
+import { canAdminister, ROLE_LABEL } from "@/lib/people";
+import { handoffStore } from "@/lib/repo";
 import { switchUser } from "@/app/actions";
-import { PersonSwitcher } from "../person-switcher";
 import { AlertBell } from "./alert-bell";
 import { openFor } from "@/lib/handoff";
 import { destinationFor } from "@/lib/destination";
@@ -13,7 +12,7 @@ import { destinationFor } from "@/lib/destination";
  * — it is the front door, not a screen inside the product.
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const [people, current] = await Promise.all([peopleStore().signIns(), currentPerson()]);
+  const current = await currentPerson();
   // Both classes are DERIVED — nothing is stored as a message, so there is
   // nothing to poll, nothing to mark read one by one, and nothing that can
   // disagree with the conversation it describes.
@@ -55,7 +54,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   `/projects/${n.projectId}`,
               }))}
             />
-            <PersonSwitcher people={people} current={current} />
+            {/* Who you are, stated plainly — the owner's call, taken from the
+                prior platform: a name and a role pill read faster than a
+                dropdown, and switching is a deliberate act through the
+                front door rather than something you can do by mis-clicking
+                a select in the chrome. */}
+            <span className="whoami">
+              <span className="whoami-name">{current.name}</span>
+              <span className="whoami-role">{ROLE_LABEL[current.role]}</span>
+            </span>
             {/* The pilot equivalent of signing out: back to the front door. */}
             <form action={switchUser}>
               <button type="submit" className="appbar-leave">

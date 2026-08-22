@@ -58,3 +58,45 @@ label wrapped to two lines.
 // scratch script; delete after use
 await page.screenshot({ path: "/tmp/surface.png", fullPage: true });
 ```
+
+## The notification menu (owner-specified, 2026-08-22)
+
+The shape the owner picked, taken from the prior platform. Reuse it for any
+panel that mixes work-to-do with things-that-happened — a review queue
+summary, a findings tray, an attestation prompt.
+
+**A bell with a corner count.** 36px round button in the app bar. An 18px
+badge pinned to its top-right with a negative offset so it overlaps the
+glyph, `min-width` plus horizontal padding so two digits grow it into a
+pill, and `tabular-nums` so the number does not jitter as it changes. Nine
+or more reads "9+". The bell's `aria-label` carries the counts in words —
+the badge is never the only way to know.
+
+**A right-anchored panel**, 24rem wide, `max-width: 90vw`, 12px radius,
+hairline border, lifted shadow. Closes on outside mousedown and on Escape.
+
+**Two sections, and they are different substances.**
+
+*NEEDS YOU* sits on top, on a warm band, in the warning colour. Each row is
+a shield or alert glyph and a bold sentence naming the work. It ends with
+the line that does the real work: **"These clear themselves when the work
+is done — they can't be dismissed."** There is no clear control beside it,
+because there is nothing to clear — the rows derive from state.
+
+*NOTIFICATIONS* sits below on white, with **Clear all** as a plain blue link
+in its header row. Each row is a pale round icon, then one sentence reading
+**bold actor · plain verb · bold object**, with a relative timestamp beneath
+in small grey. Unread rows carry a tint *and* the word "new" — never the
+tint alone.
+
+**Empty state names what will appear**, not merely that nothing has: *"Nothing
+yet — replies on questions you handed over land here."*
+
+Every row is a link to the thing itself, per `alert-destination`.
+
+## Who you are, in the app bar (owner-specified, 2026-08-22)
+
+The signed-in person is **a name in bold and a role pill**, not a dropdown.
+Switching is a deliberate act through the front door. A select in the chrome
+invites a mis-click into somebody else's identity, and reads slower than two
+words.
