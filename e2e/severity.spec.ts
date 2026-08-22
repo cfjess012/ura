@@ -53,11 +53,16 @@ test("a severity answer summons controls and says why (FR-6, §19)", async ({ pa
   await providerAccess.getByRole("radio", { name: /Low/ }).click();
   await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
   const owed = page.locator(".owed");
-  await expect(owed).not.toContainText("T3-IAM-03");
+  await expect(owed).not.toContainText("Privileged Access Management");
 
   await providerAccess.getByRole("radio", { name: /High/ }).click();
   await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
-  await expect(owed).toContainText("T3-IAM-03");
+  // The control is named, not coded. This assertion used to read
+  // `toContainText("T3-IAM-03")` — the test encoded the very defect NFR-9
+  // forbids, so the identifier on screen had a passing test defending it
+  // (S4 verification, B1).
+  await expect(owed).toContainText("Privileged Access Management");
+  await expect(owed).not.toContainText(/T[0-9]-[A-Z]{2,5}-[0-9]/);
   // Every control names the answer that pulled it in.
   await expect(owed).toContainText("Level of Provider Access is High");
 
