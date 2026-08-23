@@ -18,7 +18,7 @@ One row per beat. A beat with a blank cell is not a beat, it is a hope.
 
 | # | What the audience sees | Delivered by | Built | Walked by a person | If it breaks live |
 |---|---|---|---|---|---|
-| 1 | Intake closes whole risk areas before Tier 1 begins | S2 + instrument 2026-08-21.7 | yes | yes — owner | Say the number out loud instead: five intake answers decided six of eleven areas |
+| 1 | Intake closes whole risk areas before Tier 1 begins | S2 + instrument 2026-08-21.7 | yes | yes — owner | Say the number out loud instead: four intake answers decide four of eleven areas (measured 2026-08-22 across five profiles — see `test/unit/prefill-reach.test.ts`) |
 | 2 | Areas pre-answered from intake, each showing its reason | S2 · FR-22 | yes | yes — owner | Fall back to the gate screen, which states the same reason |
 | 3 | Governance applies to everyone, so it is never asked | instrument · G-36 | yes | no | Point at the rail entry "Applies · not asked" |
 | 4 | One selection tailors the rest of the assessment | S3 · FR-4 | yes | no | Show the summary's "What we'll ask about" list instead |
@@ -44,3 +44,4 @@ One row per beat. A beat with a blank cell is not a beat, it is a hope.
 - The agentic layer is **designed and registered, not built** (§22.1, 29 entries). Show the transparency page; do not imply anything runs.
 - FR-5's condition renderer does not exist. Explanations are authored, not generated.
 - Resilience is not gated anywhere in the instrument (audit C-7, open).
+- **Depth exists in four of the eleven risk areas** (G-50). Third party, AI, data and security carry every path, severity question and control objective. The other seven record that the area is in scope for a reviewer and ask nothing further. Say that plainly if asked; do not let "eight areas apply" imply eight bodies of work.
