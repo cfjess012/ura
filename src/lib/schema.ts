@@ -44,6 +44,9 @@ export const projects = pgTable("projects", {
   dataClassification: text("data_classification").notNull().default(""),
   dataElements: jsonb("data_elements").$type<string[]>().notNull().default([]),
   createdBy: text("created_by"),
+  /** Submission is a one-way fact, never a status somebody can set back. */
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  submittedBy: text("submitted_by"),
 });
 
 export type ProjectRow = typeof projects.$inferSelect;
@@ -132,6 +135,43 @@ export const handoffs = pgTable(
     resolvedBy: text("resolved_by"),
   },
   (t) => [index("handoffs_by_project").on(t.projectId, t.createdAt)],
+);
+
+/**
+ * The submitter's declaration (FR-37, G-52) — distinct from the assessor's
+ * attestation, which is S8's act against a different authority rule.
+ */
+export const declarations = pgTable(
+  "declarations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id").notNull(),
+    declaredBy: text("declared_by").notNull(),
+    declaredAt: timestamp("declared_at", { withTimezone: true }).notNull().defaultNow(),
+    /** The answers as displayed at the moment of signing. */
+    shown: jsonb("shown").notNull(),
+    /** The gaps named and accepted at the same moment (FR-14). */
+    gaps: jsonb("gaps").notNull().default([]),
+  },
+  (t) => [index("declarations_by_project").on(t.projectId, t.declaredAt)],
+);
+
+/** Synthesised from Tier-3 answers at submission (FR-15). Insert-only. */
+export const findings = pgTable(
+  "findings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id").notNull(),
+    questionId: text("question_id").notNull(),
+    objective: text("objective").notNull(),
+    objectiveName: text("objective_name").notNull(),
+    /** "gap" from a No, "enhancement" from a Partial (§4.3). */
+    kind: text("kind").notNull(),
+    note: text("note").notNull(),
+    raisedAt: timestamp("raised_at", { withTimezone: true }).notNull().defaultNow(),
+    raisedBy: text("raised_by").notNull(),
+  },
+  (t) => [index("findings_by_project").on(t.projectId, t.raisedAt)],
 );
 
 /** The conversation that settles a hand-off. Threaded, insert-only. */
