@@ -15,6 +15,7 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { writtenPaths } from "../lib/written-paths.mjs";
 
 /**
  * A skill's checklist: its headline rules, not the whole file. Enough to act
@@ -61,83 +62,99 @@ function checklist(skill) {
 let payload = "";
 process.stdin.on("data", (chunk) => (payload += chunk));
 process.stdin.on("end", () => {
-  let file = "";
+  let input;
   try {
-    file = JSON.parse(payload)?.tool_input?.file_path ?? "";
+    input = JSON.parse(payload);
   } catch {
     process.exit(0);
   }
-  if (!file) process.exit(0);
   // Path rules below are project-relative. cwd is NOT guaranteed to be the
   // project root (the script path itself uses $CLAUDE_PROJECT_DIR); if the
   // two ever differed, every ^src/ rule silently matched nothing and this
   // hook became a no-op with exit 0 — the worst failure mode a guard has.
   const root = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-  const rel = file.startsWith(`${root}/`) ? file.slice(root.length + 1) : file;
+  // A Bash heredoc governs the same file an Edit does. Matching only
+  // Edit|Write|MultiEdit let a whole slice through without one checklist
+  // (2026-08-23).
+  const targets = writtenPaths(input, root);
+  if (targets.length === 0) process.exit(0);
   const notes = [];
 
-  const source = (() => {
-    try {
-      return readFileSync(file, "utf8");
-    } catch {
-      return "";
-    }
-  })();
+  for (const rel of targets) {
+    const file = rel.startsWith("/") ? rel : `${root}/${rel}`;
+    const source = (() => {
+      try {
+        return readFileSync(file, "utf8");
+      } catch {
+        return "";
+      }
+    })();
 
-  if (/^src\/app\/.*actions\.ts$/.test(rel) || /route\.ts$/.test(rel)) {
-    notes.push(
-      "Server action/route touched → SPEC §25: return typed results, never throw for expected failure." +
-        checklist("error-handling"),
-    );
-  }
-  if (/^src\/app\/.*\.tsx$/.test(rel)) {
-    // A new surface gets the whole standard; an edit to an existing one
-    // gets a two-line pointer. 25 bullets on a one-line import fix taught
-    // sessions to skim past the block — which un-teaches the standard.
-    const isNew = source.split("\n").length < 40 || !source.includes("export");
-    notes.push(
-      isNew
-        ? "New surface → SPEC §23/§24 apply in full." + checklist("ui-craft")
-        : "Surface edited → SPEC §23/§24: designed states, accessible names, no internal identifiers, state never colour alone. Full standard: pass 1–3 of the ui-craft skill.",
-    );
-  }
-  if (
-    /^src\/lib\/(intake|instrument|severity).*\.ts$/.test(rel) ||
-    /^src\/data\/(instrument|reference)\//.test(rel)
-  ) {
-    // The instrument LIVES in src/data — the old rule matched only src/lib,
-    // so editing gates.json or severity.json fired nothing at all (operating
-    // layer audit, 2026-08-23). The content is the governed thing.
-    notes.push(
-      "Instrument or reference data touched → SPEC §8: bump the version string (activated versions are immutable), run `pnpm instrument:seed`, update the pinned test in the same commit, record a governance entry." +
-        checklist("instrument"),
-    );
-  }
-  if (/^\.claude\/(agents|skills)\//.test(rel)) {
-    notes.push("Agent or skill changed → run `pnpm agent-map` so docs/agent-map.html and the in-app transparency page match. test/unit/agent-map.test.ts fails the build until you do.");
-  }
-  if (/^CLAUDE\.md$/.test(rel) && /— DONE/.test(source)) {
-    notes.push(
-      "Slice status changed → demo/readiness.md must cover it: which beat does this add or change, is it built, has a person walked it, what is the fallback if it breaks live. The stop gate refuses to finish until it does (G-44).",
-    );
-  }
-  if (/^demo\/readiness\.md$/.test(rel)) {
-    notes.push(
-      "Demo readiness edited → say it to the owner in the reply, not just in the file. A beat nobody has walked is not ready, however green the tests are.",
-    );
-  }
-  if (/^drizzle\//.test(rel)) {
-    notes.push("Migration touched → SPEC §26.5: append a new file, never edit an applied one, and mirror it in src/lib/schema.ts.");
-  }
-  if (source.includes("process.env") && rel !== "src/lib/config.ts") {
-    notes.push("BLOCKED BY TEST: process.env outside src/lib/config.ts violates SPEC §26.3 — test/unit/architecture.test.ts will fail.");
-  }
-  if (/^src\//.test(rel) && source.split("\n").length > 400) {
-    notes.push(`File budget: ${rel} is ${source.split("\n").length} lines (SPEC §11 ceiling: 400 new / 800 hard).`);
+    if (/^src\/app\/.*actions\.ts$/.test(rel) || /route\.ts$/.test(rel)) {
+      notes.push(
+        "Server action/route touched → SPEC §25: return typed results, never throw for expected failure." +
+          checklist("error-handling"),
+      );
+    }
+    if (/^src\/app\/.*\.tsx$/.test(rel)) {
+      // A new surface gets the whole standard; an edit to an existing one
+      // gets a two-line pointer. 25 bullets on a one-line import fix taught
+      // sessions to skim past the block — which un-teaches the standard.
+      const isNew =
+        source.split("\n").length < 40 || !source.includes("export");
+      notes.push(
+        isNew
+          ? "New surface → SPEC §23/§24 apply in full." + checklist("ui-craft")
+          : "Surface edited → SPEC §23/§24: designed states, accessible names, no internal identifiers, state never colour alone. Full standard: pass 1–3 of the ui-craft skill.",
+      );
+    }
+    if (
+      /^src\/lib\/(intake|instrument|severity).*\.ts$/.test(rel) ||
+      /^src\/data\/(instrument|reference)\//.test(rel)
+    ) {
+      // The instrument LIVES in src/data — the old rule matched only src/lib,
+      // so editing gates.json or severity.json fired nothing at all (operating
+      // layer audit, 2026-08-23). The content is the governed thing.
+      notes.push(
+        "Instrument or reference data touched → SPEC §8: bump the version string (activated versions are immutable), run `pnpm instrument:seed`, update the pinned test in the same commit, record a governance entry." +
+          checklist("instrument"),
+      );
+    }
+    if (/^\.claude\/(agents|skills)\//.test(rel)) {
+      notes.push(
+        "Agent or skill changed → run `pnpm agent-map` so docs/agent-map.html and the in-app transparency page match. test/unit/agent-map.test.ts fails the build until you do.",
+      );
+    }
+    if (/^CLAUDE\.md$/.test(rel) && /— DONE/.test(source)) {
+      notes.push(
+        "Slice status changed → demo/readiness.md must cover it: which beat does this add or change, is it built, has a person walked it, what is the fallback if it breaks live. The stop gate refuses to finish until it does (G-44).",
+      );
+    }
+    if (/^demo\/readiness\.md$/.test(rel)) {
+      notes.push(
+        "Demo readiness edited → say it to the owner in the reply, not just in the file. A beat nobody has walked is not ready, however green the tests are.",
+      );
+    }
+    if (/^drizzle\//.test(rel)) {
+      notes.push(
+        "Migration touched → SPEC §26.5: append a new file, never edit an applied one, and mirror it in src/lib/schema.ts.",
+      );
+    }
+    if (source.includes("process.env") && rel !== "src/lib/config.ts") {
+      notes.push(
+        "BLOCKED BY TEST: process.env outside src/lib/config.ts violates SPEC §26.3 — test/unit/architecture.test.ts will fail.",
+      );
+    }
+    if (/^src\//.test(rel) && source.split("\n").length > 400) {
+      notes.push(
+        `File budget: ${rel} is ${source.split("\n").length} lines (SPEC §11 ceiling: 400 new / 800 hard).`,
+      );
+    }
   }
 
   if (notes.length) {
-    console.error(notes.map((n) => `• ${n}`).join("\n"));
+    // Same file touched twice in one command should not say it twice.
+    console.error([...new Set(notes)].map((n) => `• ${n}`).join("\n"));
     process.exit(2); // surfaced to the model as feedback, not a failure
   }
   process.exit(0);

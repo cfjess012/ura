@@ -1388,7 +1388,7 @@ otherwise the owner files them as defects.
       <span class="node-what">Puts the governing standard's own checklist in front of the work, the instant a governed file is edited</span>
     </button>
     <div class="detail hidden">
-      <p><span class="label">How and when it runs</span>Automatically, after every Edit, Write, MultiEdit. Nothing has to remember to call it.</p>
+      <p><span class="label">How and when it runs</span>Automatically, after every Edit, Write, MultiEdit, Bash. Nothing has to remember to call it.</p>
       <p><span class="label">What it can see</span>Sees the path of the file just edited, and reads the standards that apply to it. No network, no database, no other files.</p>
       <p><span class="label">In its own words</span><span class="gist">PostToolUse advisory (SPEC G-18, &quot;teeth in hooks&quot;).
 Skills load probabilistically. This hook makes the trigger deterministic:
@@ -1414,6 +1414,7 @@ in context whether or not an</span></p>
  */
 import { readFileSync } from &quot;node:fs&quot;;
 import { join } from &quot;node:path&quot;;
+import { writtenPaths } from &quot;../lib/written-paths.mjs&quot;;
 
 /**
  * A skill's checklist: its headline rules, not the whole file. Enough to act
@@ -1460,83 +1461,99 @@ function checklist(skill) {
 let payload = &quot;&quot;;
 process.stdin.on(&quot;data&quot;, (chunk) =&gt; (payload += chunk));
 process.stdin.on(&quot;end&quot;, () =&gt; {
-  let file = &quot;&quot;;
+  let input;
   try {
-    file = JSON.parse(payload)?.tool_input?.file_path ?? &quot;&quot;;
+    input = JSON.parse(payload);
   } catch {
     process.exit(0);
   }
-  if (!file) process.exit(0);
   // Path rules below are project-relative. cwd is NOT guaranteed to be the
   // project root (the script path itself uses $CLAUDE_PROJECT_DIR); if the
   // two ever differed, every ^src/ rule silently matched nothing and this
   // hook became a no-op with exit 0 — the worst failure mode a guard has.
   const root = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-  const rel = file.startsWith(`${root}/`) ? file.slice(root.length + 1) : file;
+  // A Bash heredoc governs the same file an Edit does. Matching only
+  // Edit|Write|MultiEdit let a whole slice through without one checklist
+  // (2026-08-23).
+  const targets = writtenPaths(input, root);
+  if (targets.length === 0) process.exit(0);
   const notes = [];
 
-  const source = (() =&gt; {
-    try {
-      return readFileSync(file, &quot;utf8&quot;);
-    } catch {
-      return &quot;&quot;;
-    }
-  })();
+  for (const rel of targets) {
+    const file = rel.startsWith(&quot;/&quot;) ? rel : `${root}/${rel}`;
+    const source = (() =&gt; {
+      try {
+        return readFileSync(file, &quot;utf8&quot;);
+      } catch {
+        return &quot;&quot;;
+      }
+    })();
 
-  if (/^src\/app\/.*actions\.ts$/.test(rel) || /route\.ts$/.test(rel)) {
-    notes.push(
-      &quot;Server action/route touched → SPEC §25: return typed results, never throw for expected failure.&quot; +
-        checklist(&quot;error-handling&quot;),
-    );
-  }
-  if (/^src\/app\/.*\.tsx$/.test(rel)) {
-    // A new surface gets the whole standard; an edit to an existing one
-    // gets a two-line pointer. 25 bullets on a one-line import fix taught
-    // sessions to skim past the block — which un-teaches the standard.
-    const isNew = source.split(&quot;\n&quot;).length &lt; 40 || !source.includes(&quot;export&quot;);
-    notes.push(
-      isNew
-        ? &quot;New surface → SPEC §23/§24 apply in full.&quot; + checklist(&quot;ui-craft&quot;)
-        : &quot;Surface edited → SPEC §23/§24: designed states, accessible names, no internal identifiers, state never colour alone. Full standard: pass 1–3 of the ui-craft skill.&quot;,
-    );
-  }
-  if (
-    /^src\/lib\/(intake|instrument|severity).*\.ts$/.test(rel) ||
-    /^src\/data\/(instrument|reference)\//.test(rel)
-  ) {
-    // The instrument LIVES in src/data — the old rule matched only src/lib,
-    // so editing gates.json or severity.json fired nothing at all (operating
-    // layer audit, 2026-08-23). The content is the governed thing.
-    notes.push(
-      &quot;Instrument or reference data touched → SPEC §8: bump the version string (activated versions are immutable), run `pnpm instrument:seed`, update the pinned test in the same commit, record a governance entry.&quot; +
-        checklist(&quot;instrument&quot;),
-    );
-  }
-  if (/^\.claude\/(agents|skills)\//.test(rel)) {
-    notes.push(&quot;Agent or skill changed → run `pnpm agent-map` so docs/agent-map.html and the in-app transparency page match. test/unit/agent-map.test.ts fails the build until you do.&quot;);
-  }
-  if (/^CLAUDE\.md$/.test(rel) &amp;&amp; /— DONE/.test(source)) {
-    notes.push(
-      &quot;Slice status changed → demo/readiness.md must cover it: which beat does this add or change, is it built, has a person walked it, what is the fallback if it breaks live. The stop gate refuses to finish until it does (G-44).&quot;,
-    );
-  }
-  if (/^demo\/readiness\.md$/.test(rel)) {
-    notes.push(
-      &quot;Demo readiness edited → say it to the owner in the reply, not just in the file. A beat nobody has walked is not ready, however green the tests are.&quot;,
-    );
-  }
-  if (/^drizzle\//.test(rel)) {
-    notes.push(&quot;Migration touched → SPEC §26.5: append a new file, never edit an applied one, and mirror it in src/lib/schema.ts.&quot;);
-  }
-  if (source.includes(&quot;process.env&quot;) &amp;&amp; rel !== &quot;src/lib/config.ts&quot;) {
-    notes.push(&quot;BLOCKED BY TEST: process.env outside src/lib/config.ts violates SPEC §26.3 — test/unit/architecture.test.ts will fail.&quot;);
-  }
-  if (/^src\//.test(rel) &amp;&amp; source.split(&quot;\n&quot;).length &gt; 400) {
-    notes.push(`File budget: ${rel} is ${source.split(&quot;\n&quot;).length} lines (SPEC §11 ceiling: 400 new / 800 hard).`);
+    if (/^src\/app\/.*actions\.ts$/.test(rel) || /route\.ts$/.test(rel)) {
+      notes.push(
+        &quot;Server action/route touched → SPEC §25: return typed results, never throw for expected failure.&quot; +
+          checklist(&quot;error-handling&quot;),
+      );
+    }
+    if (/^src\/app\/.*\.tsx$/.test(rel)) {
+      // A new surface gets the whole standard; an edit to an existing one
+      // gets a two-line pointer. 25 bullets on a one-line import fix taught
+      // sessions to skim past the block — which un-teaches the standard.
+      const isNew =
+        source.split(&quot;\n&quot;).length &lt; 40 || !source.includes(&quot;export&quot;);
+      notes.push(
+        isNew
+          ? &quot;New surface → SPEC §23/§24 apply in full.&quot; + checklist(&quot;ui-craft&quot;)
+          : &quot;Surface edited → SPEC §23/§24: designed states, accessible names, no internal identifiers, state never colour alone. Full standard: pass 1–3 of the ui-craft skill.&quot;,
+      );
+    }
+    if (
+      /^src\/lib\/(intake|instrument|severity).*\.ts$/.test(rel) ||
+      /^src\/data\/(instrument|reference)\//.test(rel)
+    ) {
+      // The instrument LIVES in src/data — the old rule matched only src/lib,
+      // so editing gates.json or severity.json fired nothing at all (operating
+      // layer audit, 2026-08-23). The content is the governed thing.
+      notes.push(
+        &quot;Instrument or reference data touched → SPEC §8: bump the version string (activated versions are immutable), run `pnpm instrument:seed`, update the pinned test in the same commit, record a governance entry.&quot; +
+          checklist(&quot;instrument&quot;),
+      );
+    }
+    if (/^\.claude\/(agents|skills)\//.test(rel)) {
+      notes.push(
+        &quot;Agent or skill changed → run `pnpm agent-map` so docs/agent-map.html and the in-app transparency page match. test/unit/agent-map.test.ts fails the build until you do.&quot;,
+      );
+    }
+    if (/^CLAUDE\.md$/.test(rel) &amp;&amp; /— DONE/.test(source)) {
+      notes.push(
+        &quot;Slice status changed → demo/readiness.md must cover it: which beat does this add or change, is it built, has a person walked it, what is the fallback if it breaks live. The stop gate refuses to finish until it does (G-44).&quot;,
+      );
+    }
+    if (/^demo\/readiness\.md$/.test(rel)) {
+      notes.push(
+        &quot;Demo readiness edited → say it to the owner in the reply, not just in the file. A beat nobody has walked is not ready, however green the tests are.&quot;,
+      );
+    }
+    if (/^drizzle\//.test(rel)) {
+      notes.push(
+        &quot;Migration touched → SPEC §26.5: append a new file, never edit an applied one, and mirror it in src/lib/schema.ts.&quot;,
+      );
+    }
+    if (source.includes(&quot;process.env&quot;) &amp;&amp; rel !== &quot;src/lib/config.ts&quot;) {
+      notes.push(
+        &quot;BLOCKED BY TEST: process.env outside src/lib/config.ts violates SPEC §26.3 — test/unit/architecture.test.ts will fail.&quot;,
+      );
+    }
+    if (/^src\//.test(rel) &amp;&amp; source.split(&quot;\n&quot;).length &gt; 400) {
+      notes.push(
+        `File budget: ${rel} is ${source.split(&quot;\n&quot;).length} lines (SPEC §11 ceiling: 400 new / 800 hard).`,
+      );
+    }
   }
 
   if (notes.length) {
-    console.error(notes.map((n) =&gt; `• ${n}`).join(&quot;\n&quot;));
+    // Same file touched twice in one command should not say it twice.
+    console.error([...new Set(notes)].map((n) =&gt; `• ${n}`).join(&quot;\n&quot;));
     process.exit(2); // surfaced to the model as feedback, not a failure
   }
   process.exit(0);
@@ -1555,7 +1572,7 @@ process.stdin.on(&quot;end&quot;, () =&gt; {
       <span class="node-what">Refuses, before the edit lands, the three writes where after is too late: applied migrations, environment files, and deleting a settled governance entry</span>
     </button>
     <div class="detail hidden">
-      <p><span class="label">How and when it runs</span>Automatically, after every Edit, Write, MultiEdit. Nothing has to remember to call it.</p>
+      <p><span class="label">How and when it runs</span>Automatically, after every Edit, Write, MultiEdit, Bash. Nothing has to remember to call it.</p>
       <p><span class="label">What it can see</span>Sees the path and proposed text of the edit about to happen, and asks git whether a migration is tracked. No network, no database; it writes nothing and blocks by refusing.</p>
       <p><span class="label">In its own words</span><span class="gist">PreToolUse guard (SPEC §15, promised since S1 and built 2026-08-23).
 The advise hook reminds AFTER an edit lands; these three are the edits
@@ -1576,6 +1593,7 @@ disabled guard is wors</span></p>
  */
 import { existsSync } from &quot;node:fs&quot;;
 import { execFileSync } from &quot;node:child_process&quot;;
+import { writtenPaths } from &quot;../lib/written-paths.mjs&quot;;
 
 let payload = &quot;&quot;;
 process.stdin.on(&quot;data&quot;, (c) =&gt; (payload += c));
@@ -1586,50 +1604,57 @@ process.stdin.on(&quot;end&quot;, () =&gt; {
   } catch {
     process.exit(0);
   }
-  const file = input?.tool_input?.file_path ?? &quot;&quot;;
-  if (!file) process.exit(0);
   const root = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-  const rel = file.startsWith(`${root}/`) ? file.slice(root.length + 1) : file;
+  // Every path this call writes, whether it arrived as a file_path or
+  // inside a Bash command. One tool call can touch several.
+  const targets = writtenPaths(input, root);
+  if (targets.length === 0) process.exit(0);
 
-  // 1. An applied migration is history, not a draft (§26.5). &quot;Applied&quot; is
-  // approximated as &quot;tracked by git&quot; — a migration is committed with the
-  // slice that ran it, so an untracked drizzle file is a new one being
-  // written, which is exactly what IS allowed.
-  if (/^drizzle\/.*\.sql$/.test(rel) &amp;&amp; existsSync(file)) {
-    let tracked = false;
-    try {
-      execFileSync(&quot;git&quot;, [&quot;-C&quot;, root, &quot;ls-files&quot;, &quot;--error-unmatch&quot;, rel], {
-        stdio: &quot;ignore&quot;,
-      });
-      tracked = true;
-    } catch {
-      /* untracked → new file → allowed */
+  for (const rel of targets) {
+    const file = rel.startsWith(&quot;/&quot;) ? rel : `${root}/${rel}`;
+
+    // 1. An applied migration is history, not a draft (§26.5). &quot;Applied&quot; is
+    // approximated as &quot;tracked by git&quot; — a migration is committed with the
+    // slice that ran it, so an untracked drizzle file is a new one being
+    // written, which is exactly what IS allowed.
+    if (/^drizzle\/.*\.sql$/.test(rel) &amp;&amp; existsSync(file)) {
+      let tracked = false;
+      try {
+        execFileSync(&quot;git&quot;, [&quot;-C&quot;, root, &quot;ls-files&quot;, &quot;--error-unmatch&quot;, rel], {
+          stdio: &quot;ignore&quot;,
+        });
+        tracked = true;
+      } catch {
+        /* untracked → new file → allowed */
+      }
+      if (tracked) {
+        console.error(
+          `BLOCKED: ${rel} is an applied migration. Append a new numbered file instead (SPEC §26.5) and mirror it in src/lib/schema.ts.`,
+        );
+        process.exit(2);
+      }
     }
-    if (tracked) {
+
+    // 2. Environment files hold credentials and are gitignored by design.
+    if (/(^|\/)\.env(\.|$)/.test(rel) || /(^|\/)\.env$/.test(rel)) {
       console.error(
-        `BLOCKED: ${rel} is an applied migration. Append a new numbered file instead (SPEC §26.5) and mirror it in src/lib/schema.ts.`,
+        `BLOCKED: ${rel} is an environment file — edited by the owner, never by a session (SPEC §26.3). Say what to put in it instead.`,
       );
       process.exit(2);
     }
   }
 
-  // 2. Environment files hold credentials and are gitignored by design.
-  if (/(^|\/)\.env(\.|$)/.test(rel) || /(^|\/)\.env$/.test(rel)) {
-    console.error(
-      `BLOCKED: ${rel} is an environment file — edited by the owner, never by a session (SPEC §26.3). Say what to put in it instead.`,
-    );
-    process.exit(2);
-  }
-
   // 3. A settled governance entry may be compressed or superseded, never
-  // silently deleted: an Edit whose old_string contains a settled entry's
-  // marker must keep that G-id present in the replacement (Build Rule 10).
-  if (/^SPEC\.md$/.test(rel) &amp;&amp; input?.tool_input?.old_string) {
+  // silently deleted. This form only sees an Edit's replacement text; a
+  // Bash rewrite of SPEC.md is caught by the Stop gate instead, which
+  // compares the whole log against the last commit and so cannot be
+  // walked around by choosing a different tool.
+  if (targets.includes(&quot;SPEC.md&quot;) &amp;&amp; input?.tool_input?.old_string) {
     const oldS = input.tool_input.old_string;
     const newS = input.tool_input.new_string ?? &quot;&quot;;
-    const settled = [...oldS.matchAll(/\*\*(G-\d+a?) \((?:settled|superseded[^)]*)\)/g)].map(
-      (m) =&gt; m[1],
-    );
+    const settled = [
+      ...oldS.matchAll(/\*\*(G-\d+a?) \((?:settled|superseded[^)]*)\)/g),
+    ].map((m) =&gt; m[1]);
     const dropped = settled.filter((g) =&gt; !newS.includes(g));
     if (dropped.length) {
       console.error(
@@ -1818,6 +1843,31 @@ try {
   }
 } catch (error) {
   problems.push(`could not read demo/readiness.md — the demo record is missing: ${error.message}`);
+}
+
+// ---- 5. No governance decision has disappeared ----------------------------
+// The PreToolUse guard can only inspect an Edit's replacement text, so a
+// SPEC rewritten through Bash slipped past it. This compares the whole log
+// against the last commit and cannot be walked around by choosing a
+// different tool — a decision may be compressed or marked superseded, never
+// removed (Build Rule 10).
+try {
+  const now = readFileSync(join(ROOT, &quot;SPEC.md&quot;), &quot;utf8&quot;);
+  const committed = execSync(&quot;git show HEAD:SPEC.md&quot;, { cwd: ROOT, encoding: &quot;utf8&quot; });
+  const idsIn = (text) =&gt; new Set([...text.matchAll(/\*\*(G-\d+a?) \(/g)].map((m) =&gt; m[1]));
+  const before = idsIn(committed);
+  const after = idsIn(now);
+  const gone = [...before].filter((id) =&gt; !after.has(id));
+  if (gone.length &gt; 0) {
+    problems.push(
+      `SPEC §13 has lost ${gone.join(&quot;, &quot;)} since the last commit. A settled decision is compressed or marked superseded, never removed (Build Rule 10). Restore the id, or mark it superseded and keep it.`,
+    );
+  }
+} catch (error) {
+  // No commit yet, or git unavailable: say so rather than passing quietly.
+  if (!/unknown revision|does not exist/i.test(String(error.message))) {
+    problems.push(`could not check the governance log against the last commit: ${error.message}`);
+  }
 }
 
 // ---- 5. Stated measurements cite the test that asserts them ---------------

@@ -22,8 +22,8 @@ const settings = JSON.parse(readFileSync(join(ROOT, ".claude", "settings.json"),
 
 /** Which event each hook script must be wired to, and how it must match. */
 const WIRING: Record<string, { event: string; matcher?: RegExp }> = {
-  "advise.mjs": { event: "PostToolUse", matcher: /Edit\|Write\|MultiEdit/ },
-  "guard.mjs": { event: "PreToolUse", matcher: /Edit\|Write\|MultiEdit/ },
+  "advise.mjs": { event: "PostToolUse", matcher: /Edit\|Write\|MultiEdit\|Bash/ },
+  "guard.mjs": { event: "PreToolUse", matcher: /Edit\|Write\|MultiEdit\|Bash/ },
   "stop-gate.mjs": { event: "Stop" },
 };
 
@@ -34,6 +34,21 @@ const commandsFor = (event: string): string[] =>
 
 describe("every gate is actually wired to fire", () => {
   const scripts = readdirSync(join(ROOT, "scripts", "hooks")).filter((f) => f.endsWith(".mjs"));
+
+  it("both write-time hooks also watch Bash", () => {
+    // A session that edits through heredocs and `sed -i` writes the same
+    // files an Edit does. Matching only the file-path tools let an entire
+    // slice through without one hook firing (2026-08-23).
+    for (const script of ["advise.mjs", "guard.mjs"]) {
+      const { event } = WIRING[script]!;
+      const entries = (settings.hooks?.[event] ?? []) as {
+        matcher?: string;
+        hooks?: { command?: string }[];
+      }[];
+      const mine = entries.find((e) => (e.hooks ?? []).some((h) => h.command?.includes(script)));
+      expect(mine?.matcher, `${script} does not watch Bash`).toContain("Bash");
+    }
+  });
 
   it("every hook script on disk is declared in WIRING", () => {
     // The reference is the directory, so a new gate cannot be added

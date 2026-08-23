@@ -10,6 +10,7 @@
  */
 import { existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { writtenPaths } from "../lib/written-paths.mjs";
 
 let payload = "";
 process.stdin.on("data", (c) => (payload += c));
@@ -20,50 +21,57 @@ process.stdin.on("end", () => {
   } catch {
     process.exit(0);
   }
-  const file = input?.tool_input?.file_path ?? "";
-  if (!file) process.exit(0);
   const root = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-  const rel = file.startsWith(`${root}/`) ? file.slice(root.length + 1) : file;
+  // Every path this call writes, whether it arrived as a file_path or
+  // inside a Bash command. One tool call can touch several.
+  const targets = writtenPaths(input, root);
+  if (targets.length === 0) process.exit(0);
 
-  // 1. An applied migration is history, not a draft (§26.5). "Applied" is
-  // approximated as "tracked by git" — a migration is committed with the
-  // slice that ran it, so an untracked drizzle file is a new one being
-  // written, which is exactly what IS allowed.
-  if (/^drizzle\/.*\.sql$/.test(rel) && existsSync(file)) {
-    let tracked = false;
-    try {
-      execFileSync("git", ["-C", root, "ls-files", "--error-unmatch", rel], {
-        stdio: "ignore",
-      });
-      tracked = true;
-    } catch {
-      /* untracked → new file → allowed */
+  for (const rel of targets) {
+    const file = rel.startsWith("/") ? rel : `${root}/${rel}`;
+
+    // 1. An applied migration is history, not a draft (§26.5). "Applied" is
+    // approximated as "tracked by git" — a migration is committed with the
+    // slice that ran it, so an untracked drizzle file is a new one being
+    // written, which is exactly what IS allowed.
+    if (/^drizzle\/.*\.sql$/.test(rel) && existsSync(file)) {
+      let tracked = false;
+      try {
+        execFileSync("git", ["-C", root, "ls-files", "--error-unmatch", rel], {
+          stdio: "ignore",
+        });
+        tracked = true;
+      } catch {
+        /* untracked → new file → allowed */
+      }
+      if (tracked) {
+        console.error(
+          `BLOCKED: ${rel} is an applied migration. Append a new numbered file instead (SPEC §26.5) and mirror it in src/lib/schema.ts.`,
+        );
+        process.exit(2);
+      }
     }
-    if (tracked) {
+
+    // 2. Environment files hold credentials and are gitignored by design.
+    if (/(^|\/)\.env(\.|$)/.test(rel) || /(^|\/)\.env$/.test(rel)) {
       console.error(
-        `BLOCKED: ${rel} is an applied migration. Append a new numbered file instead (SPEC §26.5) and mirror it in src/lib/schema.ts.`,
+        `BLOCKED: ${rel} is an environment file — edited by the owner, never by a session (SPEC §26.3). Say what to put in it instead.`,
       );
       process.exit(2);
     }
   }
 
-  // 2. Environment files hold credentials and are gitignored by design.
-  if (/(^|\/)\.env(\.|$)/.test(rel) || /(^|\/)\.env$/.test(rel)) {
-    console.error(
-      `BLOCKED: ${rel} is an environment file — edited by the owner, never by a session (SPEC §26.3). Say what to put in it instead.`,
-    );
-    process.exit(2);
-  }
-
   // 3. A settled governance entry may be compressed or superseded, never
-  // silently deleted: an Edit whose old_string contains a settled entry's
-  // marker must keep that G-id present in the replacement (Build Rule 10).
-  if (/^SPEC\.md$/.test(rel) && input?.tool_input?.old_string) {
+  // silently deleted. This form only sees an Edit's replacement text; a
+  // Bash rewrite of SPEC.md is caught by the Stop gate instead, which
+  // compares the whole log against the last commit and so cannot be
+  // walked around by choosing a different tool.
+  if (targets.includes("SPEC.md") && input?.tool_input?.old_string) {
     const oldS = input.tool_input.old_string;
     const newS = input.tool_input.new_string ?? "";
-    const settled = [...oldS.matchAll(/\*\*(G-\d+a?) \((?:settled|superseded[^)]*)\)/g)].map(
-      (m) => m[1],
-    );
+    const settled = [
+      ...oldS.matchAll(/\*\*(G-\d+a?) \((?:settled|superseded[^)]*)\)/g),
+    ].map((m) => m[1]);
     const dropped = settled.filter((g) => !newS.includes(g));
     if (dropped.length) {
       console.error(

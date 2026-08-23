@@ -154,6 +154,31 @@ try {
   problems.push(`could not read demo/readiness.md — the demo record is missing: ${error.message}`);
 }
 
+// ---- 5. No governance decision has disappeared ----------------------------
+// The PreToolUse guard can only inspect an Edit's replacement text, so a
+// SPEC rewritten through Bash slipped past it. This compares the whole log
+// against the last commit and cannot be walked around by choosing a
+// different tool — a decision may be compressed or marked superseded, never
+// removed (Build Rule 10).
+try {
+  const now = readFileSync(join(ROOT, "SPEC.md"), "utf8");
+  const committed = execSync("git show HEAD:SPEC.md", { cwd: ROOT, encoding: "utf8" });
+  const idsIn = (text) => new Set([...text.matchAll(/\*\*(G-\d+a?) \(/g)].map((m) => m[1]));
+  const before = idsIn(committed);
+  const after = idsIn(now);
+  const gone = [...before].filter((id) => !after.has(id));
+  if (gone.length > 0) {
+    problems.push(
+      `SPEC §13 has lost ${gone.join(", ")} since the last commit. A settled decision is compressed or marked superseded, never removed (Build Rule 10). Restore the id, or mark it superseded and keep it.`,
+    );
+  }
+} catch (error) {
+  // No commit yet, or git unavailable: say so rather than passing quietly.
+  if (!/unknown revision|does not exist/i.test(String(error.message))) {
+    problems.push(`could not check the governance log against the last commit: ${error.message}`);
+  }
+}
+
 // ---- 5. Stated measurements cite the test that asserts them ---------------
 // "Five intake answers decided six of eleven areas" sat in the demo script
 // after the instrument had moved on; the real number was four (G-50 era,
