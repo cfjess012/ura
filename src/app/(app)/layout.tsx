@@ -26,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <header className="appbar">
         <div className="appbar-inner">
           <Link href="/projects" className="wordmark">
-            Risk Assessment <span>Advisor</span>
+            Front Door AI Risk <span>Advisor</span>
           </Link>
           <span className="appbar-right">
             {canAdminister(current.role) && (

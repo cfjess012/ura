@@ -6,7 +6,7 @@ import "./globals.css";
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-figtree" });
 
 export const metadata: Metadata = {
-  title: "Risk Assessment Advisor",
+  title: "Front Door AI Risk Advisor",
   description: "One front door for risk assessment.",
 };
 

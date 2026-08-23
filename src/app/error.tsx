@@ -25,7 +25,7 @@ export default function AppError({
     // A boundary is a client component and cannot export metadata, so the
     // tab title is set here — otherwise navigating into failure announces
     // nothing at all to anyone reading the title (N10).
-    document.title = "Something went wrong — Risk Assessment Advisor";
+    document.title = "Something went wrong — Front Door AI Risk Advisor";
   }, [error]);
 
   return (

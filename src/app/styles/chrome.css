@@ -18,6 +18,10 @@
   font-weight: 800;
   font-size: 1.02rem;
   letter-spacing: -0.01em;
+  /* A four-word product name broke across four lines in a narrow bar and
+     took the whole header with it. The name is one thing and reads as one
+     thing (SPEC §23). */
+  white-space: nowrap;
 }
 .wordmark span { color: var(--accent); }
 .whoami { font-size: 0.9rem; color: #cfe0f0; }
