@@ -20,6 +20,7 @@ import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
 import { NotYourAssessment } from "../../not-yours";
 import { answerStore } from "@/lib/repo";
+import { stageOf } from "@/lib/submission";
 import { ProjectHeader } from "../../project-header";
 import { GateRail } from "../gate-rail";
 
@@ -96,7 +97,7 @@ export default async function GatesCompletePage({
     <main>
       <ProjectHeader
         name={project.projectName}
-        status="Draft"
+        status={stageOf(project.submittedAt)}
         nextLine={
           remaining === 0
             ? "Every risk area has an answer — the detail questions come next."

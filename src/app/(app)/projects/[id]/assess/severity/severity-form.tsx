@@ -122,10 +122,17 @@ export function SeverityForm({
   }
 
   function choose(question: SeverityQuestion, band: Band) {
+    const before = bands;
     const next = { ...bands, [question.questionId]: band };
     setBands(next);
     autosave.touched.current.add(question.questionId);
-    autosave.save(() => write(next, details, [...autosave.touched.current]));
+    // Put it back if the server refuses: the controls, the count and the
+    // follow-up question all derive from this, and showing them for an
+    // answer that was never recorded is the lie (B5).
+    autosave.save(
+      () => write(next, details, [...autosave.touched.current]),
+      () => setBands(before),
+    );
   }
 
   function toggleDetail(

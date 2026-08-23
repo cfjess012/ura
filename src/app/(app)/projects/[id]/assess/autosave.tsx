@@ -75,12 +75,26 @@ export function useAutosave({
   }
 
   /** Save as the person works. Nothing awaits it here; the submit does. */
-  function save(run: Write) {
+  /**
+   * `revert` puts the screen back when the server refuses.
+   *
+   * Optimistic state without it leaves the consequences of an answer on
+   * screen next to the sentence saying it was not recorded: a submitted
+   * assessment showed six accumulated controls, a control count and a
+   * revealed follow-up question, all derived from an answer the database
+   * never received (verifier B5). The gate form already reverted; this
+   * makes it the shared rule rather than one screen's good manners.
+   */
+  function save(run: Write, revert?: () => void) {
     const running = write(run);
     inFlight.current = running;
-    void running.finally(() => {
-      if (inFlight.current === running) inFlight.current = null;
-    });
+    void running
+      .then((ok) => {
+        if (!ok) revert?.();
+      })
+      .finally(() => {
+        if (inFlight.current === running) inFlight.current = null;
+      });
   }
 
   /** Finish what is in flight, write the whole screen, then move on. */

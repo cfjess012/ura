@@ -12,6 +12,7 @@ import {
   type SeverityQuestion,
 } from "@/lib/severity";
 import { NotYourAssessment } from "../../../not-yours";
+import { stageOf } from "@/lib/submission";
 import { ProjectHeader } from "../../../project-header";
 import * as React from "react";
 import { handoffStore, peopleStore } from "@/lib/repo";
@@ -148,7 +149,7 @@ export default async function SeverityPage({
     <main>
       <ProjectHeader
         name={project.projectName}
-        status="Draft"
+        status={stageOf(project.submittedAt)}
         nextLine={
           answeredEverywhere === asked.length
             ? "Every severity question has an answer — the control questions come next."

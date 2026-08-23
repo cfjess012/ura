@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { CATEGORIES, gateStates } from "@/lib/instrument";
+import { litPaths } from "@/lib/engine";
+import { questionLabelFor } from "@/lib/question-label";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
-import { answerStore, peopleStore, submissionStore } from "@/lib/repo";
-import { accumulatedFor } from "@/lib/severity";
+import { answerStore, handoffStore, peopleStore, submissionStore } from "@/lib/repo";
+import { accumulatedFor, severityQuestionsFor } from "@/lib/severity";
 import { objectivesFor, isTier3Value, type Tier3Value } from "@/lib/tier3";
-import { declarableFrom, gapsIn, stageOf, synthesiseFindings } from "@/lib/submission";
+import { declarableFrom, earlierGaps, gapsIn, stageOf, synthesiseFindings } from "@/lib/submission";
 import { NotYourAssessment } from "../not-yours";
 import { ProjectHeader } from "../project-header";
 import { SubmitForm } from "./submit-form";
@@ -45,8 +48,32 @@ export default async function SubmitPage({ params }: { params: Promise<{ id: str
   }
   lookup.paths = paths;
 
-  const declarable = declarableFrom(intake as Record<string, unknown>);
-  const gaps = gapsIn(required, values, lookup);
+  const declarable = declarableFrom(project as unknown as Record<string, unknown>);
+  // The same earlier-tier gaps the action counts, so the screen and the
+  // server cannot disagree about what is missing (verifier B1).
+  const gates = gateStates(stored, intake);
+  const selections: Record<string, string[]> = {};
+  for (const category of CATEGORIES) {
+    const value = category.pathQuestion ? stored[category.pathQuestion.questionId]?.value : undefined;
+    if (Array.isArray(value)) selections[category.key] = value as string[];
+  }
+  const lit = litPaths(CATEGORIES, gates, selections, intake);
+  const severityQuestions = severityQuestionsFor(lit.map((path) => path.id));
+  const openHandoffs = (await handoffStore().forProject(id)).filter((h) => h.resolvedAt === null);
+  const earlier = earlierGaps({
+    gates: gates.map((g) => ({ category: g.category, answer: g.answer, settled: g.settled })),
+    severity: severityQuestions.map((question) => ({
+      questionId: question.questionId,
+      name: question.name,
+      text: question.text,
+      answered: stored[question.questionId] !== undefined,
+    })),
+    handedOff: openHandoffs.map((h) => ({
+      questionId: h.questionId,
+      label: `${questionLabelFor(h.questionId)} — with a risk assessor`,
+    })),
+  });
+  const gaps = gapsIn(required, values, lookup, earlier);
   const willRaise = synthesiseFindings(required, values, lookup);
   const submitted = project.submittedAt !== null;
 
@@ -67,7 +94,7 @@ export default async function SubmitPage({ params }: { params: Promise<{ id: str
           name={project.projectName}
           status={stageOf(project.submittedAt)}
           nextLine="Submitted. A Risk Assessor picks this up from here."
-          currentStage={2}
+          currentStage={3}
         />
         <div className="assess-single">
           <section>
@@ -101,11 +128,17 @@ export default async function SubmitPage({ params }: { params: Promise<{ id: str
                 </ul>
               </div>
             ) : (
+              /* Two different facts, and this said the wrong one: an
+                 assessment where NOTHING was answered read "every control
+                 was answered as already in place" — attributing to a person
+                 an answer they never gave, on the screen whose whole point
+                 is standing behind the record (G-42, verifier B1). */
               <div className="card">
                 <h2>No findings</h2>
                 <p className="help">
-                  Every control this activity requires was answered as already in place.
-                  A reviewer still checks that, but there is nothing outstanding to fix.
+                  {(declaration?.gaps.length ?? 0) > 0
+                    ? "Nothing here was answered in a way that raises a finding. The unanswered questions below are what a reviewer picks up."
+                    : "Every control this activity requires was answered as already in place. A reviewer still checks that, but there is nothing outstanding to fix."}
                 </p>
               </div>
             )}

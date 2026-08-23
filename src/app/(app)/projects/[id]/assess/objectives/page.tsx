@@ -9,6 +9,7 @@ import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
 import { answerStore } from "@/lib/repo";
 import { NotYourAssessment } from "../../not-yours";
+import { stageOf } from "@/lib/submission";
 import { ProjectHeader } from "../../project-header";
 import { groupsFor } from "../severity/severity-rail";
 import { ObjectivesForm } from "./objectives-form";
@@ -87,7 +88,7 @@ export default async function ObjectivesPage({ params }: { params: Promise<{ id:
     <main>
       <ProjectHeader
         name={project.projectName}
-        status="Draft"
+        status={stageOf(project.submittedAt)}
         nextLine={
           askable.length === 0
             ? "Nothing to answer here yet — the severity questions decide what this asks."

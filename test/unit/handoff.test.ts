@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   isWaitingOn,
+  resolutionProblem,
   mayResolve,
   recipientLabel,
   resolutionProblem,
@@ -202,5 +203,27 @@ describe("the hand-off panel's failure paths (verifier F3, F4)", () => {
   it("shows the reference every other error surface shows", () => {
     expect(panel).toMatch(/withRef\(result\.message, result\.ref\)/);
     expect(panel).toMatch(/Reference \$\{ref\}/);
+  });
+});
+
+describe("a hand-off open at submission is not a deadlock (verifier S2)", () => {
+  // Answering is refused once an assessment is submitted, so requiring an
+  // answer before closing made the hand-off permanently unresolvable — and
+  // the obligation in the recipient's bell could never clear, which is the
+  // one thing FR-36 promises.
+  const open = handoff();
+  const samuel = person({ riskDomain: "third-party" });
+
+  it("still refuses while the assessment is a draft and the question is unanswered", () => {
+    expect(resolutionProblem(open, samuel, false, false)).toMatch(/still has no answer/);
+  });
+
+  it("allows closing once the assessment has been submitted", () => {
+    expect(resolutionProblem(open, samuel, false, true)).toBeNull();
+  });
+
+  it("submission does not hand the close to somebody it was never with", () => {
+    const stranger = person({ id: "d.grant", role: "requester", riskDomain: null });
+    expect(resolutionProblem(open, stranger, false, true)).toMatch(/isn't yours to close/);
   });
 });

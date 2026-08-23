@@ -102,8 +102,17 @@ export function gapsIn(
   required: Tier3Objective[],
   values: Record<string, Tier3Value | undefined>,
   answers: AnswerLookup,
+  /**
+   * Everything unanswered EARLIER in the journey — gates that were never
+   * answered, severity questions with no band, questions handed to someone
+   * else. Without these the declaration counted only Tier 3, and Tier-3
+   * questions exist only for controls that ACCUMULATED — so the less of an
+   * assessment was done, the fewer gaps it reported, and an assessment with
+   * nothing answered at all declared itself complete (verifier B1).
+   */
+  earlier: Gap[] = [],
 ): Gap[] {
-  const gaps: Gap[] = [];
+  const gaps: Gap[] = [...earlier];
   for (const objective of required) {
     const parent = values[objective.questionId];
     if (!parent) {
@@ -169,6 +178,12 @@ export function editableAfter(submittedAt: Date | null): boolean {
  * which is the opposite of what a declaration is for (owner's call).
  */
 export function declarableFrom(values: Record<string, unknown>): Declared[] {
+  // NOTE: pass the PROJECT ROW, not `intakeValuesFrom()`'s output. That
+  // helper deliberately flattens a reference answer to its bare id so a
+  // form can pre-select it, which made this record say "d.chen" and
+  // "BU_OPS" — internal identifiers on screen (NFR-9) and, worse, in
+  // `declarations.shown`, which is the durable evidence a reviewer reads
+  // six months later (verifier B2).
   const shown = (field: IntakeField, raw: unknown): string => {
     if (raw === null || raw === undefined || raw === "") return "";
     if (Array.isArray(raw)) {
@@ -202,6 +217,40 @@ export function declarableFrom(values: Record<string, unknown>): Declared[] {
  */
 export function declarationMatches(shown: Declared[], current: Declared[]): boolean {
   if (shown.length !== current.length) return false;
+  // Every question exactly once. Length plus per-entry equality let a
+  // payload repeat one answer and omit another — nine entries, all
+  // matching, with the data-classification answer simply absent from the
+  // record (verifier B4).
+  const seen = new Set(shown.map((d) => d.questionId));
+  if (seen.size !== shown.length) return false;
   const byId = new Map(current.map((d) => [d.questionId, d.value]));
-  return shown.every((d) => byId.get(d.questionId) === d.value);
+  if (byId.size !== current.length) return false;
+  return shown.every((d) => byId.has(d.questionId) && byId.get(d.questionId) === d.value);
+}
+
+
+/**
+ * What is unanswered before Tier 3 even begins: risk areas never answered,
+ * severity questions with no band, and questions currently with someone
+ * else. Each named in its own words, because a gap a person cannot read is
+ * a gap they cannot act on (FR-14).
+ */
+export function earlierGaps(input: {
+  gates: { category: { key: string; name: string; text: string }; answer: string | null; settled: boolean }[];
+  severity: { questionId: string; name: string; text: string; answered: boolean }[];
+  handedOff: { questionId: string; label: string }[];
+}): Gap[] {
+  const gaps: Gap[] = [];
+  for (const gate of input.gates) {
+    if (gate.settled || gate.answer !== null) continue;
+    gaps.push({ questionId: `gate.${gate.category.key}`, label: gate.category.text });
+  }
+  for (const question of input.severity) {
+    if (question.answered) continue;
+    gaps.push({ questionId: question.questionId, label: question.text });
+  }
+  // A question with a risk assessor is not answered, and pretending it is
+  // would hide the one gap somebody is already working on.
+  for (const handed of input.handedOff) gaps.push(handed);
+  return gaps;
 }

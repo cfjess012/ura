@@ -19,21 +19,36 @@ import {
   projectNameOrNull,
   type SubmittedEntries,
 } from "@/lib/intake-values";
-import { CATEGORIES, INSTRUMENT } from "@/lib/instrument";
-import { pathSubmissionProblems } from "@/lib/engine";
+import { CATEGORIES, INSTRUMENT, gateStates } from "@/lib/instrument";
+import { litPaths, pathSubmissionProblems } from "@/lib/engine";
+import { questionLabelFor } from "@/lib/question-label";
 import type { AnswerLookup } from "@/lib/conditions";
-import { SEVERITY, accumulatedFor, severitySubmissionProblems } from "@/lib/severity";
+import {
+  SEVERITY,
+  accumulatedFor,
+  severityQuestionsFor,
+  severitySubmissionProblems,
+} from "@/lib/severity";
 import {
   declarableFrom,
   declarationMatches,
+  earlierGaps,
   gapsIn,
   submissionProblem,
   synthesiseFindings,
   type Declared,
+  type Gap,
 } from "@/lib/submission";
 import { TIER3, isTier3Value, objectivesFor, submissionProblems, type Tier3Value } from "@/lib/tier3";
 import { editableProject, openProject } from "@/lib/project-access";
-import { answerStore, handoffStore, peopleStore, projectStore, submissionStore } from "@/lib/repo";
+import {
+  AlreadySubmitted,
+  answerStore,
+  handoffStore,
+  peopleStore,
+  projectStore,
+  submissionStore,
+} from "@/lib/repo";
 import { resolutionProblem } from "@/lib/handoff";
 
 /** FormData is a web detail; the logic layer takes a plain record. */
@@ -263,6 +278,41 @@ async function lookupFor(projectId: string): Promise<AnswerLookup> {
   return lookup;
 }
 
+
+/**
+ * Unanswered work from the tiers before Tier 3, for the declaration.
+ * Server-side and shared with the screen, so the two cannot disagree about
+ * what is missing (§24.9 — two adjacent screens said 18 and 0).
+ */
+async function earlierGapsFor(
+  projectId: string,
+  intake: AnswerLookup,
+  stored: Awaited<ReturnType<ReturnType<typeof answerStore>["current"]>>,
+): Promise<Gap[]> {
+  const gates = gateStates(stored, intake);
+  const selections: Record<string, string[]> = {};
+  for (const category of CATEGORIES) {
+    const value = category.pathQuestion ? stored[category.pathQuestion.questionId]?.value : undefined;
+    if (Array.isArray(value)) selections[category.key] = value as string[];
+  }
+  const lit = litPaths(CATEGORIES, gates, selections, intake);
+  const severity = severityQuestionsFor(lit.map((path) => path.id)).map((question) => ({
+    questionId: question.questionId,
+    name: question.name,
+    text: question.text,
+    answered: stored[question.questionId] !== undefined,
+  }));
+  const open = (await handoffStore().forProject(projectId)).filter((h) => h.resolvedAt === null);
+  return earlierGaps({
+    gates: gates.map((g) => ({ category: g.category, answer: g.answer, settled: g.settled })),
+    severity,
+    handedOff: open.map((h) => ({
+      questionId: h.questionId,
+      label: `${questionLabelFor(h.questionId)} — with a risk assessor`,
+    })),
+  });
+}
+
 /**
  * Submit the assessment (S7): the declaration, the named gaps, and the
  * findings the Tier-3 answers raise.
@@ -292,7 +342,8 @@ export async function submitAssessment(
     }
 
     const intake = intakeValuesFrom(project as unknown as Record<string, unknown>);
-    const current = declarableFrom(intake as Record<string, unknown>);
+    // The project row, so reference answers keep their labels (B2).
+    const current = declarableFrom(project as unknown as Record<string, unknown>);
     if (!declarationMatches(input.shown, current)) {
       return failure(
         "submitAssessment",
@@ -309,7 +360,7 @@ export async function submitAssessment(
       if (questionId.startsWith("t3.") && isTier3Value(value.value)) values[questionId] = value.value;
     }
     const lookup = await lookupFor(projectId);
-    const gaps = gapsIn(required, values, lookup);
+    const gaps = gapsIn(required, values, lookup, await earlierGapsFor(projectId, intake, stored));
 
     const problem = submissionProblem({
       alreadySubmitted: project.submittedAt !== null,
@@ -329,7 +380,12 @@ export async function submitAssessment(
     await submissionStore().submit({
       projectId,
       person: person.id,
-      shown: input.shown,
+      // What the SERVER computed, never what the client sent. Labels were
+      // taken verbatim from the payload and written to the permanent
+      // record: a forged request stored "I accept all liability
+      // personally" as a label under a real person's name (verifier B3).
+      // `declarationMatches` has already proven these are value-equal.
+      shown: current,
       gaps,
       findings: raised,
     });
@@ -337,6 +393,14 @@ export async function submitAssessment(
     revalidatePath("/", "layout");
     return { ok: true as const, submitted: true as const, findings: raised.length };
   } catch (error) {
+    if (error instanceof AlreadySubmitted) {
+      return failure(
+        "submitAssessment",
+        error,
+        "This assessment was submitted a moment ago — possibly by a second click. Nothing was submitted twice.",
+        { retryable: false, expected: true },
+      );
+    }
     return failure(
       "submitAssessment",
       error,
@@ -648,9 +712,13 @@ export async function resolveHandoff(
       handoff,
       allowed.person,
       answers[handoff.questionId] !== undefined,
+      allowed.project.submittedAt !== null,
     );
     if (problem)
-      return failure("resolveHandoff", new Error(problem), problem, { retryable: false });
+      return failure("resolveHandoff", new Error(problem), problem, {
+        retryable: false,
+        expected: true,
+      });
     await handoffStore().resolve(handoffId, allowed.person.id);
     revalidatePath(`/projects/${projectId}`);
     revalidatePath("/", "layout");

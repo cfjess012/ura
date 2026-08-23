@@ -60,7 +60,8 @@ Point at the rail — say the words on the screen:
 Then the line under the heading:
 
 > **"4 of the 9 areas that apply open detailed questions. The other 5 are
-> recorded for a reviewer and ask nothing further. 2 are closed."**
+> recorded for a reviewer and ask nothing further. 2 are closed — you won't
+> be asked about them again."**
 
 > "It closes what doesn't apply, and it tells you where it stops. That is
 > the difference between a form and an instrument."

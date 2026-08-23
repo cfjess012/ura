@@ -103,6 +103,13 @@ describe("the three-minute run sheet quotes the product, not a memory of it", ()
     }
   });
 
+  // Deliberately NOT here: a check that the sheet's quoted SENTENCES appear
+  // in the product. They are built from template literals with counts
+  // interpolated into them, so matching source text means matching around
+  // holes — a test that is fragile in both directions and would be trusted
+  // more than it deserves. `pnpm walk:demo` renders the real pages and
+  // checks the sentences a presenter reads aloud; that is the guard.
+
   it("tells the presenter how to restore the demo data", () => {
     // Answers are insert-only, so a walk-through cannot be undone. Without
     // this the sheet's own Beat 3 breaks on second use and there is no way

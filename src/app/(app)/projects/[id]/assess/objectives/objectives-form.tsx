@@ -69,7 +69,13 @@ export function ObjectivesForm({
       // thing §3.4 forbids. The note's own keystrokes then save it.
       const value = merged[questionId]!;
       if (noteProblem(value.answer, value.note) === null) {
-        autosave.save(() => write(merged));
+        // Revert on refusal: the children a Yes reveals, and the note field
+        // a No opens, are consequences of an answer that may not have been
+        // recorded (B5).
+        autosave.save(
+          () => write(merged),
+          () => setGiven(prev),
+        );
       }
       return merged;
     });

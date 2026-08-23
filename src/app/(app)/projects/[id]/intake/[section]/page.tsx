@@ -4,6 +4,7 @@ import { askableCategories } from "@/lib/instrument";
 import { INTAKE_SECTIONS, sectionByKey, sectionKey, sectionProgress } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
+import { stageOf } from "@/lib/submission";
 import { peopleStore, projectStore } from "@/lib/repo";
 import { NotYourAssessment } from "../../not-yours";
 import { SectionForm } from "../section-form";
@@ -53,6 +54,7 @@ export default async function IntakeSectionPage({
     <main>
       <SectionForm
         projectName={project.projectName}
+        stage={stageOf(project.submittedAt)}
         stepLine={`Step 1 · Section ${index + 1} of ${INTAKE_SECTIONS.length}`}
         needed={Boolean(needed)}
         projectId={id}

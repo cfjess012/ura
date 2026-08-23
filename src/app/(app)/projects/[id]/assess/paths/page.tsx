@@ -14,6 +14,7 @@ import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
 import { answerStore } from "@/lib/repo";
 import { NotYourAssessment } from "../../not-yours";
+import { stageOf } from "@/lib/submission";
 import { ProjectHeader } from "../../project-header";
 import { GateRail } from "../gate-rail";
 import { PathsForm, type PathArea } from "./paths-form";
@@ -100,7 +101,7 @@ export default async function PathsPage({
     <main>
       <ProjectHeader
         name={project.projectName}
-        status="Draft"
+        status={stageOf(project.submittedAt)}
         nextLine={
           areas.length === 0
             ? "Nothing to narrow down — none of the areas that apply ask a follow-up."

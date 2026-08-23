@@ -25,6 +25,7 @@ import { ProjectHeader } from "../project-header";
 export function SectionForm({
   projectId,
   projectName,
+  stage,
   stepLine,
   needed,
   sectionName,
@@ -39,6 +40,8 @@ export function SectionForm({
 }: {
   projectId: string;
   projectName: string;
+  /** Draft or In review — read from the record, never a literal. */
+  stage: string;
   stepLine: string;
   needed: boolean;
   sectionName: string;
@@ -214,7 +217,7 @@ export function SectionForm({
           somebody typed. */}
       <ProjectHeader
         name={projectName}
-        status="Draft"
+        status={stage}
         nextLine={
           outstanding === 0
             ? "Everything we need — the risk areas come next."

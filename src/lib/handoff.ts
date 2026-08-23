@@ -128,11 +128,23 @@ export function resolutionProblem(
   handoff: Handoff,
   person: Person,
   questionIsAnswered: boolean,
+  /**
+   * True once the assessment has been submitted. Answering is refused from
+   * that moment, so requiring an answer before closing made an open
+   * hand-off permanently unresolvable — and the obligation in the
+   * recipient's bell could never clear, which is the one thing FR-36
+   * promises it will do (verifier S2).
+   *
+   * Submission is the requester saying "this is as far as I got". The
+   * hand-off is then a question for the reviewer, and closing it is an
+   * honest act, not a dismissal.
+   */
+  assessmentSubmitted = false,
 ): string | null {
   if (handoff.resolvedAt !== null) return "This was already settled.";
   if (!mayResolve(handoff, person))
     return "This was handed to someone else, so it isn't yours to close.";
-  if (!questionIsAnswered)
+  if (!questionIsAnswered && !assessmentSubmitted)
     return "The question still has no answer. Answer it, and then this closes.";
   return null;
 }

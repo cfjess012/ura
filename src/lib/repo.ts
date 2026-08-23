@@ -592,6 +592,14 @@ export type DeclarationRow = {
   gaps: Gap[];
 };
 
+/** Raised when a submission has already been claimed by another call. */
+export class AlreadySubmitted extends Error {
+  constructor(projectId: string) {
+    super(`project ${projectId} was already submitted`);
+    this.name = "AlreadySubmitted";
+  }
+}
+
 export function postgresSubmissionStore(): SubmissionStore {
   const db = getDb();
   return {
@@ -599,10 +607,18 @@ export function postgresSubmissionStore(): SubmissionStore {
       // All of it or none: the stamp, what was declared, and what it
       // raised are one act.
       await db.transaction(async (tx) => {
-        await tx
+        // Claim the submission first, and only proceed if THIS call is the
+        // one that set the stamp. Guarding the update without checking
+        // whether it changed anything let three concurrent submits each
+        // write a declaration and a duplicate set of findings.
+        const claimed = await tx
           .update(schema.projects)
           .set({ submittedAt: new Date(), submittedBy: person })
-          .where(and(eq(schema.projects.id, projectId), isNull(schema.projects.submittedAt)));
+          .where(and(eq(schema.projects.id, projectId), isNull(schema.projects.submittedAt)))
+          .returning({ id: schema.projects.id });
+        if (claimed.length === 0) {
+          throw new AlreadySubmitted(projectId);
+        }
         await tx.insert(schema.declarations).values({ projectId, declaredBy: person, shown, gaps });
         if (raised.length > 0) {
           await tx.insert(schema.findings).values(
