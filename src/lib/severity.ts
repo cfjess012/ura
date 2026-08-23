@@ -18,8 +18,8 @@ import {
   type Band,
   type Condition,
 } from "./conditions";
-import { ALL_PATHS, SEVERITY_OF, assessmentLookup } from "./engine";
-import { CATEGORIES, type GateState } from "./instrument";
+import { ALL_PATHS, SEVERITY_OF, assessmentLookup, litPaths } from "./engine";
+import { CATEGORIES, gateStates, type GateState } from "./instrument";
 import { ALL_FIELDS } from "./intake";
 
 const INTAKE_FIELD_IDS = new Set(ALL_FIELDS.map((f) => f.id));
@@ -480,4 +480,42 @@ export function gateStateLabel(state: GateState): string {
     return quiet ? `Yes · ${source} · recorded for review` : `Yes · ${source}`;
   }
   return quiet ? STOPS_HERE_SHORT : "Applies";
+}
+
+
+/**
+ * Every control this assessment requires, derived from what is recorded.
+ *
+ * One definition, because two would drift: the Tier-3 screen renders from
+ * it and the Tier-3 action authorises against it. The action used to trust
+ * whatever question ids the client sent, so a forged request could write an
+ * object into `gate.operational` — which the gate reader resolves to "No",
+ * silently flipping an answer the person had given (verifier S6-2).
+ *
+ * Pure: the caller fetches, this decides (§26.1).
+ */
+export function accumulatedFor(
+  stored: Record<string, { value: unknown; source: string; confirmed: boolean }>,
+  intake: AnswerLookup,
+): AccumulatedControl[] {
+  const gates = gateStates(stored, intake);
+  const selections: Record<string, string[]> = {};
+  for (const category of CATEGORIES) {
+    const value = category.pathQuestion
+      ? stored[category.pathQuestion.questionId]?.value
+      : undefined;
+    if (Array.isArray(value)) selections[category.key] = value as string[];
+  }
+  const questions = severityQuestionsFor(litPaths(CATEGORIES, gates, selections, intake).map((p) => p.id));
+  const bands: Record<string, Band | undefined> = {};
+  const details: Record<string, string[] | undefined> = {};
+  for (const question of questions) {
+    const value = stored[question.questionId]?.value;
+    if (typeof value === "string") bands[question.questionId] = value as Band;
+    if (question.detail) {
+      const detail = stored[question.detail.questionId]?.value;
+      if (Array.isArray(detail)) details[question.detail.questionId] = detail as string[];
+    }
+  }
+  return accumulateControls(questions, bands, details);
 }

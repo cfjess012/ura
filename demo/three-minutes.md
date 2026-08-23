@@ -10,8 +10,20 @@ Three minutes is about **five moves**. Anything more and the room watches
 clicking instead of listening. Each beat below proves one of the three
 problem statements — say the problem, then show the answer to it.
 
-**Before you start:** sign out to the front door. Have `Novara scheduling
-assistant` un-opened. One browser tab.
+**Before you start — do this, not just the browser bit:**
+
+```sh
+pnpm demo:reset      # rebuilds the database and the three curated assessments
+pnpm build && pnpm start
+```
+
+`demo:reset` is not optional. Any walk-through leaves answers behind, and a
+severity question already answered makes Beat 3 look like a dead button —
+the click does nothing because the answer is already there. Answers are
+insert-only by design, so a rebuild is the only way back.
+
+Then: sign out to the front door, `Novara scheduling assistant` un-opened,
+one browser tab.
 
 ---
 
@@ -66,8 +78,9 @@ Then the line under the heading:
 ## Beat 3 · One answer, six obligations — 45 seconds
 **Problem: inconsistent analyst intake.**
 
-Go to the severity questions (Third-Party). Answer **Level of Provider
-Access** = *"Privileged / admin access to production…"*
+From the summary, click **Answer the severity questions →**, then
+**Third-Party** in the left rail. Answer **Level of Provider Access** =
+*"Privileged / admin access to production…"*
 
 Six controls appear under **What these answers require** — live, no reload.
 
@@ -80,7 +93,7 @@ Six controls appear under **What these answers require** — live, no reload.
 ## Beat 4 · Does it actually exist? — 40 seconds
 **Problem: inconsistent analyst intake, continued.**
 
-Open **Answer them →** into the control questions.
+Scroll up and click **Answer the control questions →**.
 
 Answer one **No**. The note field appears and demands an explanation.
 
@@ -98,8 +111,9 @@ Point at **Recorded for a reviewer** below:
 ## Beat 5 · When someone is stuck — 30 seconds
 **Problems: friction, and fragmentation.**
 
-Back to a severity question. Click **"I don't know — leave this to us"** →
-tag **Third-Party & Supply Chain**.
+Browser back to the severity questions. On any question click
+**"I don't know — leave this to us"**, tag **Third-Party & Supply Chain**,
+then **Hand it over**.
 
 > "She's not blocked and she doesn't email anyone."
 
@@ -149,6 +163,7 @@ Switch to **Samuel Okonkwo**. The bell shows it, on the warm band:
 - **Don't answer more than one severity question.** The list grows and the
   point is made by the first one.
 - **Don't run from `next dev`.** The dev-tools badge sits on every screen.
-  `next build && next start`.
+- **Don't skip `pnpm demo:reset`.** It is the difference between Beat 3
+  landing and Beat 3 looking broken.
 - **Don't promise a date for the agentic layer.** The Bedrock access request
   is still open.

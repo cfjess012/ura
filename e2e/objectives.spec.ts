@@ -104,3 +104,33 @@ test("controls with no questions are declared, never silently dropped", async ({
   // left for someone to notice (G-50's rule, one tier down).
   await expect(recorded).toContainText(/The pilot asks its detailed questions for \d+ of the \d+/);
 });
+
+test("an answer is saved when it is given, not when the form is submitted (G-40a)", async ({
+  page,
+}) => {
+  // Every other assess screen autosaves; this one did not, so an answer
+  // vanished on navigation with nothing said. That is the exact silent
+  // discard G-40a forbids (verifier S6-4).
+  const base = await atObjectives(page, `Autosave ${Date.now()}`);
+  const card = page.locator(".q3").first();
+  await card.locator("> .q3-answers").getByRole("radio", { name: "Yes" }).click();
+  await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
+
+  // Leave WITHOUT pressing the forward button.
+  await page.goto(`${base}/assess/complete`);
+  await page.goto(`${base}/assess/objectives`);
+  await expect(
+    page.locator(".q3").first().locator("> .q3-answers").getByRole("radio", { name: "Yes" }),
+  ).toHaveAttribute("aria-checked", "true");
+});
+
+test("an answer needing a note is not saved until it has one", async ({ page }) => {
+  // Autosaving a bare "No" would record a gap with no explanation — the one
+  // thing §3.4 forbids.
+  await atObjectives(page, `Halfformed ${Date.now()}`);
+  const card = page.locator(".q3").first();
+  await card.locator("> .q3-answers").getByRole("radio", { name: "No" }).click();
+  await expect(page.locator(".savebar [role=status]")).toHaveText("");
+  await card.locator("> .q3-note textarea").fill("Nothing exists yet.");
+  await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
+});

@@ -78,3 +78,38 @@ describe("the demo readiness record is complete", () => {
     expect(section.split("\n").filter((l) => l.startsWith("- ")).length).toBeGreaterThan(1);
   });
 });
+
+describe("the three-minute run sheet quotes the product, not a memory of it", () => {
+  /**
+   * The sheet told a presenter to click "Answer them →" — a control renamed
+   * an hour before the sheet was written, in a commit whose own record
+   * mentions the rename. A run sheet is read aloud in front of leadership;
+   * a stale quote in it is the worst defect it can carry (verifier D1).
+   */
+  const sheet = readFileSync(join(ROOT, "demo", "three-minutes.md"), "utf8");
+  const source = (file: string) => readFileSync(join(ROOT, file), "utf8");
+
+  it("every control it names by label exists in the app", () => {
+    const labels = [...sheet.matchAll(/\*\*((?:Answer|Hand|Save)[^*]{3,60}?)(?:\s*(?:→|&rarr;))?\*\*/g)].map(
+      (m) => m[1]!.replace(/\s*(→|&rarr;)\s*$/, "").trim(),
+    );
+    expect(labels.length, "no labelled controls found in the sheet").toBeGreaterThan(2);
+    const app = ["src/app/(app)/projects/[id]/assess/complete/page.tsx",
+                 "src/app/(app)/projects/[id]/assess/severity/handoff-panel.tsx"]
+      .map(source)
+      .join("\n");
+    for (const label of labels) {
+      expect(app, `the sheet says click "${label}" — no such control`).toContain(label);
+    }
+  });
+
+  it("tells the presenter how to restore the demo data", () => {
+    // Answers are insert-only, so a walk-through cannot be undone. Without
+    // this the sheet's own Beat 3 breaks on second use and there is no way
+    // back (verifier D2, D3).
+    expect(sheet).toMatch(/pnpm demo:reset/);
+    const scripts = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).scripts;
+    expect(scripts["demo:reset"], "demo:reset is referenced but not defined").toBeTruthy();
+    expect(scripts["demo:reset"]).toContain("seed-demo");
+  });
+});

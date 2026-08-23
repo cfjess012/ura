@@ -15,20 +15,15 @@ import { canAnswer, canStartAssessment, NotPermitted } from "@/lib/people";
 import {
   intakeChanges,
   intakePatchFrom,
+  intakeValuesFrom,
   projectNameOrNull,
   type SubmittedEntries,
 } from "@/lib/intake-values";
 import { CATEGORIES, INSTRUMENT } from "@/lib/instrument";
 import { pathSubmissionProblems } from "@/lib/engine";
 import type { AnswerLookup } from "@/lib/conditions";
-import { SEVERITY, severitySubmissionProblems } from "@/lib/severity";
-import {
-  OBJECTIVES,
-  TIER3,
-  isTier3Value,
-  tier3SubmissionProblems,
-  type Tier3Value,
-} from "@/lib/tier3";
+import { SEVERITY, accumulatedFor, severitySubmissionProblems } from "@/lib/severity";
+import { TIER3, isTier3Value, objectivesFor, submissionProblems, type Tier3Value } from "@/lib/tier3";
 import { editableProject, openProject } from "@/lib/project-access";
 import { answerStore, handoffStore, peopleStore, projectStore } from "@/lib/repo";
 import { resolutionProblem } from "@/lib/handoff";
@@ -297,10 +292,15 @@ export async function answerObjectives(
       shaped[questionId] = value;
     }
 
-    // The same pure rule the screen renders, applied where it cannot be
-    // skipped. `OBJECTIVES` is the whole set: a question that is not part
-    // of this assessment simply has no value to check.
-    const problems = tier3SubmissionProblems(OBJECTIVES, shaped, await lookupFor(projectId));
+    // Authorise against what this assessment actually asks, derived from
+    // the record — not against the whole instrument, and certainly not
+    // against whatever ids the caller sent. A key outside that set is
+    // refused, not ignored: ignoring it is what allowed a forged request to
+    // write an object into a gate answer and flip it (verifier S6-2).
+    const stored = await answerStore().current(projectId);
+    const intake = intakeValuesFrom(allowed.project as unknown as Record<string, unknown>);
+    const required = objectivesFor(accumulatedFor(stored, intake).map((c) => c.objective));
+    const problems = submissionProblems(required, shaped, await lookupFor(projectId));
     if (problems.length > 0) {
       return failure(
         "answerObjectives",

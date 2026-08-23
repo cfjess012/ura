@@ -110,16 +110,23 @@ export function SaveBar({
   state,
   status,
   submitLabel,
+  blocked = false,
 }: {
   state: Autosave;
   /** What this screen says about itself — counts, reassurance, progress. */
   status: React.ReactNode;
   submitLabel: string;
+  /**
+   * True when the status is a refusal rather than a report. It gets the
+   * warning treatment, because a message that says "you cannot go on yet"
+   * reading the same as "3 of 6 answered" is not a refusal a person sees.
+   */
+  blocked?: boolean;
 }) {
   const { saving, saved, error, reload } = state;
   return (
     <div className="savebar">
-      <span className="missing">{status}</span>
+      <span className={blocked ? "missing blocked" : "missing"}>{status}</span>
       <span style={{ display: "flex", gap: "0.8rem", alignItems: "center" }}>
         <span
           role="status"

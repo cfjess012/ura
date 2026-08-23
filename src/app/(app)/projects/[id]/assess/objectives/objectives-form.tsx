@@ -3,7 +3,8 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { answerObjectives } from "@/app/actions";
-import { errorRef, isFailure } from "@/lib/errors";
+import { isFailure } from "@/lib/errors";
+import { SaveBar, useAutosave } from "../autosave";
 import {
   TIER3_ANSWERS,
   childrenAsked,
@@ -42,18 +43,56 @@ export function ObjectivesForm({
 }) {
   const router = useRouter();
   const [given, setGiven] = React.useState<Record<string, Tier3Value>>(values);
-  const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState<{ message: string; ref?: string } | null>(null);
   const [flagged, setFlagged] = React.useState(false);
+  // Every other assess screen autosaves. This one did not, so an answer
+  // given here vanished on navigation with nothing said — exactly the
+  // silent discard G-40a exists to forbid: an answer is saved when it is
+  // given, not when a form is submitted (verifier S6-4).
+  const autosave = useAutosave({
+    where: "answerObjectives",
+    transportMessage:
+      "The server couldn't be reached, so nothing was saved. What you wrote is still on screen — try again in a moment.",
+  });
 
-  const set = (questionId: string, next: Partial<Tier3Value>) =>
-    setGiven((prev) => ({
-      ...prev,
-      [questionId]: {
-        answer: next.answer ?? prev[questionId]?.answer ?? "Yes",
-        note: next.note ?? prev[questionId]?.note ?? "",
-      },
-    }));
+  const set = (questionId: string, next: Partial<Tier3Value>) => {
+    autosave.touched.current.add(questionId);
+    setGiven((prev) => {
+      const merged: Record<string, Tier3Value> = {
+        ...prev,
+        [questionId]: {
+          answer: next.answer ?? prev[questionId]?.answer ?? "Yes",
+          note: next.note ?? prev[questionId]?.note ?? "",
+        },
+      };
+      // An answer needing a note is not saved until it has one: writing it
+      // half-formed would record a No with no explanation, which is the
+      // thing §3.4 forbids. The note's own keystrokes then save it.
+      const value = merged[questionId]!;
+      if (noteProblem(value.answer, value.note) === null) {
+        autosave.save(() => write(merged));
+      }
+      return merged;
+    });
+  };
+
+  /** Only what this person touched, and only what is on screen (G-42). */
+  async function write(current: Record<string, Tier3Value>) {
+    const visible = new Set(
+      objectives.flatMap((objective) => [
+        objective.questionId,
+        ...childrenAsked(objective, current[objective.questionId]?.answer ?? null, lookup).map(
+          (c) => c.questionId,
+        ),
+      ]),
+    );
+    const payload = Object.fromEntries(
+      Object.entries(current).filter(
+        ([id]) => visible.has(id) && autosave.touched.current.has(id),
+      ),
+    );
+    if (Object.keys(payload).length === 0) return null;
+    return answerObjectives(projectId, payload);
+  }
 
   /** Every question on screen right now, parents and revealed children. */
   const onScreen = objectives.flatMap((objective) => [
@@ -69,34 +108,8 @@ export function ObjectivesForm({
   });
   const answered = onScreen.filter(({ id }) => given[id]).length;
 
-  async function save(andGo: boolean) {
-    setSaving(true);
-    setError(null);
-    try {
-      // Only what is on screen: a child suppressed by its parent's answer is
-      // not an answer this person gave (G-42).
-      const visible = new Set(onScreen.map((q) => q.id));
-      const payload = Object.fromEntries(
-        Object.entries(given).filter(([id]) => visible.has(id)),
-      );
-      const result = await answerObjectives(projectId, payload);
-      if (isFailure(result)) {
-        setError({ message: result.message, ref: result.ref });
-        return;
-      }
-      if (andGo) router.push(nextHref);
-      else router.refresh();
-    } catch (cause) {
-      console.error("answerObjectives transport", cause);
-      setError({
-        message:
-          "The server couldn't be reached, so nothing was saved. What you wrote is still here. Try again in a moment.",
-        ref: errorRef(),
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
+  /** Forward is a confirmation, not the moment of saving. */
+  const saveAndGo = () => autosave.submit(() => write(given), nextHref);
 
   return (
     <form
@@ -108,7 +121,7 @@ export function ObjectivesForm({
           return;
         }
         setFlagged(false);
-        await save(true);
+        await saveAndGo();
       }}
     >
       {objectives.map((objective) => {
@@ -118,6 +131,9 @@ export function ObjectivesForm({
           <div className="card q3" key={objective.id} data-focus={objective.questionId}>
             <p className="q3-name">{objective.name}</p>
             <p className="gate-question">{objective.text}</p>
+            <p className="help gate-help">
+              What this control is for: {objective.objective.replace(/^Ensure /, "")}
+            </p>
             {(reasons[objective.id] ?? []).length > 0 && (
               <p className="prefill" role="note">
                 <span className="prefill-tag">Why you are asked</span>
@@ -158,32 +174,18 @@ export function ObjectivesForm({
         );
       })}
 
-      <div className="savebar">
-        <span className={flagged && missingNotes.length > 0 ? "missing blocked" : "missing"}>
-          {missingNotes.length === 0
+      <SaveBar
+        state={autosave}
+        submitLabel="Save and see where this stands →"
+        blocked={flagged && missingNotes.length > 0}
+        status={
+          missingNotes.length === 0
             ? `${answered} of ${onScreen.length} answered.`
             : flagged
               ? `Write the ${missingNotes.length === 1 ? "note" : `${missingNotes.length} notes`} above — a reviewer reads them instead of the answer.`
-              : `${answered} of ${onScreen.length} answered · ${missingNotes.length} still need a note`}
-        </span>
-        <span style={{ display: "flex", gap: "0.8rem", alignItems: "center" }}>
-          <span role="status" aria-live="polite" className={error ? "save-failed" : "saved"}>
-            {saving ? (
-              "Saving…"
-            ) : error ? (
-              <>
-                {error.message}{" "}
-                {error.ref && <span className="err-ref">Reference {error.ref}</span>}
-              </>
-            ) : (
-              ""
-            )}
-          </span>
-          <button type="submit" className="btn" disabled={saving}>
-            {saving ? "Saving…" : "Save and see where this stands →"}
-          </button>
-        </span>
-      </div>
+              : `${answered} of ${onScreen.length} answered · ${missingNotes.length} still ${missingNotes.length === 1 ? "needs" : "need"} a note`
+        }
+      />
     </form>
   );
 }

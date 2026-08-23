@@ -147,28 +147,71 @@ export function isTier3Value(value: unknown): value is Tier3Value {
   );
 }
 
+
+
 /**
- * What is wrong with a submitted set of Tier-3 answers, if anything. Pure,
- * so the refusal is testable without a database (§26.1) and enforced on the
- * server rather than by the form (FR-28's lesson).
+ * Exactly which Tier-3 questions may be answered right now.
+ *
+ * The set the SCREEN shows, computed from the same rules, so the action can
+ * refuse anything else. Two defects made this necessary (verifier S6-1,
+ * S6-2): the submission check iterated objectives and silently ignored keys
+ * it did not recognise, so a forged request wrote arbitrary question ids;
+ * and it validated a child only when `childrenAsked` returned it, so a
+ * child submitted under a non-Yes parent skipped the note rule entirely and
+ * an N-A landed with no justification — falsifying this slice's own
+ * done-when.
+ *
+ * Parents come from what the assessment requires. A child is answerable
+ * only if its parent's answer IN THIS SUBMISSION is Yes and its own
+ * cross-tier conditions hold — the same rule the form renders.
  */
-export function tier3SubmissionProblems(
-  objectives: Tier3Objective[],
-  values: Record<string, Tier3Value | undefined>,
+export function answerableQuestionIds(
+  required: Tier3Objective[],
+  submitted: Record<string, Tier3Value>,
+  answers: AnswerLookup,
+): Set<string> {
+  const allowed = new Set<string>();
+  for (const objective of required) {
+    allowed.add(objective.questionId);
+    const parent = submitted[objective.questionId]?.answer ?? null;
+    for (const child of childrenAsked(objective, parent, answers)) {
+      allowed.add(child.questionId);
+    }
+  }
+  return allowed;
+}
+
+/**
+ * What is wrong with a submission, checked against what may actually be
+ * answered. Replaces the objective-walking version, which could not see a
+ * key it did not expect.
+ */
+export function submissionProblems(
+  required: Tier3Objective[],
+  submitted: Record<string, Tier3Value>,
   answers: AnswerLookup,
 ): string[] {
-  const problems: string[] = [];
-  for (const objective of objectives) {
-    const given = values[objective.questionId];
-    if (!given) continue;
-    const problem = noteProblem(given.answer, given.note);
-    if (problem) problems.push(`${objective.name}: ${problem}`);
-    for (const child of childrenAsked(objective, given.answer, answers)) {
-      const childValue = values[child.questionId];
-      if (!childValue) continue;
-      const childProblem = noteProblem(childValue.answer, childValue.note);
-      if (childProblem) problems.push(`${objective.name} — ${child.text}: ${childProblem}`);
+  const allowed = answerableQuestionIds(required, submitted, answers);
+  const labels = new Map<string, string>();
+  for (const objective of required) {
+    labels.set(objective.questionId, objective.name);
+    for (const child of objective.children) {
+      labels.set(child.questionId, `${objective.name} — ${child.text}`);
     }
+  }
+
+  const problems: string[] = [];
+  for (const [questionId, value] of Object.entries(submitted)) {
+    if (!allowed.has(questionId)) {
+      // Not a question this assessment is asking. Refused rather than
+      // ignored: ignoring it is what let it be written.
+      problems.push(
+        `"${labels.get(questionId) ?? questionId}" isn't a question this assessment is asking.`,
+      );
+      continue;
+    }
+    const problem = noteProblem(value.answer, value.note);
+    if (problem) problems.push(`${labels.get(questionId) ?? questionId}: ${problem}`);
   }
   return problems;
 }

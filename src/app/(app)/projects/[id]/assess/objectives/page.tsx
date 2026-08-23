@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CATEGORIES, gateStates } from "@/lib/instrument";
 import { litPaths } from "@/lib/engine";
-import { accumulateControls, severityQuestionsFor, controlName, type Band } from "@/lib/severity";
+import { accumulatedFor, severityQuestionsFor, controlName, type Band } from "@/lib/severity";
 import { objectivesFor, withoutQuestions, isTier3Value, type Tier3Value } from "@/lib/tier3";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
@@ -10,6 +10,7 @@ import { openProject } from "@/lib/project-access";
 import { answerStore } from "@/lib/repo";
 import { NotYourAssessment } from "../../not-yours";
 import { ProjectHeader } from "../../project-header";
+import { groupsFor } from "../severity/severity-rail";
 import { ObjectivesForm } from "./objectives-form";
 
 export const dynamic = "force-dynamic";
@@ -45,18 +46,14 @@ export default async function ObjectivesPage({ params }: { params: Promise<{ id:
   }
   const lit = litPaths(CATEGORIES, gates, selections, intake);
   const severityQuestions = severityQuestionsFor(lit.map((p) => p.id));
-
   const bands: Record<string, Band | undefined> = {};
-  const details: Record<string, string[] | undefined> = {};
   for (const question of severityQuestions) {
     const value = stored[question.questionId]?.value;
     if (typeof value === "string") bands[question.questionId] = value as Band;
-    if (question.detail) {
-      const detail = stored[question.detail.questionId]?.value;
-      if (Array.isArray(detail)) details[question.detail.questionId] = detail;
-    }
   }
-  const owed = accumulateControls(severityQuestions, bands, details);
+  // The same derivation the action authorises against — one definition, so
+  // the screen and the server can never disagree about what is asked.
+  const owed = accumulatedFor(stored, intake);
   const askable = objectivesFor(owed.map((c) => c.objective));
   const recorded = withoutQuestions(owed.map((c) => c.objective));
   const reasonFor = new Map(owed.map((c) => [c.objective, c.because]));
@@ -64,6 +61,7 @@ export default async function ObjectivesPage({ params }: { params: Promise<{ id:
   // The severity answers this screen depends on. Nothing to ask about until
   // some exist — and saying so beats an empty screen (§24.4).
   const answeredSeverity = severityQuestions.filter((q) => bands[q.questionId]).length;
+  const firstSeverityGroup = groupsFor(severityQuestions)[0]?.key ?? "";
 
   const values: Record<string, Tier3Value> = {};
   for (const [questionId, value] of Object.entries(stored)) {
@@ -97,7 +95,7 @@ export default async function ObjectivesPage({ params }: { params: Promise<{ id:
               ? "Every control has an answer — submission comes next."
               : `Do the controls exist — ${askable.length - answered} of ${askable.length} still to answer.`
         }
-        currentStage={2}
+        currentStage={1}
       />
 
       <div className="assess-single">
@@ -105,9 +103,10 @@ export default async function ObjectivesPage({ params }: { params: Promise<{ id:
           <p className="eyebrow">Step 4 · Do the controls exist</p>
           <h2 className="display">What this activity requires</h2>
           <p className="lede" style={{ textAlign: "left", margin: "0 0 1.2rem" }}>
-            Tiers 1 and 2 worked out what this activity needs. These questions ask
-            whether it is already there. Answer honestly — a gap named here is a
-            finding a reviewer can act on, and a gap found later is a surprise.
+            Everything you have answered so far worked out what this activity
+            needs. These questions ask whether it is already there. Answer
+            honestly — a gap named here is a finding a reviewer can act on, and a
+            gap found later is a surprise.
           </p>
 
           {answeredSeverity === 0 ? (
@@ -122,6 +121,21 @@ export default async function ObjectivesPage({ params }: { params: Promise<{ id:
                 Back to where this stands →
               </Link>
             </div>
+          ) : askable.length === 0 ? (
+            /* Severity is answered but nothing crossed a threshold. The
+               "nothing to ask yet" card above is the wrong sentence here —
+               this is a finished state, not a waiting one (§23). */
+            <div className="card">
+              <h2>Nothing further to answer</h2>
+              <p className="help">
+                {owed.length === 0
+                  ? "The answers so far require no controls, so there is nothing to check here. That is a complete answer, not a gap."
+                  : `The ${owed.length} control${owed.length === 1 ? "" : "s"} this activity requires ${owed.length === 1 ? "is" : "are"} recorded for a reviewer — the pilot has no detailed questions for ${owed.length === 1 ? "it" : "them"} yet.`}
+              </p>
+              <Link className="btn" href={`/projects/${id}/assess/complete`}>
+                See where this stands &rarr;
+              </Link>
+            </div>
           ) : (
             <ObjectivesForm
               projectId={id}
@@ -132,6 +146,17 @@ export default async function ObjectivesPage({ params }: { params: Promise<{ id:
               nextHref={`/projects/${id}/assess/complete`}
             />
           )}
+
+          {/* Not a dead end: every other assess screen offers a way back, and
+              this one offered only Save (verifier S6-4). */}
+          <p className="rail-back" style={{ marginTop: "1rem" }}>
+            <Link className="rail-back-link" href={`/projects/${id}/assess/severity/${firstSeverityGroup}`}>
+              ← Back to the severity questions
+            </Link>
+            <Link className="rail-back-link" href={`/projects/${id}/assess/complete`}>
+              Where this assessment stands
+            </Link>
+          </p>
 
           {recorded.length > 0 && (
             /* Where the pilot stops, it says so (FR-35's rule, one tier down).

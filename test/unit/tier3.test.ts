@@ -15,7 +15,8 @@ import {
   noteProblem,
   noteRequired,
   objectivesFor,
-  tier3SubmissionProblems,
+  answerableQuestionIds,
+  submissionProblems,
   withoutQuestions,
   type Tier3Value,
 } from "@/lib/tier3";
@@ -115,42 +116,7 @@ describe("notes (§3.4)", () => {
   });
 });
 
-describe("a submission is refused on the server, not by the form (FR-28's lesson)", () => {
-  const objective = OBJECTIVES.find((o) => o.children.length > 0)!;
 
-  it("passes when every non-Yes answer carries a note", () => {
-    const values: Record<string, Tier3Value> = {
-      [objective.questionId]: { answer: "No", note: "Nothing exists yet." },
-    };
-    expect(tier3SubmissionProblems([objective], values, {})).toEqual([]);
-  });
-
-  it("names the objective when a note is missing", () => {
-    const values: Record<string, Tier3Value> = {
-      [objective.questionId]: { answer: "Partial", note: "" },
-    };
-    const problems = tier3SubmissionProblems([objective], values, {});
-    expect(problems).toHaveLength(1);
-    expect(problems[0]).toContain(objective.name);
-  });
-
-  it("checks children too, but only the ones actually asked", () => {
-    const child = childrenAsked(objective, "Yes", {})[0]!;
-    const values: Record<string, Tier3Value> = {
-      [objective.questionId]: { answer: "Yes", note: "" },
-      [child.questionId]: { answer: "No", note: "" },
-    };
-    expect(tier3SubmissionProblems([objective], values, {})).toHaveLength(1);
-
-    // With the parent not Yes, that child is invisible — and an invisible
-    // question cannot be incomplete.
-    const suppressed: Record<string, Tier3Value> = {
-      [objective.questionId]: { answer: "Partial", note: "Some of it." },
-      [child.questionId]: { answer: "No", note: "" },
-    };
-    expect(tier3SubmissionProblems([objective], suppressed, {})).toEqual([]);
-  });
-});
 
 describe("the stored shape", () => {
   it("accepts an answer with its note, and nothing else", () => {
@@ -159,5 +125,82 @@ describe("the stored shape", () => {
     expect(isTier3Value({ answer: "Yes" })).toBe(false);
     expect(isTier3Value("Yes")).toBe(false);
     expect(isTier3Value(null)).toBe(false);
+  });
+});
+
+describe("only what this assessment asks may be answered (verifier S6-1, S6-2)", () => {
+  const objective = OBJECTIVES.find((o) => o.children.length > 0)!;
+  const child = objective.children[0]!;
+
+  it("a parent of a required objective is answerable", () => {
+    const allowed = answerableQuestionIds([objective], {}, {});
+    expect(allowed.has(objective.questionId)).toBe(true);
+  });
+
+  it("a child is answerable only while its parent's answer is Yes", () => {
+    const yes = { [objective.questionId]: { answer: "Yes" as const, note: "" } };
+    const no = { [objective.questionId]: { answer: "No" as const, note: "none" } };
+    expect(answerableQuestionIds([objective], yes, {}).has(child.questionId)).toBe(true);
+    expect(answerableQuestionIds([objective], no, {}).has(child.questionId)).toBe(false);
+  });
+
+  it("refuses a key this assessment is not asking, rather than ignoring it", () => {
+    // Ignoring it is what let a forged request write an object into
+    // gate.operational, which the gate reader resolves to "No" — silently
+    // flipping an answer the person had given.
+    const problems = submissionProblems(
+      [objective],
+      { "gate.operational": { answer: "Yes", note: "" } } as never,
+      {},
+    );
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/isn't a question this assessment is asking/);
+  });
+
+  it("refuses an objective the assessment never accumulated", () => {
+    const other = OBJECTIVES.find((o) => o.id !== objective.id)!;
+    const problems = submissionProblems(
+      [objective],
+      { [other.questionId]: { answer: "Yes", note: "" } },
+      {},
+    );
+    expect(problems[0]).toMatch(/isn't a question this assessment is asking/);
+  });
+
+  it("an N-A on a child under a non-Yes parent cannot be recorded at all", () => {
+    // The slice's own done-when: "N-A without justification impossible".
+    // The old check validated a child only when childrenAsked returned it,
+    // so a child under a non-Yes parent skipped the note rule entirely.
+    const problems = submissionProblems(
+      [objective],
+      {
+        [objective.questionId]: { answer: "Partial", note: "some of it" },
+        [child.questionId]: { answer: "N-A", note: "" },
+      },
+      {},
+    );
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/isn't a question this assessment is asking/);
+  });
+
+  it("still demands the note on a question that IS asked", () => {
+    const problems = submissionProblems(
+      [objective],
+      { [objective.questionId]: { answer: "N-A", note: "  " } },
+      {},
+    );
+    expect(problems[0]).toMatch(/why this doesn't apply/);
+  });
+
+  it("accepts a complete, in-scope submission", () => {
+    const problems = submissionProblems(
+      [objective],
+      {
+        [objective.questionId]: { answer: "Yes", note: "" },
+        [child.questionId]: { answer: "No", note: "Not in place." },
+      },
+      {},
+    );
+    expect(problems).toEqual([]);
   });
 });
