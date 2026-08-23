@@ -388,6 +388,24 @@ export async function replyToHandoff(
       return failure("replyToHandoff", new Error("empty"), "Write something first.", {
         retryable: false,
       });
+    // The hand-off must belong to the project we just authorised. Without
+    // this, authority was checked against the caller's OWN project id while
+    // the write used the caller's hand-off id, and the two were never
+    // required to match: a requester posted into a thread on an assessment
+    // the same session refused to open by URL, and it rendered under their
+    // name in the owner's thread and the assessor's bell. `resolveHandoff`
+    // already scoped this way; this is the same check, and the reason the
+    // rule is "authority is decided on the object" (§2, N1, verifier F2).
+    const handoff = (await handoffStore().forProject(projectId)).find(
+      (h) => h.id === input.handoffId,
+    );
+    if (!handoff)
+      return failure(
+        "replyToHandoff",
+        new Error("no such hand-off in this assessment"),
+        "That conversation is gone.",
+        { retryable: false },
+      );
     await handoffStore().reply({
       handoffId: input.handoffId,
       parentId: input.parentId,

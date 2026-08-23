@@ -204,3 +204,49 @@ describe("§2 authority is checked on the object, not only on the listing", () =
     }
   });
 });
+
+describe("an action authorises the OBJECT, not only the id it was handed", () => {
+  /**
+   * `replyToHandoff` checked that the caller could open the project id they
+   * PASSED, then wrote using the hand-off id they passed — the two were
+   * never required to match. A requester posted into a thread on an
+   * assessment the same session refused to open by URL, and it rendered
+   * under their name in the owner's thread and the assessor's bell
+   * (verifier F2, 2026-08-23).
+   *
+   * G-33 recorded this rule once already, for pages. This is the same rule
+   * for actions: a fix aimed at a finding tends to stop at the finding.
+   */
+  const actions = read(join(SRC, "app", "actions.ts"));
+
+  const bodyOf = (name: string) => {
+    const at = actions.indexOf(`export async function ${name}(`);
+    expect(at, `${name} not found in actions.ts`).toBeGreaterThan(-1);
+    const rest = actions.slice(at);
+    const end = rest.indexOf("\nexport async function ", 1);
+    return end === -1 ? rest : rest.slice(0, end);
+  };
+
+  it.each(["replyToHandoff", "resolveHandoff"])(
+    "%s proves the hand-off belongs to the project it authorised",
+    (name) => {
+      const body = bodyOf(name);
+      expect(body, `${name} must authorise the project`).toMatch(/openProject\(projectId\)/);
+      expect(
+        body,
+        `${name} takes a hand-off id from the caller and must look it up within that project`,
+      ).toMatch(/handoffStore\(\)\.forProject\(projectId\)/);
+    },
+  );
+
+  it("no action writes a hand-off reply without that lookup", () => {
+    for (const name of ["replyToHandoff"]) {
+      const body = bodyOf(name);
+      const lookup = body.indexOf("forProject(projectId)");
+      const write = body.indexOf("handoffStore().reply(");
+      expect(lookup, `${name}: lookup missing`).toBeGreaterThan(-1);
+      expect(write, `${name}: write missing`).toBeGreaterThan(-1);
+      expect(lookup, `${name}: the write must come after the lookup`).toBeLessThan(write);
+    }
+  });
+});
