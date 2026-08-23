@@ -38,8 +38,8 @@ One row per beat. A beat with a blank cell is not a beat, it is a hope.
 
 | Risk | Why it matters | Mitigation |
 |---|---|---|
-| The demo runs on a laptop dev server | A sleep, a crash or a hot-reload ends the demo | Disable sleep; rehearse the run sheet once end to end. **It must be the dev server:** a production build breaks client-side navigation (below) |
-| **Client-side navigation is broken in production builds** | Clicking a link between assessment screens fails ~4 times in 5. Measured 2026-08-23: dev 15/15, `next start` 3/15, standalone 3/15. The browser aborts the router's RSC request; the server returns a valid 200 payload; full page loads work | Demo from `pnpm dev`. **Unresolved** — not caused by `output: standalone` (tested) and not by prefetch (disabling it made it worse). This blocks any real deployment and must be solved before AWS |
+| The demo runs on a laptop dev server | A sleep, a crash or a hot-reload ends the demo | Disable sleep; rehearse the run sheet once end to end from `pnpm demo:prod` — the mode the demo actually runs in |
+| **Next.js is pinned to 15.3** | 15.5 breaks client-side navigation in production builds: 3 of 15 clicks completed. Measured 2026-08-23, fixed by the pin (15/15, twice) | Do not bump Next without re-running `pnpm demo:prod` and walking the run sheet. G-58 records the measurements |
 | The assessment list opens on ~127 test projects | First impression is junk data named `BLAST 1787331625892` | `pnpm db:reset --yes` then seed curated demo data — held until demo-data day by owner decision |
 | No curated scenario exists | Typing a scenario live is slow and error-prone | Build the demo profile as its own slice before the demo |
 | Beats 4, 5 and 6 have never been used by a person | Every defect that mattered this session was found by the owner using the product | Owner walks S3 end to end before demo day and reports what feels wrong |

@@ -21,11 +21,12 @@
     "agent-map": "node scripts/build-agent-map.mjs",
     "uat:new": "node scripts/uat-skeleton.mjs",
     "demo:seed": "node scripts/seed-demo.mjs",
-    "demo:reset": "node scripts/reset-dev-db.mjs --yes && node scripts/seed-demo.mjs"
+    "demo:reset": "node scripts/reset-dev-db.mjs --yes && node scripts/seed-demo.mjs",
+    "demo:prod": "NEXT_DIST_DIR=.next-prod next build && cp -r public .next-prod/standalone/ 2>/dev/null; cp -r .next-prod/static .next-prod/standalone/.next-prod/ 2>/dev/null; PORT=3100 NEXT_DIST_DIR=.next-prod node .next-prod/standalone/server.js"
   },
   "dependencies": {
     "drizzle-orm": "^0.44.0",
-    "next": "^15.4.0",
+    "next": "^15.3.9",
     "postgres": "^3.4.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
