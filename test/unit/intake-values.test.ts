@@ -5,6 +5,8 @@
  */
 import { UNLISTED_OPTION, unlistedKey } from "../../src/lib/intake-values";
 import { listBySlug } from "../../src/lib/reference";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   intakeChanges,
@@ -261,5 +263,23 @@ describe("a saved answer reloads as what the person chose", () => {
       },
       [],
     )).toEqual(patch);
+  });
+});
+
+describe("a section's form only speaks for its own fields (verifier R1)", () => {
+  // The hydration effect read every field in the instrument out of a form
+  // that renders one section, so the other three sections' saved values came
+  // back as "" and were written into client state. A complete intake then
+  // reported 5, 7 and 8 answers outstanding on three consecutive screens —
+  // the record was intact, the counts a person read were false (§24.9).
+  it("the form hydrates from the rendered section, never the whole instrument", () => {
+    const source = readFileSync(
+      join(__dirname, "..", "..", "src/app/(app)/projects/[id]/intake/section-form.tsx"),
+      "utf8",
+    );
+    expect(source).toMatch(/for \(const field of section\.fields\)/);
+    expect(source, "hydration must not iterate ALL_FIELDS").not.toMatch(
+      /for \(const field of ALL_FIELDS\)/,
+    );
   });
 });

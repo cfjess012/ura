@@ -12,7 +12,6 @@ import { UNLISTED_OPTION, unlistedKey, SCOPE_KEY } from "@/lib/intake-values";
 import { errorRef, isFailure } from "@/lib/errors";
 import { entriesOf, type ReferenceEntry } from "@/lib/reference";
 import {
-  ALL_FIELDS,
   INTAKE_SECTIONS,
   isFieldVisible,
   missingRequiredFields,
@@ -85,7 +84,13 @@ export function SectionForm({
     setValues((prev) => {
       const next = { ...prev };
       let changed = false;
-      for (const field of ALL_FIELDS) {
+      // ONLY the fields this form renders. Iterating every field in the
+      // instrument read the other three sections as empty — the form does
+      // not contain them — and wrote those blanks into client state, so a
+      // complete intake reported 5, 7 and 8 answers outstanding on three
+      // consecutive screens. The saved record was never touched; the
+      // counts a person reads were simply false (§24.9, verifier R1).
+      for (const field of section.fields) {
         if (field.type === "note") continue;
         if (field.type === "multi" || field.type === "pick-many") {
           const got = submitted.getAll(field.id).map(String);

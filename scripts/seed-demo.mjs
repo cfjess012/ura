@@ -33,6 +33,56 @@ import postgres from "postgres";
  * (`path.third-party`); hand-written ids silently wrote answers nobody
  * could read, and the demo looked half-finished (found 2026-08-23).
  */
+/**
+ * The option lists a person actually sees, read from the intake definition.
+ * `initiative_type` was seeded as "A new initiative" — a value that is not on
+ * the list, so the demo's flagship assessment rendered its control blank and
+ * the savebar read "1 still needed here" while the completeness guard passed.
+ * Two truths from one value; the guard only tests for non-empty (verifier
+ * finding R2, 2026-08-23).
+ */
+const INTAKE_SRC = readFileSync(join(process.cwd(), "src", "lib", "intake.ts"), "utf8");
+const UPDATE_TYPES = [
+  ...INTAKE_SRC.match(/UPDATE_TYPES\s*=\s*\[([\s\S]*?)\]/)[1].matchAll(/"([^"]+)"/g),
+].map((m) => m[1]);
+function optionsFor(fieldId) {
+  const at = INTAKE_SRC.indexOf(`id: "${fieldId}"`);
+  if (at === -1) return null;
+  const raw = INTAKE_SRC.slice(at).match(/options:\s*\[([\s\S]*?)\]/);
+  if (!raw) return null;
+  const out = [];
+  for (const part of raw[1].split(",")) {
+    const token = part.trim();
+    if (token === "...UPDATE_TYPES") out.push(...UPDATE_TYPES);
+    else if (/^"/.test(token)) out.push(token.slice(1, -1));
+  }
+  return out;
+}
+/** Database columns are snake_case; intake field ids are camelCase. */
+const fieldIdOf = (column) => column.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+
+/**
+ * Refuse to seed a value a person could never have chosen.
+ *
+ * The first cut looked up the snake_case column name, found no such field,
+ * and returned quietly — a check that cannot locate its subject and passes
+ * anyway, which is the exact failure mode it was written to catch. It now
+ * throws when the field is unknown.
+ */
+function checkChoice(project, column, value) {
+  if (value === undefined || value === "") return;
+  const field = fieldIdOf(column);
+  const options = optionsFor(field);
+  if (options === null) {
+    throw new Error(`${project}: no intake field "${field}" (from column "${column}") — cannot validate.`);
+  }
+  if (!options.includes(value)) {
+    throw new Error(
+      `${project}: ${field} = "${value}" is not one of its options.\n  Valid: ${options.join(" | ")}`,
+    );
+  }
+}
+
 const GATES = JSON.parse(
   readFileSync(join(process.cwd(), "src", "data", "instrument", "gates.json"), "utf8"),
 );
@@ -60,10 +110,34 @@ if (!/^(localhost|127\.0\.0\.1)$/.test(new URL(url).hostname)) {
 }
 const sql = postgres(url, { max: 1 });
 
-/** A reference answer stores the label as it appeared on screen (NFR-22). */
-const ref = (id, label, version) => ({ id, label, version });
-const BU = "2026-08-21.1";
-const VEN = "2026-08-21.1";
+/**
+ * A reference answer stores the label as it appeared on screen (NFR-22) —
+ * and the id and version are READ from the list, never typed. The first cut
+ * invented ids ("operations" where the list says "BU_OPS"), so the stored
+ * answer matched no option and the Business Unit control rendered blank on
+ * the demo's flagship assessment while the record looked full. That is the
+ * third identifier this script guessed and got wrong; nothing here types one
+ * any more.
+ */
+const LISTS = Object.fromEntries(
+  ["business-units", "vendors"].map((name) => [
+    name,
+    JSON.parse(readFileSync(join(process.cwd(), "src", "data", "reference", `${name}.json`), "utf8")),
+  ]),
+);
+function ref(listName, label) {
+  const list = LISTS[listName];
+  const entry = list.entries.find((e) => e.label === label);
+  if (!entry) {
+    throw new Error(
+      `No "${label}" in the ${listName} list. Available: ${list.entries.map((e) => e.label).join(" | ")}`,
+    );
+  }
+  return { id: entry.id, label: entry.label, version: list.version };
+}
+/** An off-list answer: recorded as its own shape, not as a list id (FR-30). */
+const unlisted = (listName, label) => ({ id: "__unlisted__", label, version: LISTS[listName].version });
+/** People are operational, not versioned (G-46's exception). */
 const person = (id, label) => ({ id, label, version: "people" });
 
 const PROJECTS = [
@@ -78,16 +152,19 @@ const PROJECTS = [
       uses_ai: "Yes",
       ai_use_case:
         "It proposes a rota. It reads two years of shift history, approved leave and skill matrices, and suggests who works when. A manager reviews every proposal and can change any shift before publishing.",
-      initiative_type: "A new initiative",
+      // A PoC going live: a real option, it reveals the prior-assessment
+      // field the ARA reference belongs in, and it pre-answers Solution
+      // Architecture — one more derivation the room can see.
+      initiative_type: "Moving a proof of concept into production",
       third_party_involved: "Yes",
       coupa_onboarded: "Yes",
       data_classification: "Confidential",
       business_owner: person("d.reyes", "Camila Reyes"),
       technical_owner: person("d.chen", "Wei Chen"),
       collaborators: "Clinic operations leads, Workforce planning",
-      business_unit: ref("operations", "Operations", BU),
-      other_units: [ref("human-resources", "Human Resources", BU)],
-      vendor_names: [ref("novara-health", "Novara Health", VEN)],
+      business_unit: ref("business-units", "Operations"),
+      other_units: [ref("business-units", "Human Resources")],
+      vendor_names: [unlisted("vendors", "Novara Health")],
       data_elements: ["Employee personal information"],
       target_go_live: "2026-11-02",
       prior_assessment_ref: "ARA-100 (2025 vendor onboarding)",
@@ -102,13 +179,13 @@ const PROJECTS = [
       project_description:
         "A process change. The same close tasks, the same owners, the same deadlines — moved from an attachment into a shared checklist in our existing collaboration tool. No new system, no new supplier, no personal data.",
       uses_ai: "No",
-      initiative_type: "An update to an existing one",
+      initiative_type: "An update or enhancement to something we already run",
       third_party_involved: "No",
       data_classification: "Public",
       business_owner: person("d.acosta", "Elena Acosta"),
       technical_owner: person("d.osei", "Kwame Osei"),
       collaborators: "Financial control",
-      business_unit: ref("finance", "Finance", BU),
+      business_unit: ref("business-units", "Finance"),
       other_units: [],
       vendor_names: [],
       data_elements: ["None / Unknown"],
@@ -124,21 +201,30 @@ const PROJECTS = [
       project_description:
         "A nightly export of aggregated claims counts to two partner organisations over an existing secure file transfer. No customer records leave; the file holds counts by product and region only.",
       uses_ai: "No",
-      initiative_type: "A new initiative",
+      initiative_type: "Brand new",
       third_party_involved: "Yes",
       coupa_onboarded: "I'm not sure",
       data_classification: "Internal",
       business_owner: person("d.novak", "Petra Novak"),
       technical_owner: person("d.ferreira", "Rui Ferreira"),
       collaborators: "Partner management",
-      business_unit: ref("sales", "Sales", BU),
-      other_units: [ref("operations", "Operations", BU)],
-      vendor_names: [ref("__unlisted__", "Meridian Distribution Partners", VEN)],
+      business_unit: ref("business-units", "Sales"),
+      other_units: [ref("business-units", "Operations")],
+      vendor_names: [unlisted("vendors", "Meridian Distribution Partners")],
       data_elements: ["Partner/Vendor contact personal information"],
       target_go_live: "2026-10-15",
     },
   },
 ];
+
+/**
+ * The people who own these assessments must be able to sign in, or the demo
+ * cannot show the requester half of the journey: two of three curated
+ * assessments had owners absent from the front door (verifier finding F6).
+ */
+const OWNERS = [...new Set(PROJECTS.map((p) => p.by))];
+await sql`update people set signs_in = true where id in ${sql(OWNERS)}`;
+console.log(`sign-in enabled for ${OWNERS.length} assessment owners`);
 
 const activeVersion = async (slug) => {
   const [row] = await sql`
@@ -188,6 +274,8 @@ const PARTNER_ANSWERS = [
 ];
 
 for (const spec of PROJECTS) {
+  for (const field of ["initiative_type", "uses_ai", "third_party_involved", "coupa_onboarded", "data_classification"])
+    checkChoice(spec.name, field, spec.intake[field]);
   const [existing] = await sql`
     select id from projects where project_name = ${spec.name} limit 1`;
   if (existing) {
