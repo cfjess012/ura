@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { askableCategories, categoryByKey, gateStates, unansweredCount } from "@/lib/instrument";
+import {
+  askableCategories,
+  categoryByKey,
+  CATEGORIES,
+  gateStates,
+  unansweredCount,
+} from "@/lib/instrument";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { asksNothingFurther, STOPS_HERE } from "@/lib/severity";
@@ -42,8 +48,21 @@ export default async function GatePage({
   // area is shown in the rail and on the summary, never as a step to take.
   const askable = askableCategories();
   const index = askable.findIndex((c) => c.key === key);
-  const next = askable[index + 1];
-  const previous = askable[index - 1];
+  // A settled area is not IN the askable list, so `index` is -1 there and
+  // both controls pointed backwards: "Next" restarted at area 1 and
+  // "Previous" left the risk areas entirely. Reachable by link is the whole
+  // point of a settled area (G-36), so it needs real neighbours — its own,
+  // taken from the full ordering a person sees in the rail.
+  const shown = CATEGORIES.findIndex((c) => c.key === key);
+  const neighbour = (step: -1 | 1) => {
+    for (let at = shown + step; at >= 0 && at < CATEGORIES.length; at += step) {
+      const candidate = askable.find((c) => c.key === CATEGORIES[at]!.key);
+      if (candidate) return candidate;
+    }
+    return undefined;
+  };
+  const next = index === -1 ? neighbour(1) : askable[index + 1];
+  const previous = index === -1 ? neighbour(-1) : askable[index - 1];
   const nextHref = next
     ? `/projects/${id}/assess/${next.key}`
     : `/projects/${id}/assess/paths`;
@@ -67,9 +86,12 @@ export default async function GatePage({
 
         <section>
           <p className="eyebrow">
+            {/* The rail numbers every area a person sees; this counted only
+                the askable ones, so after Governance the two disagreed by
+                one, six inches apart. One ordering, both places. */}
             {state.settled
-              ? "Step 2 · Risk areas"
-              : `Step 2 · Risk area ${index + 1} of ${askable.length}`}
+              ? `Step 2 · Risk area ${shown + 1} of ${CATEGORIES.length} · not asked`
+              : `Step 2 · Risk area ${shown + 1} of ${CATEGORIES.length}`}
           </p>
           <h2 className="display gate-display">{category.name}</h2>
 

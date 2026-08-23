@@ -176,14 +176,24 @@ export default async function SeverityPage({
                 name: p.name,
                 because: p.source === "derived" ? p.because.join("; and ") : null,
               })),
-              severities: asked
-                .map((q) => ({
-                  name: q.name,
-                  band: (typeof stored[q.questionId]?.value === "string"
-                    ? (stored[q.questionId]!.value as string)
-                    : null) as Band | null,
-                }))
-                .filter((s) => s.band !== null),
+              /* The lit paths, so the client can ask for the same question
+                 set the server did — one definition of "what is asked". */
+              litPathIds: lit.map((p) => p.id),
+              /* Every band and every detail recorded across the assessment.
+                 The first cut sent only the severities to display, so the
+                 controls half of the ledger still accumulated from one
+                 screen and disagreed with the summary. */
+              bands: Object.fromEntries(
+                asked
+                  .map((q) => [q.questionId, stored[q.questionId]?.value])
+                  .filter(([, v]) => typeof v === "string"),
+              ) as Record<string, Band>,
+              details: Object.fromEntries(
+                asked
+                  .filter((q) => q.detail)
+                  .map((q) => [q.detail!.questionId, stored[q.detail!.questionId]?.value])
+                  .filter(([, v]) => Array.isArray(v)),
+              ) as Record<string, string[]>,
               totalAsked: asked.length,
             }}
             nextHref={

@@ -15,6 +15,7 @@ import { isFailure } from "@/lib/errors";
 import {
   BANDS,
   accumulateControls,
+  severityQuestionsFor,
   detailFires,
   writableSeverityAnswers,
   type Band,
@@ -57,7 +58,12 @@ export function SeverityForm({
    */
   ledger: {
     paths: { name: string; because: string | null }[];
-    severities: { name: string; band: Band | null }[];
+    /** The lit paths, so the client asks for the same question set. */
+    litPathIds: string[];
+    /** Every band recorded across the assessment, by question id. */
+    bands: Record<string, Band>;
+    /** Every detail selection recorded across the assessment. */
+    details: Record<string, string[]>;
     totalAsked: number;
   };
 }) {
@@ -140,23 +146,30 @@ export function SeverityForm({
 
   // Recomputed on every render from what is on screen, never stored.
   const answers = assessmentLookup({ severities: bands });
-  const owed = accumulateControls(
-    items.map((i) => i.question),
-    bands as Record<string, Band | undefined>,
-    details,
-  );
+
+  // The ledger is the WHOLE assessment (FR-11), so the accumulation reads
+  // every question asked and every answer recorded — the server's picture
+  // with this screen's live state laid over it.
+  //
+  // This accumulated from `items` alone until 2026-08-23: the panel showed
+  // one group's controls under the sentence "Assembled from your answers as
+  // you give them", disagreed with the summary, and disagreed with the
+  // severity count in its own panel. The severities half had already been
+  // fixed this way and the controls half was left behind — a fix aimed at a
+  // finding stopping at the finding (G-33's lesson, again).
+  const everyQuestion = severityQuestionsFor(ledger.litPathIds);
+  const allBands = { ...ledger.bands, ...bands } as Record<string, Band | undefined>;
+  const allDetails = { ...ledger.details, ...details };
+  const owed = accumulateControls(everyQuestion, allBands, allDetails);
   const answered = items.filter((i) => bands[i.question.questionId]).length;
 
   // FR-11's ledger is live. The server hands over every severity recorded
   // across the assessment; this screen's own answers are then taken from
   // React state, so the panel moves with the click rather than with the
   // next page load.
-  const liveSeverities = (() => {
-    const here = new Map(items.map((i) => [i.question.name, bands[i.question.questionId] ?? null]));
-    const merged = ledger.severities.filter((s) => !here.has(s.name));
-    for (const [name, band] of here) if (band) merged.push({ name, band });
-    return merged;
-  })();
+  const liveSeverities = everyQuestion
+    .map((q) => ({ name: q.name, band: allBands[q.questionId] ?? null }))
+    .filter((s): s is { name: string; band: Band } => s.band !== null);
 
   return (
     <form

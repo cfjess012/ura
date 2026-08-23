@@ -79,3 +79,48 @@ test("the detail question hides again when severity drops (FR-8)", async ({ page
   await q.getByRole("radio", { name: /Low/ }).click();
   await expect(q.getByText("Which access types apply?")).toBeHidden();
 });
+
+test("the ledger counts the whole assessment, and agrees with the summary (FR-11)", async ({
+  page,
+}) => {
+  // The ledger accumulated from the questions on ONE screen while its own
+  // heading said "Assembled from your answers as you give them" and the
+  // severity count beside it was global. Three numbers, one assessment:
+  // 5 controls on one group, 4 on the next, 7 on the summary. No unit test
+  // could see it — the defect only exists ACROSS screens (verifier, S5).
+  const base = await startAssessment(page, `Ledger ${Date.now()}`);
+  await scenarioIntake(page, base);
+  await answerRemainingGates(page, base);
+  await page.getByRole("checkbox", { name: /Logical access to enterprise environments/ }).check();
+  await page.getByRole("button", { name: /Next: how severe/ }).click();
+
+  const owed = page.locator(".owed li");
+
+  // One answer in the first group.
+  await page
+    .locator(".q2", { hasText: "Business Criticality" })
+    .getByText(/Critical to core operations/)
+    .first()
+    .click();
+  await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
+  const afterFirst = await owed.count();
+  expect(afterFirst).toBeGreaterThan(0);
+
+  // Move to another group: what the first group requires must still be there.
+  await severityArea(page, /Third-Party/);
+  await expect(owed).toHaveCount(afterFirst);
+
+  // Answer in the second group too.
+  await page
+    .locator(".q2", { hasText: "Supplier Concentration" })
+    .getByText(/Exclusive \/ unique/)
+    .first()
+    .click();
+  await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
+  const afterSecond = await owed.count();
+  expect(afterSecond).toBeGreaterThan(afterFirst);
+
+  // The summary is the authority; the ledger must not disagree with it.
+  await page.goto(`${base}/assess/complete`);
+  await expect(page.locator(".owed li")).toHaveCount(afterSecond);
+});

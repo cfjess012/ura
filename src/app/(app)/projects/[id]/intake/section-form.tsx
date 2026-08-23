@@ -188,7 +188,14 @@ export function SectionForm({
           // Save BEFORE flagging: the message says "Saved." and it has to be
           // true when it appears, not a moment later. "Saving…" covers the
           // gap, so the control still responds instantly (§24.3, §24.4).
-          await save();
+          //
+          // And it has to be true when the save FAILS, too. The return value
+          // was dropped here, so a failed save on a partly-filled section
+          // announced "Saved. 2 answers still needed…" over an empty record
+          // — the exact sentence the comment above promises is true. The
+          // failure has already set its own message; flagging would paint
+          // over it.
+          if (!(await save())) return;
           setFlagged(true);
           const first = missingFields[0]!;
           document.getElementById(first.id)?.focus();
@@ -270,12 +277,16 @@ export function SectionForm({
           <span role="status" aria-live="polite" className={error ? "save-failed" : "saved"}>
             {saving ? (
               "Saving…"
-            ) : flagged && missing.length > 0 ? (
-              `Saved. ${missing.length} answer${missing.length === 1 ? "" : "s"} still needed before the next section: ${missing.join(", ")}.`
             ) : error ? (
+              /* A failure outranks a completeness nag. This branch sat
+                 BELOW the "Saved." one, so a save that failed on a partly
+                 filled section reported success and hid its own error. */
+
               <>
                 {error.message} <span className="err-ref">Reference {error.ref}</span>
               </>
+            ) : flagged && missing.length > 0 ? (
+              `Saved. ${missing.length} answer${missing.length === 1 ? "" : "s"} still needed before the next section: ${missing.join(", ")}.`
             ) : savedAt ? (
               "Saved"
             ) : (
