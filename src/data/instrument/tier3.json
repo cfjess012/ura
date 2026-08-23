@@ -1,0 +1,379 @@
+{
+  "slug": "tier3-objectives",
+  "version": "2026-08-23.1",
+  "note": "Transcribed verbatim from the owner's reference instrument (G-27). Covers the 15 of 51 catalogued objectives that carry question text there; the rest are recorded for a reviewer and say so on screen.",
+  "answers": [
+    "Yes",
+    "Partial",
+    "No",
+    "N-A"
+  ],
+  "objectives": [
+    {
+      "id": "T3-IAM-01",
+      "questionId": "t3.t3_iam_01",
+      "name": "Access Management & Authorization",
+      "family": "IAM",
+      "area": "Access Management & Authorization",
+      "text": "Is logical access to systems and data formally authorized, documented, and restricted based on role and least-privilege need?",
+      "objective": "Ensure logical access to systems and data is formally authorized, documented, and restricted based on role and least privilege.",
+      "children": [
+        {
+          "id": "T3-IAM-01.1",
+          "questionId": "t3.t3_iam_01_1",
+          "text": "Are documented access-control policies and procedures established and maintained?"
+        },
+        {
+          "id": "T3-IAM-01.2",
+          "questionId": "t3.t3_iam_01_2",
+          "text": "Are logical access restrictions defined, documented, approved, and enforced?"
+        },
+        {
+          "id": "T3-IAM-01.3",
+          "questionId": "t3.t3_iam_01_3",
+          "text": "Is there a process to authorize logical access consistent with role and business need?"
+        },
+        {
+          "id": "T3-IAM-01.5",
+          "questionId": "t3.t3_iam_01_5",
+          "text": "Is access to enterprise environments and data restricted to managed / compliant (organization-owned) devices, and is organizational data prohibited on unmanaged / BYOD endpoints?",
+          "when": [
+            {
+              "field": "paths",
+              "includesAny": [
+                "SR_EXT"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T3-IAM-02",
+      "questionId": "t3.t3_iam_02",
+      "name": "Multi-Factor Authentication",
+      "family": "IAM",
+      "area": "Multi-Factor Authentication",
+      "text": "Is multi-factor authentication (MFA) enforced or available for access to systems and data?",
+      "objective": "Ensure multi-factor authentication is enforced for access to systems and data commensurate with resource sensitivity.",
+      "children": [
+        {
+          "id": "T3-IAM-02.1",
+          "questionId": "t3.t3_iam_02_1",
+          "text": "Is MFA enforced (vs. only available) for user access?"
+        },
+        {
+          "id": "T3-IAM-02.2",
+          "questionId": "t3.t3_iam_02_2",
+          "text": "Is MFA required for vendor / third-party staff accessing systems?",
+          "when": [
+            {
+              "field": "paths",
+              "includesAny": [
+                "TPR_LA"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T3-IAM-03",
+      "questionId": "t3.t3_iam_03",
+      "name": "Privileged Access Management",
+      "family": "IAM",
+      "area": "Privileged Access Management",
+      "text": "Is privileged / administrative access restricted, separated, and subject to stronger controls than standard access?",
+      "objective": "Ensure privileged and administrative access is restricted, separated, and subject to stronger controls than standard access.",
+      "children": [
+        {
+          "id": "T3-IAM-03.1",
+          "questionId": "t3.t3_iam_03_1",
+          "text": "Is MFA required for privileged / administrative account access?"
+        },
+        {
+          "id": "T3-IAM-03.2",
+          "questionId": "t3.t3_iam_03_2",
+          "text": "Is MFA required for non-privileged account access?"
+        },
+        {
+          "id": "T3-IAM-03.3",
+          "questionId": "t3.t3_iam_03_3",
+          "text": "Are replay-resistant authentication mechanisms implemented for privileged access?"
+        },
+        {
+          "id": "T3-IAM-03.4",
+          "questionId": "t3.t3_iam_03_4",
+          "text": "Is a session lock retained until the user re-establishes access via identification / authentication?"
+        },
+        {
+          "id": "T3-IAM-03.5",
+          "questionId": "t3.t3_iam_03_5",
+          "text": "Is administrator-level authorization required for modifying audit logs / audit configuration?"
+        },
+        {
+          "id": "T3-IAM-03.6",
+          "questionId": "t3.t3_iam_03_6",
+          "text": "Are accounts locked after a defined number of consecutive invalid login attempts (account lockout; NIST AC-7)?"
+        }
+      ]
+    },
+    {
+      "id": "T3-IAM-05",
+      "questionId": "t3.t3_iam_05",
+      "name": "Access Review & Recertification",
+      "family": "IAM",
+      "area": "Access Review & Recertification",
+      "text": "Are access rights periodically reviewed and recertified to confirm they remain appropriate?",
+      "objective": "Ensure access rights are periodically reviewed and recertified to confirm they remain appropriate.",
+      "children": [
+        {
+          "id": "T3-IAM-05.1",
+          "questionId": "t3.t3_iam_05_1",
+          "text": "Are access-management controls in place and described (who reviews, how often, evidence)?"
+        }
+      ]
+    },
+    {
+      "id": "T3-IAM-06",
+      "questionId": "t3.t3_iam_06",
+      "name": "Access & Credential Lifecycle",
+      "family": "IAM",
+      "area": "Access & Credential Lifecycle",
+      "text": "Are user access and credentials provisioned, changed, and de-provisioned through a controlled lifecycle?",
+      "objective": "Ensure user access and credentials are provisioned, changed, and de-provisioned through a controlled lifecycle.",
+      "children": [
+        {
+          "id": "T3-IAM-06.1",
+          "questionId": "t3.t3_iam_06_1",
+          "text": "Is there a defined process to build / provision users for system access?"
+        },
+        {
+          "id": "T3-IAM-06.2",
+          "questionId": "t3.t3_iam_06_2",
+          "text": "Are user credentials securely communicated for first-time use and after account changes?"
+        },
+        {
+          "id": "T3-IAM-06.3",
+          "questionId": "t3.t3_iam_06_3",
+          "text": "Are processes in place to rotate access tokens, keys, and passwords per standard?"
+        }
+      ]
+    },
+    {
+      "id": "T3-IAM-10",
+      "questionId": "t3.t3_iam_10",
+      "name": "Remote Access",
+      "family": "IAM",
+      "area": "Remote Access",
+      "text": "Are remote-access methods governed with documented usage restrictions, configuration / connection requirements, and monitoring?",
+      "objective": "Ensure remote-access methods are governed with documented usage restrictions, connection requirements, and monitoring.",
+      "children": []
+    },
+    {
+      "id": "T3-DP-01",
+      "questionId": "t3.t3_dp_01",
+      "name": "Encryption (In Transit & At Rest)",
+      "family": "DP",
+      "area": "Encryption (In Transit & At Rest)",
+      "text": "Is sensitive data protected through encryption in transit and at rest in accordance with enterprise standards?",
+      "objective": "Establish, implement, and maintain encryption standards to protect sensitive data in transit and at rest.",
+      "children": [
+        {
+          "id": "T3-DP-01.1",
+          "questionId": "t3.t3_dp_01_1",
+          "text": "Is data encrypted in transit / in-motion per enterprise standards?"
+        },
+        {
+          "id": "T3-DP-01.2",
+          "questionId": "t3.t3_dp_01_2",
+          "text": "Is data encrypted at rest per enterprise standards?"
+        },
+        {
+          "id": "T3-DP-01.3",
+          "questionId": "t3.t3_dp_01_3",
+          "text": "Does encryption meet industry best-practice / enterprise strength standards?"
+        },
+        {
+          "id": "T3-DP-01.4",
+          "questionId": "t3.t3_dp_01_4",
+          "text": "Is encryption required when storing and transmitting passwords / credentials?"
+        },
+        {
+          "id": "T3-DP-01.5",
+          "questionId": "t3.t3_dp_01_5",
+          "text": "For AI/GenAI use, is data encryption implemented at-rest and in-transit for inputs / outputs and supplemental data?",
+          "when": [
+            {
+              "field": "gate.ai",
+              "equalsAny": [
+                "Yes"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "T3-DP-04",
+      "questionId": "t3.t3_dp_04",
+      "name": "Data Minimization & De-identification",
+      "family": "DP",
+      "area": "Data Minimization & De-identification",
+      "text": "Is data limited to only what is needed for the activity (data minimization)?",
+      "objective": "Ensure data is limited to only what is necessary for the activity (data minimization), with justification for any sensitive data.",
+      "children": [
+        {
+          "id": "T3-DP-04.1",
+          "questionId": "t3.t3_dp_04_1",
+          "text": "Are enterprise standards used to anonymize test data derived from production?"
+        },
+        {
+          "id": "T3-DP-04.2",
+          "questionId": "t3.t3_dp_04_2",
+          "text": "Is data de-identified or anonymized where appropriate (e.g., non-production use, analytics, sharing)?"
+        }
+      ]
+    },
+    {
+      "id": "T3-DP-05",
+      "questionId": "t3.t3_dp_05",
+      "name": "Retention, Deletion & Disposal",
+      "family": "DP",
+      "area": "Retention, Deletion & Disposal",
+      "text": "Is data retained only as long as required and securely disposed of, with disposal verified?",
+      "objective": "Ensure data is retained only as long as required and securely disposed of, with disposal verified.",
+      "children": [
+        {
+          "id": "T3-DP-05.1",
+          "questionId": "t3.t3_dp_05_1",
+          "text": "Does the activity follow the enterprise data retention policy?"
+        },
+        {
+          "id": "T3-DP-05.2",
+          "questionId": "t3.t3_dp_05_2",
+          "text": "Is system media protected until it is destroyed or sanitized using approved methods?"
+        },
+        {
+          "id": "T3-DP-05.3",
+          "questionId": "t3.t3_dp_05_3",
+          "text": "Are data-management / privacy controls (flow enforcement, protection at rest) in place per framework?"
+        }
+      ]
+    },
+    {
+      "id": "T3-DP-06",
+      "questionId": "t3.t3_dp_06",
+      "name": "Secrets & Configuration Protection",
+      "family": "DP",
+      "area": "Secrets & Configuration Protection",
+      "text": "Are credentials, secrets, keys, and sensitive configuration protected against unauthorized access and modification?",
+      "objective": "Ensure credentials, secrets, keys, and sensitive configuration are protected against unauthorized access and modification.",
+      "children": [
+        {
+          "id": "T3-DP-06.1",
+          "questionId": "t3.t3_dp_06_1",
+          "text": "Are software and application security configurations backed up and protected against unauthorized modification?"
+        },
+        {
+          "id": "T3-DP-06.2",
+          "questionId": "t3.t3_dp_06_2",
+          "text": "Are sensitive data attributes (e.g., PI-Fraud Sensitive) protected using an enterprise-recognized method of attribute obfuscation?"
+        },
+        {
+          "id": "T3-DP-06.3",
+          "questionId": "t3.t3_dp_06_3",
+          "text": "Are security configurations reviewed periodically, approved for significant changes, and prior versions retained per the records retention schedule?"
+        }
+      ]
+    },
+    {
+      "id": "T3-DP-07",
+      "questionId": "t3.t3_dp_07",
+      "name": "Media Protection",
+      "family": "DP",
+      "area": "Media Protection",
+      "text": "Is physical and removable media containing sensitive data protected during storage, use, and transport?",
+      "objective": "Ensure physical and removable media containing sensitive data is protected during storage, use, and transport.",
+      "children": [
+        {
+          "id": "T3-DP-07.1",
+          "questionId": "t3.t3_dp_07_1",
+          "text": "Is encryption used to protect confidentiality / integrity of information on media?"
+        },
+        {
+          "id": "T3-DP-07.2",
+          "questionId": "t3.t3_dp_07_2",
+          "text": "Is digital and non-digital media physically controlled and securely stored within controlled areas?"
+        }
+      ]
+    },
+    {
+      "id": "T3-NB-01",
+      "questionId": "t3.t3_nb_01",
+      "name": "Boundary Protection & Segmentation",
+      "family": "NB",
+      "area": "Boundary Protection & Segmentation",
+      "text": "Are network boundaries protected and segmented to control traffic and prevent unauthorized access?",
+      "objective": "Ensure network boundaries are protected and segmented to control traffic and prevent unauthorized access.",
+      "children": [
+        {
+          "id": "T3-NB-01.1",
+          "questionId": "t3.t3_nb_01_1",
+          "text": "Are routers, firewalls, encrypted tunnels, etc. used to control network communications?"
+        }
+      ]
+    },
+    {
+      "id": "T3-NB-02",
+      "questionId": "t3.t3_nb_02",
+      "name": "WAF / External Endpoint Protection",
+      "family": "NB",
+      "area": "WAF / External Endpoint Protection",
+      "text": "Are externally exposed endpoints protected by a web application firewall / API gateway?",
+      "objective": "Ensure externally exposed endpoints are protected by web application firewall and API gateway controls.",
+      "children": []
+    },
+    {
+      "id": "T3-NB-03",
+      "questionId": "t3.t3_nb_03",
+      "name": "API & Interface Security",
+      "family": "NB",
+      "area": "API & Interface Security",
+      "text": "Are APIs and system interfaces / integrations secured through approved, benchmarked, and monitored configurations?",
+      "objective": "Ensure APIs and system interfaces are secured through approved, benchmarked, and monitored configurations.",
+      "children": [
+        {
+          "id": "T3-NB-03.1",
+          "questionId": "t3.t3_nb_03_1",
+          "text": "Are software / application (including interface) configurations aligned to industry-recognized security benchmarks (e.g., CIS, NIST, vendor best practices) and documented / approved?"
+        },
+        {
+          "id": "T3-NB-03.2",
+          "questionId": "t3.t3_nb_03_2",
+          "text": "Are interface / application configurations tested prior to implementation and scanned / monitored for misconfiguration and configuration drift?"
+        },
+        {
+          "id": "T3-NB-03.3",
+          "questionId": "t3.t3_nb_03_3",
+          "text": "Are network access connections controlled and boundary protection rules configured and maintained for systems exposing the interfaces / APIs?"
+        },
+        {
+          "id": "T3-NB-03.4",
+          "questionId": "t3.t3_nb_03_4",
+          "text": "Are interface / application and network events configured to alert, log, and monitor per the Security logging standard?"
+        }
+      ]
+    },
+    {
+      "id": "T3-NB-05",
+      "questionId": "t3.t3_nb_05",
+      "name": "Availability / DoS Protection",
+      "family": "NB",
+      "area": "Availability / DoS Protection",
+      "text": "Are controls in place to protect against or limit the effects of denial-of-service conditions?",
+      "objective": "Establish and maintain controls to protect against and limit the effects of denial-of-service conditions.",
+      "children": []
+    }
+  ]
+}
