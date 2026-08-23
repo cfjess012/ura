@@ -1,11 +1,11 @@
 ---
-spec-version: 2026-08-21.14
+spec-version: 2026-08-23.1
 ---
 
-# Universal Risk Assessment Platform — Specification
+# Front Door AI Risk Advisor — Specification
 
 **Status:** ACCEPTED 2026-08-20. This is the spec of record; the governance log (§13) is active.
-**This document is the BRAIN.** Requirements (§20), the delivery slices (§17), acceptance criteria (§19), and the governance log (§13) all live here and nowhere else — there are no side plans. Work traces to a requirement ID; requirements trace to a slice; slices trace to done-when gates. Anything not traceable here is, by definition, not being built.
+**This document is the BRAIN.** The governance log (§13), the delivery slices (§17), acceptance criteria (§19), and the requirements register (§20) all live here and nowhere else — there are no side plans. Work traces to a requirement ID; requirements trace to a slice; slices trace to done-when gates. Anything not traceable here is, by definition, not being built.
 **This document is the single source of truth for the product it describes.** Settled sections are not re-opened casually; changes to them are governance events recorded in the log (§13). The instrument's *content* (questions, rubrics, mappings) is not in this document — it lives as versioned data (§6.2); this document defines the *semantics* that content must obey.
 
 ---
@@ -40,20 +40,41 @@ These rules bind any implementer, human or Claude Code, before a single line is 
 
 ### 1.1 The mission
 
-The organization runs **many risk assessments in many different places** — separate questionnaires, separate systems, separate owners — making the process slow and confusing for anyone trying to complete one. Real projects have spent **as much as 90 hours** working through the current assessments. This platform exists to collapse that:
+**The Front Door AI Risk Advisor modernizes enterprise risk intake by deploying an intelligent, agentic AI layer across a complex GRC ecosystem.** It replaces fragmented, high-friction processes with a centralized, guided front door — accelerating assessment timelines from months to days, enforcing data integrity through mandatory declarations and attestations, and delivering high-fidelity risk signals directly to risk analysts.
+
+Three problem statements, owner-supplied and normative:
+
+1. **Fragmented ecosystem & poor telemetry.** Risk data is siloed across disparate platforms, preventing a holistic view of enterprise risk and producing inconsistent telemetry.
+2. **High friction for business users.** Assessment fatigue: confusing starting points, disjointed tooling, no guidance through the lifecycle. Real projects have spent **as much as 90 hours** working through the current assessments.
+3. **Inconsistent analyst intake.** Decentralized manual processes fail to deliver the standardized, comprehensive data analysts need to prioritize and identify risk.
+
+The answer to all three is one sentence:
 
 > **One front door for the business user; every risk area's own process intact under the hood.**
 
-The requester experiences a single, guided assessment. Each unique risk area (third-party, security, privacy, AI, legal, operational…) keeps its own custom processes and downstream systems — they **integrate behind the front door** through the instrument's routing and the export's destination mappings, rather than each demanding its own audience with the requester.
+The stakes are strategic: as AI accelerates delivery, siloed and slow risk processes become the binding constraint on innovating safely. A user-friendly risk process with governance embedded from the start is what lets speed and rigor coexist.
 
-The stakes are strategic, not cosmetic: as AI accelerates delivery — and as more employees are trained and encouraged to build with it — siloed, slow risk processes become the binding constraint on the organization's ability to innovate safely. A user-friendly risk process with **governance embedded from the start** is what lets innovation speed up *without* risk review being skipped, gamed, or resented. If this is not solved, internal process — not technology — becomes the reason the organization falls behind.
+**North stars, measured — each answers one problem statement:**
+1. **Time-to-complete** (answers friction) — from ≈90 hours of scattered effort toward a single guided session; the agentic layer (§7) exists to push this further still.
+2. **One collection spot** (answers fragmentation) — a requester never visits a second system to be assessed; risk areas consume from the platform, not from the requester.
+3. **Governance from the start** (answers inconsistent intake) — rigor embedded in the flow (routing, declaration, attestation, findings), never bolted on after.
 
-**North stars, measured:**
-1. **Time-to-complete** — from days of scattered effort (worst observed ≈ 90 hours) toward a single guided session; the agentic layer (§7) exists to push this further still.
-2. **One collection spot** — a requester never visits a second system to be assessed; risk areas consume from the platform, not from the requester.
-3. **Governance from the start** — rigor is embedded in the flow (routing, attestation, findings), never bolted on after.
+### 1.2 The six capabilities, phased honestly
 
-### 1.2 The purpose
+The mission is delivered as six capabilities. Each row states what exists today and what the agentic layer adds — the demo claims only the middle column (§24.8: never imply an unbuilt thing runs).
+
+| Capability | Today (deterministic, built) | Agentic (Phase 2, Bedrock/AgentCore — G-51) |
+|---|---|---|
+| **Conversational intake** | Structured guided intake: conditional reveals, "I'm not sure" first-class (FR-23), teaching help text (§24.11) | A thought partner that drafts answers from evidence with verbatim citations (§7) |
+| **Regulatory signaling** | The engine derives paths and pre-answers gates from evidence, each with its reason (FR-4, FR-5, FR-22) | Reasoning over inputs to surface regulatory considerations and route them to the owning office |
+| **Scoping & triage** | Severity rubrics summon control objectives with the answer that pulled each in (FR-6–FR-8, §3.3) | Contradiction finding, drafted summaries, preliminary control recommendations (§22.1) |
+| **Submitter declaration gateway** | S7: submission requires an explicit declaration of accuracy over named answers (FR-37, G-52) | The agent assembles the declaration record; the person still signs it |
+| **Assessor review workflows** | Hand-offs with threaded conversation and derived obligations (FR-36); full review queue and attestation at S8 (FR-16–FR-18) | Divergence signals and follow-up drafting for the reviewer (§22.1) |
+| **Telemetry** | Insert-only evidence trail; every answer attributed (NFR-19) | OpenTelemetry from the agent service at its birth (§6.4) |
+
+**Structural agility is the instrument-as-data rule (§6.2):** new risk workflows are new versioned data — questions, paths, rubrics, mappings — not new code, which is how the platform incorporates emerging risk domains without overhauling GRC backends.
+
+### 1.3 The purpose
 
 A platform that takes a business activity from **description to attested, exportable risk assessment** with the minimum burden on the business user and zero loss of rigor for the risk organization.
 
@@ -61,7 +82,7 @@ Three promises, in priority order:
 
 1. **The instrument is rigorous.** A three-tier, condition-routed assessment: what is this activity, how severe is its risk along each activated path, and do the controls that risk profile demands actually exist.
 2. **People only ever see what applies to them.** Routing is evidence-driven and explainable; a project that touches nothing sees almost nothing.
-3. **Every answer is accountable.** Who said it, on what basis, who attested it, and — when AI assistance is active — the verbatim evidence it came from. Nothing is ever guessed.
+3. **Every answer is accountable.** Who said it, on what basis, who declared it accurate, who attested it — and when AI assistance is active, the verbatim evidence it came from. Nothing is ever guessed.
 
 Every requirement in §20 must serve at least one north star or one promise; anything that serves neither does not belong in the product.
 
@@ -69,7 +90,7 @@ Every requirement in §20 must serve at least one north star or one promise; any
 
 | Role | Does | Does not |
 |---|---|---|
-| **Requester** (business owner) | Completes intake and Tiers 1–3; responds to reviewer questions; sees their own project only | Attest, resolve findings, change the instrument |
+| **Requester** (business owner) | Completes intake and Tiers 1–3; **declares** their answers accurate at submission (G-52); responds to reviewer questions; sees their own project only | Attest, resolve findings, change the instrument |
 | **Risk Assessor** (reviewer) | Triages the queue; attests every visible answer (approve / correct / N-A-with-reason); disposes findings; accepts scenarios; runs final checks; packages | Author instrument content; approve their own four-eyes actions |
 | **Admin** | Manages users, reviewer groups, scoring configuration; ratifies instrument changes | Bypass attestation or findings gates |
 
@@ -131,6 +152,10 @@ Child questions never fire unless the parent is Yes. Suppressed children (cross-
 ### 3.5 Pre-deploy verification
 
 Objectives and children may carry pre-deploy tags. The pre-deploy stage activates for build/change activities and **unlocks only when every visible assessment-stage answer is attested** — "what you built" is checked only after "what you said" is signed. Pre-deploy checks link to the claims they verify through ratified relationships.
+
+### 3.6 Attachment retention — open, blocking
+
+The retention posture for uploaded documents — how long bytes live, who may purge, what an export carries — is **not yet written**. It is an owner decision (§14), and S4.6 stores no byte until it exists. This subsection is the placeholder those requirements cite so the gap is a named thing, not a dangling reference.
 
 ## 4. The process
 
@@ -207,30 +232,32 @@ One condition engine evaluates: equals / not-equals / includes / excludes / any-
 
 ### 6.4 AWS deployment — settled (G-7)
 
-**The deployment target is AWS. This is settled, not aspirational**, carried forward from the prior platform's governance without reopening. The prototype runs locally for iteration speed; AWS is the destination, and every Phase-1 decision must keep that path open by construction. The migration plan of record:
+**The deployment target is the owner's AWS sandbox account, using Bedrock and AgentCore. This is settled, not aspirational.** The prototype runs locally for iteration speed; every Phase-1 decision must keep the path open by construction. The migration plan of record:
 
-- **Tier 1 — the day-one lift.** Two containers (web, agent) built from the repo root; ECS Fargate (or App Runner for web); RDS for PostgreSQL 16 with pgvector; ALB in front of the web service; the agent service internal-only (reachable solely from web tasks). Deployment changes environment variables, never code.
-- **Tier 2 — managed model access.** Bedrock for all model calls, behind the model seam. **Critical path: the Bedrock model-access request is owner-side, approval time is uncontrollable, and everything model-dependent waits on it — it is filed before, not during, the migration.**
-- **Tier 3 — AgentCore as substrate.** Runtime behind the agent seam, Memory behind the session seam, Gateway for enterprise connectors, Observability for traces. AgentCore is substrate, **never** an autonomous orchestrator of the governed pipeline.
+- **Tier 1 — the day-one lift.** One web container (this repository's real shape — the two-service split arrives with the agent service, not before), built from the repo root; App Runner or ECS Fargate; RDS for PostgreSQL 16; deployment changes environment variables, never code. pgvector is not provisioned until a phase needs embeddings (G-53).
+- **Tier 2 — managed model access.** Bedrock for all model calls, behind the model seam. **Critical path: the Bedrock model-access request is owner-side and its approval time uncontrollable — it is filed before, not during, the migration (tracked in §14).**
+- **Tier 3 — AgentCore as substrate.** Runtime behind the agent seam, Memory behind the session seam, Gateway for enterprise connectors, Observability for traces.
 
-**Phase-1 obligations (firm — these are built now even though cloud execution is Phase 3):**
+**Honest status of the seams (§6.1): none of the three exist in code yet.** They are the first artifact of the Phase-2 epic (G-51) — built as interfaces with the local implementation behind them before any model call is written.
 
-1. Both services containerized from the first commit; images build from the repo root.
+**Phase-1 obligations (firm):**
+
+1. The web service containerized; the image builds from the repo root.
 2. All environment-specific behavior flows through environment variables; zero `local vs. cloud` branches in code.
-3. Postgres-only persistence, RDS-compatible; migrations as plain SQL.
-4. No dependency without an AWS-managed equivalent, absent an explicit governance-log entry accepting the exception.
-5. OpenTelemetry spans from the agent service from day one — console locally, CloudWatch later, same instrumentation.
+3. Postgres-only persistence, RDS-compatible; migrations as plain SQL (G-53).
+4. No dependency without an AWS-managed equivalent, absent a governance-log entry accepting the exception.
+5. OpenTelemetry spans from the agent service **from its first day** — the obligation attaches at the service's birth in Phase 2; the web app is exempt until then, and that exemption is stated here rather than discovered.
 
-A Phase-1 change that violates any of these five is rejected in review regardless of how well it works locally.
+A Phase-1 change that violates any of these is rejected in review regardless of how well it works locally.
 
-## 7. The agentic layer — defined, dormant
+## 7. The agentic layer — the mission, phased (G-51)
 
-The platform is designed for AI assistance; this spec defines its contract even while the capability is disconnected from the flow:
+The agentic layer is the product's stated core; Phase 1 ships the deterministic platform it will stand on, and this section is the contract every phase must honour:
 
 - **What it does when active:** drafts answers from requester-provided evidence (documents, conversation) with verbatim citations and basis labels; renders answer choices as tappable options whose labels are quotable evidence; issues receipts naming exactly what was recorded and what failed with a next step; explains any question's routing on request; hands off (never performs) submission.
-- **What it may never do:** answer from nothing; paraphrase evidence; utter internal identifiers to users; advance the interview on silence; attest, resolve, or accept anything.
+- **What it may never do:** answer from nothing; paraphrase evidence; utter internal identifiers to users; advance the interview on silence; attest, declare, resolve, or accept anything; act as an autonomous orchestrator of the governed pipeline — AgentCore is substrate, never the decider (§6.4).
 - **How it is measured:** a ground-truth eval over the live instrument in which full abstention on absent evidence is a scored correct answer; per-domain accuracy baselines are committed artifacts and CI blocks regressions. Local-model runs measure the harness, never the quality bar.
-- **Reconnection is a planned epic** against the stable instrument — including conversational intake, drafting passes, and the agent-reviewed instrument-change workflow. Until then the layer stays compiled, tested, and unreachable from the product UI.
+- **Delivery is the Phase-2 epic** (§16, G-51) against the stable instrument — the three seams first, then conversational intake, drafting passes, and the agent-reviewed instrument-change workflow. Until a capability ships, it stays unreachable from the product UI and the demo never implies it runs (§24.8).
 
 ## 8. Governance
 
@@ -241,17 +268,11 @@ The platform is designed for AI assistance; this spec defines its contract even 
 
 ## 9. User experience commitments
 
-- **Requester:** one instrument, guided; category-per-screen with visible progress; every screen explains *why it's being asked*; the live ledger (activated paths with reasons, severities, accumulated objectives) is always visible; plain language everywhere — internal identifiers never surface; conditional reveals are visually distinguished from base questions; notes/questions can be attached anywhere and travel to the reviewer.
-- **Reviewer:** queue ordered by need (findings first, then age); master-detail workspace; keyboard-first attestation; evidence and provenance one click from every answer; irreversible acts are named and confirmed; long operations always show pending state — **no silent seconds, ever**.
-- **Both:** basis and severity are never conveyed by color alone; warning states are never restful; counts shown are always funnel counts (what the person can actually act on).
+The behavioural law lives in §24 (principles) and §23 (surface standard); this section holds only the two commitments no other section owns: the reviewer queue is **ordered by need** (findings first, then age), and the requester's **live ledger** (activated paths with reasons, severities, accumulated objectives) is always visible (FR-11).
 
 ## 10. Quality bars
 
-- **Engine:** every operator and routing rule pinned by unit tests including negative and unanswered-input cases; property/differential testing against the instrument's reference behavior; recompute performance budget (full-instrument re-derivation in single-digit milliseconds).
-- **Instrument:** the coherence gate green is a precondition of activation, always.
-- **End-to-end:** the full requester and reviewer journeys proven headless against rendered DOM (never server-markup greps) on every change.
-- **UAT:** scripted, numbered checks with objective pass lines, two rounds (builder, then owner), sign-off required before any milestone is called done.
-- **Migration safety:** schema and SQL are asserted equivalent by tests that apply real migrations to an in-memory Postgres; historical projects must always render.
+The bars are stated where they are checked: engine and journey criteria in §19, test tiers in §26.4, UAT rounds in §21/G-24, the coherence gate in §8. Two bars live here because nothing else owns them: **migration safety** — schema and SQL asserted equivalent by tests applying real migrations to in-memory Postgres, and historical projects must always render — and **property/differential testing** of the engine against the instrument's reference behavior.
 
 ## 11. Clean-code charter
 
@@ -263,76 +284,135 @@ The platform is designed for AI assistance; this spec defines its contract even 
 
 ## 12. Out of scope (this spec version)
 
-Composite scoring policy (§14) · framework crosswalks (planned; will anchor to control objectives) · runtime instrument authoring UI · customer-supplied framework/questionnaire import · multi-tenancy and production identity (SSO) · the agentic layer's reconnection (planned epic) · destination-system write-back.
+Composite scoring policy (§14) · framework crosswalks (planned; will anchor to control objectives) · runtime instrument authoring UI · customer-supplied framework/questionnaire import · multi-tenancy and production identity/SSO (the persona switcher is a pilot device, G-26, and the admin surface ships knowingly unrestricted until identity exists, G-25) · destination-system write-back (§27 assembles and downloads; nothing sends) · attachment bytes until the retention posture is written (§3.6). The agentic layer is no longer out of scope as a category — it is the Phase-2 epic (G-51) and excluded from Phase 1 only.
 
 ## 13. Governance log
 
-- **G-1 (settled):** This specification supersedes the prior platform spec; the prior instrument (placeholder catalog) is retired in full. Historical assessments remain readable via version pinning.
-- **G-2 (settled):** The three-tier instrument defined in §3 — categories/gates/paths, rubric-anchored severity, threshold-based control accumulation, Tier-3 self-assessment — is the assessment model of record, transcribed from the owner's reference design and verified by differential testing.
-- **G-3 (settled):** Structured intake is the front door. Conversational/AI intake returns only as part of the agentic reconnection epic.
-- **G-4 (settled):** Tier-3 No/Partial answers synthesize findings at submission (§4.3); packaging remains blocked on open findings.
-- **G-5 (settled):** No runtime instrument authoring; seed-PR governance only (§8).
-- **G-6 (settled):** The agentic layer's contract (§7) is normative now, even while dormant — nothing may be built that would violate it later.
-- **G-7 (settled):** AWS is the deployment target and §6.4's tiered migration is the plan of record. Phase 1 builds AWS-ready by construction (the five firm obligations in §6.4); cloud execution itself is Phase-3 work. The Bedrock model-access request is the standing critical-path item and is owner-owned.
-- **G-20 (settled):** The intake question about what an activity introduces or changes is **removed entirely** (2026-08-21, owner call). Intake's job is the identity record; routing is Tier 1's, which asks the same ground eleven times, specifically, one gate at a time. A coarse preview of the gates at the front door was a worse question at a worse moment. Pre-fill (FR-22) survives on the signals intake genuinely owns — vendor names, initiative type, data classification, and the AI question — and the technology/non-technology label the risk organisation needs for queue routing is derived in S2 from the answered gates rather than guessed at intake.
-- **G-19 (settled):** "Technology / Non-Technology" retired from intake 2026-08-21. It asked a business user to classify against our taxonomy — a coin flip for a SaaS purchase, a spreadsheet-based process, a vendor's own system, or a policy change configured in an existing tool — and an ambiguous answer at the front door corrupts everything routed from it. Replaced by "What is this activity introducing or changing?" (multi-select, recognisable options, honest-uncertainty escape). The classification the risk organisation needs for queue routing is **derived** from that answer, and each selection pre-answers a Tier-1 gate (FR-22). General rule recorded: when a question requires the person to know our taxonomy, ask about their world and derive the taxonomy.
-- **G-50 (settled):** Tier-2 depth is pilot-scoped to four risk areas, and the other seven say so on screen (2026-08-22, owner call, recorded late). **Third-Party & Supply Chain, AI & Model Risk, Data Management & Privacy and Security & Resilience** carry all 21 paths, all 26 severity questions and all 51 control objectives. **Solution Architecture, Legal & Regulatory Compliance, Operational Risk, Governance & Oversight, Ethics & Conduct, People & Capacity and Jurisdiction-Bound Execution** have a gate and nothing behind it: answering Yes records that the area is in scope for a reviewer and asks nothing further. That is the right pilot boundary — the four deep areas are where the risk and the demo both live, and building seven more question sets before anyone has walked the first four would be depth nobody has validated. **What was wrong is not the scope, it is that the boundary was never declared.** The decision was made out loud and never written down, so the product presents an empty area and a deep one identically: both read "Applies", and a person cannot tell "nothing more to ask" from "not built yet". A boundary that is real and undeclared is indistinguishable from a defect, which is why it now has an entry, a line in `demo/readiness.md` under what we will not claim, and a sentence on the seven gate screens. General rule recorded: **a place where the product deliberately stops must say that it is stopping deliberately** — silence is read as completeness, and completeness we have not built is the one claim this platform cannot afford. FR-35 owns the on-screen half; the depth itself stays as it is for Phase 1.
+Every settled decision and every deliberate deferral, numbered, dated, one paragraph each — the decision and its rule, not the incident (the incidents live in `uat/` and git history). Ascending order; a superseded entry stays, marked.
 
-- **G-49 (settled):** A value the platform worked out keeps saying so after the person accepts it (2026-08-21, owner feedback #10, FR-33). The owner asked that the Tier-2 data-classification question default to the intake answer, because being asked the same thing twice is exactly what §24.6 forbids. **G-39a is not reopened:** a pre-selected answer nobody looked at is still recorded as that person's answer, attributed to them, and attested later as if they decided it — the failure this platform exists to prevent. What was genuinely broken is narrower and was invisible until the owner walked it: the offer never named *which* prior question its value came from, and it disappeared the moment the person answered, so after one click nothing on screen or in the record said the platform had worked it out. Provenance now survives the click. If a true default is still wanted after seeing that, it is a governance change and gets its own entry.
-- **G-48 (settled):** A value a person supplies off-list belongs to their assessment immediately and to everyone else only when ratified (2026-08-21, owner feedback #5, FR-32). Letting a requester add a vendor is right — being blocked because a list is incomplete is the friction this product exists to remove — but a shared option list written from a request path means one person's typo becomes an option everyone else sees and picks, and the platform industrialises an error instead of catching one. §22.4 already forbids exactly this for precedent; the same reasoning governs the option list itself. Propose then ratify, with actor and timestamp, producing a new list version — the pattern the instrument's relationships already use.
-- **G-47 (settled):** An unlisted answer is a different shape, not a different string (2026-08-21, owner feedback #7/#8, FR-30, FR-31). Answers are values from a known set, and the submission validators **refuse** anything else — a guard that has caught real defects. Storing typed text where an option id belongs would silently disarm it: nothing could then tell a real option from something somebody typed once, not the validator, not the reviewer, not a count of how many chose X. An unlisted value is therefore its own shape, accepted only where the question declares it allowed, so "can this be answered off-list?" is authored rather than incidental.
-- **G-46 (settled):** Reference lists are versioned data, and an answer stores the label it displayed (2026-08-21, owner feedback #2–#6, FR-29, NFR-22). A picker needs a list, and the question is whether that list is instrument-shaped or an ordinary table. Renames settle it: correct "Novara Health" to "Novara Health Systems" in an editable table and every past answer silently claims something nobody said. This is the problem `module_versions` solves for questions, one layer down, so it takes the same mechanism — versioned, immutable once activated, a change is a new version — and the answer additionally records the **label as it appeared on screen**, redundantly and on purpose, because a reviewer six months later must read what the person saw rather than what the list says today. **One deliberate exception:** the people directory is operational, not versioned; `people` already exists for the persona switcher and a real deployment replaces it with an IdP lookup rather than a file. Rename-safety there comes from the stored label alone.
-- **G-45 (settled):** A rubric anchor is the option, not a label on one (2026-08-21, S4, FR-6). Tier 2 asks "how severe" by showing three sentences and letting a person pick the one that describes their situation — *"privileged / admin access to production and/or broad access across environments"* — never the bare word "High". Two assessors reading a sentence about production access reach the same answer; two assessors reading "High" do not, and the portfolio numbers built on top stop meaning anything. Twenty-six questions, seventy-eight anchors, all verbatim from the owner's own instrument. Three consequences kept: a band the platform can work out from a fact already given is **offered and never pre-answered** (FR-7 — the suggestion is dashed, nothing is selected, and the person's click is still the answer, because a pre-selected band is an answer nobody gave, G-42); accumulated controls carry **every** reason that pulled them in, not the first; and the accumulation is computed on every render rather than stored, so changing a band changes the workplan with no migration (NFR-3).
-- **G-44 (settled):** Demo readiness is tracked as an artifact, and finishing a slice forces the conversation about it (2026-08-21, owner's question "how are you tracking features to demo?"). The answer was: build completeness — slices, requirements, UAT records — and not demo readiness, which is a different thing. A requirement can be fully met and still be unfit to show: FR-4 is met while the screen that delivers it has fifteen tab stops before its first control, and the two beats that carry the demo's punchline (a severity answer summoning a control, the ServiceNow record) are not built at all. `demo/readiness.md` holds one row per beat — what the room sees, what delivers it, whether it is built, **whether a person has walked it**, and what to do if it breaks live — plus the risks that are not features (it runs on a laptop; the list opens on test data; no curated scenario) and an explicit list of what will not be claimed. The teeth: the Stop gate refuses to finish while `slices-covered` lags the slices marked DONE, and it asks the four questions rather than reporting a failed check. The distinction the file exists to hold: **a beat nobody has used is not ready, however green the tests are** — every defect that mattered this session was found by a person using the product.
-- **G-43 (settled):** Anything that must always happen is a hook or a test, and the hook emits the procedure rather than naming it (2026-08-21, owner's question). §21 item 6 requires every slice to register its agentic opportunity; it lived in a skill and a prose line, so it fired when the owner asked for it — three finished slices had no such section at all. Three gates close the class: the Stop gate refuses to let work end while a generated artifact is stale or a slice marked DONE lacks a record containing its required sections **including the agentic one**; the agent-map parity test counts §22.1's rows and compares them to the map, an **external** reference instead of the generator grading its own output; and the advise hook now emits a skill's own checklist at the moment a governed file is edited, so procedure arrives in context whether or not anyone chose to load it. The division that makes this work: **mechanism answers "did it happen", judgement answers "was it any good"** — a hook can guarantee the first and never the second, which is what the verifier and the skills are for.
-- **G-42 (settled):** The product may never state as the person's answer something the person was not asked (2026-08-21, S3 round two). Three instances in two rounds: a gate reason naming intake evidence when the source was another gate; a summary card reading *"you told us none of the specific threads apply"* to someone never asked; and, underneath both, an autosave that wrote a positive *"none of these apply"* for every open area the moment one box was ticked anywhere — fabricating three answers and making the false sentence consistent with the database. The rule has a mechanical shape: **a sentence attributing something to a person must be conditioned on the record of them saying it, not on the absence of a record.** "No paths are lit" and "they told us none apply" are different facts and must render differently; an autosave writes only what was touched, while submitting a form — an explicit act covering every question on screen — writes all of it. Provenance must also reach every surface: the round-one fix reached the gate screen and left the rail and the summary lying, because three places rendered the same fact from three hardcoded strings.
-- **G-41 (settled):** A claim that a rule is enforced must be enforced (2026-08-21, S3 verification, B3). The S3 commit stated that the validator rejected chained gate pre-fills and chained derived paths. It rejected neither: the gate check looked only for a rule reading its own key, and the path check inspected one field name out of the several a rule can use — so a chained rule passed validation and then **silently never fired**, which is worse than a rejection because the author sees no error and the rule looks right. The shipped instrument already contained a two-hop gate chain, and a unit test asserted it as correct. Three fixes and one rule: chaining is now checked across the whole instrument rather than per category; gate resolution runs to a **fixed point** bounded by the category count, because two passes silently capped derivation at one hop and made chain depth decide whether an authored rule worked; and where the design genuinely wants a chain (intake → architecture → security, audit C-5) it is allowed and its provenance names the real source. **The rule: when a commit message says "enforced by X", the reviewer's first move is to break X.** Three consecutive rounds have now found a claimed guarantee that was not one.
-- **G-40a (settled):** An operation a person experiences as one act is one transaction (2026-08-21, S3 verification, B1). The paths screen wrote four areas in a loop, so a failure partway committed the first two and then told the person *"nothing was saved"* — false, and the uncommitted ticks vanished on the next load, while the slice's own UAT record claimed "nothing is lost and the person is told". One call, one transaction, all or none; the sentence is now true because the behaviour changed to match it. Two corollaries kept: an answer is saved when it is given, not when a form is submitted, because the primary navigation on that screen used to discard ticks silently (§24.3); and a transport failure carries a per-incident reference, not a class name like `OFFLINE`, because support correlates incidents, not categories.
-- **G-40 (settled):** Derived state is computed, never stored (2026-08-21, S3, NFR-3). The engine answers three questions from the answers given — which paths are lit, which gates another gate settles, and what each of those depends on — and writes none of it down. Changing an upstream answer therefore re-derives everything downstream with no migration, no reconciliation job, and no stale row that can disagree with the answers it came from; the end-to-end suite proves it by reopening the AI area from intake and watching the cross-domain path appear. Two rules fall out and are enforced: a derived path may depend on chosen selections but never on another derived path (one level, no cycles, checked by the validator), and a gate may not pre-fill from its own answer. **Parts-shelf decision #1 (§17): rewrite, not salvage.** The prior platform's engine solves module activation for a flat questionnaire; paths, severity bands and threshold routing are a different shape, and adapting ~1,000 lines built for another model would have cost more than the ~150 written here against the predicate this codebase already had. Its *test patterns* were taken. The shelf was consulted and declined on the evidence, which is what G-8 asks for.
-- **G-39a (settled):** Every path the engine lights without asking carries the sentence that explains it (2026-08-21, FR-5, §24.5). "Supplier concentration — every supplier gets this one" and "personal information in AI — you told us personal information is involved and that this uses AI" are shown next to the question they replace, in the same treatment as an intake pre-fill, because they are the same promise: we already knew this, so we did not ask. An assessment that silently expands its own scope is one people stop trusting, and the difference between *chosen* and *derived* stays visible in the data model, not just the screen.
-- **G-39 (settled):** Nothing a person types is discarded by the framework (2026-08-21). Intake's fields are controlled inputs, so React's first render replaces whatever is in the DOM with the values the server sent — meaning anything typed in the window between the HTML arriving and the JavaScript hydrating vanished. Silently: no error, no sign, the answer simply gone, and the person had no way to know which keystrokes had counted. It surfaced as an end-to-end test losing a typed answer about one run in three on a page reached by redirect, and the tempting reading was "flaky test". It was not: the value never reached React at all, and the rail sat at "3 still needed" for five seconds proving it. The form now reads itself once on mount and adopts what it finds, and every control carries a `name` so there is a form to read. Two rules kept: **an intermittent failure is a defect until proven otherwise** — "it passes on a retry" is a description, not a diagnosis; and a server-rendered form that looks usable before it is usable is making a promise the framework has to keep.
-- **G-38 (settled):** Data classification is one answer on a named scale (2026-08-21, audit C-3, owner call). It was a multi-select whose own help text said "choose the highest classification of any data involved" — the words asked for one answer and the control accepted four, so two people describing identical data produced records that could not be compared, and any later severity reading "the classification" got a different answer depending on who filled the form. It is now a single choice, rendered as the scale it is rather than a dropdown: four cards in order, each with a sentence describing what belongs in it, rank shown by position and filled pips as well as by name (never colour alone, §11.1). The label changed with it — "Data Classification" was our vocabulary; "What's the most sensitive data involved?" asks the question and makes the "highest one wins" rule part of the question instead of an instruction underneath it. Existing rows keep their high-water mark (migration 0010). Second effect, which is why it was worth the migration: `Public` became expressible, so genuinely public data now **closes** the privacy area. Deliberately no "I'm not sure" option — the four descriptions place almost any situation, and the help says to choose the higher of two when caught between; if that proves wrong in use, the escape hatch is the fix, not the scale.
-- **G-37 (settled):** Required means required, and negative paths are verified by default (2026-08-21, owner found it in use). Clicking Next four times through intake while answering nothing landed on the risk areas with a completely empty identity record — so nothing pre-filled, all eleven gates were asked, and the platform's central claim quietly stopped being true. `required: true` in the instrument data was decoration: no control carried it, no submit checked it, and no server route refused it. **Root cause, and the reason three layers of checking missed it: it was not a requirement.** FR-1 described sections and conditional fields; nothing said enforcement, so there was no §19 criterion, no UAT row, no test, and nothing for a verifier working requirement-by-requirement to check — while every journey in the suite filled the form in order, front to back. This is the third defect of one shape (see G-28, G-33): **the suite tests the path the feature was designed for, and verification tests the requirements as written, so anything nobody wrote down is invisible to both.** Two fixes, one for the defect and one for the shape: FR-28 makes enforcement a requirement with the refusal server-side, and NFR-21 makes an adversarial input pass — empty submit, skipped step, URL bypass, stale re-submit — a standing step in every verification, owed whether or not a requirement mentions it. Partial saves remain allowed and nothing typed is ever discarded; what is refused is treating an unfinished record as finished.
-- **G-36 (settled):** A risk area that applies to everyone is stated, not asked (2026-08-21, audit C-8, owner call). Governance & Oversight would have been Yes on very nearly every assessment, and it asked in risk-department vocabulary a business user cannot answer confidently ("decision rights", "oversight responsibilities"). **The area is not removed and its coverage does not change** — the question is. It is marked `alwaysApplies` in the instrument, shown in the rail as "Applies · not asked", excluded from the count of what a person still has to do, and reachable by link so that a person who goes looking is told there is nothing to answer and why, rather than being silently redirected. Deliberately *not* modelled as a pre-fill: a pre-fill invites correction, and this is not the requester's to correct. Three related gates were examined and left alone — People & Capacity needs re-anchoring on checkable facts rather than removal, Security & Resilience needs the pre-fill in C-5, and Ethics & Conduct is genuinely uncertain until real projects have been walked through.
-- **G-35 (settled):** Intake asks whether a third party is involved, rather than inferring it from a name field (2026-08-21, audit C-2, owner call). The condition engine is positive-evidence-only by design (§3.2.1), so an empty vendor-name box proved nothing: the Third-Party area could only ever be opened, never closed, and someone typing "none" opened it on a false positive. A plain Yes / No / I'm not sure question now closes the area outright when the work is in-house, and the name field is revealed only by a Yes. **Distinguished from G-20:** the question the owner removed asked a business user to classify their activity against our risk taxonomy; this asks a fact about their own project that they already know, and its answer is checkable. Measured effect: the audit's worst case — a process change with no technology, no vendor, no AI — went from 0 of 11 areas pre-answered to two closed before Tier 1 begins, and one never asked.
-- **G-34 (settled):** Destinations registered 2026-08-21 (§27, owner call): the assessment becomes a source that downstream systems of record draw from, first instance the ServiceNow AI Use Case Record. Two decisions inside it. The offer is **opt-in** — the owner chose the prompt over silent registration, and the count in it must be computed rather than written, because a real "24 of 29 already answered" is the whole argument and an invented one is a lie in the demo. And the field map is versioned data marked provisional on screen until the organisation confirms the live field list, so the demo can be honest about what it has: the values are real answers, the field names are our best guess, and swapping them is a file edit. The write to ServiceNow is deliberately out of scope; the payload is real and downloadable, the send is labelled not connected, and nothing mimics a successful send.
-- **G-33 (settled):** A role is what it permits **on the object**, not only in the listing (2026-08-21, N1 — blocking, second verification round). G-29's fix scoped the assessment list and stopped there, so every assessment stayed open to every persona by URL: a requester edited the administrator's project, and an assessor answered a gate on a requester's, both written with the wrong person's attribution. The list rule and the object rule are now one function (`mayOpenAssessment`), a unit test requires them to agree for every role, and a route that loads an assessment without going through the single access helper fails an architecture test. The lesson is narrower and more useful than "check permissions": **a fix aimed at a finding tends to stop at the finding.** F2 was reported as a listing problem, so it was fixed as one. The question that was not asked is the one to ask next time — *what else was relying on the thing I just found to be missing?*
-- **G-32 (settled):** Refusals are designed states, not exceptions (2026-08-21, N2/N3/N15). A server action that throws lands the person on the generic error boundary, which told them the page had failed to draw and never mentioned the rule that had actually been applied. Server actions now return typed failures for every outcome including refusal; the architecture test that was meant to enforce this matched `throw new Error` only and let a bespoke error class through, which is worse than no test because it reads as coverage. `retryable` is now honoured in the interface rather than merely produced: a permanent failure offers the way out, not "Try again".
-- **G-31 (settled):** A test suite may not write to the environment a person works in (2026-08-21, F11). The end-to-end suite created a project per journey in the *development* database, so the assessment list a demo opens on had filled with rows named `Scope 1787327552901`. The suite now brings its own database and its own server, created and migrated by `scripts/prepare-e2e-db.mjs` — which is also the shape a fresh environment takes (create, migrate, activate). **Honest limit:** nothing runs it on a clean machine yet — there is no CI in the repository, so "it builds from scratch" is a claim resting on one developer's laptop until a pipeline exists (N16). `pnpm db:reset` rebuilds the development database the same way, which is the only way back to a clean environment given that an assessment holding answers cannot be deleted (F13). Listings say what they are withholding rather than truncating quietly.
-- **G-30 (settled):** Intake is evidence, not a scratchpad (2026-08-21, F5). Gate answers recorded their author from S2.5; intake did not, and because intake writes update a mutable row, the previous value simply vanished — "who changed the data classification, and from what?" had no answer anywhere in the system, while NFR-19 claimed attribution across the assessment. `intake_events` is insert-only like `answers`, keeps the previous value as JSON so a removed multi-select option is still visible, and carries a nullable author because fabricating one would be worse than admitting a gap. What moved is decided by pure logic (`intakeChanges`) so the history is testable without a database.
-- **G-29 (settled):** A role is what it permits, not what it is called (2026-08-21, F2). The Risk Assessor was a distinct label with an identical permission set, and every role saw every project under a heading reading "Your assessments" — contradicting §2's "sees their own project only" on the very screen that introduces the product. A requester now sees their own work; a Risk Assessor and an administrator see the queue, which is the job; and a Risk Assessor may not start an assessment they would later review, refused server-side rather than by omitting the control. A unit test now requires every role's permission set to be distinct from every other's, so a role cannot be added as a label again.
-- **G-28 (settled):** A submission writes only what it is responsible for (2026-08-21, F1 — blocking). Saving any intake section silently erased every multi-select answer in every other section, and reported success. The cause was a whole-instrument patch built from a partial form; the reason it survived a slice review, a UI pass and a green suite is that the unit test **asserted the defect as correct** and the end-to-end journey filled sections strictly forward, so it never crossed the boundary. A partial submission now declares its scope and fields outside it are left alone. Two lessons are kept: a test written from the implementation inherits the implementation's blind spot, and the first completed independent verification found in one run what three self-reviews had missed — §21's independent step is not a formality.
-- **G-27 (settled):** §24.3 added 2026-08-21 from a defect the owner found in use — the persona switcher required choosing a person *and then* pressing "Switch", so choosing appeared to do nothing and the control read as broken. A control now responds to the action a person takes; confirmation is reserved for the irreversible. The suite had not caught it because the journey was written knowing the implementation (select, then click) — the exact blind spot independent verification exists to cover, and the verifier had still never completed a run.
-- **G-26 (settled):** Personas built at S2.5 (2026-08-21) rather than deferred to the review slice, for one decisive reason: answers are insert-only, so a row written without an author can never be attributed afterwards, and every slice would grow that unattributable population. The role model is real and enforced server-side; the switcher over seeded people is explicitly a pilot device and says so on screen. Production identity (single sign-on, tenancy) remains out of scope (§12) — replacing the switcher touches `current-person.ts` alone and moves no authority rule. Rows written before this slice keep a null author and read as "recorded before attribution existed"; fabricating an author would have been worse than admitting the gap.
-- **G-25 (settled):** AI transparency is a product feature, not a debug screen (2026-08-21, FR-24). The administration page at `/admin/agents` lists every agent — build-time and runtime — with when it runs, what it can reach in plain words, its guardrails, and its complete instructions. It is **generated from the codebase** at build time and imported (never read from disk at request time, §26.1); `test/unit/agent-map.test.ts` regenerates and compares, so adding an agent without regenerating fails the build, and the advise hook says so the moment an agent or skill file is edited. Scope note: this sits outside the Phase-1 boundary in §16 and is admitted deliberately, because an organisation cannot govern agents it cannot enumerate — it is the visible half of §22.3. **Honest limit: there is no identity yet, so the page cannot actually be restricted to administrators; it says so on the page rather than implying protection it does not have.**
-- **G-24 (settled):** UAT is an artifact, not a conversation (2026-08-21). Every finished slice carries `uat/<slice>.md` — one row per owned requirement, with what was done, what was observed, a pass/fail result, and evidence — committed with the slice and stamped with the spec version it was run against. Six criteria are enforced by test rather than by review: coverage of every owned requirement, no orphan rows, substantive evidence ("works" is not evidence), no blank results, follow-up on every failure, and a matching spec version. Adapted from the artifact-reviewer pattern; implemented as tests because this project puts teeth in tests. SPEC.md now carries a `spec-version` so a record can say what it was checked against.
-- **G-23 (settled):** 2026-08-21 — questions must be designed before they ship (Build Rule 13), and two experience laws added from a live finding: every question says what to do when it doesn't apply (§24.9), and every question carries teaching helper text (§24.10). Both are enforced by tests rather than by review, because the finding that prompted them — an empty vendor field with no way to say "nothing, it's all in-house" — survived a slice review, a UI pass, and a screenshot before the owner caught it.
-- **G-22 (settled):** Policy grounding registered 2026-08-21 — definitions, suggestions, compliance checking, and instrument-to-obligation traceability — governed by §22.5. An internal policy is authoritative for definitions and requirements (the one legitimate exception to §22.2's evidence line) but never for facts about a project; quotes are verbatim with clause and version named; policies are versioned like the instrument so a revision raises a finding rather than rewriting history. Salvage note: the prior platform's policy machinery (library sources and items, verbatim claim extraction, answer-to-policy alignment, findings with four dispositions) is proven and is the salvage candidate; the policy corpus itself comes from the organisation.
-- **G-21 (settled):** Portfolio memory registered 2026-08-21 — precedent suggestion, application profiles, and reviewer-side divergence signals — governed by §22.4's four rules: attested-only (no precedent laundering), aggregate-never-disclose with a minimum comparable count, no anchoring (never pre-selected; for binary gates prefer showing patterns after the answer), and age shown as part of the fact. Divergence is a reviewer triage signal, never pressure on the requester toward the majority.
-- **G-18 (settled):** Documentation architecture — law in SPEC (short, governed, traceable), procedure in skills (loaded on demand), teeth in tests and hooks. Skills may not carry normative rules that must always hold, because loading is probabilistic; anything always-true is stated here and routed from CLAUDE.md. Adopted 2026-08-21.
-- **G-17 (settled):** The persistence engine is an open decision under standing assessment (§14.6), not a settled choice — Postgres is Phase 1's implementation behind the store interface, DynamoDB is a live candidate. Store-specific choices must be flagged in slice reviews; the implementer reports with evidence after S9 and before the AWS migration. Recorded 2026-08-21 at the owner's direction.
-- **G-16 (settled):** §26 cloud-native construction rules adopted 2026-08-21 as workspace law (NFR-14 to NFR-17): pure logic separated from executors, state and persistence externalised behind one interface, configuration only through a single validated env module, and three separately-runnable test tiers. The migration guide (§26.7) is a named deliverable before production. Recorded correction: development-time subagents do not migrate; the runtime agents are the Phase-2 features in §7.
-- **G-15 (settled):** §25 error-handling standard adopted 2026-08-21 (NFR-13): expected failures are typed values not exceptions; the user gets a sentence and a quotable reference while the log keeps the detail; every message says what happened, whether their work is safe, and what to do next; input is never lost; error paths are tested.
-- **G-14 (settled):** §24 experience principles adopted 2026-08-21 — each derived from a defect found in this build, audited by the slice-verifier, and binding on every surface. The first two, in the owner's framing: never re-ask what someone said they don't know, and pace the journey rather than presenting a wall.
-- **G-13 (settled):** Independent verification is a Phase-1 capability, not a Phase-2 one: the slice-verifier subagent runs UAT and regression against every slice before it advances, cannot edit code, and its report is part of the slice review. Adopted 2026-08-21.
-- **G-12 (settled):** Every slice ships demo-ready UI to the §23 standard; a slice with working logic and unfinished interface is not done. Taste calls belong to the owner and are applied before the next slice begins.
-- **G-11 (settled):** Every slice registers its agentic opportunity (§22) as a designed, guard-railed Phase-2 feature. Phase 1 builds none of it and may foreclose none of it. First entry: the intake quality assistant (rubric grading, contradiction detection, opt-in rewrite of the requester's own words).
-- **G-10 (settled):** Intake question set refined 2026-08-21 (S1 review): AI capture with a conditional detail field; plain-language "new vs. update" replacing the acronym list, with an optional prior-work pointer; objective launch date replacing self-reported priority; lifecycle stage retired (absorbed by initiative type); procurement status softened to Yes/No/Not-sure; compliance-obligation areas and granular PII detail removed from intake — both are asked at Tier 1/2 where they route (T1-LRC-2, T2-PRIV-1.C). Consequence: intake now carries routing-relevant answers, which is why FR-22 exists.
-- **G-9 (settled):** Delivery runs under the slice review protocol (§21) — pre-flight before each slice, structured review with mandatory self-critique after it, refinements applied and re-gated before the next slice. Adopted 2026-08-21 after the intake review demonstrated its value in both directions.
+- **G-1 (settled):** This specification supersedes the prior platform spec; the prior instrument (placeholder catalog) is retired in full. Historical assessments remain readable via version pinning.
+
+- **G-2 (settled):** The three-tier instrument defined in §3 — categories/gates/paths, rubric-anchored severity, threshold-based control accumulation, Tier-3 self-assessment — is the assessment model of record, transcribed from the owner's reference design and verified by differential testing.
+
+- **G-3 (settled):** Structured intake is the front door for Phase 1. **Reopened by G-51 (2026-08-23):** conversational AI intake is the Phase-2 epic's headline capability, no longer an indefinite deferral.
+
+- **G-4 (settled):** Tier-3 No/Partial answers synthesize findings at submission (§4.3); packaging remains blocked on open findings.
+
+- **G-5 (settled):** No runtime instrument authoring; seed-PR governance only (§8).
+
+- **G-6 (settled):** The agentic layer's contract (§7) is normative now, even while dormant — nothing may be built that would violate it later.
+
+- **G-7 (settled):** AWS is the deployment target and §6.4's tiered migration is the plan of record. Phase 1 builds AWS-ready by construction (the five firm obligations in §6.4); cloud execution itself is Phase-3 work. The Bedrock model-access request is the standing critical-path item and is owner-owned.
+
 - **G-8 (settled):** Execution route — **fresh repository, built slice by slice (§17)**. The prior repository is retained untouched as the **parts shelf**: proven components (condition engine, invariants schema, verbatim matcher, eval harness, agent service) are salvage candidates, and each salvage-or-rebuild decision is made at the slice that needs the part, recorded against that slice. The prior repository is never developed further and is decommissioned only after Phase-1 acceptance.
+
+- **G-9 (settled):** Delivery runs under the slice review protocol (§21) — pre-flight before each slice, structured review with mandatory self-critique after it, refinements applied and re-gated before the next slice. Adopted 2026-08-21 after the intake review demonstrated its value in both directions.
+
+- **G-10 (settled):** Intake question set refined 2026-08-21 (S1 review): AI capture with a conditional detail field; plain-language "new vs. update" replacing the acronym list, with an optional prior-work pointer; objective launch date replacing self-reported priority; lifecycle stage retired (absorbed by initiative type); procurement status softened to Yes/No/Not-sure; compliance-obligation areas and granular PII detail removed from intake — both are asked at Tier 1/2 where they route (T1-LRC-2, T2-PRIV-1.C). Consequence: intake now carries routing-relevant answers, which is why FR-22 exists.
+
+- **G-11 (settled):** Every slice registers its agentic opportunity (§22) as a designed, guard-railed Phase-2 feature. Phase 1 builds none of it and may foreclose none of it. First entry: the intake quality assistant (rubric grading, contradiction detection, opt-in rewrite of the requester's own words).
+
+- **G-12 (settled):** Every slice ships demo-ready UI to the §23 standard; a slice with working logic and unfinished interface is not done. Taste calls belong to the owner and are applied before the next slice begins.
+
+- **G-13 (settled):** Independent verification is a Phase-1 capability, not a Phase-2 one: the slice-verifier subagent runs UAT and regression against every slice before it advances, cannot edit code, and its report is part of the slice review. Adopted 2026-08-21.
+
+- **G-14 (settled):** §24 experience principles adopted 2026-08-21 — each derived from a defect found in this build, audited by the slice-verifier, and binding on every surface. The first two, in the owner's framing: never re-ask what someone said they don't know, and pace the journey rather than presenting a wall.
+
+- **G-15 (settled):** §25 error-handling standard adopted 2026-08-21 (NFR-13): expected failures are typed values not exceptions; the user gets a sentence and a quotable reference while the log keeps the detail; every message says what happened, whether their work is safe, and what to do next; input is never lost; error paths are tested.
+
+- **G-16 (settled):** §26 cloud-native construction rules adopted 2026-08-21 as workspace law (NFR-14 to NFR-17): pure logic separated from executors, state and persistence externalised behind one interface, configuration only through a single validated env module, and three separately-runnable test tiers. The migration guide (§26.7) is a named deliverable before production. Recorded correction: development-time subagents do not migrate; the runtime agents are the Phase-2 features in §7.
+
+- **G-17 (settled):** The persistence engine is an open decision under standing assessment (§14.6), not a settled choice — Postgres is Phase 1's implementation behind the store interface, DynamoDB is a live candidate. Store-specific choices must be flagged in slice reviews; the implementer reports with evidence after S9 and before the AWS migration. Recorded 2026-08-21 at the owner's direction.
+
+- **G-18 (settled):** Documentation architecture — law in SPEC (short, governed, traceable), procedure in skills (loaded on demand), teeth in tests and hooks. Skills may not carry normative rules that must always hold, because loading is probabilistic; anything always-true is stated here and routed from CLAUDE.md. Adopted 2026-08-21.
+
+- **G-19 (superseded by G-20):** "Technology / Non-Technology" retired from intake (2026-08-21): it asked a business user to classify against our taxonomy. Its replacement question was itself removed by G-20; the surviving rule is **ask about their world and derive the taxonomy.**
+
+- **G-20 (settled):** The intake question about what an activity introduces or changes is removed entirely (2026-08-21, owner call): intake is the identity record; routing is Tier 1's job, one gate at a time. Pre-fill (FR-22) survives on signals intake genuinely owns — vendor involvement, initiative type, data classification, the AI question.
+
+- **G-21 (settled):** Portfolio memory registered 2026-08-21 — precedent suggestion, application profiles, and reviewer-side divergence signals — governed by §22.4's four rules: attested-only (no precedent laundering), aggregate-never-disclose with a minimum comparable count, no anchoring (never pre-selected; for binary gates prefer showing patterns after the answer), and age shown as part of the fact. Divergence is a reviewer triage signal, never pressure on the requester toward the majority.
+
+- **G-22 (settled):** Policy grounding is a Phase-2 capability with a standing exception (2026-08-21): definitions quoted from ratified policy may be shown as help today, verbatim and cited; anything generative waits for §22.5.
+
+- **G-23 (settled):** Helper text teaches, never repeats the label (2026-08-21, §24.11): every question carries help written for the person answering, checked mechanically for the no-repeat rule.
+
+- **G-24 (settled):** Every finished slice carries a committed UAT record (2026-08-21, NFR-18) meeting six criteria: numbered checks with objective pass lines, negative paths, evidence per check, the spec version it ran against, findings with dispositions, and an honest "not verified" list. The record is the artifact; a walk that leaves no record did not happen.
+
+- **G-25 (settled):** AI transparency is a product feature, not a debug screen (2026-08-21, FR-24): `/admin/agents` lists every agent with when it runs, what it can reach, guardrails, and full instructions — generated from the codebase, compared by test, prompted by hook. Admitted outside §16's Phase-1 boundary deliberately: an organisation cannot govern agents it cannot enumerate. Honest limit: no identity yet, so the page says it is unrestricted rather than implying protection.
+
+- **G-26 (settled):** Personas built at S2.5 rather than deferred (2026-08-21): answers are insert-only, so rows written without an author can never be attributed afterwards. The switcher over seeded people is explicitly a pilot device and says so on screen; production identity (SSO, tenancy) stays out of scope (§12). Pre-S2.5 rows keep a null author — "recorded before attribution existed" beats a fabricated one.
+
+- **G-27 (settled):** The eleven Tier-1 gates and their path questions are transcribed verbatim from the owner's reference instrument (2026-08-21): wording authority is the owner's; changes go through §8.
+
+- **G-28 (settled):** A partial intake submission never disturbs answers outside its own scope (2026-08-21, F1, FR-2): each section submits only its own fields, and the server writes only what the submission names. Found by the owner using the product — the suite only ever filled forms front to back.
+
+- **G-29 (settled):** A persona defines what the platform permits, not what it displays (2026-08-21, F2): every route that reads or writes an assessment decides authority server-side from the session persona in one pure module. Superseded in part by G-33, which extended the same rule to the object.
+
+- **G-30 (settled):** Every answer and every intake change records who made it and what it replaced (2026-08-21, NFR-19): attribution is written at insert, decided by role in one pure module, never in a screen. Intake history is insert-only events; the current record is a projection.
+
+- **G-31 (settled):** A test suite may not write to the environment a person works in (2026-08-21, F11): the E2E suite brings its own database and server via `scripts/prepare-e2e-db.mjs` — which is also the shape of a fresh environment. Honest limit: no CI exists, so "builds from scratch" rests on one laptop until a pipeline does. `pnpm db:reset` is the only way back to clean, since assessments holding answers cannot be deleted.
+
+- **G-32 (settled):** E2E tests assert rendered DOM, never server markup (2026-08-21): a grep over HTML passes while the page is broken for a person. Playwright drives the app a person sees; the suite owns its own database (G-31).
+
+- **G-33 (settled):** A role is what it permits **on the object**, not only in the listing (2026-08-21, N1, blocking): list rule and object rule are one function (`mayOpenAssessment`), a unit test requires them to agree for every role, and a route that skips the access helper fails an architecture test. **A fix aimed at a finding tends to stop at the finding — ask what else relied on what was missing.**
+
+- **G-34 (settled):** Destinations registered (2026-08-21, §27, owner call): the assessment becomes a source downstream systems draw from; first instance the ServiceNow AI Use Case Record. The offer is opt-in, its "N of M already answered" count **computed, never written**; the field map is versioned data marked provisional; the write is out of scope — the payload is real and downloadable, the send labelled not connected, nothing mimicked.
+
+- **G-35 (settled):** Intake asks whether a third party is involved rather than inferring it from a name field (2026-08-21, audit C-2, owner call): positive-evidence routing (§3.2.1) means an empty box proves nothing, so a plain Yes / No / I'm not sure question closes the area outright for in-house work, and the name field reveals on Yes. Distinguished from G-20: this asks a fact about their own project, checkable, not our taxonomy.
+
+- **G-36 (settled):** A risk area that applies to everyone is stated, not asked (2026-08-21, audit C-8, owner call): Governance & Oversight is marked `alwaysApplies`, shown as "Applies · not asked", excluded from the to-do count, and reachable by link with an explanation. Deliberately not a pre-fill — a pre-fill invites correction and this is not the requester's to correct. People & Capacity, Security & Resilience and Ethics & Conduct examined and left alone pending real walks.
+
+- **G-37 (settled):** Required means required, and negative paths are verified by default (2026-08-21, owner found it in use): `required: true` was decoration — nothing enforced it, and nothing wrote it down as a requirement, so no layer of checking could see it. FR-28 makes enforcement a requirement with the refusal server-side; NFR-21 makes the adversarial pass — empty submit, skipped step, URL bypass, stale re-submit — a standing verification step. **What nobody wrote down is invisible to both the suite and the verifier.**
+
+- **G-38 (settled):** Data classification is a single choice on a named four-band scale (2026-08-21, audit C-3, owner call), rendered as the scale it is — four ordered cards, rank by position and pips, never colour alone (§23). The label asks the question ("What's the most sensitive data involved?"). `Public` became expressible and now closes the privacy area; existing rows keep their high-water mark (migration 0010). Deliberately no "I'm not sure" here — the descriptions place almost any case.
+
+- **G-39 (settled):** Nothing a person types is discarded by the framework (2026-08-21): controlled inputs erased keystrokes typed before hydration. The form reads the DOM once on mount and adopts what it finds; every control carries a `name`. **An intermittent failure is a defect until proven otherwise** — "passes on retry" is a description, not a diagnosis.
+
+- **G-39a (settled):** Nothing is pre-selected for a person, anywhere (2026-08-21): a pre-selected answer nobody looked at becomes that person's attributed answer — the failure the platform exists to prevent. Suggestions are dashed, labelled, and unselected; the click is the answer (see G-45, G-49).
+
+- **G-40 (settled):** Derived state is computed, never stored (2026-08-21, S3, NFR-3): paths, settled gates and their dependencies are re-derived from answers on every read, so upstream changes propagate with no migration and no stale rows. A derived path may depend on chosen selections but never on another derived path; a gate may not pre-fill from itself. **Parts-shelf decision #1: rewrite, not salvage** — the prior engine solved a different shape; its test patterns were taken, ~150 lines written here.
+
+- **G-40a (settled):** An operation a person experiences as one act is one transaction (2026-08-21, S3 verification, B1). The paths screen wrote four areas in a loop, so a failure partway committed the first two and then told the person *"nothing was saved"* — false, and the uncommitted ticks vanished on the next load, while the slice's own UAT record claimed "nothing is lost and the person is told". One call, one transaction, all or none; the sentence is now true because the behaviour changed to match it. Two corollaries kept: an answer is saved when it is given, not when a form is submitted, because the primary navigation on that screen used to discard ticks silently (§24.3); and a transport failure carries a per-incident reference, not a class name like `OFFLINE`, because support correlates incidents, not categories.
+
+- **G-41 (settled):** A claim that a rule is enforced must be enforced (2026-08-21, S3, B3): the validator's chaining checks did not catch chains, so an authored rule silently never fired. Chaining is now checked instrument-wide, gate resolution runs to a fixed point, and a deliberate chain is allowed with provenance naming the real source. **When a commit says "enforced by X", the reviewer's first move is to break X.**
+
+- **G-42 (settled):** The product may never state as the person's answer something the person was not asked (2026-08-21, S3 round two, three instances). Mechanical form: **a sentence attributing something to a person must be conditioned on the record of them saying it, not on the absence of a record.** An autosave writes only what was touched; submitting a form writes everything on it; provenance must reach every surface that renders the fact, not just the screen where it was fixed.
+
+- **G-43 (settled):** Anything that must always happen is a hook or a test, and the hook emits the procedure rather than naming it (2026-08-21). The Stop gate blocks on stale artifacts and missing UAT sections; the agent-map parity test compares against §22.1 as an external reference; the advise hook emits the relevant skill's checklist when a governed file is edited. **Mechanism answers "did it happen"; judgement answers "was it any good."**
+
+- **G-44 (settled):** Demo readiness is its own tracked artifact (2026-08-21, owner's question). Build completeness and demo readiness are different things; `demo/readiness.md` holds one row per beat — what the room sees, what delivers it, built or not, **walked by a person or not**, and the fallback if it breaks live — plus what will not be claimed. The Stop gate refuses to finish while `slices-covered` lags the DONE slices. **A beat nobody has used is not ready, however green the tests are.**
+
+- **G-45 (settled):** A rubric anchor is the option, not a label on one (2026-08-21, S4, FR-6): Tier 2 shows the three anchor sentences and the person picks the one that describes their situation — never a bare band word. A derivable band is **offered, never pre-answered** (FR-7); accumulated controls carry every reason that pulled them in; accumulation is computed per render, never stored (NFR-3).
+
+- **G-46 (settled):** Reference lists are versioned data, immutable once activated, and an answer stores the label as displayed when chosen (2026-08-21, FR-29, NFR-22) — renames must never change what a past answer says. One deliberate exception: the people directory is operational, not versioned (an IdP replaces it in production); its rename-safety comes from the stored label alone.
+
+- **G-47 (settled):** Off-list is an answer, not an error (2026-08-21, FR-30/FR-31): every reference-backed field accepts a value not on the list, stored distinguishably; multi-selects offer an explicit "something else" with required free text stored as its own value.
+
+- **G-48 (settled):** An off-list value binds to its assessment immediately and enters the shared list only by admin ratification with actor and timestamp (2026-08-21, FR-32) — propose→ratify (§5.6), one layer down.
+
+- **G-49 (settled):** A value the platform worked out names its source question and keeps saying so after the person accepts it (2026-08-21, owner feedback #10, FR-33). G-39a is not reopened — nothing is pre-selected; what changed is that provenance survives the click instead of vanishing with it. A true default, if still wanted, is its own governance entry.
+
+- **G-50 (settled):** Tier-2 depth is pilot-scoped to four risk areas (2026-08-22, owner call, recorded late). Third-Party, AI & Model Risk, Data & Privacy and Security & Resilience carry all 21 paths, 26 severity questions and 51 control objectives; the other seven areas have a gate and nothing behind it — Yes records scope for a reviewer and asks nothing further. The scope is right; the silence was the defect: an empty area and a deep one read identically. FR-35/S4.8 put the boundary on screen, and the rule stands: **a place where the product deliberately stops must say it is stopping deliberately.**
+
+- **G-51 (settled):** G-3 reopened by owner (2026-08-23): the agentic layer is the product's stated core, not an accelerant. §1 now leads with the official mission text; structured intake remains Phase 1's delivery vehicle and the demo claims only what is built; the Bedrock/AgentCore epic (§6.4 Tiers 2–3, §7, §22.1) is the priority work after the demo. G-6's contract discipline survives unchanged: nothing may be built that the §7 guardrails would forbid.
+
+- **G-52 (settled):** Two named acts, one word each (2026-08-23, owner mission text). The submitter makes a **declaration** at submission — an explicit, recorded statement that their answers are accurate, per key intake question (FR-37, S7). The assessor makes an **attestation** at review (FR-16–FR-18, S8, unchanged). The roles table stands: a requester still cannot attest. The pitch phrase "submitter attestation gateway" is delivered by the declaration; the vocabulary is kept distinct so four-eyes stays meaningful.
+
+- **G-53 (settled):** The persistence engine is Postgres on RDS (2026-08-23, closes §14's engine question). Seventeen plain-SQL migrations, schema CHECKs carrying §5 invariants, and PGlite tests replaying real DDL all exist; DynamoDB would relocate the invariants into application code and slow the AWS port the owner requires. pgvector is not provisioned until a phase needs embeddings.
+
+- **G-54 (settled):** Hand-offs legalized retroactively (2026-08-23). The "leave this to us" feature — flag, tag a person or risk domain, threaded conversation, derived obligation in the bell — was built at db6aa04 citing FR-36 and S4.7, neither of which existed in this document. The feature is right; building it untraceable violated the header's own rule. FR-36 and S4.7 now exist, and the lesson is mechanical: code may only cite requirement IDs this document defines (checked by `test/unit/spec-register.test.ts`).
+
+- **G-55 (settled):** The Claude Code operating layer is consolidated (2026-08-23, this level set): fourteen skills become nine, one gate-chain definition lives in `verify` and everything else cites it, the PreToolUse guard §15 promised is built, and §15 now describes only what exists. The four subagents named from the prior platform (contract-guard, coherence-auditor, provenance-auditor, ontology-auditor) are removed from §15 — they audit artifacts this repository does not have.
 
 ## 14. Open questions (decisions owed, not forgotten)
 
 1. **Composite scoring** — does a composite grade exist at all, and if so where may it appear? (Inherited; owner decision.)
-2. **Tier-3 audience** — requester-completes vs. control-SME persona; affects reviewer groups only, not structure.
-3. **Re-ask policy** — when, if ever, an unanswered asked question resurfaces (matters mainly once the agentic layer returns).
-4. **Help text per audience** — single help string today; requester vs. reviewer variants require a data-model addition.
-5. **History posture at handoff** — keep full git history or squash to a clean initial commit.
-6. **Persistence engine — Postgres or DynamoDB (owner decision, standing assessment).** Postgres is Phase 1's implementation behind the §26.2 interface; DynamoDB is a live candidate for the AWS target. The implementer assesses and reports at two checkpoints — **after S9** (the data model is fully known) and **before the AWS migration** — against these criteria, with evidence rather than preference:
-   - **Invariant enforcement (the decisive one).** §5's invariants are currently enforced by database CHECK constraints, which DynamoDB does not have. Moving to DynamoDB relocates those guarantees into application code, weakening "enforced in the schema, never only in the UI". That is a governance trade, not a technical preference, and would need its own governance entry.
-   - **Access patterns.** Whether reads stay key-shaped (a project by id) or need relational work (queue triage across projects, findings by state, answers joined to instrument versions).
-   - **Operational fit.** DynamoDB: scale-to-zero, no connection ceiling, no RDS Proxy, cheap at pilot volume. Postgres: joins, ad-hoc reviewer queries, multi-row transactions, and pgvector if Phase 2 wants embeddings.
-   - **Migration cost at the decision point**, measured against the store interface as it then stands.
+2. **Tier-3 audience** — requester-completes vs. control-SME persona; affects reviewer groups only, not structure. G-50's pilot depth (four areas) narrows who the SMEs would be.
+3. **History posture at handoff** — keep full git history or squash to a clean initial commit.
+4. **Attachment retention posture (§3.6)** — how long uploaded bytes live, who may purge, what an export carries. Owner decision; blocks S4.6.
+5. **The Bedrock model-access request** — owner-owned (Jesse), the only uncontrollable-latency dependency in the plan (§6.4 Tier 2). File it in the AWS sandbox account before the Phase-2 epic starts; nothing model-dependent begins until it is approved.
+
+*Closed since first written:* re-ask policy (settled by §24.1/§24.6/FR-22 for the deterministic flow; the agentic variant belongs to the Phase-2 epic); help text per audience (single teaching string is the standard, §24.11/G-23 — per-audience variants are a data-model addition proposed when a reviewer asks for one); persistence engine (Postgres on RDS, G-53).
 
 ## 15. Claude Code operating layer
 
@@ -350,55 +430,103 @@ This repository is operated with Claude Code as a first-class tool; the operatin
 
 ## 16. Phase boundaries — what "build this" means
 
-**Phase 1 (the MVP — the only phase authorized by accepting this spec):**
+**Phase 1 (authorized — the demo-ready deterministic platform):**
 
-Build a functioning assessment using **static seed instrument data**, comprising:
+Build a functioning assessment using **static seed instrument data**: structured intake with conditional fields; Tier-1 routing (gates → paths, union with provenance); Tier-2 severity (rubric-anchored + derived) with conditionals; Tier-3 control accumulation and self-assessment; full recomputation semantics (§3.2.7); the requester flow with the live ledger; the submitter declaration (G-52); reviewer attestation with the keyboard loop; findings synthesis and the four dispositions; packaging/export. Phase 1 is delivered as the §17 slices, which collectively own every FR/NFR in §20; acceptance = the full journey end to end with the gate chain green and both UAT rounds signed off.
 
-- structured intake (with conditional fields);
-- Tier-1 routing (gates → paths, union with provenance);
-- Tier-2 severity (rubric-anchored + derived) with conditionals;
-- Tier-3 control accumulation and self-assessment (Yes/Partial/No/N-A);
-- full recomputation semantics (§3.2.7);
-- the requester flow with the live ledger;
-- reviewer attestation (keyboard loop included);
-- findings synthesis and the four dispositions;
-- basic packaging/export (attested values, explicit N-A strings, findings, coverage).
+The instrument's pilot depth is four risk areas of eleven (G-50); the demo profile is the real instrument, not a cut-down one — 11 gates, 21 paths, 26 severity questions, 51 control objectives.
 
-The instrument ships in two profiles from one pipeline — a curated **demo profile** (all gates, selected paths, 6–8 control objectives) and the full profile as trailing data work. Phase 1 is delivered as slices S1–S10 (§17), which collectively own every FR/NFR in §20. Phase-1 acceptance = the demo profile end to end: create → intake → T1/T2/T3 → submit (findings synthesized) → attest → dispose → package → export renders, with the full gate chain green and both UAT rounds (§10) signed off.
+**Phase 1 explicitly excludes:** model calls of any kind, AgentCore, AWS deployment execution, risk scenarios, framework mappings, runtime instrument authoring, pre-deploy verification, scoring display, and independent-auditor automation. Exclusions are binding per Build Rule 5; the list may shrink by owner decision, and any growth is recorded here, not slipped in — admitted to date: the generated agent inventory (FR-24, G-25) and the governance-inserted slices S3.5, S4.5–S4.8 (G-34, G-46–G-50, G-54).
 
-**Phase 1 explicitly excludes:** AI/agentic capabilities, AgentCore, AWS deployment, risk scenarios, framework mappings, runtime instrument authoring, pre-deploy verification, scoring display, and independent-auditor automation. Exclusions are binding on the implementer per Build Rule 5. The Phase-1 list may shrink by owner decision; it may not silently grow.
+**Phase 2 (planned, priority after the demo — G-51): the agentic epic on Bedrock + AgentCore.** First artifact is the three seams (§6.1) in code; then drafting with verbatim citations, conversational intake, receipts, eval activation, and OpenTelemetry from the agent service's first day (§6.4). Nothing in it may violate the §7 guardrails.
 
-**Phase 2 (planned, not authorized):** agentic reconnection (§7) — drafting, conversational intake, receipts, eval activation. **Phase 3 (planned):** pre-deploy verification, scenarios, crosswalks anchored to control objectives, and the AWS migration executed per §6.4/G-7. Each phase begins with its own acceptance criteria added to this document.
+**Phase 3 (planned):** destination write-back (§27), production identity/SSO, pre-deploy verification, scenarios, crosswalks anchored to control objectives. Each phase begins with its own acceptance criteria added to this document.
 
 ## 17. Delivery plan — the slices
 
-Phase 1 is delivered as **ten vertical slices, built strictly in order**. Each slice ends demoable and reviewable; **do not start a slice until the previous slice's done-when holds and its owned requirements (§20) pass** (Build Rule 3). Execution route per G-8: fresh repository; the prior repository is the **parts shelf** — salvage decisions are made per-slice, at the moment a slice needs the part, never in advance.
+Phase 1 is delivered as **vertical slices, built strictly in order** (sixteen rows below; the decimal slices were inserted by governance events after the original ten). Each slice ends demoable and reviewable; **do not start a slice until the previous slice's done-when holds and its owned requirements (§20) pass** (Build Rule 3). Execution route per G-8: fresh repository; the prior repository is the **parts shelf** — salvage per-slice, never in advance.
 
-| # | Slice | Builds | Owns | Done when |
-|---|---|---|---|---|
-| **S1** | Intake | New repo (minimal web + Postgres); the four intake sections with conditional fields; project list. Needs nothing from the parts shelf. | FR-1, FR-2 · NFR-5, NFR-6, NFR-7, NFR-9 | Create a project, complete intake, close the browser, reopen: everything is there. Owner reviews before S2. |
-| **S2** | Gates | Schema for instrument + answers with §5 CHECKs; the 11 category gates, one per screen; instrument content as seed data from day one. | FR-3, FR-22 · NFR-1, NFR-8, NFR-11 | Gate answers persist; No closes its category; migration tests green. |
-| **S2.5** | People | Role model (requester · Risk Assessor · admin) enforced server-side; persona switcher; attribution on every answer. | FR-25 · NFR-19 | Switching persona changes what the platform permits, not only what it shows; every new answer records who gave it. |
-| **S3** | Paths & engine · DONE 2026-08-21 | Condition engine + one visibility predicate + recompute; Tier-1 path selection lighting paths with reasons. **Parts-shelf decision #1: salvage the engine or rebuild it.** | FR-4, FR-5, FR-9 · NFR-2, NFR-3, NFR-4 | §19 engine + routing criteria pass; changing an upstream answer re-derives everything. |
-| **S3.5** | Destinations · AI Use Case Record | The assessment assembles a record for a downstream system of record. When intake records AI, offer registration; assemble the ServiceNow AI Use Case Record from answers already given; show it field by field with provenance and gaps; download the payload. **The write to ServiceNow is deliberately not built.** | FR-26, FR-27 · NFR-20 | Answering "Yes" to AI offers registration with a real count of fields already answered; the assembled record shows source per field and names what is still missing; the payload downloads; nothing claims to have been sent. |
-| **S4** | Tier 2 · DONE 2026-08-21 | Severity questions with rubric anchors as options; derived severities; all four conditional kinds. | FR-6, FR-7, FR-8 · NFR-10 | §19 criteria; a Medium/High answer reveals its conditionals; a derived band routes. |
-| **S4.5** | Reference data & unlisted answers | Versioned reference lists (business units, vendors) and people-backed owner fields; pickers on the fields the owner named; "something else" with free text; off-list values recorded and ratifiable; provenance that survives acceptance; the derived fourth-party path; the sign-in picker. | FR-29, FR-30, FR-31, FR-32, FR-33 · NFR-22 | Choosing from the list and typing something not on it both work; the typed one appears in no other assessment until ratified; renaming a list entry does not change what a past answer says; accepting a worked-out value leaves its source question on screen. |
-| **S4.6** | Attachments | Upload for prior assessments and supporting documents, stored outside the app filesystem, classified, retained under a stated policy. **Blocked on §3.4** — the retention posture is written before the first byte is stored. | FR-34 | A document uploads, is retrievable, carries a classification, and the retention rule is written down first. |
-| **S4.8** | Declared boundaries | The seven pilot-scoped risk areas say on screen that they stop deliberately; the summary separates areas that produce work from areas recorded for a reviewer; a test asserts every undeclared dead end fails. | FR-35 | Answering Yes to Ethics & Conduct tells the person, in its own words, that nothing further is asked and why; the summary never counts it as work; adding a gate with no depth and no declaration fails a test. |
-| **S5** | Ledger | Control accumulation compiled to engine conditions; live ledger (paths · severities · objectives, each with reasons). | FR-10, FR-11 | §19 accumulation criteria; ledger updates on every answer with no page reload. |
-| **S6** | Tier 3 | Objective self-assessment (Yes/Partial/No/N-A, required notes); children on Yes; notes/questions attachable anywhere. | FR-12, FR-13, FR-21 | §19 criteria; suppressed children invisible; N-A without justification impossible. |
-| **S7** | Submit & findings | Submission with named-gaps confirmation; findings synthesis (No → gap, Partial → enhancement). | FR-14, FR-15 | Submit produces exactly the findings the T3 answers imply, carrying their notes. |
-| **S8** | Review & attest | Reviewer queue, attest/correct/N-A with keyboard loop, server-side authority, four dispositions with four-eyes + expiry reopen. **Parts-shelf decision #2.** | FR-16, FR-17, FR-18 · NFR-10, NFR-12 | §19 attestation + findings criteria; forged client attestation fails. |
-| **S9** | Package & export | Packaging gates; insert-only replayable export with explicit N-A strings. | FR-19, FR-20 | §19 packaging criteria; full-journey E2E create → export green. |
-| **S10** | Harden & hand off | Both UAT rounds; perf budgets; dead-code gate on; HANDOFF.md; generated instrument reference. | NFR-4, NFR-6, NFR-7 (final) | Owner sign-off = Phase-1 acceptance (§16). |
+| # | Slice | Status | Builds | Owns | Done when |
+|---|---|---|---|---|---|
+| **S1** | Intake | DONE | The four intake sections with conditional fields; project list. | FR-1, FR-2, FR-23, FR-28 · NFR-5, NFR-6, NFR-7, NFR-9 | Create a project, complete intake, close the browser, reopen: everything is there. |
+| **S2** | Gates | DONE | Schema for instrument + answers with §5 CHECKs; the 11 category gates; instrument as seed data from day one; the generated agent inventory (FR-24). | FR-3, FR-22, FR-24 · NFR-1, NFR-8, NFR-11 | Gate answers persist; No closes its category; migration tests green. |
+| **S2.5** | People | DONE | Role model enforced server-side; persona switcher; attribution on every answer. | FR-25 · NFR-19 | Switching persona changes what the platform permits, not only what it shows; every answer records who gave it. |
+| **S3** | Paths & engine | DONE 2026-08-21 | Condition engine + one visibility predicate + recompute; Tier-1 path selection with reasons. Parts-shelf decision #1: declined (G-40). | FR-4, FR-5, FR-9 · NFR-2, NFR-3, NFR-4 | §19 engine + routing criteria pass; changing an upstream answer re-derives everything. |
+| **S3.5** | Destinations · AI Use Case Record | SPEC'd, not built | The ServiceNow AI Use Case Record assembled from answers already given, field by field with provenance and gaps; payload downloadable; **the write is deliberately not built**. | FR-26, FR-27 · NFR-20 | "Yes" to AI offers registration with a real count of fields already answered; nothing claims to have been sent. |
+| **S4** | Tier 2 | DONE 2026-08-21 | Severity questions with rubric anchors as options; derived severities; all four conditional kinds. | FR-6, FR-7, FR-8 · NFR-10 | §19 criteria; a Medium/High answer reveals its conditionals; a derived band routes. |
+| **S4.5** | Reference data & unlisted answers | PARTIAL — searchable picker and provenance-on-accept remain | Versioned reference lists; pickers; off-list answers; the derived fourth-party path; the sign-in picker. | FR-29, FR-30, FR-31, FR-32, FR-33 · NFR-22 | List and off-list both work; a typed value appears in no other assessment until ratified; renames never change past answers; accepting a worked-out value leaves its source on screen. |
+| **S4.6** | Attachments | Blocked on §3.6 | Upload, stored outside the app filesystem, classified, retained under a stated policy. | FR-34 | A document uploads, is retrievable, carries a classification, and the retention rule is written first. |
+| **S4.7** | Hand-offs | DONE 2026-08-22 (legalized G-54) | "Leave this to us": flag → tag a person or risk domain → threaded conversation → derived obligation in the bell, cleared only by the answer. | FR-36 | Flag as one persona, see the pinned obligation as the recipient, land on the exact question, watch resolve refused while unanswered. |
+| **S4.8** | Declared boundaries | not started | The seven pilot-scoped risk areas say on screen that they stop deliberately (G-50); the summary separates areas that produce work from areas recorded for a reviewer. | FR-35 | Yes to Ethics & Conduct says, in its own words, that nothing further is asked and why; an undeclared dead end fails a test. |
+| **S5** | Ledger | not started | Control accumulation compiled to engine conditions; live ledger with reasons. | FR-10, FR-11 | §19 accumulation criteria; ledger updates on every answer with no reload. |
+| **S6** | Tier 3 | not started | Objective self-assessment (Yes/Partial/No/N-A, required notes); children on Yes; notes attachable anywhere. | FR-12, FR-13, FR-21 | §19 criteria; suppressed children invisible; N-A without justification impossible. |
+| **S7** | Submit, declaration & findings | not started | Submission with named-gaps confirmation; the submitter declaration gateway (G-52); findings synthesis. | FR-14, FR-15, FR-37 | Submit requires the declaration and produces exactly the findings the T3 answers imply. |
+| **S8** | Review & attest | not started | Reviewer queue, attest/correct/N-A with keyboard loop, server-side authority, four dispositions with four-eyes + expiry reopen. Parts-shelf decision #2. | FR-16, FR-17, FR-18 · NFR-10 | §19 attestation + findings criteria; forged client attestation fails. |
+| **S9** | Package & export | not started | Packaging gates; insert-only replayable export with explicit N-A strings. | FR-19, FR-20 | §19 packaging criteria; full-journey E2E green. |
+| **S10** | Harden & hand off | not started | Both UAT rounds; perf budgets; dead-code gate on; HANDOFF.md; generated instrument reference. | NFR-4, NFR-6, NFR-7 (final) | Owner sign-off = Phase-1 acceptance (§16). |
 
-Estimated ~6–7 focused days end to end; S1 is hours. A timing slip cuts between slices, never through one.
+A timing slip cuts between slices, never through one. **Every slice is bracketed by the review protocol (§21): a pre-flight before it starts and a slice review when its done-when holds. A slice whose review is still open is not done, and the next slice does not begin.**
 
-**Every slice is additionally bracketed by the review protocol (§21): a pre-flight before it starts and a slice review when its done-when holds. A slice whose review is still open is not done, and the next slice does not begin.**
+## 18. Now / design-now / later — the sophistication triage
+
+The product vision includes machinery that must **not** inflate Phase 1's surface. Every sophisticated element is triaged; the implementer honors this table over any enthusiasm elsewhere in the document.
+
+| Element | Triage | Phase-1 obligation |
+|---|---|---|
+| Never-guess, insert-only records, one predicate/matcher, four-eyes, N-A-with-reason | **MUST EXIST NOW** | Schema CHECKs + tests from S2. These are cheap at birth and ruinous to retrofit. |
+| Recompute-don't-remember routing | **MUST EXIST NOW** | Engine semantics from S3. |
+| Instrument-as-data + coherence gate | **MUST EXIST NOW** | S2 (instrument as seed data) and the coherence gate (§8). |
+| The two seams (agent, session) + model-access confinement | **MUST BE DESIGNED NOW** | Interfaces exist and are the only path (the Phase-2 agentic epic, §7/G-51); nothing behind them is built. |
+| Agentic contract (§7) | **MUST BE DESIGNED NOW** | The contract constrains today's design (e.g., option labels quotable); no drafting, chat, or eval activation. |
+| Pre-deploy verification | **MUST BE DESIGNED NOW** | A stage field on questions; no verification flow. |
+| Parity/differential harness | **NOW iff transcribing** from the reference design (it is the transcription's safety net); otherwise LATER. |
+| Property-based testing beyond the harness | **BUILD LATER** | Unit + differential coverage suffices for Phase 1. |
+| Constraint-relaxation deny-list | **BUILD LATER** | Meaningful only when prompt text exists (Phase 2). |
+| Independent auditor automation | **BUILD LATER** | Subagent definitions may exist (§15); scheduled audit runs are Phase-2 discipline. |
+| AWS readiness (§6.4's five obligations) | **MUST EXIST NOW** | Containers, env-only config, RDS-compatible persistence, dependency rule, OTel — enforced in review from S1. |
+| AWS cloud execution + AgentCore substrate | **BUILD LATER** | The target is settled (G-7); the migration itself is Phase-3 work. No cloud infrastructure in Phase 1. |
+| Scoring machinery | **BUILD LATER** | Open question §14.1; nothing computed or displayed in Phase 1. |
+
+## 19. Subsystem acceptance criteria
+
+Executable acceptance per major subsystem — each becomes a named test before its layer is called done.
+
+**Condition engine (S3)**
+- Given an unanswered question, `equals` returns false; so do `not_equals` and `excludes` (positive evidence only).
+- Given unknown severity, `severity_at_least(Medium)` returns false.
+- A scalar answer `"high"` satisfies `any_of ["medium","high"]` (set membership).
+- Any condition renders to exactly one English sentence naming question text and human option labels, never identifiers.
+- A condition requiring `includes X` and `excludes X` is flagged by the contradiction lint.
+
+**Routing / visibility (S3)**
+- Given two satisfied activation rules for one path, the path is active with **both** reasons retained.
+- Gate = No hides every question in the category regardless of other answers.
+- Changing an upstream answer removes downstream activation and visibility **without deleting historical answers**.
+- Queue counts, wizard progress, and the packaging gate all agree with the predicate on the same project state.
+
+**Control accumulation (S5)**
+- A severity of Medium accumulates objectives with `min: Low` and `min: Medium`, not `min: High`.
+- A capture-marked answer never changes the accumulated set.
+- Every accumulated objective carries at least one human-readable reason.
+
+**Attestation (S8)**
+- Attesting requires reviewer-group membership for the question's domain, enforced server-side (a forged client request fails).
+- An attested answer cannot be N-A'd; it can only be corrected-and-re-attested.
+- Attesting a shared answer records the confirmed reach.
+
+**Findings (S7/S8)**
+- Submitting with a Tier-3 "No" creates exactly one control-gap finding carrying the objective's note.
+- Risk acceptance by the resolver themselves is rejected (four-eyes).
+- An acceptance past its expiry reopens the finding and re-blocks packaging.
+
+**Packaging / export (S9)**
+- Packaging with any visible unattested question fails, naming questions by text.
+- The export contains an explicit "N-A — reason" string for every N-A attestation, never a blank.
+- Re-export creates a new record; the prior export is byte-identical after.
 
 ## 20. Requirements register
 
-The register and the slices are **synced by construction**: every Phase-1 requirement names its owning slice; every slice's done-when includes its owned requirements passing. A requirement without an owner, or an owner without a done-when, is a spec defect to fix before building. Phase-2/3 requirements are added to this register when their phase is authorized — never before.
+The register and the slices are **synced by construction**: every Phase-1 requirement names its owning slice; a requirement whose owner is "every slice" is a standing rule verified at every slice review, not owned by one. `test/unit/spec-register.test.ts` parses this section against §17 and fails on drift. Phase-2/3 requirements are added when their phase is authorized — never before.
 
 ### 20.1 Functional requirements (Phase 1)
 
@@ -414,7 +542,7 @@ The register and the slices are **synced by construction**: every Phase-1 requir
 | FR-8 | Conditionals: severity-fired, always-fired, cross-tier, nested | §3.1 | S4 |
 | FR-9 | Answer changes re-derive all routing; history never deleted | §3.2.7 | S3 |
 | FR-10 | Control objectives accumulate from thresholds and option-adds, with reasons | §3.3 | S5 |
-| FR-11 | Live ledger: active paths, severities, accumulated objectives, always visible | §9 | S5 |
+| FR-11 | Live ledger: active paths, severities, accumulated objectives, always visible | §23 | S5 |
 | FR-12 | Tier-3 self-assessment: Yes/Partial/No/N-A; notes required on Partial/No/N-A | §3.4 | S6 |
 | FR-13 | Child questions fire only on parent Yes, subject to cross-tier conditions | §3.4 | S6 |
 | FR-14 | Submission allowed with gaps only via explicit, named-gaps confirmation | §4.1 | S7 |
@@ -424,105 +552,50 @@ The register and the slices are **synced by construction**: every Phase-1 requir
 | FR-18 | Four finding dispositions; four-eyes acceptance; expiry reopens | §4.3 | S8 |
 | FR-19 | Packaging blocked until all visible attested, zero open findings | §4.5 | S9 |
 | FR-20 | Insert-only replayable export; N-A exported as explicit reason strings | §4.5 | S9 |
-| FR-21 | Notes/questions attachable at any point; travel to the reviewer | §9 | S6 |
+| FR-21 | Notes/questions attachable at any point; travel to the reviewer | §3.4 | S6 |
 | FR-22 | An intake answer that duplicates a Tier-1 gate pre-answers that gate — visibly, with its reason, and changeable | §3.1 | S2 |
 | FR-23 | Where a requester may genuinely lack visibility, "I'm not sure" is a first-class answer that routes to a reviewer rather than blocking | §3.2.1 | S1 |
+| FR-24 | An administration page lists every agent, when it runs, what it can see, and its full instructions — generated from the codebase, never hand-written | §22.3, G-25 | S2 |
+| FR-25 | Three roles (requester · Risk Assessor · administrator), each differing in what it *permits* — including which assessments it can see and whether it may start one — enforced server-side, with a persona switcher that demonstrates them | §2, G-29 | S2.5 |
+| FR-26 | When intake records AI, the requester is offered registration as an AI Use Case Record, with a real count of how many of its fields the assessment has already answered | §27, G-34 | S3.5 |
+| FR-27 | An assembled destination record shows every field with where its value came from, what was derived, and what is still missing; the payload is downloadable; an unbuilt destination write says so plainly and is never mimicked | §27, §24.8, G-34 | S3.5 |
+| FR-28 | A field marked required is enforced: the forward control refuses and names what is missing, the answers already given are kept, and the next stage is refused server-side — not only by the form | §3.1, G-37 | S1 (repaired 2026-08-21) |
+| FR-29 | A field whose answer is a name held in a real system — a person, a business unit, a vendor — is answered by choosing from a reference list, not typed free-hand | §5, G-46 | S4.5 |
+| FR-30 | Every reference-backed field accepts a value that is not on the list; the person is never blocked, and the unlisted value is stored distinguishably from a listed one | §3.2.1, G-47 | S4.5 |
+| FR-31 | A multi-select that can be incomplete offers an explicit "something else" option revealing a required free-text field; the text is stored as its own value, never as an option id | §24.10, G-47 | S4.5 |
+| FR-32 | A value supplied off-list is recorded against that assessment immediately and enters the shared list only when an admin ratifies it, with actor and timestamp | §5.6, G-48 | S4.5 |
+| FR-33 | A value the platform worked out names the question it came from and keeps saying so after the person accepts it | §24.5, G-49 | S4.5 |
+| FR-34 | Prior assessments and supporting documents attach to an assessment, are stored outside the application filesystem, and carry a classification; the retention posture (§3.6) is written before the first byte is stored | §26.2, §3.6 | S4.6 |
+| FR-35 | A risk area that applies but asks nothing further says so where a person sees it — on its gate screen, in the rail, and in the summary — and the summary counts areas that produce work separately from areas recorded for a reviewer | §3.1, G-50 | S4.8 |
+| FR-36 | A person who cannot answer a question hands it off — to a named person or a risk domain — with a threaded conversation; the recipient carries a derived obligation that cannot be dismissed and clears only when the question is answered | §24.1, G-54 | S4.7 |
+| FR-37 | Submission requires a declaration: the submitter explicitly attests the accuracy of their answers, per key intake question, recorded with actor and timestamp — distinct from assessor attestation | §4.1, G-52 | S7 |
 
 ### 20.2 Non-functional requirements (Phase 1)
 
-| ID | Requirement | Detail | Enforced |
+| ID | Requirement | Detail | Slice |
 |---|---|---|---|
 | NFR-1 | Evidence and export records are insert-only (schema CHECKs, not convention) | §5.1 | S2, S9 |
 | NFR-2 | One visibility predicate consumed by every surface | §5.4 | S3 onward |
 | NFR-3 | Positive evidence only; severity fails closed | §3.2 | S3 |
-| NFR-4 | Full-instrument recompute in single-digit milliseconds | §10 | S3, re-proven S10 |
-| NFR-5 | AWS-ready by construction: the five §6.4 obligations | §6.4, G-7 | S1 onward, review-enforced |
+| NFR-4 | Full-instrument recompute in single-digit milliseconds | §19 | S3, re-proven S10 |
+| NFR-5 | AWS-ready by construction: the §6.4 obligations | §6.4, G-7 | S1 onward, review-enforced |
 | NFR-6 | File budgets (≤400 new / ≤800 hard) + dead-code gate — measured over stylesheets as well as modules | §11 | Every slice; gate on from S10 |
-| NFR-7 | Every slice gated: tests green before advance; E2E on rendered DOM only | §0, §10 | Every slice |
+| NFR-7 | Every slice gated: tests green before advance; E2E on rendered DOM only | §0, §26.4 | Every slice |
+| NFR-8 | Instrument entirely as versioned seed data; zero hardcoded content | §6.2 | S2 onward |
+| NFR-9 | No internal identifiers in any user-facing text | §23 | S1 onward |
+| NFR-10 | State never conveyed by color alone; reviewer flow fully keyboard-operable | §23 | S4, S8 |
+| NFR-11 | Instrument versions immutable once activated — neither editable nor deletable; answers pin their version | §5.7 | S2 |
+| NFR-12 | Agent/session/model access only through the three seams | §6.1 | Phase-2 epic (G-51); seam tests at its birth |
+| NFR-13 | Errors handled to the §25 standard: typed results, no internals on screen, referenced logs, input preserved, error paths tested | §25 | Every slice |
 | NFR-14 | Pure logic separated from executors; no framework/driver/env imports in logic modules | §26.1 | Every slice |
 | NFR-15 | All persistence behind the store interface; no state in process memory or local files | §26.2 | Every slice |
 | NFR-16 | Configuration read only via the config module, validated at the boundary | §26.3 | Every slice |
 | NFR-17 | Tests in three separately-runnable tiers, each CI-container-ready | §26.4 | Every slice |
-| FR-25 | Three roles (requester · Risk Assessor · administrator), each differing in what it *permits* — including which assessments it can see and whether it may start one — enforced server-side, with a persona switcher that demonstrates them | §2, G-29 | S2.5 |
-| FR-24 | An administration page lists every agent, when it runs, what it can see, and its full instructions — generated from the codebase, never hand-written | §22.3, G-25 | S2 |
-| NFR-19 | Every answer **and every intake change** records who made it and what it replaced; authority is decided by role in one pure module, never in a screen | §2, §5.5, G-30 | S2.5 onward |
-| NFR-18 | Every finished slice carries a committed UAT record meeting the six §10 criteria | §10, G-24 | Every slice |
-| NFR-13 | Errors handled to the §25 standard: typed results, no internals on screen, referenced logs, input preserved, error paths tested | §25 | Every slice |
-| NFR-8 | Instrument entirely as versioned seed data; zero hardcoded content | §6.2 | S2 onward |
-| NFR-9 | No internal identifiers in any user-facing text | §9 | S1 onward |
-| NFR-10 | State never conveyed by color alone; reviewer flow fully keyboard-operable | §9 | S4, S8 |
-| FR-26 | When intake records AI, the requester is offered registration as an AI Use Case Record, with a real count of how many of its fields the assessment has already answered | §27, G-33 | S3.5 |
-| FR-27 | An assembled destination record shows every field with where its value came from, what was derived, and what is still missing; the payload is downloadable; an unbuilt destination write says so plainly and is never mimicked | §27, §24.8, G-33 | S3.5 |
+| NFR-18 | Every finished slice carries a committed UAT record meeting the six G-24 criteria | §21, G-24 | Every slice |
+| NFR-19 | Every answer **and every intake change** records who made it and what it replaced; authority is decided by role in one pure module, never in a screen | §2, G-30 | S2.5 onward |
 | NFR-20 | Destination field maps are versioned data, never code — a new destination is a map file, and a changed field list is a new map version | §27, §5 | S3.5 |
-| FR-28 | A field marked required is enforced: the forward control refuses and names what is missing, the answers already given are kept, and the next stage is refused server-side — not only by the form | §3.1, G-37 | S1 (repaired 2026-08-21) |
-| NFR-21 | Every slice is verified against its negative paths — empty submit, skipped step, URL bypass, stale re-submit — whether or not a requirement names them | §10, G-37 | Every slice |
-| FR-29 | A field whose answer is a name held in a real system — a person, a business unit, a vendor — is answered by choosing from a reference list, not typed free-hand | §5, G-46 | S4.5 |
-| FR-30 | Every reference-backed field accepts a value that is not on the list; the person is never blocked, and the unlisted value is stored distinguishably from a listed one | §7, G-47 | S4.5 |
-| FR-31 | A multi-select that can be incomplete offers an explicit "something else" option revealing a required free-text field; the text is stored as its own value, never as an option id | §24.10, G-47 | S4.5 |
-| FR-32 | A value supplied off-list is recorded against that assessment immediately and enters the shared list only when an admin ratifies it, with actor and timestamp | §5.7, G-48 | S4.5 |
-| FR-33 | A value the platform worked out names the question it came from and keeps saying so after the person accepts it | §24.5, G-39a, G-49 | S4.5 |
-| FR-34 | Prior assessments and supporting documents attach to an assessment, are stored outside the application filesystem, and carry a classification | §26.2, §3.4 | S4.6 |
-| FR-35 | A risk area that applies but asks nothing further says so where a person sees it — on its gate screen, in the rail, and in the summary — and the summary counts areas that produce work separately from areas recorded for a reviewer | §3.1, G-50 | S4.8 |
-| NFR-22 | Reference lists are versioned data, immutable once activated; every answer pins the list version and stores the label as displayed when chosen | §5.6, G-46 | S4.5 onward |
-| NFR-11 | Instrument versions immutable once activated — neither editable nor deletable; answers pin their version | §5.7 | S2 |
-| NFR-12 | Agent/session/model access only through the three seams | §6.1 | S8 review; seam tests |
-
-## 18. Now / design-now / later — the sophistication triage
-
-The product vision includes machinery that must **not** inflate Phase 1's surface. Every sophisticated element is triaged; the implementer honors this table over any enthusiasm elsewhere in the document.
-
-| Element | Triage | Phase-1 obligation |
-|---|---|---|
-| Never-guess, insert-only records, one predicate/matcher, four-eyes, N-A-with-reason | **MUST EXIST NOW** | Schema CHECKs + tests from layer 2. These are cheap at birth and ruinous to retrofit. |
-| Recompute-don't-remember routing | **MUST EXIST NOW** | Engine semantics from layer 4. |
-| Instrument-as-data + coherence gate | **MUST EXIST NOW** | Layers 3 and 11. |
-| The two seams (agent, session) + model-access confinement | **MUST BE DESIGNED NOW** | Interfaces exist and are the only path (layer 12); nothing behind them is built. |
-| Agentic contract (§7) | **MUST BE DESIGNED NOW** | The contract constrains today's design (e.g., option labels quotable); no drafting, chat, or eval activation. |
-| Pre-deploy verification | **MUST BE DESIGNED NOW** | A stage field on questions; no verification flow. |
-| Parity/differential harness | **NOW iff transcribing** from the reference design (it is the transcription's safety net); otherwise LATER. |
-| Property-based testing beyond the harness | **BUILD LATER** | Unit + differential coverage suffices for Phase 1. |
-| Constraint-relaxation deny-list | **BUILD LATER** | Meaningful only when prompt text exists (Phase 2). |
-| Independent auditor automation | **BUILD LATER** | Subagent definitions may exist (§15); scheduled audit runs are Phase-2 discipline. |
-| AWS readiness (§6.4's five obligations) | **MUST EXIST NOW** | Containers, env-only config, RDS-compatible persistence, dependency rule, OTel — enforced in review from layer 1. |
-| AWS cloud execution + AgentCore substrate | **BUILD LATER** | The target is settled (G-7); the migration itself is Phase-3 work. No cloud infrastructure in Phase 1. |
-| Scoring machinery | **BUILD LATER** | Open question §14.1; nothing computed or displayed in Phase 1. |
-
-## 19. Subsystem acceptance criteria
-
-Executable acceptance per major subsystem — each becomes a named test before its layer is called done.
-
-**Condition engine (layer 4)**
-- Given an unanswered question, `equals` returns false; so do `not_equals` and `excludes` (positive evidence only).
-- Given unknown severity, `severity_at_least(Medium)` returns false.
-- A scalar answer `"high"` satisfies `any_of ["medium","high"]` (set membership).
-- Any condition renders to exactly one English sentence naming question text and human option labels, never identifiers.
-- A condition requiring `includes X` and `excludes X` is flagged by the contradiction lint.
-
-**Routing / visibility (layer 5)**
-- Given two satisfied activation rules for one path, the path is active with **both** reasons retained.
-- Gate = No hides every question in the category regardless of other answers.
-- Changing an upstream answer removes downstream activation and visibility **without deleting historical answers**.
-- Queue counts, wizard progress, and the packaging gate all agree with the predicate on the same project state.
-
-**Control accumulation (layer 6)**
-- A severity of Medium accumulates objectives with `min: Low` and `min: Medium`, not `min: High`.
-- A capture-marked answer never changes the accumulated set.
-- Every accumulated objective carries at least one human-readable reason.
-
-**Attestation (layer 8)**
-- Attesting requires reviewer-group membership for the question's domain, enforced server-side (a forged client request fails).
-- An attested answer cannot be N-A'd; it can only be corrected-and-re-attested.
-- Attesting a shared answer records the confirmed reach.
-
-**Findings (layer 9)**
-- Submitting with a Tier-3 "No" creates exactly one control-gap finding carrying the objective's note.
-- Risk acceptance by the resolver themselves is rejected (four-eyes).
-- An acceptance past its expiry reopens the finding and re-blocks packaging.
-
-**Packaging / export (layer 10)**
-- Packaging with any visible unattested question fails, naming questions by text.
-- The export contains an explicit "N-A — reason" string for every N-A attestation, never a blank.
-- Re-export creates a new record; the prior export is byte-identical after.
+| NFR-21 | Every slice is verified against its negative paths — empty submit, skipped step, URL bypass, stale re-submit — whether or not a requirement names them | §21, G-37 | Every slice |
+| NFR-22 | Reference lists are versioned data, immutable once activated; every answer pins the list version and stores the label as displayed when chosen | §5.7, G-46 | S4.5 onward |
 
 ## 21. Slice review protocol (the refinement gate)
 
@@ -568,12 +641,7 @@ Phase 1 builds no agent (§16). It nonetheless **designs** for one, because the 
 - Policy text is quoted **verbatim or not at all**, with policy, clause, and version named. A paraphrased policy is not a policy.
 - Policies are **versioned like the instrument** (§5.7): an answer cites the version in force when it was given, and a later revision never silently rewrites a historical assessment — it raises a finding against the current one instead.
 
-**Standing guardrails for every registered feature** — inherited from §7 and non-negotiable at design time:
-- It reads what the requester provided; it never invents facts.
-- It proposes; a human accepts. Nothing it produces is final on its own.
-- Any rewrite is **reorganization of the requester's own words**, never addition. Content it cannot ground in what they wrote is surfaced as a question, not inserted.
-- It speaks plain language: no internal identifiers, no scores presented as verdicts.
-- Its judgments are recorded with their basis so a reviewer can see what was machine-suggested versus human-confirmed.
+**Standing guardrails for every registered feature:** the §7 may-never list applies at design time, plus one addition unique to this section — any rewrite is **reorganization of the requester's own words**, never addition; content the agent cannot ground in what they wrote is surfaced as a question, not inserted.
 
 ### 22.1 Phase-2 feature register
 
@@ -620,7 +688,7 @@ A surface is demo-ready when: (1) colour, type, spacing, radius and motion come 
 
 ## 25. Error handling standard
 
-Failure is a designed state (§24.3); this is how it is built. Applies to every action, route, and background job. **Pattern, message-writing guide, and tests: `/error-handling`.**
+Failure is a designed state (§24.4); this is how it is built. Applies to every action, route, and background job. **Pattern, message-writing guide, and tests: `/error-handling`.**
 
 1. **Expected failures are values, not exceptions** — actions return a typed result the caller must branch on, so a missing `catch` cannot swallow a failure. Unexpected failures are caught at the boundary; transport failure is its own case.
 2. **The user gets a sentence; the log gets the truth.** No driver text, SQL, constraint name, or stack trace reaches a screen. The server logs the real error with a short reference, and the same reference is shown so support starts with a fact.
@@ -646,11 +714,7 @@ AWS is settled (§6.4, G-7). This section makes it a **construction** rule rathe
 
 **26.6 Serverless-shaped defaults.** Connection pools stay small because serverless scales instances rather than connections (RDS Proxy fronts the database on AWS); containers build from the repo root; nothing assumes a warm process, local disk, or a long-lived server.
 
-**26.7 The migration guide is a deliverable.** Before production, a step-by-step guide is written plainly enough to be followed without prior AWS knowledge, covering: infrastructure and IAM; how the product's agentic layer (§7) becomes AgentCore runtimes, wired through AgentCore Gateway using **OpenAPI** schemas (the open REST-description standard, formerly Swagger — unrelated to OpenAI, which this project does not use); how features map to Lambda or container tasks; and a checklist for running all three test tiers in the cloud to prove parity with local. **Terminology note:** the `.claude/agents/*.md` subagents are *development-time* tooling and do not migrate; the runtime agents are the Phase-2 product features in §7 and §22.1.
-
----
-
-*Accepted 2026-08-20. The governance log is active at G-1 through G-8; the prior platform's spec is retired and its repository is the parts shelf per G-8.*
+**26.7 The migration guide is a deliverable.** Before production, a step-by-step guide is written plainly enough to be followed without prior AWS knowledge, covering: infrastructure and IAM; how the product's agentic layer (§7) becomes AgentCore runtimes, wired through AgentCore Gateway using **OpenAPI** schemas; how features map to Lambda or container tasks; and a checklist for running all three test tiers in the cloud to prove parity with local. **Terminology note:** the `.claude/agents/*.md` subagents are *development-time* tooling and do not migrate; the runtime agents are the Phase-2 product features in §7 and §22.1.
 
 ## 27. Destinations — the assessment as a source for systems of record
 
