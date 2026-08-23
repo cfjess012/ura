@@ -80,7 +80,20 @@ export async function answerRemainingGates(page: Page, base: string): Promise<vo
           : yes;
     const here = page.url();
     await pressed.click();
-    await page.waitForURL((url) => url.href !== here, { timeout: 15000 });
+    // A Yes on a risk area that asks nothing further deliberately STAYS, so
+    // the person can read why the product stops there (FR-35, verifier F10).
+    // This helper used to assume every answer navigates; that was the old
+    // behaviour, not the intent. Either outcome is correct — what must
+    // happen is that the answer is recorded and the loop can move on.
+    const stops = page.getByText("Nothing further here");
+    await Promise.race([
+      page.waitForURL((url) => url.href !== here, { timeout: 15000 }),
+      stops.waitFor({ state: "visible", timeout: 15000 }),
+    ]);
+    if (page.url() === here) {
+      // Recorded and explained; the next iteration's redirect moves us on.
+      await expect(stops).toBeVisible();
+    }
   }
   throw new Error("gates did not finish within 14 steps — is a gate not advancing?");
 }

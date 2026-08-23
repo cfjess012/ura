@@ -60,6 +60,17 @@ describe("every surface a person sees says it stops", () => {
     expect(form).toMatch(/record it for a reviewer/);
   });
 
+  it("answering Yes on a quiet area does NOT navigate away from its explanation", () => {
+    // The slice whose point is "say where the product stops" was itself
+    // silent walking forward: gate-form pushed to the next area on every
+    // answer, so the declaration rendered only for someone who came back
+    // (verifier F10). A Yes on a quiet area now refreshes in place.
+    const form = read("src/app/(app)/projects/[id]/assess/gate-form.tsx");
+    expect(form).toMatch(/staysToExplain\s*=\s*value === "Yes" && asksNothingFurther/);
+    expect(form).toMatch(/if \(staysToExplain\) router\.refresh\(\);/);
+    expect(form).toMatch(/else router\.push\(nextHref\)/);
+  });
+
   it("the rail distinguishes the two kinds of Applies", () => {
     const rail = read("src/app/(app)/projects/[id]/assess/gate-rail.tsx");
     expect(rail).toContain("STOPS_HERE_SHORT");

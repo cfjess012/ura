@@ -11,8 +11,25 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { handOffQuestion, replyToHandoff, resolveHandoff } from "@/app/actions";
-import { isFailure } from "@/lib/errors";
+import { errorRef, isFailure } from "@/lib/errors";
 import { initialsOf, saidAt, thread, timeAgo, type Reply } from "@/lib/handoff";
+
+/**
+ * Every other error surface in this product renders its reference; the
+ * hand-off panel produced one and threw it away, so a person reporting a
+ * failure had nothing to correlate (§25.2, verifier F4).
+ */
+const withRef = (message: string, ref?: string) =>
+  ref ? `${message} Reference ${ref}.` : message;
+
+/**
+ * A transport failure — the request never reached the server. Says what
+ * happened, what is safe, and what to do (§25).
+ */
+function transportFailure(where: string, cause: unknown): string {
+  console.error(`${where} transport`, cause);
+  return `The server couldn't be reached, so nothing was recorded. What you wrote is still here. Reference ${errorRef()}. Try again in a moment.`;
+}
 
 export type Recipient = { id: string; label: string; kind: "person" | "domain" };
 
@@ -57,15 +74,23 @@ export function HandoffPanel({
     }
     setBusy(true);
     setError(null);
-    const result = await handOffQuestion(projectId, {
-      questionId,
-      toPersonId: picked.kind === "person" ? picked.id : null,
-      toDomain: picked.kind === "domain" ? picked.id : null,
-      note,
-    });
-    setBusy(false);
-    if (isFailure(result)) setError(result.message);
-    else router.refresh();
+    try {
+      const result = await handOffQuestion(projectId, {
+        questionId,
+        toPersonId: picked.kind === "person" ? picked.id : null,
+        toDomain: picked.kind === "domain" ? picked.id : null,
+        note,
+      });
+      if (isFailure(result)) setError(withRef(result.message, result.ref));
+      else router.refresh();
+    } catch (cause) {
+      setError(transportFailure("handOffQuestion", cause));
+    } finally {
+      // In `finally`, always. Without it a transport failure left the
+      // control disabled for good and the panel dead until reload — silent,
+      // and §24.4 says every failure has a cause and a next step (F3).
+      setBusy(false);
+    }
   }
 
   if (!asking) {
@@ -150,27 +175,38 @@ function Thread({ projectId, handoff }: { projectId: string; handoff: HandoffVie
     if (body.trim() === "") return;
     setBusy(true);
     setError(null);
-    const result = await replyToHandoff(projectId, {
-      handoffId: handoff.id,
-      parentId: replyingTo,
-      body,
-    });
-    setBusy(false);
-    if (isFailure(result)) setError(result.message);
-    else {
-      setBody("");
-      setReplyingTo(null);
-      router.refresh();
+    try {
+      const result = await replyToHandoff(projectId, {
+        handoffId: handoff.id,
+        parentId: replyingTo,
+        body,
+      });
+      if (isFailure(result)) setError(withRef(result.message, result.ref));
+      else {
+        // What they wrote is cleared only once it is safely posted.
+        setBody("");
+        setReplyingTo(null);
+        router.refresh();
+      }
+    } catch (cause) {
+      setError(transportFailure("replyToHandoff", cause));
+    } finally {
+      setBusy(false);
     }
   }
 
   async function close() {
     setBusy(true);
     setError(null);
-    const result = await resolveHandoff(projectId, handoff.id);
-    setBusy(false);
-    if (isFailure(result)) setError(result.message);
-    else router.refresh();
+    try {
+      const result = await resolveHandoff(projectId, handoff.id);
+      if (isFailure(result)) setError(withRef(result.message, result.ref));
+      else router.refresh();
+    } catch (cause) {
+      setError(transportFailure("resolveHandoff", cause));
+    } finally {
+      setBusy(false);
+    }
   }
 
   const open = handoff.resolvedAt === null;

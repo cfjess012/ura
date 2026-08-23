@@ -62,12 +62,23 @@ export function GateForm({
         setError({ message: result.message, ref: result.ref, retryable: result.retryable });
         return;
       }
+      // An area that asks nothing further has one thing left to tell the
+      // person, and it is on THIS screen. Auto-advancing meant they never
+      // read it — the declaration rendered only if they came back, so the
+      // slice whose whole point is "say where the product stops" was itself
+      // silent in the forward journey (verifier F10). Refresh so the server
+      // re-renders with the answer recorded, and let them move on when they
+      // have read it.
+      const staysToExplain = value === "Yes" && asksNothingFurther;
       setAnnouncement(
-        value === "Yes"
-          ? "Recorded: yes, this area applies. Opening the next risk area."
-          : "Recorded: no, this area does not apply. It will be skipped. Opening the next risk area.",
+        staysToExplain
+          ? "Recorded: yes, this area applies. Nothing further is asked here — the reason is below."
+          : value === "Yes"
+            ? "Recorded: yes, this area applies. Opening the next risk area."
+            : "Recorded: no, this area does not apply. It will be skipped. Opening the next risk area.",
       );
-      router.push(nextHref);
+      if (staysToExplain) router.refresh();
+      else router.push(nextHref);
     } catch (cause) {
       console.error("answerGate transport", cause);
       setChoice(answer);

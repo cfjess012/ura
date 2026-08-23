@@ -4,6 +4,8 @@
  * The rules that decide who a question is waiting on, who may close it, and
  * what "closed" is allowed to mean. All pure, so none of it needs a browser.
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   isWaitingOn,
@@ -174,5 +176,31 @@ describe("what a person reads", () => {
     expect(timeAgo(new Date("2026-08-22T11:20:00Z"), now)).toBe("40m ago");
     expect(timeAgo(new Date("2026-08-22T09:00:00Z"), now)).toBe("3h ago");
     expect(timeAgo(new Date("2026-08-19T12:00:00Z"), now)).toBe("3d ago");
+  });
+});
+
+describe("the hand-off panel's failure paths (verifier F3, F4)", () => {
+  // Every action in the panel awaited the server with no try/catch, so a
+  // transport failure threw uncaught, said nothing, and left `busy` true —
+  // the panel dead until reload. §25 and §24.4 both forbid that, and every
+  // other surface in the product already had the guard.
+  const panel = readFileSync(
+    join(__dirname, "..", "..", "src/app/(app)/projects/[id]/assess/severity/handoff-panel.tsx"),
+    "utf8",
+  );
+
+  it.each(["hand", "post", "close"])("%s catches a transport failure", (fn) => {
+    const at = panel.indexOf(`async function ${fn}(`);
+    expect(at, `${fn} not found`).toBeGreaterThan(-1);
+    const body = panel.slice(at, panel.indexOf("\n  }", at));
+    expect(body, `${fn} must try/catch`).toMatch(/try \{[\s\S]*\} catch \(cause\)/);
+    expect(body, `${fn} must clear busy in finally, or the panel stays dead`).toMatch(
+      /\} finally \{[\s\S]*setBusy\(false\)/,
+    );
+  });
+
+  it("shows the reference every other error surface shows", () => {
+    expect(panel).toMatch(/withRef\(result\.message, result\.ref\)/);
+    expect(panel).toMatch(/Reference \$\{ref\}/);
   });
 });
