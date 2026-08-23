@@ -19,7 +19,7 @@ import {
   type Condition,
 } from "./conditions";
 import { ALL_PATHS, SEVERITY_OF, assessmentLookup } from "./engine";
-import { CATEGORIES } from "./instrument";
+import { CATEGORIES, type GateState } from "./instrument";
 import { ALL_FIELDS } from "./intake";
 
 const INTAKE_FIELD_IDS = new Set(ALL_FIELDS.map((f) => f.id));
@@ -424,3 +424,32 @@ export const STOPS_HERE =
 
 /** The short form, for the rail where a full sentence will not fit. */
 export const STOPS_HERE_SHORT = "Applies · recorded for review";
+
+/**
+ * How a risk area's state reads in the rail — one rule, one place.
+ *
+ * This lived as a five-level nested ternary inside the component, and the
+ * boundary note was added to only one of its branches: an area whose Yes
+ * came from intake read "Yes · from intake" with no declaration at all, on
+ * a surface FR-35 names explicitly (verifier F11). Nesting hid the missing
+ * case. Written out, every branch has to answer the question.
+ *
+ * It lives here rather than with the gate instrument because deciding
+ * whether an area asks anything further needs the severity set, and
+ * `instrument.ts` cannot import this module without a cycle.
+ */
+export function gateStateLabel(state: GateState): string {
+  const quiet = asksNothingFurther(state.category.key);
+  // Applies to everyone and nobody is asked (G-36) — its own thing, and it
+  // already explains itself; adding the boundary note would say it twice.
+  if (state.settled) return "Applies · not asked";
+  if (state.answer === "No") return "Not applicable";
+  if (state.answer !== "Yes") return "";
+  if (state.fromIntake) {
+    const source = state.origin === "answers" ? "from your answers" : "from intake";
+    // Both facts, because both are true: where the answer came from, and
+    // that nothing further is asked here.
+    return quiet ? `Yes · ${source} · recorded for review` : `Yes · ${source}`;
+  }
+  return quiet ? STOPS_HERE_SHORT : "Applies";
+}

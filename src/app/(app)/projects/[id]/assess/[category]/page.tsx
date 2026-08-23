@@ -106,7 +106,7 @@ export default async function GatePage({
                 reads as completeness, and an area that applies but asks
                 nothing is indistinguishable from one that is not built —
                 which is a claim this product cannot afford. */}
-            {state.answer === "Yes" && asksNothingFurther(key) && (
+            {state.answer === "Yes" && !state.settled && asksNothingFurther(key) && (
               <p className="prefill" role="note">
                 <span className="prefill-tag">Nothing further here</span>
                 <span>{STOPS_HERE}</span>

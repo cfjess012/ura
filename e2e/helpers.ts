@@ -97,3 +97,51 @@ export async function answerRemainingGates(page: Page, base: string): Promise<vo
   }
   throw new Error("gates did not finish within 14 steps — is a gate not advancing?");
 }
+
+/**
+ * Switching is a deliberate act through the front door (owner's call), so
+ * every journey that changes persona does it the way a person does.
+ *
+ * Lifted here from personas.spec.ts because the hand-off journeys need it
+ * too, and two copies of "how you become someone else" is exactly the
+ * parallel implementation §11 forbids.
+ */
+export async function becomePerson(page: Page, name: string): Promise<void> {
+  await page.goto("/");
+  await page.getByRole("button", { name: new RegExp(name) }).click();
+  await page.waitForURL(/\/projects/);
+}
+
+/**
+ * Intake for an assessment that genuinely reaches Tier 2: AI, an outside
+ * company, confidential data — so the third-party and AI areas open and
+ * their severity questions exist to be answered or handed over.
+ *
+ * `completeIntake` deliberately answers No to third parties, which closes
+ * that whole area; a journey that needs the severity questions cannot use
+ * it. Shared here because the severity and hand-off suites both need this
+ * exact scenario, and two copies would drift (§11).
+ */
+export async function scenarioIntake(page: Page, base: string): Promise<void> {
+  await page.goto(`${base}/intake/description`);
+  await page.getByLabel("Business Purpose or Objective").fill("Cut rostering effort.");
+  await page.getByLabel("Activity / Use-Case Description").fill("AI drafts weekly shift rosters.");
+  await page.getByLabel("Does this use AI or machine learning?").selectOption("Yes");
+  await page.getByLabel("What does the AI do?").fill("Proposes shifts a supervisor approves.");
+  await page.getByRole("button", { name: /Next: Ownership/ }).click();
+  await page.getByLabel("Business Owner").selectOption("d.chen");
+  await page
+    .getByLabel("Is this a new initiative, or an update to an existing one?")
+    .selectOption("Brand new");
+  await page.getByRole("button", { name: /Next: Categorization/ }).click();
+  await page.getByLabel("Responsible Business Unit").selectOption("BU_OPS");
+  await page
+    .getByLabel("Does anything about this involve a company outside ours?")
+    .selectOption("Yes");
+  await page.locator('input[name="vendorNames"][value="V_SNOWFLAKE"]').check();
+  await page.getByLabel(/Procurement \(Coupa\)/).selectOption("Yes");
+  await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
+  await page.getByRole("radio", { name: /Confidential/ }).check();
+  await page.getByRole("button", { name: /Continue to the risk areas/ }).click();
+  await expect(page).toHaveURL(/\/assess\//);
+}

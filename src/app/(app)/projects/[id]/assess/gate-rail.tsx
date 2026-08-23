@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { GateState } from "@/lib/instrument";
-import { asksNothingFurther, STOPS_HERE_SHORT } from "@/lib/severity";
+import { gateStateLabel } from "@/lib/severity";
 
 /**
  * Where the person is in Tier 1, and what they've said so far. Closed
@@ -43,21 +43,7 @@ export function GateRail({
                   {index + 1}
                 </span>
                 <span className="rail-name">{state.category.short}</span>
-                <span className="rail-state">
-                  {status === "settled"
-                    ? "Applies · not asked"
-                    : status === "closed"
-                      ? "Not applicable"
-                      : status === "prefilled"
-                        ? state.origin === "answers"
-                          ? "Yes · from your answers"
-                          : "Yes · from intake"
-                        : status === "open"
-                          ? asksNothingFurther(state.category.key)
-                            ? STOPS_HERE_SHORT
-                            : "Applies"
-                          : ""}
-                </span>
+                <span className="rail-state">{gateStateLabel(state)}</span>
               </Link>
             </li>
           );

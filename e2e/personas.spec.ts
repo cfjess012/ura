@@ -3,19 +3,8 @@
  * the server, so switching persona changes what the platform permits, not
  * merely what it shows.
  */
-import { expect, test, type Page } from "@playwright/test";
-import { completeIntake } from "./helpers";
-
-/**
- * Switching is a deliberate act through the front door now, not a select in
- * the chrome — the owner's call, mirroring the prior platform. The helper
- * keeps every journey reading the same as before.
- */
-async function becomePerson(page: Page, name: string) {
-  await page.goto("/");
-  await page.getByRole("button", { name: new RegExp(name) }).click();
-  await page.waitForURL(/\/projects/);
-}
+import { expect, test } from "@playwright/test";
+import { becomePerson, completeIntake } from "./helpers";
 
 test("the front door introduces the platform and asks who you are", async ({ page }) => {
   await page.goto("/");

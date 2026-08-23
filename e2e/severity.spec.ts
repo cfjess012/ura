@@ -3,30 +3,9 @@
  * conditionals; a derived band routes." Rendered DOM only (NFR-7).
  */
 import { expect, test } from "@playwright/test";
-import { answerRemainingGates, startAssessment } from "./helpers";
+import { answerRemainingGates, scenarioIntake, startAssessment } from "./helpers";
 
 /** Intake for the demo scenario: AI vendor tool, confidential employee data. */
-async function scenarioIntake(page: import("@playwright/test").Page, base: string) {
-  await page.getByLabel("Business Purpose or Objective").fill("Cut rostering effort.");
-  await page.getByLabel("Activity / Use-Case Description").fill("AI drafts weekly shift rosters.");
-  await page.getByLabel("Does this use AI or machine learning?").selectOption("Yes");
-  await page.getByLabel("What does the AI do?").fill("Proposes shifts a supervisor approves.");
-  await page.getByRole("button", { name: /Next: Ownership/ }).click();
-  await page.getByLabel("Business Owner").selectOption("d.chen");
-  await page
-    .getByLabel("Is this a new initiative, or an update to an existing one?")
-    .selectOption("Brand new");
-  await page.getByRole("button", { name: /Next: Categorization/ }).click();
-  await page.getByLabel("Responsible Business Unit").selectOption("BU_OPS");
-  await page.getByLabel("Does anything about this involve a company outside ours?").selectOption("Yes");
-  await page.locator('input[name="vendorNames"][value="V_SNOWFLAKE"]').check();
-  await page.getByLabel(/Procurement \(Coupa\)/).selectOption("Yes");
-  await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
-  await page.getByRole("radio", { name: /Confidential/ }).check();
-  await page.getByRole("button", { name: /Continue to the risk areas/ }).click();
-  await expect(page).toHaveURL(/\/assess\//);
-}
-
 /** Severity is paced one area per screen, so go to the one under test. */
 async function severityArea(page: import("@playwright/test").Page, name: RegExp) {
   await page

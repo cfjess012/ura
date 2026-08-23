@@ -14,7 +14,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CATEGORIES } from "@/lib/instrument";
-import { asksNothingFurther, STOPS_HERE, STOPS_HERE_SHORT } from "@/lib/severity";
+import {
+  asksNothingFurther,
+  gateStateLabel,
+  STOPS_HERE,
+  STOPS_HERE_SHORT,
+} from "@/lib/severity";
+import type { GateState } from "@/lib/instrument";
 
 const ROOT = join(__dirname, "..", "..");
 const read = (...parts: string[]) => readFileSync(join(ROOT, ...parts), "utf8");
@@ -43,13 +49,71 @@ describe("which areas ask nothing further is derived, not listed", () => {
   });
 });
 
+describe("how a risk area reads in the rail (verifier F11)", () => {
+  const at = (key: string, over: Partial<GateState> = {}): GateState => ({
+    category: CATEGORIES.find((c) => c.key === key)!,
+    answer: "Yes",
+    fromIntake: false,
+    origin: null,
+    because: null,
+    settled: false,
+    ...over,
+  });
+
+  it("a quiet area answered directly declares the boundary", () => {
+    expect(gateStateLabel(at("ethics-conduct"))).toBe(STOPS_HERE_SHORT);
+  });
+
+  it("a deep area answered directly does not", () => {
+    expect(gateStateLabel(at("third-party"))).toBe("Applies");
+  });
+
+  it("a quiet area PRE-FILLED still declares it — the branch that was missing", () => {
+    // "Yes · from intake" said where the answer came from and nothing about
+    // where the product stops, on a surface FR-35 names explicitly. Both
+    // facts are true and both are now said.
+    const label = gateStateLabel(at("solution-architecture", { fromIntake: true, origin: "intake" }));
+    expect(label).toContain("from intake");
+    expect(label).toContain("recorded for review");
+  });
+
+  it("a deep area pre-filled says only where it came from", () => {
+    expect(gateStateLabel(at("third-party", { fromIntake: true, origin: "intake" }))).toBe(
+      "Yes · from intake",
+    );
+    expect(gateStateLabel(at("third-party", { fromIntake: true, origin: "answers" }))).toBe(
+      "Yes · from your answers",
+    );
+  });
+
+  it("an area that applies to everyone keeps its own wording (G-36)", () => {
+    // And only that wording — stacking the boundary note on top said the
+    // same thing twice (verifier F12).
+    expect(gateStateLabel(at("governance", { settled: true }))).toBe("Applies · not asked");
+  });
+
+  it("closed and unanswered read as they always did", () => {
+    expect(gateStateLabel(at("operational", { answer: "No" }))).toBe("Not applicable");
+    expect(gateStateLabel(at("operational", { answer: null }))).toBe("");
+  });
+
+  it("every quiet area declares the boundary however its Yes arrived", () => {
+    for (const c of CATEGORIES.filter((c) => asksNothingFurther(c.key))) {
+      for (const over of [{}, { fromIntake: true, origin: "intake" as const }]) {
+        const label = gateStateLabel(at(c.key, over));
+        expect(label, `${c.key} ${JSON.stringify(over)}`).toMatch(/recorded for review/);
+      }
+    }
+  });
+});
+
 describe("every surface a person sees says it stops", () => {
   it("the gate screen shows the sentence when the area applies and asks nothing", () => {
     const page = read("src/app/(app)/projects/[id]/assess/[category]/page.tsx");
     expect(page).toContain("asksNothingFurther");
     expect(page).toContain("STOPS_HERE");
     // Conditioned on a Yes: an unanswered area must not claim to stop.
-    expect(page).toMatch(/state\.answer === "Yes" && asksNothingFurther/);
+    expect(page).toMatch(/state\.answer === "Yes" && !state\.settled && asksNothingFurther/);
   });
 
   it("the Yes option does not promise questions that never come", () => {
@@ -71,10 +135,17 @@ describe("every surface a person sees says it stops", () => {
     expect(form).toMatch(/else router\.push\(nextHref\)/);
   });
 
-  it("the rail distinguishes the two kinds of Applies", () => {
+  it("the rail asks one rule rather than nesting its own", () => {
+    // The five-level ternary this replaces is where F11 hid: the boundary
+    // note was added to one branch and the pre-filled branch was forgotten.
     const rail = read("src/app/(app)/projects/[id]/assess/gate-rail.tsx");
-    expect(rail).toContain("STOPS_HERE_SHORT");
-    expect(rail).toContain("asksNothingFurther");
+    expect(rail).toContain("gateStateLabel(state)");
+    expect(rail, "the rail must not re-derive the label").not.toMatch(/asksNothingFurther/);
+  });
+
+  it("a settled area does not get the boundary block stacked on its own note (F12)", () => {
+    const page = read("src/app/(app)/projects/[id]/assess/[category]/page.tsx");
+    expect(page).toMatch(/!state\.settled && asksNothingFurther\(key\)/);
   });
 
   it("the summary counts work separately from what is only recorded", () => {
