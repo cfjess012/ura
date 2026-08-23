@@ -31,7 +31,7 @@ These rules bind any implementer, human or Claude Code, before a single line is 
 10. Do not change settled decisions (§13) without explicitly flagging the change and obtaining a governance-log entry.
 11. **Every slice ends with the review protocol (§21), and no slice begins until the prior slice's review is closed.** Silence is never approval — from either side.
 12. **Every slice plans its agentic opportunity** (§22) — designed and registered, not built. Phase 1 ships no agent; it may not ship anything that forecloses one.
-13. **Every question ships designed.** Before any question a person answers reaches a screen, it passes the `question-design` probe: could they answer it without a glossary, what happens if it does not apply to them, and does it carry helper text that teaches. A question shipped without that pass is a defect, found later at ten times the cost.
+13. **Every question ships designed.** Before any question a person answers reaches a screen, it passes the `instrument` skill's part-1 probe: could they answer it without a glossary, what happens if it does not apply to them, and does it carry helper text that teaches. A question shipped without that pass is a defect, found later at ten times the cost.
 14. **Every slice ships demo-ready UI** (§23) and obeys the experience principles (§24). A slice with working logic and unfinished interface is not done.
 15. **Every slice is independently verified before it advances** — the slice-verifier subagent (§15) runs UAT and regression, and its report is attached to the review. Self-certification is not verification.
 16. **Critique is owed, not optional.** The implementer must surface disagreements, weaknesses, and risks in the owner's instructions as readily as in its own work. Agreeable implementation of a flawed instruction is a failure of this specification, not a courtesy.
@@ -416,17 +416,16 @@ Every settled decision and every deliberate deferral, numbered, dated, one parag
 
 ## 15. Claude Code operating layer
 
-This repository is operated with Claude Code as a first-class tool; the operating layer is versioned in the repo, not tribal.
+This repository is operated with Claude Code as a first-class tool; the layer is versioned in the repo, not tribal — and this section describes **what exists**, because a §15 that promised gates nobody built is how the layer went two-thirds unenforced until the 2026-08-23 audit (G-55).
 
-- **CLAUDE.md** — the working contract, ≤120 lines, containing exactly: the command surface, the two seams, a pointer to §5's invariants, the seeds-as-truth rule, and the gotchas that cost real time. It describes the system that exists; history lives in git.
-- **Hooks** (versioned in `.claude/settings.json` + `scripts/hooks/`):
-  - *Pre-write guard* — blocks edits to applied migrations, environment files, instrument seeds outside the governed workflow, and settled SPEC sections without a governance-log entry.
-  - *Post-write* — formatter + package typecheck on every edit.
-  - *Stop gate* — the full chain (tests · coherence gate · eval when active · **file-budget check**) must pass before any session concludes work. The budget check enforces §11 mechanically.
-- **Skills** (`.claude/skills/`): `/instrument-change` — the governed seed-PR workflow end to end (edit → validate → parity → ground truth → four-eyes PR); `/full-gates` — the complete gate chain; `/uat-checkout` — generates a numbered, objective-pass-line test script for the current milestone. Procedures are commands, not lore.
-- **Subagents** (`.claude/agents/`): **slice-verifier** (mandatory — see below), *contract-guard* (before any seam-adjacent commit), *coherence-auditor* (after any instrument change), *provenance-auditor* (before any eval-baseline commit), *ontology-auditor* (sampling ratified relationships). Each definition states its trigger moment; using them at those moments is part of the definition of done for the relevant change.
-- **The slice-verifier is not optional.** Every slice is independently verified before its review is written: full gate chain, requirement-by-requirement UAT driven through the running app, **regression over every prior slice's journey**, acceptance criteria including negative cases, a §23 UI audit, a §24 experience audit, an invariant spot-check, and a scope check. It may not edit code — it reports. **A FAIL blocks the slice; a PASS with findings means the findings are fixed and it is re-run.** Its report is attached to the slice review (§21).
-- **Conventions the layer enforces**: file budgets; no parallel implementations (§11); generated docs only regenerated, never hand-edited; model access confined to the agent service.
+- **CLAUDE.md** — the working contract, thin: slice status, commands, the skills routing table, and the gotchas that cost real time. `test/unit/docs.test.ts` holds it to router size and keeps the routing table and the skills directory in two-way sync.
+- **Hooks** (wired in `.claude/settings.json`, scripts in `scripts/hooks/`, wiring asserted by `test/unit/hooks-wired.test.ts`):
+  - *guard* (PreToolUse) — refuses, before the edit lands: edits to applied migrations, environment files, and deletion of a settled governance entry.
+  - *advise* (PostToolUse) — emits the governing skill's own checklist the instant a governed file is edited, including the instrument data under `src/data/`.
+  - *stop-gate* (Stop) — refuses to conclude on: red typecheck/unit tests, stale generated artifacts, a DONE slice without its `uat/` record (required sections with substance, including the verifier's verdict for records from 2026-08-23), `demo/readiness.md` lagging the DONE slices, or a stated measurement that cites no existing test.
+- **Skills** (`.claude/skills/`, nine): `verify` (the ONLY definition of the gate chain), `instrument` (question → set → governed path), `ui-craft` (build → walk as a person → destinations), `error-handling`, `aws-ready`, `agentic-design`, `owner-brief` (governs the format of every message to the owner), `design-mock`, `demo-truth` (a claim the product makes must be computed, or it is a hope).
+- **Subagents** (`.claude/agents/`): **slice-verifier**, the only one. It is not optional: every slice is independently verified before its review — the `verify` chain, requirement-by-requirement UAT through the running app, regression over every prior slice's journey, negative cases, the §23/§24 audits, an invariant spot-check, and a scope check. It reports, never edits. A FAIL blocks the slice; the Stop gate refuses a DONE slice whose record lacks the verifier's verdict.
+- **Known holes, named rather than implied:** the §8 coherence gate exists as checks inside `src/lib/instrument.ts`/`severity.ts` validators, not as a standalone `pnpm` command; nothing mechanically triggers the slice-verifier itself (the record requirement is the backstop); integration and E2E tiers are outside the Stop gate (they need a server) and are owed via `verify` before any commit.
 
 ## 16. Phase boundaries — what "build this" means
 
@@ -599,7 +598,7 @@ The register and the slices are **synced by construction**: every Phase-1 requir
 
 ## 21. Slice review protocol (the refinement gate)
 
-Every slice is bracketed by two conversations; building without them is a Build-Rule violation (§0.11), not a shortcut. **Procedure: `/slice-review`.**
+Every slice is bracketed by two conversations; building without them is a Build-Rule violation (§0.11), not a shortcut. **Procedure: the slice protocol in `/verify`.**
 
 **Pre-flight — before the first line.** The implementer restates the slice's owned requirements in its own words, names the design decisions it intends to make, and lists every ambiguity or assumption it would otherwise resolve silently. The owner confirms, corrects, or defers; unresolved ambiguity blocks the slice (§0.8).
 
@@ -672,7 +671,7 @@ A surface is demo-ready when: (1) colour, type, spacing, radius and motion come 
 
 ## 24. Experience principles (how the product treats a person)
 
-§23 sets the visual floor; these set the behavioural one. Each was written after a real defect in this build. **The reasoning, origins, and audit procedure: `/ux-audit`.** The mechanically checkable ones are enforced in `test/unit/experience.test.ts`.
+§23 sets the visual floor; these set the behavioural one. Each was written after a real defect in this build. **The reasoning, origins, and audit procedure: pass 2 of `/ui-craft`.** The mechanically checkable ones are enforced in `test/unit/experience.test.ts`.
 
 1. **Never re-ask what someone just told you they don't know.** Uncertainty is absorbed by the system and routed to a human — never returned as another question. The correct response to "I'm not sure" is a reassurance naming who will find out and confirming nothing is blocked.
 2. **One decision per screen; pace the journey.** Prefer stepped, carded progression over long scrolls.

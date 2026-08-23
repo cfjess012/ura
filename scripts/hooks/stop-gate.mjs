@@ -77,6 +77,16 @@ const REQUIRED = [
     what: "an Agentic opportunity section (§21 item 6) — what was registered, or an explicit \"none, and why\"",
     least: 120,
   },
+  {
+    // SPEC calls the slice-verifier non-optional; until 2026-08-23 nothing
+    // mechanical checked it ran. The verdict lives in the record, so the
+    // record proves the run — a section a person could fake is still a
+    // section a person had to consciously fake, which is the honesty line
+    // every gate here draws (operating-layer audit, gap 4).
+    heading: "## Verifier",
+    what: "a Verifier section: the slice-verifier agent's verdict (PASS/FAIL) and what it checked",
+    least: 80,
+  },
 ];
 
 /** What a section actually says: its body, minus placeholder italics. */
@@ -100,7 +110,15 @@ try {
       continue;
     }
     const body = readFileSync(record, "utf8");
-    for (const { heading, what, least } of REQUIRED) {
+    // The Verifier section is required of records verified from 2026-08-23
+    // (G-55). The five earlier records predate the rule, and writing
+    // verdicts into them now would fabricate history — the one thing a
+    // UAT record must never do.
+    const when = body.match(/^verified-on:\s*(\S+)/m)?.[1] ?? "9999";
+    const applicable = REQUIRED.filter(
+      (r) => r.heading !== "## Verifier" || when >= "2026-08-23",
+    );
+    for (const { heading, what, least } of applicable) {
       const said = sectionBody(body, heading);
       if (said === null) problems.push(`uat/${slice}.md is missing ${what}.`);
       else if (said.length < least)
@@ -134,6 +152,34 @@ try {
   }
 } catch (error) {
   problems.push(`could not read demo/readiness.md — the demo record is missing: ${error.message}`);
+}
+
+// ---- 5. Stated measurements cite the test that asserts them ---------------
+// "Five intake answers decided six of eleven areas" sat in the demo script
+// after the instrument had moved on; the real number was four (G-50 era,
+// caught 2026-08-22). A number a presenter is told to SAY is a claim the
+// product makes: it must cite a test file, and the file must exist.
+try {
+  const readiness = readFileSync(join(ROOT, "demo", "readiness.md"), "utf8");
+  const measured = [...readiness.matchAll(/measured[^|]*?—\s*see\s+`([^`]+)`/g)].map((m) => m[1]);
+  const numeric = /\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+) (?:of|out of) (?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|\d+)\b/;
+  const saysNumbers = readiness
+    .split("\n")
+    .filter((line) => line.startsWith("|") && numeric.test(line) && /say/i.test(line));
+  for (const line of saysNumbers) {
+    if (!/`[^`]*test[^`]*`/.test(line)) {
+      problems.push(
+        `demo/readiness.md tells the presenter to say a number without citing the test that asserts it: "${line.slice(0, 100)}…" — a stated measurement cites its test (demo-truth).`,
+      );
+    }
+  }
+  for (const cited of measured) {
+    if (!existsSync(join(ROOT, cited))) {
+      problems.push(`demo/readiness.md cites \`${cited}\` as the measurement's test, but the file does not exist.`);
+    }
+  }
+} catch (error) {
+  problems.push(`could not run the claim check on demo/readiness.md: ${error.message}`);
 }
 
 if (problems.length > 0) {

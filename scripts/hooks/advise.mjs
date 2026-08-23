@@ -21,7 +21,8 @@ import { join } from "node:path";
  * on without flooding the context of a one-line edit.
  */
 function checklist(skill) {
-  const path = join(process.cwd(), ".claude", "skills", skill, "SKILL.md");
+  const root = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+  const path = join(root, ".claude", "skills", skill, "SKILL.md");
   let text;
   try {
     text = readFileSync(path, "utf8");
@@ -48,7 +49,7 @@ function checklist(skill) {
     return `\n   ${skill} — its SKILL.md has no headings or bold rules to extract. Load it before you continue.`;
   }
   // Everything, never a slice. The old cap of nine dropped §24.8, §24.9
-  // and §24.11 off the end of ux-audit without a word — a hook whose
+  // and §24.11 off the end of the surface skill without a word — a hook whose
   // whole purpose is making a standard deterministic, quietly emitting
   // two thirds of it. If a checklist is long, that is a fact about the
   // standard, not a reason to hide part of it.
@@ -67,7 +68,12 @@ process.stdin.on("end", () => {
     process.exit(0);
   }
   if (!file) process.exit(0);
-  const rel = file.replace(`${process.cwd()}/`, "");
+  // Path rules below are project-relative. cwd is NOT guaranteed to be the
+  // project root (the script path itself uses $CLAUDE_PROJECT_DIR); if the
+  // two ever differed, every ^src/ rule silently matched nothing and this
+  // hook became a no-op with exit 0 — the worst failure mode a guard has.
+  const root = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+  const rel = file.startsWith(`${root}/`) ? file.slice(root.length + 1) : file;
   const notes = [];
 
   const source = (() => {
@@ -85,16 +91,26 @@ process.stdin.on("end", () => {
     );
   }
   if (/^src\/app\/.*\.tsx$/.test(rel)) {
+    // A new surface gets the whole standard; an edit to an existing one
+    // gets a two-line pointer. 25 bullets on a one-line import fix taught
+    // sessions to skim past the block — which un-teaches the standard.
+    const isNew = source.split("\n").length < 40 || !source.includes("export");
     notes.push(
-      "Surface touched → SPEC §23/§24: designed empty/loading/error states, accessible names, no internal identifiers." +
-        checklist("ui-craft") +
-        checklist("ux-audit"),
+      isNew
+        ? "New surface → SPEC §23/§24 apply in full." + checklist("ui-craft")
+        : "Surface edited → SPEC §23/§24: designed states, accessible names, no internal identifiers, state never colour alone. Full standard: pass 1–3 of the ui-craft skill.",
     );
   }
-  if (/^src\/lib\/(intake|instrument).*\.ts$/.test(rel)) {
+  if (
+    /^src\/lib\/(intake|instrument|severity).*\.ts$/.test(rel) ||
+    /^src\/data\/(instrument|reference)\//.test(rel)
+  ) {
+    // The instrument LIVES in src/data — the old rule matched only src/lib,
+    // so editing gates.json or severity.json fired nothing at all (operating
+    // layer audit, 2026-08-23). The content is the governed thing.
     notes.push(
-      "Instrument data touched → SPEC §8: update the pinned field-set test in the same commit and record a governance entry." +
-        checklist("instrument-change"),
+      "Instrument or reference data touched → SPEC §8: bump the version string (activated versions are immutable), run `pnpm instrument:seed`, update the pinned test in the same commit, record a governance entry." +
+        checklist("instrument"),
     );
   }
   if (/^\.claude\/(agents|skills)\//.test(rel)) {

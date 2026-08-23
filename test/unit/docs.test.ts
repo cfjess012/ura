@@ -132,7 +132,7 @@ describe("the verifier cannot fall behind the law it audits", () => {
   });
 
   it("points at the skills rather than paraphrasing them", () => {
-    for (const skill of ["ux-audit", "ui-craft", "error-handling"]) {
+    for (const skill of ["ui-craft", "error-handling", "verify"]) {
       expect(verifier, skill).toContain(`${skill}/SKILL.md`);
     }
   });
@@ -142,10 +142,11 @@ describe("the skills cannot fall behind the law they audit", () => {
   // N7: ux-audit sat two revisions behind SPEC §24 — it had no §24.3 at all
   // and its 24.3–24.8 were the SPEC's 24.4–24.9. A verifier told to follow
   // the skill audited against the wrong list and reported nothing wrong.
-  const skill = readFileSync(join(ROOT, ".claude", "skills", "ux-audit", "SKILL.md"), "utf8");
+  // ux-audit merged into ui-craft (pass 2) on 2026-08-23 — same law, one file.
+  const skill = readFileSync(join(ROOT, ".claude", "skills", "ui-craft", "SKILL.md"), "utf8");
   const laws = (spec.split("## 24.")[1] ?? "").split("## 25.")[0] ?? "";
 
-  it("ux-audit lists exactly the §24 laws, and numbers them the same", () => {
+  it("ui-craft pass 2 lists exactly the §24 laws, and numbers them the same", () => {
     const inSpec = [...laws.matchAll(/^(\d+)\. \*\*([^*.]+)/gm)].map(
       (m) => `24.${m[1]} ${m[2]!.trim()}`,
     );
@@ -154,7 +155,7 @@ describe("the skills cannot fall behind the law they audit", () => {
       const [number, ...words] = law.split(" ");
       const firstWords = words.join(" ").split(" ").slice(0, 3).join(" ");
       const heading = skill.match(new RegExp(`\\*\\*${number!.replace(".", "\\.")} ([^*]+)`));
-      expect(heading, `${number} is missing from the ux-audit skill`).toBeTruthy();
+      expect(heading, `${number} is missing from ui-craft pass 2`).toBeTruthy();
       expect(
         heading![1]!.toLowerCase().startsWith(firstWords.toLowerCase().slice(0, 12)),
         `${number} says "${heading![1]!.slice(0, 40)}" but the law says "${firstWords}"`,

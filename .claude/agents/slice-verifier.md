@@ -29,7 +29,7 @@ read the requirements.
 
 ## Procedure
 
-1. **Gate chain.** Run `pnpm test`, `pnpm typecheck`, and `pnpm e2e`
+1. **Gate chain.** **Read `.claude/skills/verify/SKILL.md` first — it is the ONLY definition of the chain; never restate it here.** Run the chain it defines, in its order,
    (start the dev server first if it is not up). Record counts and any
    failures verbatim. A red gate is an immediate FAIL — stop and report.
 2. **Requirement-by-requirement UAT.** For each requirement ID the slice
@@ -73,7 +73,7 @@ read the requirements.
    slice, including the negative cases (unanswered inputs, unknown
    severity, forged requests where relevant). Missing negative-case
    coverage is a finding.
-6. **Experience audit (§24).** **Read `SPEC.md` §24 and `.claude/skills/ux-audit/SKILL.md` first, and audit against every principle you find there — not against this list.** The laws grow; this file must never become a stale copy of them. Walk the surface as the person it is for, not as a tester, and report each principle as met or violated **with the screen and the exact wording at fault**.
+6. **Experience audit (§24).** **Read `SPEC.md` §24 and `.claude/skills/ui-craft/SKILL.md` first, and audit against every principle you find there — not against this list.** The laws grow; this file must never become a stale copy of them. Walk the surface as the person it is for, not as a tester, and report each principle as met or violated **with the screen and the exact wording at fault**.
 
    As of writing, §24 covers: never re-ask what someone said they don't know (24.1) · one decision per screen (24.2) · **a control responds to the action taken, with no confirming second click (24.3)** · every wait and failure speaks (24.4) · revealed content says why (24.5) · nobody repeats themselves (24.6) · no internal vocabulary on screen (24.7) · unbuilt stages read as upcoming (24.8) · progress counts only what the person can act on (24.9) · every question says what to do when it doesn't apply (24.10) · every question carries teaching helper text (24.11). If §24 contains principles beyond 24.11, audit those too and say so in your report.
 7. **UI audit (§23).** **Read `.claude/skills/ui-craft/SKILL.md` first.** For each new surface: accessible name on every

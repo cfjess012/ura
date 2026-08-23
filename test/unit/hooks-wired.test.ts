@@ -23,6 +23,7 @@ const settings = JSON.parse(readFileSync(join(ROOT, ".claude", "settings.json"),
 /** Which event each hook script must be wired to, and how it must match. */
 const WIRING: Record<string, { event: string; matcher?: RegExp }> = {
   "advise.mjs": { event: "PostToolUse", matcher: /Edit\|Write\|MultiEdit/ },
+  "guard.mjs": { event: "PreToolUse", matcher: /Edit\|Write\|MultiEdit/ },
   "stop-gate.mjs": { event: "Stop" },
 };
 

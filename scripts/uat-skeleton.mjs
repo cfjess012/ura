@@ -83,6 +83,11 @@ _Required by SPEC §21 item 6 and enforced by the Stop gate. What agentic
 capability this slice designed and registered — or an explicit "none, and
 why". Phase 1 ships no agent; it may not ship anything that forecloses one._
 
+## Verifier
+
+_The slice-verifier agent's verdict (PASS/FAIL) and what it checked — the
+record proves the run (Stop gate, 2026-08-23)._
+
 ## Not verified
 
 _Always present. Name the gaps in this run's coverage rather than implying

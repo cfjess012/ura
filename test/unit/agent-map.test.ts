@@ -31,8 +31,8 @@ describe("the published agent map matches the repository", () => {
   it("carries each agent's real instructions, not a summary", () => {
     const skill = committed.groups
       .flatMap((g: { nodes: { name: string; full: string }[] }) => g.nodes)
-      .find((n: { name: string }) => n.name === "ux-audit");
-    const onDisk = readFileSync(join(ROOT, ".claude", "skills", "ux-audit", "SKILL.md"), "utf8");
+      .find((n: { name: string }) => n.name === "ui-craft");
+    const onDisk = readFileSync(join(ROOT, ".claude", "skills", "ui-craft", "SKILL.md"), "utf8");
     // The stored text is the file's body — a distinctive line must survive.
     const distinctive = onDisk.match(/^.*punishes honesty.*$/m)?.[0];
     expect(distinctive, "expected the origin story in the skill").toBeTruthy();

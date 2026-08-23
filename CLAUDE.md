@@ -1,4 +1,4 @@
-# CLAUDE.md — Universal Risk Assessment
+# CLAUDE.md — Front Door AI Risk Advisor
 
 SPEC.md is the BRAIN: requirements (§20), slices (§17), acceptance criteria
 (§19), build rules (§0), and the governance log (§13) all live there. Do not
@@ -8,23 +8,23 @@ implementation, stop on ambiguity.
 
 ## Slice status
 
-- S1 Intake — DONE · S2 Gates — DONE (owner review pending)
-- S2.5 People — DONE (roles enforced server-side on the OBJECT as well as the
-  listing; the persona switcher is a pilot device, NOT auth)
-- S3 Paths & engine — DONE (derived state is COMPUTED, never stored; every
-  derived path carries its reason; parts shelf declined, G-40)
-- S4 Tier 2 — DONE (rubric anchors ARE the options; a derived band is offered,
-  never pre-answered; controls accumulate carrying every reason)
-- S4.5 Reference data — NEXT (§17, G-46..G-49): pickers over versioned lists,
-  off-list answers as their own shape, provenance that survives the click
-- S3.5 Destinations — SPEC'd not built (§27): ServiceNow AI Use Case Record
+- S1 Intake — DONE
+- S2 Gates — DONE
+- S2.5 People — DONE (the persona switcher is a pilot device, NOT auth)
+- S3 Paths & engine — DONE (derived state COMPUTED, never stored)
+- S4 Tier 2 — DONE (rubric anchors ARE the options)
+- S4.7 Hand-offs — DONE 2026-08-22 (FR-36, legalized G-54)
+- S4.5 Reference data — PARTIAL: searchable vendor picker and
+  provenance-on-accept (FR-33) remain
+- S3.5 Destinations — SPEC'd not built (§27) · S4.6 Attachments — blocked on
+  §3.6 retention · S4.8 Declared boundaries — not started (G-50)
 - S5..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
-- Verified 3× on 2026-08-21, FAIL each time, all addressed (G-28..G-44); each
-  remediation carried a defect into the next round. **Round-2 fixes and the
-  enforcement gates are NOT independently verified — folded into S4.**
-- `demo/readiness.md` = what the room sees. The stop gate blocks finishing
+- 2026-08-23 level set: SPEC rewritten to the official mission (G-51..G-55);
+  agentic on Bedrock/AgentCore is the Phase-2 epic and the priority after
+  the demo. The three §6.1 seams do NOT exist in code yet.
+- `demo/readiness.md` = what the room sees; the stop gate blocks finishing
   until it covers every DONE slice (G-44). `db:reset` held for demo-data
-  day. Audit C-6/7/10 open (`audits/instrument-2026-08-21.md`).
+  day. Audit C-6/7 open (`audits/instrument-2026-08-21.md`).
 
 Instrument data lives in `src/data/instrument/*.json`, imported at build time
 (never from disk at runtime). After editing, `pnpm instrument:seed` activates
@@ -57,20 +57,15 @@ work, not after:
 
 | Before you… | Load |
 |---|---|
-| start or finish a slice | `slice-review` |
-| commit, or claim anything is done | `full-gates` |
+| commit, start/finish a slice, or claim anything is done | `verify` |
 | write an action, mutation, or failure path | `error-handling` |
-| build or restyle any screen | `ui-craft` |
-| finish a screen or design a question's behaviour | `ux-audit` |
+| build, change, audit, or point anything at a screen | `ui-craft` |
 | add a feature, utility, or data access path | `aws-ready` |
-| challenge or design a question a person answers | `question-design` |
+| change anything a person is asked, or activate a version | `instrument` |
 | propose or spec anything an agent would do | `agentic-design` |
-| audit the instrument as a whole (tiers, rubrics, coverage) | `instrument-coherence` |
-| change any question, option, or condition | `instrument-change` |
-| hand the owner something to test | `uat-checkout` |
 | write anything to the owner | `owner-brief` |
 | answer design feedback or a screenshot | `design-mock` |
-| build an alert, notification, or attestation prompt | `alert-destination` |
+| finish a review, prep UAT or the demo, or write down a claim | `demo-truth` |
 
 Law lives in SPEC and is always true; procedure lives in skills and is
 loaded on demand; teeth live in tests and hooks. Loading is probabilistic —
@@ -79,24 +74,12 @@ only in a skill.
 
 ## Workspace law: build for AWS from the first line (SPEC §26)
 
-- **Pure logic, separate executors.** Business rules import no framework, no
-  driver, no env — so any module lifts into a Lambda/AgentCore task
-  unchanged. Actions/routes only: read request → call pure fn → call store.
-  Convert FormData/Request at the boundary; never pass them inward.
-- **State is external.** No process memory, no local files, no hardcoded
-  paths. All reads/writes through `src/lib/repo.ts`; nothing else touches
-  the driver.
-- **The store engine is UNDECIDED** (SPEC §14.6): Postgres is today's
-  implementation, DynamoDB is a live candidate. Flag any Postgres-specific
-  choice in the slice review; assess with evidence after S9 and before the
-  AWS migration. Note: §5 invariants currently rely on DB CHECK
-  constraints, which DynamoDB does not have — that trade is the crux.
-- **Config in one place.** Only `src/lib/config.ts` reads process.env, and it
-  validates. Secrets Manager / Parameter Store swap in there alone.
-- **Three test tiers**: `pnpm test:unit` (pure, no deps) · `test:integration`
-  (PGlite, no daemon) · `test:e2e` (running app). Each is a CI step.
-- These are enforced by `test/unit/architecture.test.ts` — drift fails the
-  build, it does not rely on anyone remembering.
+The rules live in the `aws-ready` skill and are enforced by
+`test/unit/architecture.test.ts` — pure logic separate from executors, state
+external behind `src/lib/repo.ts`, config only via `src/lib/config.ts`,
+three test tiers. One fact worth keeping resident: **the store engine is
+settled — Postgres on RDS (G-53).** DB CHECK constraints carry the §5
+invariants; that is a feature, not a portability risk.
 
 ## Non-negotiables (from SPEC, enforced here)
 

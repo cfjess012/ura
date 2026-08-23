@@ -49,16 +49,15 @@ function gist(body) {
 
 // ---------------------------------------------------------------- build-time
 const TRIGGERS = {
-  "slice-review": "Before a slice starts, and again when its done-when holds.",
-  "full-gates": "Before any commit, and before claiming anything is done.",
+  "verify": "Before any commit, when starting or finishing a slice, and before claiming anything is done.",
   "error-handling": "Before writing an action, a mutation, or any failure path.",
-  "ui-craft": "Before building or restyling any screen.",
-  "ux-audit": "When finishing a screen, or deciding how a question should behave.",
+  "ui-craft": "Before building, changing, auditing, or pointing anything at a screen.",
   "aws-ready": "When adding a feature, utility, or data-access path.",
-  "question-design": "Before adding, rewording, or challenging any question.",
   "agentic-design": "Before proposing or specifying anything an agent would do.",
-  "instrument-change": "Before changing any question, option, or condition.",
-  "uat-checkout": "When handing the owner something to test.",
+  "instrument": "Before changing anything a person is asked, and before activating a version.",
+  "owner-brief": "Whenever writing a message to the owner.",
+  "design-mock": "When the owner sends a screenshot or describes how something should look.",
+  "demo-truth": "At slice review, before UAT, before demo day, and whenever a claim is written down.",
 };
 
 const SKILL_ACCESS =
@@ -119,6 +118,12 @@ const HOOK_META = {
     what: "Puts the governing standard's own checklist in front of the work, the instant a governed file is edited",
     access:
       "Sees the path of the file just edited, and reads the standards that apply to it. No network, no database, no other files.",
+  },
+  "guard.mjs": {
+    name: "guard",
+    what: "Refuses, before the edit lands, the three writes where after is too late: applied migrations, environment files, and deleting a settled governance entry",
+    access:
+      "Sees the path and proposed text of the edit about to happen, and asks git whether a migration is tracked. No network, no database; it writes nothing and blocks by refusing.",
   },
   "stop-gate.mjs": {
     name: "stop-gate",

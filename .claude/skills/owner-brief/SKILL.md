@@ -45,6 +45,13 @@ appear, however short the message:
   gets a section of its own, not a clause buried mid-paragraph.
 - **What is not verified.** Silence about a gap reads as a claim.
 
+## Precedence
+
+This skill governs the FORMAT of every message to the owner, whatever other
+skill produced the content. A skill whose output form conflicts with this
+one (more sections, longer) writes its full output to a committed file and
+delivers the owner its brief.
+
 ## Test
 
 Read the message back and ask: could the owner act on this after reading
