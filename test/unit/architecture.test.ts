@@ -250,3 +250,26 @@ describe("an action authorises the OBJECT, not only the id it was handed", () =>
     }
   });
 });
+
+describe("a submitted assessment is closed to writing (S7, FR-37)", () => {
+  /**
+   * `editableAfter` was written and unit-tested at S7 and called from
+   * nowhere — so a person could edit answers after declaring them accurate,
+   * making the declaration describe a record that no longer exists. A rule
+   * nothing enforces is decoration; that is FR-28's whole lesson.
+   */
+  const access = read(join(SRC, "lib", "project-access.ts"));
+
+  it("the write gate consults the submission stamp", () => {
+    expect(access).toMatch(/editableAfter\(project\.submittedAt\)/);
+  });
+
+  it("only the submission act itself may bypass it", () => {
+    expect(access).toMatch(/submitting/);
+    const actions = read(join(SRC, "app", "actions.ts"));
+    const bypasses = [...actions.matchAll(/editableProject\([^)]*,\s*true\)/g)];
+    expect(bypasses).toHaveLength(1);
+    const at = actions.indexOf('editableProject(projectId, "submitAssessment", true)');
+    expect(at, "the bypass must be submitAssessment's").toBeGreaterThan(-1);
+  });
+});

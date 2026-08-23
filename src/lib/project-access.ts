@@ -16,6 +16,7 @@ import { notFound } from "next/navigation";
 import { currentPerson } from "./current-person";
 import { failure, type Result } from "./errors";
 import { mayOpenAssessment, type Person } from "./people";
+import { editableAfter } from "./submission";
 import { projectStore, type ProjectRecord } from "./repo";
 
 export type ProjectAccess =
@@ -46,6 +47,8 @@ export async function openProject(id: string): Promise<ProjectAccess> {
 export async function editableProject(
   id: string,
   what: string,
+  /** Only the submission act itself may write to an unsubmitted project. */
+  submitting = false,
 ): Promise<Result<{ project: ProjectRecord; person: Person }>> {
   const [person, project] = await Promise.all([currentPerson(), projectStore().get(id)]);
   if (!project) {
@@ -62,6 +65,22 @@ export async function editableProject(
       new Error(`${person.id} (${person.role}) may not write to project ${id}`),
       "This assessment belongs to someone else, so nothing was saved. Ask its owner to make the change, or switch to the person who owns it.",
       { retryable: false },
+    );
+  }
+  // A submitted assessment is closed to everyone who writes through here.
+  // Not a courtesy: an answer changed after the declaration would make it
+  // describe a record that no longer exists (§4.1, FR-37). The rule was
+  // written and unit-tested at S7 and called from nowhere — a rule nothing
+  // enforces is decoration, which is FR-28's whole lesson.
+  //
+  // `submitAssessment` is the one exception and passes `submitting: true`,
+  // because the act that sets the stamp cannot be blocked by it.
+  if (!submitting && !editableAfter(project.submittedAt)) {
+    return failure(
+      what,
+      new Error(`project ${id} was submitted at ${project.submittedAt?.toISOString()}`),
+      "This assessment has been submitted, so nothing was changed. A reviewer has it now — ask them to correct an answer.",
+      { retryable: false, expected: true },
     );
   }
   return { ok: true as const, project, person };

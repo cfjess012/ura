@@ -23,9 +23,17 @@ import { CATEGORIES, INSTRUMENT } from "@/lib/instrument";
 import { pathSubmissionProblems } from "@/lib/engine";
 import type { AnswerLookup } from "@/lib/conditions";
 import { SEVERITY, accumulatedFor, severitySubmissionProblems } from "@/lib/severity";
+import {
+  declarableFrom,
+  declarationMatches,
+  gapsIn,
+  submissionProblem,
+  synthesiseFindings,
+  type Declared,
+} from "@/lib/submission";
 import { TIER3, isTier3Value, objectivesFor, submissionProblems, type Tier3Value } from "@/lib/tier3";
 import { editableProject, openProject } from "@/lib/project-access";
-import { answerStore, handoffStore, peopleStore, projectStore } from "@/lib/repo";
+import { answerStore, handoffStore, peopleStore, projectStore, submissionStore } from "@/lib/repo";
 import { resolutionProblem } from "@/lib/handoff";
 
 /** FormData is a web detail; the logic layer takes a plain record. */
@@ -253,6 +261,88 @@ async function lookupFor(projectId: string): Promise<AnswerLookup> {
   }
   lookup.paths = paths;
   return lookup;
+}
+
+/**
+ * Submit the assessment (S7): the declaration, the named gaps, and the
+ * findings the Tier-3 answers raise.
+ *
+ * Every rule is checked here rather than by the form. The one that matters
+ * most: the answers the person declared accurate must still be the answers
+ * on record. If one moved between the page rendering and this call, their
+ * confirmation describes something that no longer exists — so it is
+ * refused and they read it again, rather than being recorded as having
+ * declared something they never saw (G-42).
+ */
+export async function submitAssessment(
+  projectId: string,
+  input: { shown: Declared[]; gapsAcknowledged: boolean },
+): Promise<Result<{ submitted: true; findings: number }>> {
+  try {
+    const allowed = await editableProject(projectId, "submitAssessment", true);
+    if (isFailure(allowed)) return allowed;
+    const { person, project } = allowed;
+    if (!canAnswer(person.role)) {
+      return failure(
+        "submitAssessment",
+        new NotPermitted("submit an assessment", person.role),
+        "This role doesn't submit assessments. Switch to the person who owns this one.",
+        { retryable: false, expected: true },
+      );
+    }
+
+    const intake = intakeValuesFrom(project as unknown as Record<string, unknown>);
+    const current = declarableFrom(intake as Record<string, unknown>);
+    if (!declarationMatches(input.shown, current)) {
+      return failure(
+        "submitAssessment",
+        new Error("declaration is stale"),
+        "The answers on this page have changed since you read them. Reload and read them again before declaring them accurate — nothing was submitted.",
+        { retryable: false, expected: true },
+      );
+    }
+
+    const stored = await answerStore().current(projectId);
+    const required = objectivesFor(accumulatedFor(stored, intake).map((c) => c.objective));
+    const values: Record<string, Tier3Value> = {};
+    for (const [questionId, value] of Object.entries(stored)) {
+      if (questionId.startsWith("t3.") && isTier3Value(value.value)) values[questionId] = value.value;
+    }
+    const lookup = await lookupFor(projectId);
+    const gaps = gapsIn(required, values, lookup);
+
+    const problem = submissionProblem({
+      alreadySubmitted: project.submittedAt !== null,
+      declaredCount: input.shown.length,
+      expectedCount: current.length,
+      gapsAcknowledged: input.gapsAcknowledged,
+      gapCount: gaps.length,
+    });
+    if (problem) {
+      return failure("submitAssessment", new Error(problem), `${problem} Nothing was submitted.`, {
+        retryable: false,
+        expected: true,
+      });
+    }
+
+    const raised = synthesiseFindings(required, values, lookup);
+    await submissionStore().submit({
+      projectId,
+      person: person.id,
+      shown: input.shown,
+      gaps,
+      findings: raised,
+    });
+    revalidatePath(`/projects/${projectId}`);
+    revalidatePath("/", "layout");
+    return { ok: true as const, submitted: true as const, findings: raised.length };
+  } catch (error) {
+    return failure(
+      "submitAssessment",
+      error,
+      "The assessment wasn't submitted. Everything you answered is safe — try again in a moment.",
+    );
+  }
 }
 
 /**

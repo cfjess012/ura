@@ -20,6 +20,8 @@
 import type { Tier3Answer, Tier3Objective, Tier3Value } from "./tier3";
 import { childrenAsked } from "./tier3";
 import type { AnswerLookup } from "./conditions";
+import { ALL_FIELDS, type IntakeField } from "./intake";
+import { labelOf, type ReferenceAnswer } from "./reference";
 
 /** A question a person has not answered, in its own words. */
 export type Gap = { questionId: string; label: string };
@@ -155,4 +157,51 @@ export function stageOf(submittedAt: Date | null): "Draft" | "In review" {
  */
 export function editableAfter(submittedAt: Date | null): boolean {
   return submittedAt === null;
+}
+
+
+/**
+ * What the submitter is asked to declare accurate (FR-37, G-52).
+ *
+ * The eight required intake answers, each shown as a label and the value as
+ * it appears on screen — never an id. One list, one confirmation: eight
+ * separate tick-boxes is ceremony people click through without reading,
+ * which is the opposite of what a declaration is for (owner's call).
+ */
+export function declarableFrom(values: Record<string, unknown>): Declared[] {
+  const shown = (field: IntakeField, raw: unknown): string => {
+    if (raw === null || raw === undefined || raw === "") return "";
+    if (Array.isArray(raw)) {
+      return raw
+        .map((item) =>
+          typeof item === "object" && item !== null
+            ? labelOf(item as ReferenceAnswer)
+            : String(item),
+        )
+        .join(", ");
+    }
+    if (typeof raw === "object") return labelOf(raw as ReferenceAnswer);
+    return String(raw);
+  };
+  return ALL_FIELDS.filter((field) => field.required).map((field) => ({
+    questionId: field.id,
+    label: field.label,
+    value: shown(field, values[field.id]),
+  }));
+}
+
+/**
+ * Whether the answers a person declared still match the record.
+ *
+ * The declaration is about what they READ. If an answer moved between the
+ * page rendering and the form posting, their confirmation describes
+ * something that no longer exists — so the submission is refused and they
+ * are asked to read it again, rather than being recorded as having
+ * declared something they never saw (G-42's rule, at the moment it matters
+ * most).
+ */
+export function declarationMatches(shown: Declared[], current: Declared[]): boolean {
+  if (shown.length !== current.length) return false;
+  const byId = new Map(current.map((d) => [d.questionId, d.value]));
+  return shown.every((d) => byId.get(d.questionId) === d.value);
 }

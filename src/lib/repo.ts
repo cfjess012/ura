@@ -19,6 +19,7 @@ import type { Person, Role } from "./people";
 import { labelOf, type ReferenceAnswer } from "./reference";
 import { CATEGORIES } from "./instrument";
 import { isWaitingOn, type Handoff, type Reply } from "./handoff";
+import type { Declared, Gap, SynthesisedFinding } from "./submission";
 import { questionLabelFor } from "./question-label";
 
 export type ProjectSummary = {
@@ -564,6 +565,97 @@ function shapeHandoff(row: {
   // The question's own words are resolved on the way out, never stored: the
   // instrument owns the wording and a copy here would drift from it.
   return { ...row, questionLabel: questionLabelFor(row.questionId) };
+}
+
+/**
+ * Submission: the fact, the declaration, and the findings it raised (S7).
+ * One act, one transaction — a submission recorded without its declaration
+ * would be a stamp nobody stands behind (G-40a).
+ */
+export interface SubmissionStore {
+  submit(input: {
+    projectId: string;
+    person: string;
+    shown: Declared[];
+    gaps: Gap[];
+    findings: SynthesisedFinding[];
+  }): Promise<void>;
+  findingsFor(projectId: string): Promise<FindingRow[]>;
+  declarationFor(projectId: string): Promise<DeclarationRow | null>;
+}
+
+export type FindingRow = SynthesisedFinding & { id: string; raisedAt: Date; raisedBy: string };
+export type DeclarationRow = {
+  declaredBy: string;
+  declaredAt: Date;
+  shown: Declared[];
+  gaps: Gap[];
+};
+
+export function postgresSubmissionStore(): SubmissionStore {
+  const db = getDb();
+  return {
+    async submit({ projectId, person, shown, gaps, findings: raised }) {
+      // All of it or none: the stamp, what was declared, and what it
+      // raised are one act.
+      await db.transaction(async (tx) => {
+        await tx
+          .update(schema.projects)
+          .set({ submittedAt: new Date(), submittedBy: person })
+          .where(and(eq(schema.projects.id, projectId), isNull(schema.projects.submittedAt)));
+        await tx.insert(schema.declarations).values({ projectId, declaredBy: person, shown, gaps });
+        if (raised.length > 0) {
+          await tx.insert(schema.findings).values(
+            raised.map((finding) => ({
+              projectId,
+              questionId: finding.questionId,
+              objective: finding.objective,
+              objectiveName: finding.objectiveName,
+              kind: finding.kind,
+              note: finding.note,
+              raisedBy: person,
+            })),
+          );
+        }
+      });
+    },
+    async findingsFor(projectId) {
+      const rows = await db
+        .select()
+        .from(schema.findings)
+        .where(eq(schema.findings.projectId, projectId))
+        .orderBy(schema.findings.raisedAt);
+      return rows.map((row) => ({
+        id: row.id,
+        questionId: row.questionId,
+        objective: row.objective,
+        objectiveName: row.objectiveName,
+        kind: row.kind as SynthesisedFinding["kind"],
+        note: row.note,
+        raisedAt: row.raisedAt,
+        raisedBy: row.raisedBy,
+      }));
+    },
+    async declarationFor(projectId) {
+      const [row] = await db
+        .select()
+        .from(schema.declarations)
+        .where(eq(schema.declarations.projectId, projectId))
+        .orderBy(desc(schema.declarations.declaredAt))
+        .limit(1);
+      if (!row) return null;
+      return {
+        declaredBy: row.declaredBy,
+        declaredAt: row.declaredAt,
+        shown: row.shown as Declared[],
+        gaps: row.gaps as Gap[],
+      };
+    },
+  };
+}
+
+export function submissionStore(): SubmissionStore {
+  return postgresSubmissionStore();
 }
 
 export function handoffStore(): HandoffStore {

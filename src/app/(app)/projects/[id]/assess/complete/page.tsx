@@ -269,12 +269,25 @@ export default async function GatesCompletePage({
             which is the same defect as claiming an unbuilt stage is ready
             (S4 verification, F3).
           */}
+          {/* Submission is reachable whenever intake is done: gaps are
+              allowed and named, not a locked door (FR-14). */}
+          <div className="card">
+            <h2>Hand this to a reviewer</h2>
+            <p className="help">
+              You declare your answers accurate, and anything still unanswered is
+              named so a reviewer sees it as it is. Submitting is one-way.
+            </p>
+            <Link className="btn" href={`/projects/${id}/submit`}>
+              Read them and submit &rarr;
+            </Link>
+          </div>
+
           <div className="card card-upcoming">
             <h2>Coming next</h2>
             <p>
-              Once the control questions above are answered, this is submitted
-              and a reviewer attests each answer. Submission and review are
-              still being built — everything you have answered is saved.
+              A reviewer attests every answer and disposes the findings this
+              raises. Those screens are still being built — everything you have
+              answered is saved.
             </p>
             <Link className="btn ghost" href={`/projects/${id}`}>
               Back to the assessment
