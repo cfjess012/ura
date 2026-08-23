@@ -137,6 +137,35 @@
 .owed { border-left: 4px solid var(--success); }
 .owed h2 { color: var(--success); }
 
+/* The live ledger (FR-11): active paths, severities, and — in .owed below —
+   what they require. Reads as one running account of the assessment, so it
+   sits directly above the objectives it explains. */
+.ledger { border-left: 4px solid var(--primary); }
+.ledger h2 { color: var(--navy); }
+.ledger-cols {
+  display: grid; gap: 1.2rem; margin-top: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+.ledger-cols h3 {
+  font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--neutral-600); margin: 0 0 0.4rem;
+  display: flex; align-items: baseline; gap: 0.4rem;
+}
+.ledger-count {
+  font-variant-numeric: tabular-nums; font-size: 0.78rem;
+  color: var(--primary); letter-spacing: 0;
+}
+/* The band is a word first; the fill only reinforces it (§23, never colour
+   alone). */
+.band-tag {
+  margin-left: 0.45rem; padding: 0.05rem 0.45rem; border-radius: 99px;
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.02em;
+  border: 1px solid transparent;
+}
+.band-low { background: var(--surface-2); color: var(--navy); border-color: var(--surface-3); }
+.band-medium { background: var(--warning-bg); color: var(--warning-strong); border-color: var(--warning); }
+.band-high { background: #fdeaea; color: var(--error); border-color: var(--error); }
+
 /* A way back out of Tier 2 — see severity-rail.tsx (S4 verification, F5). */
 .rail-back {
   display: flex; flex-direction: column; gap: 0.35rem;

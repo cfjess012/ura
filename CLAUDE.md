@@ -16,6 +16,8 @@ implementation, stop on ambiguity.
 - S4.7 Hand-offs — DONE 2026-08-22 (FR-36, legalized G-54)
 - S4.8 Declared boundaries — DONE 2026-08-23 (FR-35: the seven pilot-scoped
   areas say on screen that they stop deliberately; derived, never listed)
+- S5 Ledger — DONE 2026-08-23 (FR-10/FR-11: active paths, severities and the
+  objectives they require, recomputed live and never stored; G-57)
 - S4.5 Reference data — PARTIAL: searchable vendor picker and
   provenance-on-accept (FR-33) remain
 - S3.5 Destinations — SPEC'd not built (§27) · S4.6 Attachments — blocked on

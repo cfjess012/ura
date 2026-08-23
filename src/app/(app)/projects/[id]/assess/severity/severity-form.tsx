@@ -39,6 +39,7 @@ export function SeverityForm({
   nextLabel,
   recipients,
   handoffs,
+  ledger,
 }: {
   projectId: string;
   items: SeverityItem[];
@@ -47,6 +48,18 @@ export function SeverityForm({
   recipients: Recipient[];
   /** Hand-offs on this screen's questions, by question id (S4.7). */
   handoffs: Record<string, HandoffView>;
+  /**
+   * The whole assessment's picture, not this screen's (FR-11): every active
+   * path, every severity answered so far, and — computed here — what they
+   * require. The requirement names all three and the panel showed only the
+   * third, so a person could see the consequence without the reasoning
+   * (S5 close-out, 2026-08-23).
+   */
+  ledger: {
+    paths: { name: string; because: string | null }[];
+    severities: { name: string; band: Band | null }[];
+    totalAsked: number;
+  };
 }) {
   const [bands, setBands] = React.useState<Record<string, Band | null>>(
     Object.fromEntries(items.map((i) => [i.question.questionId, i.band])),
@@ -133,6 +146,17 @@ export function SeverityForm({
     details,
   );
   const answered = items.filter((i) => bands[i.question.questionId]).length;
+
+  // FR-11's ledger is live. The server hands over every severity recorded
+  // across the assessment; this screen's own answers are then taken from
+  // React state, so the panel moves with the click rather than with the
+  // next page load.
+  const liveSeverities = (() => {
+    const here = new Map(items.map((i) => [i.question.name, bands[i.question.questionId] ?? null]));
+    const merged = ledger.severities.filter((s) => !here.has(s.name));
+    for (const [name, band] of here) if (band) merged.push({ name, band });
+    return merged;
+  })();
 
   return (
     <form
@@ -285,6 +309,55 @@ export function SeverityForm({
           </section>
         );
       })}
+
+      {/* Severities from the server cover the whole assessment; the ones on
+          THIS screen are overridden from live state, or the ledger would sit
+          a save behind the answer that changed it — and FR-11 says live. */}
+      <div className="card ledger">
+        <h2>Where this assessment stands</h2>
+        <p className="help">
+          Recomputed from your answers every time you give one — nothing here
+          is stored, so changing an answer changes this.
+        </p>
+        <div className="ledger-cols">
+          <section>
+            <h3>
+              Active paths <span className="ledger-count">{ledger.paths.length}</span>
+            </h3>
+            <ul className="summary-list">
+              {ledger.paths.map((path) => (
+                <li key={path.name}>
+                  {path.name}
+                  {path.because && (
+                    <span className="meta"> — worked out because {path.because}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section>
+            <h3>
+              Severities{" "}
+              <span className="ledger-count">
+                {liveSeverities.length} of {ledger.totalAsked}
+              </span>
+            </h3>
+            {liveSeverities.length === 0 ? (
+              <p className="help">Nothing answered yet — they appear here as you go.</p>
+            ) : (
+              <ul className="summary-list">
+                {liveSeverities.map((s) => (
+                  <li key={s.name}>
+                    {s.name}
+                    {/* Never colour alone: the band is a word (§23). */}
+                    <span className={`band-tag band-${s.band?.toLowerCase()}`}>{s.band}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      </div>
 
       {owed.length > 0 && (
         <div className="card owed">

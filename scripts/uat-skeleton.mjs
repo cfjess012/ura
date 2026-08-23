@@ -23,14 +23,30 @@ if (!/^S\d+(\.\d+)?$/.test(slice)) {
 const spec = readFileSync(join(process.cwd(), "SPEC.md"), "utf8");
 const version = spec.match(/^spec-version:\s*(.+)$/m)?.[1]?.trim() ?? "unversioned";
 
-const row = spec.match(new RegExp(`^\\| \\*\\*${slice}\\*\\* \\|(.+)$`, "m"));
+const row = spec.match(new RegExp(`^\\| \\*\\*${slice}\\*\\* \\|.+$`, "m"));
 if (!row) {
   console.error(`No row for ${slice} in SPEC §17.`);
   process.exit(1);
 }
-const cells = row[1].split(" | ");
-const owns = (cells[2] ?? "").split(/[·,]/).map((s) => s.trim()).filter(Boolean);
-const doneWhen = (cells[3] ?? "").replace(/\|$/, "").trim();
+// Columns are found by their header, not counted. §17 gained a Status column
+// on 2026-08-23 and this shifted silently, producing a skeleton whose
+// requirement row was the Builds prose — a generator that reads position
+// breaks the moment the table it reads is edited.
+const header = spec.match(/^\| # \| Slice \|.*$/m);
+if (!header) throw new Error("§17's table header not found — has the delivery plan changed shape?");
+const columns = header[0].split("|").map((c) => c.trim());
+const columnAt = (name) => {
+  const at = columns.findIndex((c) => c.toLowerCase() === name.toLowerCase());
+  if (at === -1) throw new Error(`§17 has no "${name}" column; found: ${columns.filter(Boolean).join(", ")}`);
+  return at;
+};
+// The WHOLE row, so its cells line up with the header's by index.
+const cells = row[0].split("|").map((c) => c.trim());
+const owns = (cells[columnAt("Owns")] ?? "")
+  .split(/[·,]/)
+  .map((s) => s.trim())
+  .filter(Boolean);
+const doneWhen = (cells[columnAt("Done when")] ?? "").trim();
 
 const describe = (id) => {
   const line = spec.match(new RegExp(`^\\| ${id} \\| (.+?) \\|`, "m"));

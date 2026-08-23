@@ -488,3 +488,57 @@ describe("the severity validator rejects references that resolve to nothing", ()
     expect(() => validate(d)).toThrow(/would show as its code/);
   });
 });
+
+describe("capture answers do not score (§19, §3.1.6)", () => {
+  /**
+   * A detail question is the capture type: "what specifically?", multi-select,
+   * asked only once its parent is severe enough. §3.1.6 says capture answers
+   * never affect accumulation THRESHOLDS — they may still add objectives
+   * directly through option-adds (§3.3), which is accumulation, not scoring.
+   *
+   * §19 used to say "never changes the accumulated set", which contradicted
+   * FR-10's option-adds; the criterion now states the rule §3.1.6 actually
+   * draws, and this is the test for it (S5 close-out, 2026-08-23).
+   */
+  const withDetail = SEVERITY_QUESTIONS.filter((q) => q.detail);
+
+  it("the instrument has capture questions to test", () => {
+    expect(withDetail.length).toBeGreaterThan(5);
+  });
+
+  it("answering a capture question changes no threshold-fired objective", () => {
+    for (const question of withDetail) {
+      const bands = { [question.questionId]: "High" as const };
+      const none = accumulateControls([question], bands, {});
+      const someChosen = {
+        [question.detail!.questionId]: Object.keys(question.detail!.optionRequires ?? {}),
+      };
+      const withCapture = accumulateControls([question], bands, someChosen);
+
+      // Every reason naming the BAND must be identical either way: the
+      // capture answer moved no threshold.
+      const thresholdReasons = (list: ReturnType<typeof accumulateControls>) =>
+        list
+          .flatMap((c) => c.because.map((why) => `${c.objective}::${why}`))
+          .filter((r) => / is (Low|Medium|High) — /.test(r))
+          .sort();
+      expect(thresholdReasons(withCapture), question.id).toEqual(thresholdReasons(none));
+    }
+  });
+
+  it("but a capture answer may add objectives of its own, each with its reason", () => {
+    const question = withDetail.find(
+      (q) => Object.keys(q.detail!.optionRequires ?? {}).length > 0,
+    )!;
+    const option = Object.keys(question.detail!.optionRequires)[0]!;
+    const before = accumulateControls([question], { [question.questionId]: "High" }, {});
+    const after = accumulateControls([question], { [question.questionId]: "High" }, {
+      [question.detail!.questionId]: [option],
+    });
+    expect(after.length).toBeGreaterThanOrEqual(before.length);
+    const added = after.filter((c) => !before.some((b) => b.objective === c.objective));
+    for (const control of added) {
+      expect(control.because.join(" "), control.objective).toContain(option);
+    }
+  });
+});

@@ -168,6 +168,24 @@ export default async function SeverityPage({
             items={items}
             recipients={recipients}
             handoffs={handoffs}
+            /* FR-11's ledger is the whole assessment, not this screen: the
+               active paths and every severity so far, alongside what they
+               require. Computed here and never stored (NFR-3). */
+            ledger={{
+              paths: lit.map((p) => ({
+                name: p.name,
+                because: p.source === "derived" ? p.because.join("; and ") : null,
+              })),
+              severities: asked
+                .map((q) => ({
+                  name: q.name,
+                  band: (typeof stored[q.questionId]?.value === "string"
+                    ? (stored[q.questionId]!.value as string)
+                    : null) as Band | null,
+                }))
+                .filter((s) => s.band !== null),
+              totalAsked: asked.length,
+            }}
             nextHref={
               next
                 ? `/projects/${id}/assess/severity/${next.key}`

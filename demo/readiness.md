@@ -1,6 +1,6 @@
 ---
 artifact: demo-readiness
-slices-covered: S1, S2, S2.5, S3, S4, S4.7, S4.8
+slices-covered: S1, S2, S2.5, S3, S4, S4.7, S4.8, S5
 reviewed-on: 2026-08-23
 walked-with-owner: partially — S1, S2 and S2.5 walked by the owner; S3 and S4 not yet
 ---
@@ -29,6 +29,7 @@ One row per beat. A beat with a blank cell is not a beat, it is a hope.
 | 8 | A severity answer summons a control, with its reason | S4 | yes | no | Answer Provider Access High and read the control list aloud; if the screen fails, the reasons are in uat/S4.md |
 | 12 | A stuck question is handed to a named office, a bell obligation pins until answered, resolve refused while empty | S4.7 · FR-36 | yes | yes — walked via 11-screenshot run 2026-08-22 | Show walk-8..11 screenshots; the thread survives in the record |
 | 13 | An area that applies but asks nothing says so, and the summary counts work apart from scope | S4.8 · FR-35 | yes | yes — builder walk 2026-08-23 | Say the split out loud: four areas open detailed questions, five are recorded for a reviewer. It is the honest version of the same slide |
+| 14 | A running ledger — active paths, severities, and the controls they require — recomputed as you answer, never stored | S5 · FR-10, FR-11 | yes | yes — builder walk 2026-08-23 | Answer Provider Access at High and read the six controls aloud; the derivation reasons are also on the summary if the panel fails |
 | 9 | "24 of 29 fields already answered" → ServiceNow record | S3.5 | **no** | no | Not demoable yet — describe it from §27 instead |
 | 10 | Every agent enumerated: what it does, what it can see | S2 · FR-24 | yes | partially | Open `docs/agent-map.html` directly if the app is down |
 
