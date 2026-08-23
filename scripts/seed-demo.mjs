@@ -235,6 +235,44 @@ const activeVersion = async (slug) => {
   return row.id;
 };
 
+/**
+ * Gates the intake already decides must NOT be seeded as answers.
+ *
+ * Writing them directly records them as the person's own answer, which
+ * correctly suppresses the intake provenance — so the rail read "Applies"
+ * instead of "Yes · from intake", and demo beats 1 and 2 ("intake closes
+ * whole risk areas", "areas pre-answered from intake, each showing its
+ * reason") were invisible on two of the three curated assessments. The
+ * mechanic was working; the seed was hiding it (verifier finding 5).
+ *
+ * Read from the instrument, never listed: a gate is left to the engine when
+ * a pre-fill rule of its own reads a field this project's intake supplies,
+ * or reads a gate we are already leaving to the engine.
+ */
+function decidedByIntake(intake) {
+  // The VALUE has to match, not merely the field exist. The first cut
+  // skipped a gate whenever intake supplied the field its rule reads, so
+  // Solution Architecture — whose rule fires only on "Moving a proof of
+  // concept into production" — was skipped on a project whose initiative
+  // type is "Brand new", and the gate was left genuinely unanswered.
+  const values = new Map(Object.entries(intake).map(([k, v]) => [fieldIdOf(k), v]));
+  const left = new Set();
+  const fires = (rule) => {
+    const field = rule.when.field;
+    if (field.startsWith("gate.")) return left.has(field.slice(5));
+    const value = values.get(field);
+    return typeof value === "string" && (rule.when.equalsAny ?? []).includes(value);
+  };
+  // Two passes, because a gate may pre-fill from a gate (§3.1): security
+  // follows solution-architecture.
+  for (let pass = 0; pass < 2; pass++) {
+    for (const category of GATES.categories) {
+      if ((category.prefill ?? []).some(fires)) left.add(category.key);
+    }
+  }
+  return left;
+}
+
 const gatesVersion = await activeVersion("tier1-gates");
 const severityVersion = await activeVersion("tier2-severity");
 
@@ -290,8 +328,14 @@ for (const spec of PROJECTS) {
   console.log(`created ${spec.name} (${row.id})`);
 }
 
-const record = async (projectId, rows, answeredBy) => {
+let wrote = 0;
+const record = async (projectId, rows, answeredBy, intake) => {
+  const left = intake ? decidedByIntake(intake) : new Set();
+  const gateKeyOf = (questionId) =>
+    GATES.categories.find((c) => c.questionId === questionId)?.key ?? null;
   for (const [questionId, value, versionId] of rows) {
+    const key = gateKeyOf(questionId);
+    if (key && left.has(key)) continue; // the engine answers this one
     await sql`insert into answers ${sql({
       project_id: projectId,
       question_id: questionId,
@@ -301,19 +345,25 @@ const record = async (projectId, rows, answeredBy) => {
       instrument_version_id: versionId,
       answered_by: answeredBy,
     })}`;
+    wrote += 1;
   }
 };
 
-let written = 0;
-if (!PROJECTS[0].skipped) {
-  await record(PROJECTS[0].id, NOVARA_ANSWERS, PROJECTS[0].by);
-  written += NOVARA_ANSWERS.length;
-}
-if (!PROJECTS[2].skipped) {
-  await record(PROJECTS[2].id, PARTNER_ANSWERS, PROJECTS[2].by);
-  written += PARTNER_ANSWERS.length;
-}
-console.log(`recorded ${written} answers`);
+if (!PROJECTS[0].skipped)
+  await record(PROJECTS[0].id, NOVARA_ANSWERS, PROJECTS[0].by, PROJECTS[0].intake);
+if (!PROJECTS[2].skipped)
+  await record(PROJECTS[2].id, PARTNER_ANSWERS, PROJECTS[2].by, PROJECTS[2].intake);
+// What was WRITTEN, not what was offered: the gates intake decides are
+// deliberately left to the engine, and a count that ignored that reported
+// 27 while writing 17.
+const offered = PROJECTS.filter((p) => !p.skipped).length
+  ? NOVARA_ANSWERS.length + PARTNER_ANSWERS.length
+  : 0;
+console.log(
+  offered === 0
+    ? "recorded 0 answers — every project was already present"
+    : `recorded ${wrote} answers (${offered - wrote} gates left to the engine, so their reasons show)`,
+);
 
 // A live hand-off on project 3, so the bell has real work waiting and the
 // obligation is derived rather than staged (FR-36).

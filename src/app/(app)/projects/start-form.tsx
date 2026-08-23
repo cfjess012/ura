@@ -27,7 +27,8 @@ export function StartForm() {
       <p role="status" aria-live="polite" className={failure ? "save-failed" : "sr-only"}>
         {failure ? (
           <>
-            {failure.message} <span className="err-ref">Reference {failure.ref}</span>
+            {failure.message}
+            {failure.ref && <span className="err-ref">Reference {failure.ref}</span>}
           </>
         ) : (
           ""

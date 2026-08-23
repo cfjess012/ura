@@ -194,3 +194,43 @@ describe("the agent map can be checked against something other than itself", () 
     expect(runtime, "§22.1 rows vs runtime nodes on the map").toBe(rows.length);
   });
 });
+
+describe("the product is called one thing everywhere", () => {
+  // The rename missed the landing page: the first screen a person sees read
+  // "Risk Assessment Advisor" with the eyebrow "Universal Risk Assessment"
+  // while every other surface, the <title> and SPEC §1 said "Front Door AI
+  // Risk Advisor". No test guarded the wordmark (verifier, demo pass).
+  const NAME = "Front Door AI Risk Advisor";
+
+  const surfaces = [
+    "src/app/page.tsx",
+    "src/app/(app)/layout.tsx",
+    "src/app/layout.tsx",
+    "src/app/error.tsx",
+    "src/app/not-found.tsx",
+  ];
+
+  it("SPEC names it, and that is the name", () => {
+    expect(spec).toContain(NAME);
+  });
+
+  it("no surface still carries the old name", () => {
+    for (const file of surfaces) {
+      const body = readFileSync(join(ROOT, file), "utf8");
+      expect(body, `${file} still says the old name`).not.toMatch(
+        /Risk Assessment <span>Advisor|Universal Risk Assessment|"Risk Assessment Advisor"/,
+      );
+    }
+  });
+
+  it("the wordmark renders the whole name, split for the accent only", () => {
+    // Written as `Front Door AI Risk <span>Advisor</span>`, so the visible
+    // text is the full name however the accent is styled.
+    for (const file of ["src/app/page.tsx", "src/app/(app)/layout.tsx"]) {
+      const body = readFileSync(join(ROOT, file), "utf8");
+      const mark = body.match(/Front Door AI Risk <span>([^<]+)<\/span>/);
+      expect(mark, `${file} has no wordmark`).toBeTruthy();
+      expect(`Front Door AI Risk ${mark![1]}`).toBe(NAME);
+    }
+  });
+});

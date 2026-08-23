@@ -14,8 +14,13 @@ export type Failure = {
   ok: false;
   /** Plain sentence: what happened, whether their work is safe, what to do. */
   message: string;
-  /** Short id printed to the user and written to the server log. */
-  ref: string;
+  /**
+   * Short id printed to the person and written to the server log — present
+   * only when something actually went wrong. A refusal the rules intended
+   * (`expected: true`) carries no reference, because there is nothing for
+   * support to correlate.
+   */
+  ref?: string;
   /** Whether retrying the same action is worth attempting. */
   retryable: boolean;
 };
@@ -35,8 +40,17 @@ export function failure(
   where: string,
   error: unknown,
   message: string,
-  options: { retryable?: boolean } = {},
+  options: { retryable?: boolean; expected?: boolean } = {},
 ): Failure {
+  // A rule doing its job is not an incident. "Give the assessment a name to
+  // start" and "That isn't yours to close" carried a support code and a log
+  // line, which tells a person something broke when nothing did — and fills
+  // the operator's log with people using the product correctly (§25,
+  // verifier finding 10). `expected: true` marks the refusals; everything
+  // else still gets a reference and a log entry by default.
+  if (options.expected) {
+    return { ok: false, message, retryable: options.retryable ?? false };
+  }
   const ref = errorRef();
   const detail =
     error instanceof Error ? (error.stack ?? error.message) : String(error);

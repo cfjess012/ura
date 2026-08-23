@@ -59,7 +59,7 @@ export function SectionForm({
   const [savedAt, setSavedAt] = React.useState<string | null>(null);
   const [error, setError] = React.useState<{
     message: string;
-    ref: string;
+    ref?: string;
     /** False when trying again cannot possibly work (§25.4, N2). */
     retryable: boolean;
   } | null>(null);
@@ -283,7 +283,8 @@ export function SectionForm({
                  filled section reported success and hid its own error. */
 
               <>
-                {error.message} <span className="err-ref">Reference {error.ref}</span>
+                {error.message}{" "}
+                {error.ref && <span className="err-ref">Reference {error.ref}</span>}
               </>
             ) : flagged && missing.length > 0 ? (
               `Saved. ${missing.length} answer${missing.length === 1 ? "" : "s"} still needed before the next section: ${missing.join(", ")}.`

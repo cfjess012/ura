@@ -36,10 +36,10 @@ export default async function Landing() {
     <main className="landing">
       <section className="landing-pitch">
         <p className="wordmark landing-mark">
-          Risk Assessment <span>Advisor</span>
+          Front Door AI Risk <span>Advisor</span>
         </p>
 
-        <p className="landing-eyebrow">Universal Risk Assessment</p>
+        <p className="landing-eyebrow">Enterprise risk intake</p>
         <h1 className="landing-headline">
           <TypedLine text="One front door, not seven." />
         </h1>

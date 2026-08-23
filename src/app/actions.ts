@@ -62,6 +62,7 @@ export async function createProject(
       "createProject",
       new Error("empty project name"),
       "Give the assessment a name to start — a working name is fine.",
+      { expected: true },
     );
   }
   const { id } = await projectStore().create(name, person.id);
@@ -342,7 +343,7 @@ export async function handOffQuestion(
         "handOffQuestion",
         new Error("a hand-off needs a question and a recipient"),
         "Pick who should look at this, and we'll pass it on.",
-        { retryable: false },
+        { retryable: false, expected: true },
       );
     }
     const already = (await handoffStore().forProject(projectId)).find(
@@ -382,11 +383,12 @@ export async function replyToHandoff(
         "replyToHandoff",
         new Error("not permitted"),
         "This conversation belongs to an assessment you can't open.",
-        { retryable: false },
+        { retryable: false, expected: true },
       );
     if (input.body.trim() === "")
       return failure("replyToHandoff", new Error("empty"), "Write something first.", {
         retryable: false,
+        expected: true,
       });
     // The hand-off must belong to the project we just authorised. Without
     // this, authority was checked against the caller's OWN project id while
@@ -404,7 +406,7 @@ export async function replyToHandoff(
         "replyToHandoff",
         new Error("no such hand-off in this assessment"),
         "That conversation is gone.",
-        { retryable: false },
+        { retryable: false, expected: true },
       );
     await handoffStore().reply({
       handoffId: input.handoffId,
@@ -440,11 +442,13 @@ export async function resolveHandoff(
     if (!allowed.ok)
       return failure("resolveHandoff", new Error("not permitted"), "That isn't yours to close.", {
         retryable: false,
+        expected: true,
       });
     const handoff = (await handoffStore().forProject(projectId)).find((h) => h.id === handoffId);
     if (!handoff)
       return failure("resolveHandoff", new Error("no such hand-off"), "That hand-off is gone.", {
         retryable: false,
+        expected: true,
       });
     const answers = await answerStore().current(projectId);
     const problem = resolutionProblem(

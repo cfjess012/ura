@@ -45,7 +45,7 @@ export function GateForm({
   const [announcement, setAnnouncement] = React.useState("");
   const [error, setError] = React.useState<{
     message: string;
-    ref: string;
+    ref?: string;
     /** False when trying again cannot possibly work (§25.4, N2). */
     retryable: boolean;
   } | null>(null);
@@ -156,7 +156,7 @@ export function GateForm({
         {error ? (
           <>
             {error.message}{" "}
-            <span className="err-ref">Reference {error.ref}</span>
+            {error.ref && <span className="err-ref">Reference {error.ref}</span>}
           </>
         ) : (
           announcement

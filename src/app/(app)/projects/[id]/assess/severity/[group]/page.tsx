@@ -120,6 +120,8 @@ export default async function SeverityPage({
         askedByRole: found.askedByRole,
         createdAt: found.createdAt.toISOString(),
         resolvedAt: found.resolvedAt?.toISOString() ?? null,
+        // The same fact the bell derives its obligation from (FR-36).
+        answered: stored[found.questionId] !== undefined,
         resolvedByName: found.resolvedBy ? nameOf(found.resolvedBy) : null,
         mayResolve: mayResolve(found, access.person),
         replies: replies
@@ -132,6 +134,15 @@ export default async function SeverityPage({
   const index = groups.findIndex((g) => g.key === group);
   const next = groups[index + 1];
   const answeredEverywhere = asked.filter((q) => stored[q.questionId]).length;
+  // Progress is what is left for THIS person (§24.9). A question handed to
+  // someone else is not theirs to answer, and counting it told a requester
+  // "11 of 11 still to answer" when one was with the Third-Party office —
+  // the same shape as the queue that once claimed "274 to attest"
+  // (verifier finding 8).
+  const withSomeoneElse = asked.filter(
+    (q) => !stored[q.questionId] && allHandoffs.some((h) => h.resolvedAt === null && h.questionId === q.questionId),
+  ).length;
+  const theirs = asked.length - withSomeoneElse;
 
   return (
     <main>
@@ -141,7 +152,11 @@ export default async function SeverityPage({
         nextLine={
           answeredEverywhere === asked.length
             ? "Every severity question has an answer — the control questions come next."
-            : `How severe — ${asked.length - answeredEverywhere} of ${asked.length} still to answer.`
+            : `How severe — ${theirs - answeredEverywhere} of ${theirs} still to answer.${
+                withSomeoneElse > 0
+                  ? ` ${withSomeoneElse === 1 ? "One more is" : `${withSomeoneElse} more are`} with a risk assessor.`
+                  : ""
+              }`
         }
         currentStage={1}
       />

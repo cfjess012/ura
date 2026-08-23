@@ -20,7 +20,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { errorRef, isFailure, type Result } from "@/lib/errors";
 
-export type SaveFailure = { message: string; ref: string; retryable: boolean };
+export type SaveFailure = { message: string; ref?: string; retryable: boolean };
 
 /** A screen's write. `null` means there was nothing to write — not a failure. */
 export type Write = () => Promise<Result<unknown> | null>;
@@ -131,7 +131,7 @@ export function SaveBar({
           ) : error ? (
             <>
               {error.message}{" "}
-              <span className="err-ref">Reference {error.ref}</span>
+              {error.ref && <span className="err-ref">Reference {error.ref}</span>}
             </>
           ) : saved ? (
             "Saved"

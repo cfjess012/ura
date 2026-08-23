@@ -41,6 +41,14 @@ export type HandoffView = {
   askedByRole: string;
   createdAt: string;
   resolvedAt: string | null;
+  /**
+   * True once the question has an answer. The obligation is derived from
+   * this (FR-36), so the thread must read from it too — the bell cleared
+   * itself while this panel still said "open 1m" and still offered "Mark
+   * resolved", so the two halves of one feature disagreed on screen
+   * (verifier finding 7).
+   */
+  answered: boolean;
   resolvedByName: string | null;
   mayResolve: boolean;
   replies: (Omit<Reply, "createdAt"> & { createdAt: string })[];
@@ -210,17 +218,24 @@ function Thread({ projectId, handoff }: { projectId: string; handoff: HandoffVie
   }
 
   const open = handoff.resolvedAt === null;
+  // Three states, not two: waiting on someone, answered (so nobody is
+  // waiting any more, even though the record is still open), and closed.
+  const waiting = open && !handoff.answered;
 
   return (
-    <div className={`handoff-thread${open ? "" : " settled"}`}>
+    <div className={`handoff-thread${open ? "" : " settled"}${waiting ? "" : " done"}`}>
       <p className="handoff-status">
-        <span className="handoff-tag">{open ? "With" : "Settled by"}</span>{" "}
+        <span className="handoff-tag">
+          {!open ? "Settled by" : waiting ? "With" : "Answered — was with"}
+        </span>{" "}
         <strong>{open ? handoff.toLabel : (handoff.resolvedByName ?? "a reviewer")}</strong>
         <span className="handoff-meta">
           {" · "}
-          {open
-            ? `open ${timeAgo(new Date(handoff.createdAt), now).replace(" ago", "")}`
-            : timeAgo(new Date(handoff.resolvedAt!), now)}
+          {!open
+            ? timeAgo(new Date(handoff.resolvedAt!), now)
+            : waiting
+              ? `open ${timeAgo(new Date(handoff.createdAt), now).replace(" ago", "")}`
+              : "nothing is waiting on them now"}
         </span>
       </p>
 

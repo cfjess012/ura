@@ -270,6 +270,34 @@ export type AccumulatedControl = {
  * questions requiring the same control is a fact about the assessment, not
  * a duplicate to collapse.
  */
+/**
+ * The sentence a person reads beside an accumulated control.
+ *
+ * Almost half the instrument's `why` values are tag words that restate the
+ * objective they hang off — "Encryption (In Transit & At Rest) — encryption",
+ * "Incident Response — incident response". Read aloud on the ledger that is
+ * a stutter, and it looks like a rendering bug on the surface the demo leans
+ * on (verifier finding 9). Where the tag adds nothing, the answer and its
+ * band are the whole reason; where it adds something, it is kept.
+ *
+ * The instrument data is untouched: this is how the reason READS, not what
+ * the instrument says, and rewording 84 `why` values is the owner's call
+ * through §8, not a rendering decision.
+ */
+function reasonFor(
+  questionName: string,
+  band: Band,
+  requirement: { objective: string; why: string },
+): string {
+  const plain = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const name = controlName(requirement.objective);
+  const why = plain(requirement.why);
+  const echoes = why.length > 0 && (plain(name).includes(why) || why.includes(plain(name)));
+  return echoes
+    ? `${questionName} is ${band}`
+    : `${questionName} is ${band} — ${requirement.why}`;
+}
+
 export function accumulateControls(
   questions: SeverityQuestion[],
   bands: Record<string, Band | undefined>,
@@ -287,7 +315,7 @@ export function accumulateControls(
     if (!band) continue; // so the reason below can name the band
     for (const requirement of question.requires) {
       if (!matches(requiredWhen(question, requirement), answers)) continue;
-      add(requirement.objective, `${question.name} is ${band} — ${requirement.why}`);
+      add(requirement.objective, reasonFor(question.name, band, requirement));
     }
     if (!detailFires(question, answers)) continue;
     const chosen = details[question.detail!.questionId] ?? [];
