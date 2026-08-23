@@ -81,7 +81,21 @@ export function depthOf(node: ThreadNode, depth = 0): number {
  */
 export type Assignment = Pick<Handoff, "toPersonId" | "toDomain" | "resolvedAt">;
 
-export function isWaitingOn(handoff: Assignment, person: Person): boolean {
+/**
+ * `answered` is what makes the obligation DERIVED rather than stored.
+ *
+ * The bell tells people "these clear themselves when the work is done — they
+ * can't be dismissed". For a while only the second half was true: this
+ * function branched on `resolvedAt` alone, so answering the question left
+ * the obligation sitting there and only the recipient clicking "Mark
+ * resolved" cleared it — a stored flag wearing a derived rule's clothes,
+ * and a sentence on screen that was false (verifier F1, 2026-08-23).
+ *
+ * Answering IS doing the work. The hand-off row stays as evidence that the
+ * question was too hard for the requester; nobody is waiting on it any more.
+ */
+export function isWaitingOn(handoff: Assignment, person: Person, answered = false): boolean {
+  if (answered) return false;
   if (handoff.resolvedAt !== null) return false;
   if (handoff.toPersonId) return handoff.toPersonId === person.id;
   if (person.role !== "assessor") return false;

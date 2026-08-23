@@ -74,6 +74,30 @@ describe("who a question is waiting on", () => {
   });
 });
 
+describe("the obligation is derived from the answer, not a stored flag", () => {
+  // The bell promises "these clear themselves when the work is done — they
+  // can't be dismissed". Only the second half was true: the rule branched on
+  // resolvedAt alone, so answering the question left the obligation sitting
+  // there until the recipient clicked Mark resolved — a stored flag wearing
+  // a derived rule's clothes, and a false sentence on screen (verifier F1).
+  it("stops waiting the moment the question has an answer", () => {
+    const open = handoff();
+    const samuel = person({ riskDomain: "third-party" });
+    expect(isWaitingOn(open, samuel, false)).toBe(true);
+    expect(isWaitingOn(open, samuel, true)).toBe(false);
+  });
+
+  it("an answer clears it for a named recipient too", () => {
+    const named = { ...handoff(), toPersonId: "a.privacy", toDomain: null };
+    expect(isWaitingOn(named, person({ id: "a.privacy" }), false)).toBe(true);
+    expect(isWaitingOn(named, person({ id: "a.privacy" }), true)).toBe(false);
+  });
+
+  it("defaults to unanswered, so a caller that forgets errs toward showing work", () => {
+    expect(isWaitingOn(handoff(), person({ riskDomain: "third-party" }))).toBe(true);
+  });
+});
+
 describe("who may close it, and what closing may mean", () => {
   const owner = person({ riskDomain: "third-party" });
 

@@ -500,8 +500,31 @@ function postgresHandoffStore(): HandoffStore {
       // count and the screen. The prior platform queried obligations
       // globally and every reviewer saw every other team's counts.
       if (person.role === "requester") return [];
-      const rows = await hydrate().where(isNull(schema.handoffs.resolvedAt));
-      return rows.map(shapeHandoff).filter((h) => isWaitingOn(h, person));
+      const rows = (await hydrate().where(isNull(schema.handoffs.resolvedAt))).map(shapeHandoff);
+      if (rows.length === 0) return [];
+      // Answered questions carry no obligation. Read the answers for exactly
+      // the (project, question) pairs still open — one statement, not one
+      // per hand-off — so the bell derives from the record rather than from
+      // a stored resolution flag (F1).
+      const answered = new Set(
+        (
+          await db
+            .select({
+              projectId: schema.answers.projectId,
+              questionId: schema.answers.questionId,
+            })
+            .from(schema.answers)
+            .where(
+              inArray(
+                schema.answers.questionId,
+                rows.map((h) => h.questionId),
+              ),
+            )
+        ).map((a) => `${a.projectId}::${a.questionId}`),
+      );
+      return rows.filter((h) =>
+        isWaitingOn(h, person, answered.has(`${h.projectId}::${h.questionId}`)),
+      );
     },
   };
 }
