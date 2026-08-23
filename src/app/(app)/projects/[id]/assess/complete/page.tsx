@@ -10,6 +10,7 @@ import {
 import { litPaths } from "@/lib/engine";
 import {
   accumulateControls,
+  asksNothingFurther,
   severityQuestionsFor,
   type Band,
 } from "@/lib/severity";
@@ -47,6 +48,11 @@ export default async function GatesCompletePage({
   const remaining = unansweredCount(states);
   const applies = states.filter((s) => s.answer === "Yes");
   const closed = states.filter((s) => s.answer === "No");
+  // "Applies" meant two different things and said one (FR-35, G-50): an area
+  // that opens twelve questions and one that opens none read identically.
+  // Counted apart so the number cannot imply work that does not exist.
+  const deep = applies.filter((s) => !asksNothingFurther(s.category.key));
+  const quiet = applies.filter((s) => asksNothingFurther(s.category.key));
   // Progress is measured against what a person is asked (§24.9): counting
   // an area nobody was asked about as "answered" would flatter the number.
   const asked = askableCategories();
@@ -111,7 +117,7 @@ export default async function GatesCompletePage({
           </h2>
           <p className="lede">
             {remaining === 0
-              ? `${applies.length} of ${CATEGORIES.length} areas apply to this activity.${closed.length > 0 ? ` The other ${closed.length === 1 ? "one is" : `${closed.length} are`} closed — you won't be asked about ${closed.length === 1 ? "it" : "them"} again.` : ""}${settled.length > 0 ? ` We didn't ask about ${settled.length === 1 ? "one of them" : `${settled.length} of them`} at all.` : ""}`
+              ? `${deep.length} of the ${applies.length} areas that apply open detailed questions.${quiet.length > 0 ? ` The other ${quiet.length} are recorded for a reviewer and ask nothing further.` : ""}${closed.length > 0 ? ` ${closed.length === 1 ? "One is" : `${closed.length} are`} closed — you won't be asked about ${closed.length === 1 ? "it" : "them"} again.` : ""}`
               : `Answer the remaining ${remaining} in the list, and we'll know which areas to ask about.`}
           </p>
 
@@ -210,6 +216,9 @@ export default async function GatesCompletePage({
                 {applies.map((s) => (
                   <li key={s.category.key}>
                     <strong>{s.category.name}</strong>
+                    {asksNothingFurther(s.category.key) && !s.settled && (
+                      <span className="meta"> — recorded for a reviewer; nothing further is asked here</span>
+                    )}
                     {s.settled && s.because && (
                       <span className="meta"> — {s.because}</span>
                     )}

@@ -19,6 +19,7 @@ export function GateForm({
   origin,
   because,
   nextHref,
+  asksNothingFurther = false,
 }: {
   projectId: string;
   categoryKey: string;
@@ -28,6 +29,13 @@ export function GateForm({
   origin: "intake" | "answers" | null;
   because: string | null;
   nextHref: string;
+  /**
+   * True where this area is recorded for a reviewer and asks nothing more
+   * (FR-35). The Yes option promised "we'll ask more about this area
+   * later" to seven areas that never do — a false sentence found by
+   * walking the screen, not by a test (2026-08-23).
+   */
+  asksNothingFurther?: boolean;
 }) {
   const router = useRouter();
   const [choice, setChoice] = React.useState<"Yes" | "No" | null>(answer);
@@ -120,7 +128,9 @@ export function GateForm({
             </span>
             <span className="gate-choice-note">
               {value === "Yes"
-                ? "We'll ask more about this area later"
+                ? asksNothingFurther
+                  ? "We'll record it for a reviewer"
+                  : "We'll ask more about this area later"
                 : "We'll skip this area entirely"}
             </span>
           </button>

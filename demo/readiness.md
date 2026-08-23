@@ -1,6 +1,6 @@
 ---
 artifact: demo-readiness
-slices-covered: S1, S2, S2.5, S3, S4, S4.7
+slices-covered: S1, S2, S2.5, S3, S4, S4.7, S4.8
 reviewed-on: 2026-08-23
 walked-with-owner: partially — S1, S2 and S2.5 walked by the owner; S3 and S4 not yet
 ---
@@ -28,6 +28,7 @@ One row per beat. A beat with a blank cell is not a beat, it is a hope.
 | 7 | Roles enforced server-side, not simulated | S2.5 · FR-25 | yes | yes — owner | Switch to the Risk Assessor and show the missing start form |
 | 8 | A severity answer summons a control, with its reason | S4 | yes | no | Answer Provider Access High and read the control list aloud; if the screen fails, the reasons are in uat/S4.md |
 | 12 | A stuck question is handed to a named office, a bell obligation pins until answered, resolve refused while empty | S4.7 · FR-36 | yes | yes — walked via 11-screenshot run 2026-08-22 | Show walk-8..11 screenshots; the thread survives in the record |
+| 13 | An area that applies but asks nothing says so, and the summary counts work apart from scope | S4.8 · FR-35 | yes | yes — builder walk 2026-08-23 | Say the split out loud: four areas open detailed questions, five are recorded for a reviewer. It is the honest version of the same slide |
 | 9 | "24 of 29 fields already answered" → ServiceNow record | S3.5 | **no** | no | Not demoable yet — describe it from §27 instead |
 | 10 | Every agent enumerated: what it does, what it can see | S2 · FR-24 | yes | partially | Open `docs/agent-map.html` directly if the app is down |
 
@@ -45,4 +46,4 @@ One row per beat. A beat with a blank cell is not a beat, it is a hope.
 - The agentic layer is **designed and registered, not built** (§22.1, 29 entries). Show the transparency page; do not imply anything runs.
 - FR-5's condition renderer does not exist. Explanations are authored, not generated.
 - Resilience is not gated anywhere in the instrument (audit C-7, open).
-- **Depth exists in four of the eleven risk areas** (G-50). Third party, AI, data and security carry every path, severity question and control objective. The other seven record that the area is in scope for a reviewer and ask nothing further. Say that plainly if asked; do not let "eight areas apply" imply eight bodies of work.
+- **Depth exists in four of the eleven risk areas** (G-50). Third party, AI, data and security carry every path, severity question and control objective. The other seven record that the area is in scope for a reviewer and ask nothing further. The product now says this itself on every quiet area (S4.8), so the honest answer is on screen rather than in the presenter's memory.

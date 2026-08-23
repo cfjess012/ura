@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { GateState } from "@/lib/instrument";
+import { asksNothingFurther, STOPS_HERE_SHORT } from "@/lib/severity";
 
 /**
  * Where the person is in Tier 1, and what they've said so far. Closed
@@ -52,7 +53,9 @@ export function GateRail({
                           ? "Yes · from your answers"
                           : "Yes · from intake"
                         : status === "open"
-                          ? "Applies"
+                          ? asksNothingFurther(state.category.key)
+                            ? STOPS_HERE_SHORT
+                            : "Applies"
                           : ""}
                 </span>
               </Link>

@@ -392,3 +392,35 @@ export function writableSeverityAnswers(
   }
   return payload;
 }
+
+/**
+ * Risk areas that ask nothing beyond their gate (FR-35, G-50).
+ *
+ * Tier-2 depth is pilot-scoped to four areas. The other seven have a gate
+ * and nothing behind it: answering Yes records that the area is in scope
+ * for a reviewer, and that is the whole of it. The scope is deliberate;
+ * what was wrong is that the product presented an empty area and a deep
+ * one identically — both read "Applies", so a person could not tell
+ * "nothing more to ask" from "not built yet".
+ *
+ * Derived, never listed. A hand-written list of seven keys would be a
+ * second source of truth that goes stale the moment a path is added — and
+ * the area would go quiet again with nobody noticing.
+ */
+export function asksNothingFurther(categoryKey: string): boolean {
+  const category = CATEGORIES.find((c) => c.key === categoryKey);
+  if (!category) return false;
+  const paths = [
+    ...(category.pathQuestion?.options ?? []).map((option) => option.id),
+    ...(category.derivedPaths ?? []).map((path) => path.id),
+  ];
+  if (paths.length === 0) return true;
+  return severityQuestionsFor(paths).length === 0;
+}
+
+/** The sentence a person reads where an area stops. One wording, everywhere. */
+export const STOPS_HERE =
+  "This area applies, and that is recorded for a reviewer. The pilot asks its detailed questions in four areas — third party, AI, data and security — so there is nothing further to answer here.";
+
+/** The short form, for the rail where a full sentence will not fit. */
+export const STOPS_HERE_SHORT = "Applies · recorded for review";

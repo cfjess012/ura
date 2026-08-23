@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { askableCategories, categoryByKey, gateStates, unansweredCount } from "@/lib/instrument";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
+import { asksNothingFurther, STOPS_HERE } from "@/lib/severity";
 import { openProject } from "@/lib/project-access";
 import { NotYourAssessment } from "../../not-yours";
 import { answerStore } from "@/lib/repo";
@@ -97,7 +98,19 @@ export default async function GatePage({
               origin={state.origin}
               because={state.because}
               nextHref={nextHref}
+              asksNothingFurther={asksNothingFurther(key)}
             />
+            )}
+
+            {/* Where the pilot stops, it says so (FR-35, G-50). Silence
+                reads as completeness, and an area that applies but asks
+                nothing is indistinguishable from one that is not built —
+                which is a claim this product cannot afford. */}
+            {state.answer === "Yes" && asksNothingFurther(key) && (
+              <p className="prefill" role="note">
+                <span className="prefill-tag">Nothing further here</span>
+                <span>{STOPS_HERE}</span>
+              </p>
             )}
           </div>
 

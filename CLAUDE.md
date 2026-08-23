@@ -14,10 +14,12 @@ implementation, stop on ambiguity.
 - S3 Paths & engine — DONE (derived state COMPUTED, never stored)
 - S4 Tier 2 — DONE (rubric anchors ARE the options)
 - S4.7 Hand-offs — DONE 2026-08-22 (FR-36, legalized G-54)
+- S4.8 Declared boundaries — DONE 2026-08-23 (FR-35: the seven pilot-scoped
+  areas say on screen that they stop deliberately; derived, never listed)
 - S4.5 Reference data — PARTIAL: searchable vendor picker and
   provenance-on-accept (FR-33) remain
 - S3.5 Destinations — SPEC'd not built (§27) · S4.6 Attachments — blocked on
-  §3.6 retention · S4.8 Declared boundaries — not started (G-50)
+  §3.6 retention
 - S5..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
 - 2026-08-23 level set: SPEC rewritten to the official mission (G-51..G-55);
   agentic on Bedrock/AgentCore is the Phase-2 epic and the priority after
