@@ -14,8 +14,16 @@ problem statements — say the problem, then show the answer to it.
 
 ```sh
 pnpm demo:reset      # rebuilds the database and the three curated assessments
-pnpm build && pnpm start
+pnpm dev             # NOT a production build — see below
 ```
+
+**Run the demo from `pnpm dev`.** A production build is measurably broken
+for this: clicking a link between assessment screens fails about four times
+in five (measured 2026-08-23 — dev 15/15, production 3/15; the browser
+aborts the router's data request and the page never changes). Full page
+loads work in both. The dev server carries a small Next.js badge in the
+bottom-left corner; that is the lesser of the two evils by a wide margin,
+and it is not on any screen the audience is asked to read.
 
 `demo:reset` is not optional. Any walk-through leaves answers behind, and a
 severity question already answered makes Beat 3 look like a dead button —
@@ -162,7 +170,8 @@ Switch to **Samuel Okonkwo**. The bell shows it, on the warm band:
   seeded for other purposes; one has an open hand-off mid-thread.
 - **Don't answer more than one severity question.** The list grows and the
   point is made by the first one.
-- **Don't run from `next dev`.** The dev-tools badge sits on every screen.
+- **Don't run from a production build.** Navigation between screens fails
+  there; see above. This reverses earlier advice in this file.
 - **Don't skip `pnpm demo:reset`.** It is the difference between Beat 3
   landing and Beat 3 looking broken.
 - **Don't promise a date for the agentic layer.** The Bedrock access request
