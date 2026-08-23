@@ -99,3 +99,34 @@ describe("every gate is actually wired to fire", () => {
     }
   });
 });
+
+describe("every activated instrument reaches every environment", () => {
+  /**
+   * A new instrument was added and the E2E database never learned about it:
+   * `pnpm e2e` failed with "No activated instrument version for
+   * tier3-objectives" only once a test reached the screen. Three scripts
+   * bring an environment up — the package script, the dev reset, and the
+   * E2E prep — and each had its own list (S6, 2026-08-23).
+   */
+  const seeds = readdirSync(join(ROOT, "scripts"))
+    .filter((f) => /^seed-(instrument|severity|tier3)\.mjs$/.test(f))
+    .sort();
+
+  const consumers = {
+    "package.json instrument:seed": JSON.parse(
+      readFileSync(join(ROOT, "package.json"), "utf8"),
+    ).scripts["instrument:seed"] as string,
+    "scripts/reset-dev-db.mjs": readFileSync(join(ROOT, "scripts", "reset-dev-db.mjs"), "utf8"),
+    "scripts/prepare-e2e-db.mjs": readFileSync(join(ROOT, "scripts", "prepare-e2e-db.mjs"), "utf8"),
+  };
+
+  it("finds the seed scripts", () => {
+    expect(seeds.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it.each(Object.keys(consumers))("%s runs every seed script", (name) => {
+    for (const seed of seeds) {
+      expect(consumers[name as keyof typeof consumers], `${name} is missing ${seed}`).toContain(seed);
+    }
+  });
+});

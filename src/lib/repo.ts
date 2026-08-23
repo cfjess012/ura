@@ -50,8 +50,20 @@ export type ProjectRecord = typeof schema.projects.$inferSelect;
  * (Tier-1 path selections). Both are stored as JSON, so a list keeps its
  * shape instead of being flattened into text nobody can split reliably.
  */
+/**
+ * A recorded answer, in the shape the instrument stores it.
+ *
+ * Tiers 1 and 2 store a string or a list. Tier 3 stores an answer AND the
+ * note that goes with it, because the note is part of the answer — a "No"
+ * without its explanation is not a finding anyone can act on (§3.4). The
+ * column is jsonb and always has been; this type was narrower than the
+ * column, so an object came back as the string "[object Object]" and the
+ * answer silently failed to reload (S6, 2026-08-23).
+ */
+export type AnswerValue = string | string[] | Record<string, unknown>;
+
 export type CurrentAnswer = {
-  value: string | string[];
+  value: AnswerValue;
   source: string;
   confirmed: boolean;
 };
@@ -253,7 +265,12 @@ export function postgresAnswerStore(): AnswerStore {
         // Rows arrive newest-first; the first one seen wins.
         if (latest[row.questionId]) continue;
         latest[row.questionId] = {
-          value: Array.isArray(row.value) ? (row.value as string[]) : String(row.value),
+          // jsonb in, jsonb out. Coercing with String() flattened every
+          // object answer to "[object Object]".
+          value:
+            typeof row.value === "object" && row.value !== null
+              ? (row.value as AnswerValue)
+              : String(row.value),
           source: row.source,
           confirmed: row.confirmed,
         };

@@ -20,7 +20,15 @@ import {
 } from "@/lib/intake-values";
 import { CATEGORIES, INSTRUMENT } from "@/lib/instrument";
 import { pathSubmissionProblems } from "@/lib/engine";
+import type { AnswerLookup } from "@/lib/conditions";
 import { SEVERITY, severitySubmissionProblems } from "@/lib/severity";
+import {
+  OBJECTIVES,
+  TIER3,
+  isTier3Value,
+  tier3SubmissionProblems,
+  type Tier3Value,
+} from "@/lib/tier3";
 import { editableProject, openProject } from "@/lib/project-access";
 import { answerStore, handoffStore, peopleStore, projectStore } from "@/lib/repo";
 import { resolutionProblem } from "@/lib/handoff";
@@ -231,6 +239,101 @@ export async function answerPaths(
  * after saving half of it (G-40a). A submission naming a question or a band
  * the instrument does not offer is refused, not narrowed (G-42).
  */
+
+/**
+ * What a Tier-3 child's cross-tier condition reads: the assessment's own
+ * answers, in the shape the one predicate expects (§3.2.3). Built here
+ * rather than passed in, so the server checks conditions against the record
+ * rather than against whatever the client claims is visible.
+ */
+async function lookupFor(projectId: string): Promise<AnswerLookup> {
+  const stored = await answerStore().current(projectId);
+  const lookup: AnswerLookup = {};
+  const paths: string[] = [];
+  for (const [questionId, value] of Object.entries(stored)) {
+    if (typeof value.value === "string" || Array.isArray(value.value)) {
+      lookup[questionId] = value.value;
+    }
+    if (questionId.startsWith("path.") && Array.isArray(value.value)) paths.push(...value.value);
+  }
+  lookup.paths = paths;
+  return lookup;
+}
+
+/**
+ * Record Tier-3 answers: does the required control actually exist (FR-12)?
+ *
+ * The note rule is enforced HERE, not by the form. §3.4 requires a written
+ * note on Partial, No and N-A, and FR-28's lesson is that a rule the form
+ * alone enforces is decoration — a forged request bypasses it.
+ */
+export async function answerObjectives(
+  projectId: string,
+  values: Record<string, { answer: string; note: string }>,
+): Promise<Result<{ recorded: true }>> {
+  try {
+    const allowed = await editableProject(projectId, "answerObjectives");
+    if (isFailure(allowed)) return allowed;
+    const { person } = allowed;
+    if (!canAnswer(person.role)) {
+      return failure(
+        "answerObjectives",
+        new NotPermitted("answer assessment questions", person.role),
+        "This role doesn't answer assessment questions, so nothing was recorded. Switch to the person who owns this assessment.",
+        { retryable: false, expected: true },
+      );
+    }
+
+    const shaped: Record<string, Tier3Value> = {};
+    for (const [questionId, value] of Object.entries(values)) {
+      if (!isTier3Value(value)) {
+        return failure(
+          "answerObjectives",
+          new Error(`bad value for ${questionId}`),
+          "Some of those answers aren't in a shape this assessment recognises, so nothing was saved. Reload and try again.",
+          { retryable: false },
+        );
+      }
+      shaped[questionId] = value;
+    }
+
+    // The same pure rule the screen renders, applied where it cannot be
+    // skipped. `OBJECTIVES` is the whole set: a question that is not part
+    // of this assessment simply has no value to check.
+    const problems = tier3SubmissionProblems(OBJECTIVES, shaped, await lookupFor(projectId));
+    if (problems.length > 0) {
+      return failure(
+        "answerObjectives",
+        new Error(problems.join("; ")),
+        `${problems[0]} Nothing was saved.`,
+        { retryable: false, expected: true },
+      );
+    }
+
+    const store = answerStore();
+    const versionId = await store.activeVersionId(TIER3.slug);
+    await store.recordAll(
+      Object.entries(shaped).map(([questionId, value]) => ({
+        projectId,
+        questionId,
+        value: value as unknown as string,
+        source: "person",
+        confirmed: true,
+        instrumentVersionId: versionId,
+        answeredBy: person.id,
+      })),
+    );
+    revalidatePath(`/projects/${projectId}`);
+    return { ok: true as const, recorded: true as const };
+  } catch (error) {
+    return failure(
+      "answerObjectives",
+      error,
+      "Those answers weren't saved. Everything you answered before is safe — try again in a moment.",
+    );
+  }
+}
+
 export async function answerSeverity(
   projectId: string,
   answers: Record<string, string | string[]>,

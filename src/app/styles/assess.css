@@ -277,3 +277,55 @@
 .handoff-send:disabled { background: var(--neutral-300); cursor: not-allowed; }
 .handoff-send:not(:disabled):hover { background: var(--navy-2); }
 .handoff-resolve { margin-top: 0.5rem; }
+
+/* ---------- Tier 3 · does the control exist (S6) ---------- */
+.q3 { border-left: 4px solid var(--brand); }
+.q3-name {
+  font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--brand); font-weight: 700; margin: 0 0 0.35rem;
+}
+.q3-answers { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.8rem; }
+.q3-answer {
+  flex: 1 1 7rem; min-width: 7rem; text-align: left;
+  background: var(--neutral-0); border: 1px solid var(--neutral-300);
+  border-radius: var(--radius); padding: 0.6rem 0.8rem;
+  font: inherit; font-weight: 700; color: var(--navy); cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.q3-answer:hover { border-color: var(--primary); }
+.q3-answer:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+/* Chosen is a border, a fill AND a tick — never colour alone (§23). */
+.q3-answer.chosen { border-color: var(--navy); border-width: 2px; background: var(--surface-1); }
+.q3-answer .tick { color: var(--navy); font-weight: 700; }
+/* The four answers are not equal in consequence, and the fill says so
+   without being the only thing that does — the word is always there. */
+.q3-answer.a-partial.chosen { border-color: var(--warning); background: var(--warning-bg); }
+.q3-answer.a-partial.chosen .tick { color: var(--warning-strong); }
+.q3-answer.a-no.chosen { border-color: var(--error); background: #fdeaea; }
+.q3-answer.a-no.chosen .tick { color: var(--error); }
+.q3-answer.a-na.chosen { border-color: var(--neutral-500); background: var(--neutral-100); }
+
+.q3-note { margin-top: 0.7rem; }
+.q3-note label {
+  display: block; font-size: 0.82rem; font-weight: 600;
+  color: var(--neutral-800); margin-bottom: 0.3rem;
+}
+.q3-note textarea {
+  width: 100%; padding: 0.55rem 0.7rem; border-radius: var(--radius);
+  border: 1px solid var(--neutral-300); font: inherit; font-size: 0.9rem;
+  resize: vertical;
+}
+.q3-note textarea:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.q3-note textarea[aria-invalid="true"] { border-color: var(--warning-strong); }
+
+.q3-children {
+  margin-top: 1rem; padding-top: 0.9rem;
+  border-top: 1px solid var(--neutral-200);
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.q3-child { padding-left: 0.9rem; border-left: 2px solid var(--surface-3); }
+
+/* A stage with no rail of its own. The assess grid's first column IS the
+   rail, so a page that omits it had its whole content squeezed into 15rem. */
+.assess-single { max-width: 46rem; margin: 1.6rem auto 0; }

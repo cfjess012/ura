@@ -266,7 +266,10 @@ export type GateState = {
  * refuses a rule that reads its own gate.
  */
 export function gateStates(
-  stored: Record<string, { value: string | string[]; source: string; confirmed: boolean }>,
+  // A stored answer may be a string, a list, or — from Tier 3 — an object.
+  // Gates read only the first; anything else simply does not match, which
+  // is the positive-evidence rule doing its job (§3.2.1).
+  stored: Record<string, { value: unknown; source: string; confirmed: boolean }>,
   intake: AnswerLookup,
   categories: Category[] = CATEGORIES,
 ): GateState[] {

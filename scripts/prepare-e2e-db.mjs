@@ -60,4 +60,5 @@ const env = { ...process.env, DATABASE_URL: url };
 execFileSync("node", ["scripts/migrate.mjs"], { env, stdio: "inherit" });
 execFileSync("node", ["scripts/seed-instrument.mjs"], { env, stdio: "inherit" });
 execFileSync("node", ["scripts/seed-severity.mjs"], { env, stdio: "inherit" });
+execFileSync("node", ["scripts/seed-tier3.mjs"], { env, stdio: "inherit" });
 console.log(`e2e database ready: ${dbName}`);
