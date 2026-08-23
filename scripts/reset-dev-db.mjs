@@ -52,5 +52,10 @@ await admin.end();
 console.log(`recreated ${dbName}`);
 
 execFileSync("node", ["scripts/migrate.mjs"], { env: process.env, stdio: "inherit" });
+// Both instruments, exactly as `pnpm instrument:seed` does it. This ran
+// only the gates for a while, so a reset left Tier 2 with no activated
+// version and every severity screen empty — a clean database that looked
+// like a broken product (found on demo-data day, 2026-08-23).
 execFileSync("node", ["scripts/seed-instrument.mjs"], { env: process.env, stdio: "inherit" });
+execFileSync("node", ["scripts/seed-severity.mjs"], { env: process.env, stdio: "inherit" });
 console.log(`${dbName} is clean: migrations applied, instrument activated, no assessments.`);
