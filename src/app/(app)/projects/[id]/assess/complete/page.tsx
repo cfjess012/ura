@@ -168,7 +168,7 @@ export default async function GatesCompletePage({
                 gap named there becomes a finding a reviewer can act on.
               </p>
               <Link className="btn" href={`/projects/${id}/assess/objectives`}>
-                Answer them &rarr;
+                Answer the control questions &rarr;
               </Link>
             </div>
           )}
@@ -204,7 +204,7 @@ export default async function GatesCompletePage({
                   : ", so we can't yet say what this activity will require."}
               </p>
               <Link className="btn" href={`/projects/${id}/assess/severity/${severityGroupKey}`}>
-                Answer them &rarr;
+                Answer the severity questions &rarr;
               </Link>
             </div>
           )}
