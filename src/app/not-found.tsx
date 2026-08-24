@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Not found — Front Door AI Risk Advisor" };
+export const metadata: Metadata = {
+  title: "Not found — Front Door AI Risk Advisor",
+};
 
 /**
  * 404 (SPEC §25, F3). A wrong address is not an error the person caused, so

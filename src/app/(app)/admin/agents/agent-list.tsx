@@ -50,13 +50,17 @@ export function AgentList({
 
       <div className="agent-cols">
         <section>
-          <h2 className="card-heading">Build-time — never sees an assessment</h2>
+          <h2 className="card-heading">
+            Build-time — never sees an assessment
+          </h2>
           {build.map((g) => (
             <GroupBlock key={g.group} group={g} shown={shown} />
           ))}
         </section>
         <section>
-          <h2 className="card-heading">Runtime — would read assessment content</h2>
+          <h2 className="card-heading">
+            Runtime — would read assessment content
+          </h2>
           {runtime.map((g) => (
             <GroupBlock key={g.group} group={g} shown={shown} />
           ))}
@@ -64,19 +68,25 @@ export function AgentList({
       </div>
 
       <p className="meta" style={{ marginTop: "1.5rem" }}>
-        Generated from the codebase on {generated}. The instructions shown are the files
-        themselves, not summaries of them.
+        Generated from the codebase on {generated}. The instructions shown are
+        the files themselves, not summaries of them.
       </p>
     </>
   );
 }
 
-function GroupBlock({ group, shown }: { group: Group; shown: (n: Node) => boolean }) {
+function GroupBlock({
+  group,
+  shown,
+}: {
+  group: Group;
+  shown: (n: Node) => boolean;
+}) {
   const nodes = group.nodes.filter(shown);
   if (nodes.length === 0) return null;
   return (
     <>
-      <p className="group-label">{group.group}</p>
+      <p>{group.group}</p>
       {nodes.map((node) => (
         <AgentCard key={node.name} node={node} />
       ))}

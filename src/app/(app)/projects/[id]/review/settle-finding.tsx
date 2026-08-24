@@ -224,12 +224,7 @@ export function SettleFinding({
       )}
 
       <div className="settle-actions">
-        <button
-          type="button"
-          className="primary"
-          disabled={busy}
-          onClick={settle}
-        >
+        <button type="button" disabled={busy} onClick={settle}>
           {busy ? "Recording…" : "Record it"}
         </button>
         <button

@@ -44,9 +44,10 @@ export default async function Landing() {
           <TypedLine text="One front door, not seven." />
         </h1>
         <p className="landing-lede">
-          A business user describes the activity once. Every risk area — third party, security,
-          privacy, AI, legal — works from the same answers, and nobody has to ask again. The
-          assessment only shows what applies, and says why it is asking.
+          A business user describes the activity once. Every risk area — third
+          party, security, privacy, AI, legal — works from the same answers, and
+          nobody has to ask again. The assessment only shows what applies, and
+          says why it is asking.
         </p>
 
         <ol className="landing-steps">
@@ -54,7 +55,9 @@ export default async function Landing() {
             <span className="step-n">1</span>
             <span>
               <strong>Tell us about it</strong>
-              <span>Four short sections — the project&rsquo;s identity record</span>
+              <span>
+                Four short sections — the project&rsquo;s identity record
+              </span>
             </span>
           </li>
           <li>
@@ -75,26 +78,36 @@ export default async function Landing() {
             <span className="step-n">4</span>
             <span>
               <strong>Package</strong>
-              <span>A signed, replayable export for the destination system</span>
+              <span>
+                A signed, replayable export for the destination system
+              </span>
             </span>
           </li>
         </ol>
 
         <p className="landing-foot">
-          Pilot environment — synthetic data only. Nothing counts until a named person attests it.
+          Pilot environment — synthetic data only. Nothing counts until a named
+          person attests it.
         </p>
       </section>
 
       <section className="landing-choose">
         <div className="landing-choose-inner">
           <p className="eyebrow">Pilot sign-in</p>
-          <h2 className="display" style={{ textAlign: "left", fontSize: "1.9rem" }}>
+          <h2
+            className="display"
+            style={{ textAlign: "left", fontSize: "1.9rem" }}
+          >
             Choose a persona to continue.
           </h2>
-          <p className="lede" style={{ textAlign: "left", margin: "0 0 1.4rem" }}>
-            Roles are enforced for real, not simulated — the interface changes with the persona
-            because the server checks it on every action. This picker is a demonstration device,
-            not a sign-in: anyone can choose any role.
+          <p
+            className="lede"
+            style={{ textAlign: "left", margin: "0 0 1.4rem" }}
+          >
+            Roles are enforced for real, not simulated — the interface changes
+            with the persona because the server checks it on every action. This
+            picker is a demonstration device, not a sign-in: anyone can choose
+            any role.
           </p>
 
           {ROLES.map((role) => {
@@ -119,11 +132,15 @@ export default async function Landing() {
                         </span>
                         <span className="persona-body">
                           <span className="persona-line">
-                            <span className="persona-card-name">{person.name}</span>
+                            <span className="persona-card-name">
+                              {person.name}
+                            </span>
                             {/* What they cover, not what their role is called —
                                 the group heading already said the role. */}
                             {person.title && (
-                              <span className="persona-tag">{person.title}</span>
+                              <span className="persona-tag">
+                                {person.title}
+                              </span>
                             )}
                           </span>
                         </span>

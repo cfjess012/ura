@@ -3,6 +3,13 @@ name: verify
 description: The one definition of "done" — the gate chain, the slice review, and the owner's UAT script. Use before every commit, when starting or finishing any slice, and whenever asked whether the build is green.
 ---
 
+> **DEMO PUSH until 2026-08-26 (G-70).** The chain below is suspended per
+> change. Run `pnpm typecheck && pnpm test:unit` — 35 seconds — and move on.
+> The full suite and the verifier run once at the end of the day, and
+> `walk:demo` plus one `pnpm e2e` run before the demo. This note expires
+> with the entry; after 2026-08-26 the chain below is the rule again.
+
+
 Implements SPEC §0 (Build Rule 3), §21 and §26.4. **This file is the only
 definition of the gate chain.** The Stop gate runs a subset of it and says
 so; the slice-verifier agent runs it via this file; nothing else may

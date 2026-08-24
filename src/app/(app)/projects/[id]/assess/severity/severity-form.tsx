@@ -23,7 +23,11 @@ import {
   type SeverityQuestion,
 } from "@/lib/severity";
 import { SaveBar, useAutosave } from "../autosave";
-import { HandoffPanel, type HandoffView, type Recipient } from "./handoff-panel";
+import {
+  HandoffPanel,
+  type HandoffView,
+  type Recipient,
+} from "./handoff-panel";
 
 export type SeverityItem = {
   question: SeverityQuestion;
@@ -165,7 +169,10 @@ export function SeverityForm({
   // fixed this way and the controls half was left behind — a fix aimed at a
   // finding stopping at the finding (G-33's lesson, again).
   const everyQuestion = severityQuestionsFor(ledger.litPathIds);
-  const allBands = { ...ledger.bands, ...bands } as Record<string, Band | undefined>;
+  const allBands = { ...ledger.bands, ...bands } as Record<
+    string,
+    Band | undefined
+  >;
   const allDetails = { ...ledger.details, ...details };
   const owed = accumulateControls(everyQuestion, allBands, allDetails);
   const answered = items.filter((i) => bands[i.question.questionId]).length;
@@ -195,7 +202,11 @@ export function SeverityForm({
         const band = bands[question.questionId];
         const showsDetail = detailFires(question, answers);
         return (
-          <section key={question.id} className="card q2" data-focus={question.questionId}>
+          <section
+            key={question.id}
+            className="card q2"
+            data-focus={question.questionId}
+          >
             <h3 className="q2-name">{question.name}</h3>
             <p className="gate-question" id={`${question.questionId}-label`}>
               {question.text}
@@ -336,20 +347,24 @@ export function SeverityForm({
       <div className="card ledger">
         <h2>Where this assessment stands</h2>
         <p className="help">
-          Recomputed from your answers every time you give one — nothing here
-          is stored, so changing an answer changes this.
+          Recomputed from your answers every time you give one — nothing here is
+          stored, so changing an answer changes this.
         </p>
         <div className="ledger-cols">
           <section>
             <h3>
-              Active paths <span className="ledger-count">{ledger.paths.length}</span>
+              Active paths{" "}
+              <span className="ledger-count">{ledger.paths.length}</span>
             </h3>
             <ul className="summary-list">
               {ledger.paths.map((path) => (
                 <li key={path.name}>
                   {path.name}
                   {path.because && (
-                    <span className="meta"> — worked out because {path.because}</span>
+                    <span className="meta">
+                      {" "}
+                      — worked out because {path.because}
+                    </span>
                   )}
                 </li>
               ))}
@@ -363,14 +378,18 @@ export function SeverityForm({
               </span>
             </h3>
             {liveSeverities.length === 0 ? (
-              <p className="help">Nothing answered yet — they appear here as you go.</p>
+              <p className="help">
+                Nothing answered yet — they appear here as you go.
+              </p>
             ) : (
               <ul className="summary-list">
                 {liveSeverities.map((s) => (
                   <li key={s.name}>
                     {s.name}
                     {/* Never colour alone: the band is a word (§23). */}
-                    <span className={`band-tag band-${s.band?.toLowerCase()}`}>{s.band}</span>
+                    <span className={`band-tag band-${s.band?.toLowerCase()}`}>
+                      {s.band}
+                    </span>
                   </li>
                 ))}
               </ul>

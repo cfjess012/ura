@@ -14,14 +14,21 @@ export function NotYourAssessment({ person }: { person: Person }) {
       <p className="eyebrow">Not your assessment</p>
       <h1 className="display">This one belongs to someone else</h1>
       <p className="lede">
-        You&rsquo;re working as <strong>{person.name}</strong> ({ROLE_LABEL[person.role]}), and a
-        requester sees only their own assessments. Nothing has been changed.
+        You&rsquo;re working as <strong>{person.name}</strong> (
+        {ROLE_LABEL[person.role]}), and a requester sees only their own
+        assessments. Nothing has been changed.
       </p>
       <div className="card recover">
         <h2>What to do</h2>
         <ol className="summary-list">
-          <li>If this is your work, switch to the person who started it in the bar above.</li>
-          <li>If it isn&rsquo;t, ask its owner to make the change — or ask a Risk Assessor, who sees every assessment.</li>
+          <li>
+            If this is your work, switch to the person who started it in the bar
+            above.
+          </li>
+          <li>
+            If it isn&rsquo;t, ask its owner to make the change — or ask a Risk
+            Assessor, who sees every assessment.
+          </li>
         </ol>
         <div className="savebar">
           <Link href="/projects" className="btn">

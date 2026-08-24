@@ -222,6 +222,20 @@ export type AssessmentContext = {
   onRecord: Array<{ label: string; value: string }>;
   /** What is still open, in the question's own words. */
   openQuestions: string[];
+  /**
+   * What the person is looking at **right now**, in human words.
+   *
+   * Without this the assistant knows which assessment somebody is on and
+   * not which screen, so "what does this mean?" has no referent and it
+   * answers about the assessment in general. That is the difference
+   * between a thought partner and a search box.
+   */
+  looking?: {
+    /** The screen, named the way a person would name it. */
+    screen: string;
+    /** The questions actually in front of them, verbatim. */
+    questions: string[];
+  };
 };
 
 /**

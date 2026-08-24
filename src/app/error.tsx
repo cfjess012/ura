@@ -41,8 +41,8 @@ export default function AppError({
         <ol className="summary-list">
           <li>Try loading the screen again — most of these are momentary.</li>
           <li>
-            If it happens twice, open your assessments and continue from
-            there; the work is where you left it.
+            If it happens twice, open your assessments and continue from there;
+            the work is where you left it.
           </li>
           <li>
             Still stuck? Quote the reference below — it matches a line in the

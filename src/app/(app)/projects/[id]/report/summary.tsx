@@ -76,10 +76,7 @@ export async function ReportSummary({
  *  you are not waiting for the thing you came for. */
 export function SummaryPending() {
   return (
-    <section
-      className="report-card report-summary report-pending"
-      aria-live="polite"
-    >
+    <section className="report-card report-summary" aria-live="polite">
       <h2>In short</h2>
       <div className="report-shimmer">
         <span />

@@ -42,14 +42,18 @@ export default async function SeverityPage({
   if (!access.ok) return <NotYourAssessment person={access.person} />;
   const project = access.project;
 
-  const intake = intakeValuesFrom(project as unknown as Record<string, unknown>);
+  const intake = intakeValuesFrom(
+    project as unknown as Record<string, unknown>,
+  );
   const incomplete = firstIncompleteSection(intake);
   if (incomplete) redirect(`/projects/${id}/intake/${incomplete}?needed=1`);
 
   const stored = await answerStore().current(id);
   const gates = gateStates(stored, intake);
   if (gates.some((g) => g.answer === null)) {
-    redirect(`/projects/${id}/assess/${gates.find((g) => g.answer === null)!.category.key}`);
+    redirect(
+      `/projects/${id}/assess/${gates.find((g) => g.answer === null)!.category.key}`,
+    );
   }
 
   const selections: Record<string, string[]> = {};
@@ -60,7 +64,10 @@ export default async function SeverityPage({
     if (Array.isArray(value)) selections[category.key] = value;
   }
   const stillToNarrow = gates.some(
-    (g) => g.answer === "Yes" && g.category.pathQuestion && selections[g.category.key] === undefined,
+    (g) =>
+      g.answer === "Yes" &&
+      g.category.pathQuestion &&
+      selections[g.category.key] === undefined,
   );
   if (stillToNarrow) redirect(`/projects/${id}/assess/paths`);
 
@@ -70,16 +77,20 @@ export default async function SeverityPage({
   const here = groups.find((g) => g.key === group);
   if (!here) notFound();
 
-  const items: SeverityItem[] = here.questions.map((question: SeverityQuestion) => {
-    const answer = stored[question.questionId]?.value;
-    const detailAnswer = question.detail ? stored[question.detail.questionId]?.value : undefined;
-    return {
-      question,
-      band: typeof answer === "string" ? (answer as Band) : null,
-      detail: Array.isArray(detailAnswer) ? detailAnswer : [],
-      derived: deriveBand(question, intake),
-    };
-  });
+  const items: SeverityItem[] = here.questions.map(
+    (question: SeverityQuestion) => {
+      const answer = stored[question.questionId]?.value;
+      const detailAnswer = question.detail
+        ? stored[question.detail.questionId]?.value
+        : undefined;
+      return {
+        question,
+        band: typeof answer === "string" ? (answer as Band) : null,
+        detail: Array.isArray(detailAnswer) ? detailAnswer : [],
+        derived: deriveBand(question, intake),
+      };
+    },
+  );
 
   // Hand-offs on the questions this screen shows, plus who they could go to.
   const [allHandoffs, everyone] = await Promise.all([
@@ -88,14 +99,21 @@ export default async function SeverityPage({
   ]);
   const onThisScreen = allHandoffs.filter((h) =>
     here.questions.some(
-      (q: SeverityQuestion) => q.questionId === h.questionId || q.detail?.questionId === h.questionId,
+      (q: SeverityQuestion) =>
+        q.questionId === h.questionId || q.detail?.questionId === h.questionId,
     ),
   );
-  const replies = await handoffStore().repliesFor(onThisScreen.map((h) => h.id));
+  const replies = await handoffStore().repliesFor(
+    onThisScreen.map((h) => h.id),
+  );
   const nameOf = (personId: string) =>
     everyone.find((person) => person.id === personId)?.name ?? "someone";
   const recipients: Recipient[] = [
-    ...CATEGORIES.map((c) => ({ id: c.key, label: c.name, kind: "domain" as const })),
+    ...CATEGORIES.map((c) => ({
+      id: c.key,
+      label: c.name,
+      kind: "domain" as const,
+    })),
     ...everyone
       .filter((person) => person.role === "assessor")
       .map((person) => ({
@@ -141,7 +159,11 @@ export default async function SeverityPage({
   // the same shape as the queue that once claimed "274 to attest"
   // (verifier finding 8).
   const withSomeoneElse = asked.filter(
-    (q) => !stored[q.questionId] && allHandoffs.some((h) => h.resolvedAt === null && h.questionId === q.questionId),
+    (q) =>
+      !stored[q.questionId] &&
+      allHandoffs.some(
+        (h) => h.resolvedAt === null && h.questionId === q.questionId,
+      ),
   ).length;
   const theirs = asked.length - withSomeoneElse;
 
@@ -163,16 +185,24 @@ export default async function SeverityPage({
       />
 
       <div className="assess-layout">
-        <SeverityRail projectId={id} groups={groups} answered={stored} currentKey={group} />
+        <SeverityRail
+          projectId={id}
+          groups={groups}
+          answered={stored}
+          currentKey={group}
+        />
 
         <section>
           <p className="eyebrow">
             Step 3 · {index + 1} of {groups.length}
           </p>
           <h2 className="display gate-display">{here.name}</h2>
-          <p className="lede" style={{ textAlign: "left", margin: "0 0 1.2rem" }}>
-            Pick the description that fits. They&rsquo;re written as facts you can
-            check rather than judgements, so two people reading the same
+          <p
+            className="lede"
+            style={{ textAlign: "left", margin: "0 0 1.2rem" }}
+          >
+            Pick the description that fits. They&rsquo;re written as facts you
+            can check rather than judgements, so two people reading the same
             situation land in the same place.
           </p>
 
@@ -190,7 +220,8 @@ export default async function SeverityPage({
             ledger={{
               paths: lit.map((p) => ({
                 name: p.name,
-                because: p.source === "derived" ? p.because.join("; and ") : null,
+                because:
+                  p.source === "derived" ? p.because.join("; and ") : null,
               })),
               /* The lit paths, so the client can ask for the same question
                  set the server did — one definition of "what is asked". */
@@ -207,7 +238,10 @@ export default async function SeverityPage({
               details: Object.fromEntries(
                 asked
                   .filter((q) => q.detail)
-                  .map((q) => [q.detail!.questionId, stored[q.detail!.questionId]?.value])
+                  .map((q) => [
+                    q.detail!.questionId,
+                    stored[q.detail!.questionId]?.value,
+                  ])
                   .filter(([, v]) => Array.isArray(v)),
               ) as Record<string, string[]>,
               totalAsked: asked.length,

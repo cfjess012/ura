@@ -24,11 +24,17 @@ export function StartForm() {
       <button className="btn" type="submit" disabled={pending}>
         {pending ? "Starting…" : "Start assessment"}
       </button>
-      <p role="status" aria-live="polite" className={failure ? "save-failed" : "sr-only"}>
+      <p
+        role="status"
+        aria-live="polite"
+        className={failure ? "save-failed" : "sr-only"}
+      >
         {failure ? (
           <>
             {failure.message}
-            {failure.ref && <span className="err-ref">Reference {failure.ref}</span>}
+            {failure.ref && (
+              <span className="err-ref">Reference {failure.ref}</span>
+            )}
           </>
         ) : (
           ""

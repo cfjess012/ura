@@ -10,9 +10,9 @@ export default function Loading() {
         Loading&hellip;
       </p>
       <div className="card skeleton-card" aria-hidden="true">
-        <span className="skeleton skeleton-line w-40" />
-        <span className="skeleton skeleton-line w-80" />
-        <span className="skeleton skeleton-line w-60" />
+        <span className="skeleton w-40" />
+        <span className="skeleton w-80" />
+        <span className="skeleton w-60" />
       </div>
     </main>
   );

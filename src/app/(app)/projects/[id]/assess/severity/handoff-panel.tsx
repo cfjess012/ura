@@ -10,7 +10,11 @@
  */
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { handOffQuestion, replyToHandoff, resolveHandoff } from "@/app/handoff-actions";
+import {
+  handOffQuestion,
+  replyToHandoff,
+  resolveHandoff,
+} from "@/app/handoff-actions";
 import { errorRef, isFailure } from "@/lib/errors";
 import { initialsOf, saidAt, thread, timeAgo, type Reply } from "@/lib/handoff";
 
@@ -31,7 +35,11 @@ function transportFailure(where: string, cause: unknown): string {
   return `The server couldn't be reached, so nothing was recorded. What you wrote is still here. Reference ${errorRef()}. Try again in a moment.`;
 }
 
-export type Recipient = { id: string; label: string; kind: "person" | "domain" };
+export type Recipient = {
+  id: string;
+  label: string;
+  kind: "person" | "domain";
+};
 
 export type HandoffView = {
   id: string;
@@ -103,7 +111,11 @@ export function HandoffPanel({
 
   if (!asking) {
     return (
-      <button type="button" className="handoff-open" onClick={() => setAsking(true)}>
+      <button
+        type="button"
+        className="handoff-open"
+        onClick={() => setAsking(true)}
+      >
         I don&rsquo;t know — leave this to us
       </button>
     );
@@ -152,10 +164,19 @@ export function HandoffPanel({
       />
 
       <div className="handoff-actions">
-        <button type="button" className="btn" disabled={busy} onClick={() => void hand()}>
+        <button
+          type="button"
+          className="btn"
+          disabled={busy}
+          onClick={() => void hand()}
+        >
           {busy ? "Handing over…" : "Hand it over"}
         </button>
-        <button type="button" className="btn ghost" onClick={() => setAsking(false)}>
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={() => setAsking(false)}
+        >
           Cancel
         </button>
       </div>
@@ -168,7 +189,13 @@ export function HandoffPanel({
   );
 }
 
-function Thread({ projectId, handoff }: { projectId: string; handoff: HandoffView }) {
+function Thread({
+  projectId,
+  handoff,
+}: {
+  projectId: string;
+  handoff: HandoffView;
+}) {
   const router = useRouter();
   const [body, setBody] = React.useState("");
   const [replyingTo, setReplyingTo] = React.useState<string | null>(null);
@@ -223,12 +250,16 @@ function Thread({ projectId, handoff }: { projectId: string; handoff: HandoffVie
   const waiting = open && !handoff.answered;
 
   return (
-    <div className={`handoff-thread${open ? "" : " settled"}${waiting ? "" : " done"}`}>
+    <div
+      className={`handoff-thread${open ? "" : " settled"}${waiting ? "" : " done"}`}
+    >
       <p className="handoff-status">
         <span className="handoff-tag">
           {!open ? "Settled by" : waiting ? "With" : "Answered — was with"}
         </span>{" "}
-        <strong>{open ? handoff.toLabel : (handoff.resolvedByName ?? "a reviewer")}</strong>
+        <strong>
+          {open ? handoff.toLabel : (handoff.resolvedByName ?? "a reviewer")}
+        </strong>
         <span className="handoff-meta">
           {" · "}
           {!open
@@ -263,7 +294,11 @@ function Thread({ projectId, handoff }: { projectId: string; handoff: HandoffVie
           {replyingTo && (
             <p className="handoff-replying">
               Replying to a comment above.{" "}
-              <button type="button" className="linkish" onClick={() => setReplyingTo(null)}>
+              <button
+                type="button"
+                className="linkish"
+                onClick={() => setReplyingTo(null)}
+              >
                 Reply to the whole thread instead
               </button>
             </p>
@@ -293,7 +328,12 @@ function Thread({ projectId, handoff }: { projectId: string; handoff: HandoffVie
             </button>
           </div>
           {handoff.mayResolve && (
-            <button type="button" className="linkish handoff-resolve" disabled={busy} onClick={() => void close()}>
+            <button
+              type="button"
+              className="linkish handoff-resolve"
+              disabled={busy}
+              onClick={() => void close()}
+            >
               Mark resolved
             </button>
           )}
@@ -334,7 +374,11 @@ function ReplyNode({
           body={node.body}
           actions={
             open ? (
-              <button type="button" className="linkish" onClick={() => onReply(node.id)}>
+              <button
+                type="button"
+                className="linkish"
+                onClick={() => onReply(node.id)}
+              >
                 Reply
               </button>
             ) : null
@@ -354,7 +398,6 @@ function ReplyNode({
     </>
   );
 }
-
 
 /** One thing somebody said — avatar, who they are, when, and the words. */
 function Post({

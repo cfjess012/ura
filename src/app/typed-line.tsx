@@ -11,7 +11,9 @@ export function TypedLine({ text }: { text: string }) {
   const [shown, setShown] = React.useState(text);
 
   React.useEffect(() => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     if (reduced) return;
     setShown("");
     let index = 0;

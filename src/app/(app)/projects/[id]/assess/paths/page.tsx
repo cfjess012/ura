@@ -40,7 +40,9 @@ export default async function PathsPage({
   if (!access.ok) return <NotYourAssessment person={access.person} />;
   const project = access.project;
 
-  const intake = intakeValuesFrom(project as unknown as Record<string, unknown>);
+  const intake = intakeValuesFrom(
+    project as unknown as Record<string, unknown>,
+  );
   const incomplete = firstIncompleteSection(intake);
   if (incomplete) redirect(`/projects/${id}/intake/${incomplete}?needed=1`);
 
@@ -60,7 +62,11 @@ export default async function PathsPage({
       : undefined;
     if (Array.isArray(answer)) selections[category.key] = answer;
   }
-  const lookup = assessmentLookup({ intake, gates, pathSelections: selections });
+  const lookup = assessmentLookup({
+    intake,
+    gates,
+    pathSelections: selections,
+  });
 
   const open = askableCategories().filter(
     (c) =>
@@ -77,9 +83,11 @@ export default async function PathsPage({
       // person ticked that WOULD have applied anyway carries its reason too,
       // and that reason used to be computed and then thrown away because the
       // filter asked about the source instead of the explanation (FR-33).
-      derived: litPathsFor(category, selections[category.key] ?? [], lookup).filter(
-        (p) => p.because.length > 0,
-      ),
+      derived: litPathsFor(
+        category,
+        selections[category.key] ?? [],
+        lookup,
+      ).filter((p) => p.because.length > 0),
       // §24.1: this area is open only because the person said they did not
       // know. Asking them five sharper questions about it is the same
       // defect one tier deeper, so the screen says so and leaves it to a
@@ -120,7 +128,10 @@ export default async function PathsPage({
           <h2 className="display gate-display">
             {areas.length === 0 ? "Nothing to narrow down" : "Narrow it down"}
           </h2>
-          <p className="lede" style={{ textAlign: "left", margin: "0 0 1.2rem" }}>
+          <p
+            className="lede"
+            style={{ textAlign: "left", margin: "0 0 1.2rem" }}
+          >
             {areas.length === 0
               ? "You've told us which areas are in scope."
               : "You've told us which areas are in scope. Each one covers several different things — tick what's true and the detailed questions that follow will cover only those."}
@@ -137,7 +148,9 @@ export default async function PathsPage({
                 there&rsquo;s nothing for you to do here.
               </p>
               <Link className="btn" href={firstSeverityHref}>
-                {severityGroups[0] ? "Continue to how severe →" : "See the summary →"}
+                {severityGroups[0]
+                  ? "Continue to how severe →"
+                  : "See the summary →"}
               </Link>
             </div>
           ) : (

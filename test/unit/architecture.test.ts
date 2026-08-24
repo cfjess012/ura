@@ -468,3 +468,46 @@ describe("an accepted proposal is an answer to a question that was asked", () =>
     );
   });
 });
+
+describe("every class a component uses is defined somewhere", () => {
+  /**
+   * The assistant's launcher shipped using a class that had been deleted
+   * when its stylesheet was split. It rendered as a raw browser button in
+   * the bottom-left corner of every assessment screen, and nothing caught
+   * it — not the type checker, which does not read CSS, and not a test,
+   * because none looked.
+   *
+   * That is the third defect this session caused by a class name existing
+   * at the call site and nowhere else.
+   */
+  const styles = readdirSync(join(SRC, "app", "styles"))
+    .filter((file) => file.endsWith(".css"))
+    .map((file) => read(join(SRC, "app", "styles", file)))
+    .join("\n");
+  const globals = read(join(SRC, "app", "globals.css"));
+  const allCss = `${styles}\n${globals}`;
+
+  /** Classes Tailwind-free code invents, minus the ones supplied elsewhere. */
+  const EXTERNAL = new Set(["sr-only"]);
+
+  it("has a stylesheet rule for every className used in the app", () => {
+    const files = filesUnder(join(SRC, "app"));
+    const missing = new Set<string>();
+    for (const file of files) {
+      const source = read(file);
+      // Only plain string classNames — template literals compose at
+      // runtime and cannot be checked this way.
+      for (const match of source.matchAll(/className="([^"{}]+)"/g)) {
+        for (const name of match[1]!.split(/\s+/).filter(Boolean)) {
+          if (EXTERNAL.has(name)) continue;
+          if (!allCss.includes(`.${name}`))
+            missing.add(`${rel(file)} → .${name}`);
+        }
+      }
+    }
+    expect(
+      [...missing].sort(),
+      "these classes are used but never defined",
+    ).toEqual([]);
+  });
+});

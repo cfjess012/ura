@@ -495,13 +495,9 @@ function Control({
     return (
       <>
         {many ? (
-          <div
-            className="checks pickopts"
-            role="group"
-            aria-labelledby={labelId}
-          >
+          <div className="checks" role="group" aria-labelledby={labelId}>
             {options.map((option) => (
-              <label key={option.id} className="pickopt">
+              <label key={option.id}>
                 <input
                   type="checkbox"
                   name={field.id}
@@ -512,7 +508,7 @@ function Control({
                 <span>{option.label}</span>
               </label>
             ))}
-            <label className="pickopt pickopt-other">
+            <label>
               <input
                 type="checkbox"
                 name={field.id}
@@ -546,7 +542,7 @@ function Control({
           /* FR-31: the escape hatch is never a dead end. Choosing it asks
              for the name, and says what happens to it — a person who types
              one should not have to wonder whether it went anywhere. */
-          <div className="reveal unlisted-box">
+          <div className="reveal">
             <label className="field" htmlFor={typedKey}>
               {many ? "Which ones? One per line." : "What is it called?"}
             </label>

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   askAgent,
   draftFromDocument,
@@ -29,6 +29,9 @@ export function Assistant({
   initial: AgentTurn[];
 }) {
   const router = useRouter();
+  // Where they are. The server derives what is on that screen from the
+  // instrument — the path only selects, it never supplies the words.
+  const pathname = usePathname();
   const [turns, setTurns] = React.useState<AgentTurn[]>(initial);
   const [said, setSaid] = React.useState("");
   const [busy, setBusy] = React.useState(false);
@@ -66,7 +69,7 @@ export function Assistant({
     setTurns((was) => [...was, { speaker: "person", said: message }]);
     setSaid("");
     try {
-      const result = await askAgent(projectId, message);
+      const result = await askAgent(projectId, message, pathname);
       if (isFailure(result)) {
         setTurns((was) => [...was, { speaker: "agent", said: result.message }]);
       } else {
@@ -147,10 +150,19 @@ export function Assistant({
     return (
       <button
         type="button"
-        className="assistant-open"
+        className="assistant-launch"
         onClick={() => setOpen(true)}
+        aria-expanded={false}
       >
-        Talk it through →
+        <span aria-hidden="true" className="assistant-launch-icon">
+          ?
+        </span>
+        Talk it through
+        {turns.length > 0 && (
+          <span className="assistant-launch-count" aria-hidden="true">
+            {turns.filter((t) => t.speaker === "agent").length}
+          </span>
+        )}
       </button>
     );
   }

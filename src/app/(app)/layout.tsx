@@ -4,6 +4,7 @@ import { canAdminister, ROLE_LABEL } from "@/lib/people";
 import { handoffStore } from "@/lib/repo";
 import { switchUser } from "@/app/actions";
 import { AlertBell } from "./alert-bell";
+import { agentTransport } from "@/lib/agent";
 import { openFor } from "@/lib/handoff";
 import { destinationFor } from "@/lib/destination";
 
@@ -11,7 +12,11 @@ import { destinationFor } from "@/lib/destination";
  * The working chrome. The landing page sits outside this group deliberately
  * — it is the front door, not a screen inside the product.
  */
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const current = await currentPerson();
   // Both classes are DERIVED — nothing is stored as a message, so there is
   // nothing to poll, nothing to mark read one by one, and nothing that can
@@ -29,6 +34,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             Front Door AI Risk <span>Advisor</span>
           </Link>
           <span className="appbar-right">
+            {/* Whether the assistant is actually connected on this
+                deployment. Read from the seam, so it cannot say one thing
+                while another is true — and a link to the page that says
+                exactly what it may see. */}
+            {agentTransport().available && (
+              <Link
+                href="/admin/agents"
+                className="appbar-ai"
+                title="An assistant is connected — see what it may read"
+              >
+                <span aria-hidden="true" className="appbar-ai-dot" />
+                Assistant on
+              </Link>
+            )}
             {canAdminister(current.role) && (
               <Link href="/admin/agents" className="appbar-link">
                 Agents

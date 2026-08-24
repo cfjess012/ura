@@ -20,7 +20,11 @@ export function IntakeRail({
       <ol>
         {progress.map((section, index) => {
           const complete = section.missing.length === 0 && section.answered > 0;
-          const status = complete ? "open" : section.answered > 0 ? "prefilled" : "unanswered";
+          const status = complete
+            ? "open"
+            : section.answered > 0
+              ? "prefilled"
+              : "unanswered";
           const active = section.key === currentKey;
           return (
             <li key={section.key}>

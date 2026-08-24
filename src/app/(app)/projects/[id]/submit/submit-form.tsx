@@ -33,7 +33,10 @@ export function SubmitForm({
   const [declared, setDeclared] = React.useState(false);
   const [acknowledged, setAcknowledged] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
-  const [error, setError] = React.useState<{ message: string; ref?: string } | null>(null);
+  const [error, setError] = React.useState<{
+    message: string;
+    ref?: string;
+  } | null>(null);
 
   const ready = declared && (gaps.length === 0 || acknowledged);
 
@@ -73,8 +76,8 @@ export function SubmitForm({
       <div className="card">
         <h2>What you are declaring accurate</h2>
         <p className="help">
-          These are the answers a reviewer starts from. Read them — if one is wrong,
-          go back and change it before you sign.
+          These are the answers a reviewer starts from. Read them — if one is
+          wrong, go back and change it before you sign.
         </p>
         <dl className="declared">
           {declarable.map((item) => (
@@ -94,11 +97,12 @@ export function SubmitForm({
            declaration so a reviewer sees exactly what was known missing. */
         <div className="card gaps">
           <h2>
-            {gaps.length} question{gaps.length === 1 ? "" : "s"} you have not answered
+            {gaps.length} question{gaps.length === 1 ? "" : "s"} you have not
+            answered
           </h2>
           <p className="help">
-            You can submit anyway — a reviewer would rather see a gap than a guess.
-            They will see this list exactly as it is.
+            You can submit anyway — a reviewer would rather see a gap than a
+            guess. They will see this list exactly as it is.
           </p>
           <ul className="summary-list">
             {gaps.map((gap) => (
@@ -112,8 +116,8 @@ export function SubmitForm({
               onChange={(event) => setAcknowledged(event.target.checked)}
             />
             <span>
-              I know these {gaps.length === 1 ? "is" : "are"} unanswered and I am submitting
-              anyway.
+              I know these {gaps.length === 1 ? "is" : "are"} unanswered and I
+              am submitting anyway.
             </span>
           </label>
         </div>
@@ -127,27 +131,34 @@ export function SubmitForm({
             onChange={(event) => setDeclared(event.target.checked)}
           />
           <span>
-            <strong>I declare these answers are accurate</strong> to the best of my
-            knowledge, and I understand a reviewer will rely on them.
+            <strong>I declare these answers are accurate</strong> to the best of
+            my knowledge, and I understand a reviewer will rely on them.
           </span>
         </label>
 
         {willRaise > 0 && (
           <p className="help" style={{ marginTop: "0.6rem" }}>
-            Submitting raises {willRaise} finding{willRaise === 1 ? "" : "s"} from your
-            control answers, {willRaise === 1 ? "carrying the note" : "each carrying the note"}{" "}
+            Submitting raises {willRaise} finding{willRaise === 1 ? "" : "s"}{" "}
+            from your control answers,{" "}
+            {willRaise === 1 ? "carrying the note" : "each carrying the note"}{" "}
             you wrote.
           </p>
         )}
 
         <div className="savebar" style={{ marginTop: "0.9rem" }}>
-          <span role="status" aria-live="polite" className={error ? "save-failed" : "saved"}>
+          <span
+            role="status"
+            aria-live="polite"
+            className={error ? "save-failed" : "saved"}
+          >
             {busy ? (
               "Submitting…"
             ) : error ? (
               <>
                 {error.message}{" "}
-                {error.ref && <span className="err-ref">Reference {error.ref}</span>}
+                {error.ref && (
+                  <span className="err-ref">Reference {error.ref}</span>
+                )}
               </>
             ) : (
               ""

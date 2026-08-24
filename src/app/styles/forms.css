@@ -487,3 +487,19 @@ select.flagged {
   border-radius: var(--radius);
   padding: 0.35rem;
 }
+
+/* An error beside the field it is about. Used in four places and defined
+   in none of them until a test went looking — refusals were rendering as
+   ordinary body text, which is the one thing an error must not look like. */
+.field-error {
+  margin-top: 0.3rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  font-weight: 600;
+  color: var(--error);
+}
+.field-error .meta,
+.field-error .err-ref {
+  font-weight: 500;
+  color: var(--neutral-600);
+}

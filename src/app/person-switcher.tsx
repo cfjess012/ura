@@ -11,7 +11,13 @@ import { ROLE_LABEL, type Person } from "@/lib/people";
  *
  * It says what it is: a demonstration device, not a sign-in.
  */
-export function PersonSwitcher({ people, current }: { people: Person[]; current: Person }) {
+export function PersonSwitcher({
+  people,
+  current,
+}: {
+  people: Person[];
+  current: Person;
+}) {
   // A transition, not a boolean: plain state stayed true forever because
   // nothing tells a client component that a server action has finished, so
   // the chooser disabled itself permanently after one switch. Found by the
@@ -53,7 +59,9 @@ export function PersonSwitcher({ people, current }: { people: Person[]; current:
         </button>
       </noscript>
       <span role="status" aria-live="polite" className="sr-only">
-        {switching ? "Switching person…" : `Working as ${current.name}, ${ROLE_LABEL[current.role]}`}
+        {switching
+          ? "Switching person…"
+          : `Working as ${current.name}, ${ROLE_LABEL[current.role]}`}
       </span>
     </form>
   );

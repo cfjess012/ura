@@ -65,13 +65,31 @@ export function composeConversePrompt(task: ConverseTask): string {
       (turn) => `${turn.speaker === "person" ? "Them" : "You"}: ${turn.said}`,
     )
     .join("\n");
+
+  // What they are looking at goes FIRST, before the record. Asked "what
+  // does this mean?" with only the assessment for context, the reply is
+  // about the assessment in general — which is not an answer to the
+  // question they asked.
+  const looking = task.assessment.looking;
+  const onScreen = looking
+    ? [
+        "## What they are looking at right now",
+        `They are on ${looking.screen}.`,
+        looking.questions.length > 0
+          ? `The questions in front of them are:\n${looking.questions.map((q) => `- ${q}`).join("\n")}`
+          : "There are no questions on this screen.",
+        "**If they say “this”, “here” or “where do I start”, they mean this screen.** Answer about what is in front of them before anything else.",
+      ].join("\n\n")
+    : "";
+
   return [
     CONVERSE,
     "---",
+    onScreen,
     "## What they have told us so far",
     task.context.trim() === "" ? "(nothing yet)" : task.context,
     "",
-    "## Questions still open",
+    "## Questions still open elsewhere in the assessment",
     task.openQuestions.length === 0
       ? "(none — everything has been answered)"
       : task.openQuestions.map((q) => `- ${q}`).join("\n"),
@@ -81,7 +99,9 @@ export function composeConversePrompt(task: ConverseTask): string {
     "",
     "## What they just said",
     task.said,
-  ].join("\n\n");
+  ]
+    .filter((part) => part !== "")
+    .join("\n\n");
 }
 
 export function composeReportPrompt(task: ReportTask): string {

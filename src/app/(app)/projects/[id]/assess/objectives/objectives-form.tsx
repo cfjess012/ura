@@ -176,7 +176,7 @@ export function ObjectivesForm({
 
             {children.length > 0 && (
               <div className="q3-children">
-                <p className="reveal-note" role="note">
+                <p role="note">
                   Shown because the control exists — these ask what it covers.
                 </p>
                 {children.map((child) => (
@@ -280,11 +280,7 @@ function Answers({
             }
           />
           {flagged && problem && (
-            <p
-              className="field-problem"
-              id={`note-problem-${questionId}`}
-              role="note"
-            >
+            <p id={`note-problem-${questionId}`} role="note">
               {problem}
             </p>
           )}

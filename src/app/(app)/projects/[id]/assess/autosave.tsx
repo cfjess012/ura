@@ -152,7 +152,9 @@ export function SaveBar({
           ) : error ? (
             <>
               {error.message}{" "}
-              {error.ref && <span className="err-ref">Reference {error.ref}</span>}
+              {error.ref && (
+                <span className="err-ref">Reference {error.ref}</span>
+              )}
             </>
           ) : saved ? (
             "Saved"

@@ -2,8 +2,18 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CATEGORIES, gateStates } from "@/lib/instrument";
 import { litPaths } from "@/lib/engine";
-import { accumulatedFor, severityQuestionsFor, controlName, type Band } from "@/lib/severity";
-import { objectivesFor, withoutQuestions, isTier3Value, type Tier3Value } from "@/lib/tier3";
+import {
+  accumulatedFor,
+  severityQuestionsFor,
+  controlName,
+  type Band,
+} from "@/lib/severity";
+import {
+  objectivesFor,
+  withoutQuestions,
+  isTier3Value,
+  type Tier3Value,
+} from "@/lib/tier3";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
@@ -26,13 +36,19 @@ export const dynamic = "force-dynamic";
  * Which objectives appear is derived on every render from the severity
  * answers, never stored (NFR-3): change a band and this changes with it.
  */
-export default async function ObjectivesPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ObjectivesPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
   const access = await openProject(id);
   if (!access.ok) return <NotYourAssessment person={access.person} />;
   const project = access.project;
 
-  const intake = intakeValuesFrom(project as unknown as Record<string, unknown>);
+  const intake = intakeValuesFrom(
+    project as unknown as Record<string, unknown>,
+  );
   const incomplete = firstIncompleteSection(intake);
   if (incomplete) redirect(`/projects/${id}/intake/${incomplete}?needed=1`);
 
@@ -61,7 +77,9 @@ export default async function ObjectivesPage({ params }: { params: Promise<{ id:
 
   // The severity answers this screen depends on. Nothing to ask about until
   // some exist — and saying so beats an empty screen (§24.4).
-  const answeredSeverity = severityQuestions.filter((q) => bands[q.questionId]).length;
+  const answeredSeverity = severityQuestions.filter(
+    (q) => bands[q.questionId],
+  ).length;
   const firstSeverityGroup = groupsFor(severityQuestions)[0]?.key ?? "";
 
   const values: Record<string, Tier3Value> = {};
@@ -80,7 +98,8 @@ export default async function ObjectivesPage({ params }: { params: Promise<{ id:
     if (typeof value.value === "string" || Array.isArray(value.value)) {
       lookup[questionId] = value.value;
     }
-    if (questionId.startsWith("path.") && Array.isArray(value.value)) paths.push(...value.value);
+    if (questionId.startsWith("path.") && Array.isArray(value.value))
+      paths.push(...value.value);
   }
   lookup.paths = paths;
 
@@ -103,20 +122,23 @@ export default async function ObjectivesPage({ params }: { params: Promise<{ id:
         <section>
           <p className="eyebrow">Step 4 · Do the controls exist</p>
           <h2 className="display">What this activity requires</h2>
-          <p className="lede" style={{ textAlign: "left", margin: "0 0 1.2rem" }}>
+          <p
+            className="lede"
+            style={{ textAlign: "left", margin: "0 0 1.2rem" }}
+          >
             Everything you have answered so far worked out what this activity
             needs. These questions ask whether it is already there. Answer
-            honestly — a gap named here is a finding a reviewer can act on, and a
-            gap found later is a surprise.
+            honestly — a gap named here is a finding a reviewer can act on, and
+            a gap found later is a surprise.
           </p>
 
           {answeredSeverity === 0 ? (
             <div className="card card-upcoming">
               <h2>Nothing to ask yet</h2>
               <p>
-                What this asks about is worked out from the severity answers, and
-                none are given yet. Answer those and the controls they require
-                appear here.
+                What this asks about is worked out from the severity answers,
+                and none are given yet. Answer those and the controls they
+                require appear here.
               </p>
               <Link className="btn" href={`/projects/${id}/assess/complete`}>
                 Back to where this stands →
@@ -143,7 +165,9 @@ export default async function ObjectivesPage({ params }: { params: Promise<{ id:
               objectives={askable}
               values={values}
               lookup={lookup}
-              reasons={Object.fromEntries(askable.map((o) => [o.id, reasonFor.get(o.id) ?? []]))}
+              reasons={Object.fromEntries(
+                askable.map((o) => [o.id, reasonFor.get(o.id) ?? []]),
+              )}
               nextHref={`/projects/${id}/assess/complete`}
             />
           )}
@@ -151,10 +175,16 @@ export default async function ObjectivesPage({ params }: { params: Promise<{ id:
           {/* Not a dead end: every other assess screen offers a way back, and
               this one offered only Save (verifier S6-4). */}
           <p className="rail-back" style={{ marginTop: "1rem" }}>
-            <Link className="rail-back-link" href={`/projects/${id}/assess/severity/${firstSeverityGroup}`}>
+            <Link
+              className="rail-back-link"
+              href={`/projects/${id}/assess/severity/${firstSeverityGroup}`}
+            >
               ← Back to the severity questions
             </Link>
-            <Link className="rail-back-link" href={`/projects/${id}/assess/complete`}>
+            <Link
+              className="rail-back-link"
+              href={`/projects/${id}/assess/complete`}
+            >
               Where this assessment stands
             </Link>
           </p>
@@ -169,14 +199,17 @@ export default async function ObjectivesPage({ params }: { params: Promise<{ id:
               <p className="help">
                 This activity requires {recorded.length} more control
                 {recorded.length === 1 ? "" : "s"}. The pilot asks its detailed
-                questions for {askable.length} of the {owed.length} it works out —
-                the rest are recorded and go to a reviewer as they are.
+                questions for {askable.length} of the {owed.length} it works out
+                — the rest are recorded and go to a reviewer as they are.
               </p>
               <ul className="summary-list">
                 {recorded.map((objective) => (
                   <li key={objective}>
                     <strong>{controlName(objective)}</strong>
-                    <span className="meta"> — {(reasonFor.get(objective) ?? []).join("; and ")}</span>
+                    <span className="meta">
+                      {" "}
+                      — {(reasonFor.get(objective) ?? []).join("; and ")}
+                    </span>
                   </li>
                 ))}
               </ul>

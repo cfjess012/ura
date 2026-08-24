@@ -321,3 +321,29 @@ main {
   border-radius: 999px;
   padding: 0.2rem 0.6rem;
 }
+
+/* Whether an assistant is connected on this deployment, in the chrome so
+   it is answered before anyone asks. Read from the seam — a label that
+   describes a connection rather than reading it goes stale, and one did. */
+.appbar-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: rgb(198 237 8 / 14%);
+  border: 1px solid rgb(198 237 8 / 45%);
+  color: var(--neutral-0);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.appbar-ai:hover {
+  background: rgb(198 237 8 / 24%);
+}
+.appbar-ai-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--accent);
+}

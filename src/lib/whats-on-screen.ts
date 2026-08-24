@@ -1,0 +1,109 @@
+/**
+ * What a person is looking at, derived from where they are.
+ *
+ * The assistant is mounted once per assessment, so it knows which
+ * assessment somebody is on and nothing about which screen. Asked "what
+ * does this mean?", it answered about the assessment in general — which is
+ * the difference between a thought partner and a search box.
+ *
+ * The path is the only thing the client can honestly report about itself,
+ * and everything else is derived here from the instrument. Nothing the
+ * caller sends becomes a question: the path selects, the instrument
+ * supplies the words.
+ *
+ * Pure: no framework, no driver, no environment (§26.1).
+ */
+import { CATEGORIES } from "./instrument";
+import { INTAKE_SECTIONS, sectionKey } from "./intake";
+import { OBJECTIVES } from "./tier3";
+import { SEVERITY } from "./severity";
+
+export type OnScreen = { screen: string; questions: string[] };
+
+/** The section of a project path after `/projects/<id>/`. */
+function tail(pathname: string): string[] {
+  const at = pathname.indexOf("/projects/");
+  if (at === -1) return [];
+  return pathname
+    .slice(at + "/projects/".length)
+    .split("/")
+    .slice(1)
+    .filter(Boolean);
+}
+
+/**
+ * What is on the screen at `pathname`, or null where nothing is being
+ * asked. Returns the questions **verbatim** — the assistant must talk
+ * about the question a person can see, in the words they can see.
+ */
+export function whatsOnScreen(pathname: string): OnScreen | null {
+  const parts = tail(pathname);
+  if (parts.length === 0) return null;
+
+  if (parts[0] === "intake") {
+    const section = INTAKE_SECTIONS.find(
+      (s) => sectionKey(s.name) === parts[1],
+    );
+    if (!section) return null;
+    return {
+      screen: `the “${section.name}” part of describing the activity`,
+      questions: section.fields.map((field) => field.label),
+    };
+  }
+
+  if (parts[0] === "assess") {
+    if (parts[1] === "paths") {
+      return {
+        screen: "choosing which parts of each risk area apply",
+        questions: [],
+      };
+    }
+    if (parts[1] === "severity") {
+      const group = parts[2];
+      const questions = (SEVERITY.questions ?? [])
+        .filter(
+          (q) =>
+            !group ||
+            q.path?.toLowerCase().startsWith(group.replace(/-/g, "_")),
+        )
+        .map((q) => q.text);
+      return {
+        screen: "the severity questions",
+        questions: questions.slice(0, 12),
+      };
+    }
+    if (parts[1] === "objectives") {
+      return {
+        screen: "the control questions — whether each control already exists",
+        questions: OBJECTIVES.map((o) => o.text).slice(0, 12),
+      };
+    }
+    if (parts[1] === "complete") {
+      return {
+        screen: "the summary of where the assessment stands",
+        questions: [],
+      };
+    }
+    const category = CATEGORIES.find((c) => c.key === parts[1]);
+    if (category) {
+      return {
+        screen: `the ${category.name} risk area`,
+        questions: [category.text],
+      };
+    }
+  }
+
+  if (parts[0] === "submit") {
+    return {
+      screen: "the screen where they declare their answers accurate",
+      questions: [],
+    };
+  }
+  if (parts[0] === "review") {
+    return { screen: "the reviewer's queue", questions: [] };
+  }
+  if (parts[0] === "report") {
+    return { screen: "the handoff summary", questions: [] };
+  }
+  return null;
+}

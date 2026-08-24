@@ -29,6 +29,7 @@ import {
   type RubricVerdict,
 } from "@/lib/intake-rubric";
 import { gateStates } from "@/lib/instrument";
+import { whatsOnScreen } from "@/lib/whats-on-screen";
 
 /**
  * What the agent may see of this assessment.
@@ -41,6 +42,8 @@ import { gateStates } from "@/lib/instrument";
 async function contextFor(
   projectId: string,
   project: Record<string, unknown>,
+  /** Where they are, so the reply can be about what they can see. */
+  pathname?: string,
 ): Promise<AssessmentContext> {
   const values = intakeValuesFrom(project);
   const stored = await answerStore().current(projectId);
@@ -64,8 +67,11 @@ async function contextFor(
     .filter((state) => state.answer === null)
     .map((state) => `Does ${state.category.name} apply to this activity?`);
 
+  const looking = pathname ? whatsOnScreen(pathname) : null;
+
   return {
     projectId,
+    looking: looking ?? undefined,
     activity:
       typeof values.projectDescription === "string" &&
       values.projectDescription.trim() !== ""
@@ -85,6 +91,12 @@ export type AgentTurn = { speaker: "person" | "agent"; said: string };
 export async function askAgent(
   projectId: string,
   said: string,
+  /**
+   * Where the person is. The only thing the client can honestly report
+   * about itself — everything on that screen is derived from it here, so
+   * nothing the caller sends becomes a question.
+   */
+  pathname?: string,
 ): Promise<Result<{ reply: string; asking: string | null }>> {
   try {
     const trimmed = said.trim();
@@ -115,6 +127,7 @@ export async function askAgent(
     const assessment = await contextFor(
       projectId,
       access.project as unknown as Record<string, unknown>,
+      pathname,
     );
     const history = (await sessionStore().history(conversationId)).map(
       (turn) => ({

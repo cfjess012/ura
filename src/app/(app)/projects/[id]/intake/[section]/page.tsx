@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { askableCategories } from "@/lib/instrument";
-import { INTAKE_SECTIONS, sectionByKey, sectionKey, sectionProgress } from "@/lib/intake";
+import {
+  INTAKE_SECTIONS,
+  sectionByKey,
+  sectionKey,
+  sectionProgress,
+} from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
 import { stageOf } from "@/lib/submission";
@@ -18,7 +23,10 @@ export default async function IntakeSectionPage({
   params: Promise<{ id: string; section: string }>;
   searchParams: Promise<{ needed?: string }>;
 }) {
-  const [{ id, section: key }, { needed }] = await Promise.all([params, searchParams]);
+  const [{ id, section: key }, { needed }] = await Promise.all([
+    params,
+    searchParams,
+  ]);
   const section = sectionByKey(key);
   if (!section) notFound();
 
@@ -40,7 +48,9 @@ export default async function IntakeSectionPage({
     // is choosing a role as much as a person.
     label: person.title ? `${person.name} — ${person.title}` : person.name,
   }));
-  const values = intakeValuesFrom(project as unknown as Record<string, unknown>);
+  const values = intakeValuesFrom(
+    project as unknown as Record<string, unknown>,
+  );
   const progress = sectionProgress(values);
   const index = INTAKE_SECTIONS.findIndex((s) => sectionKey(s.name) === key);
   const next = INTAKE_SECTIONS[index + 1];
@@ -61,9 +71,13 @@ export default async function IntakeSectionPage({
         sectionName={section.name}
         initial={values}
         nextHref={nextHref}
-        nextLabel={next ? `Next: ${next.name} →` : "Continue to the risk areas →"}
+        nextLabel={
+          next ? `Next: ${next.name} →` : "Continue to the risk areas →"
+        }
         previousHref={
-          previous ? `/projects/${id}/intake/${sectionKey(previous.name)}` : `/projects`
+          previous
+            ? `/projects/${id}/intake/${sectionKey(previous.name)}`
+            : `/projects`
         }
         previousLabel={previous ? "← Previous" : "← All projects"}
         sectionKey={key}

@@ -10,7 +10,11 @@ export const metadata: Metadata = {
   description: "One front door for risk assessment.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" className={figtree.variable}>
       <body>{children}</body>

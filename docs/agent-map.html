@@ -1589,10 +1589,17 @@ is not addressable yet — fix that rather than linking to the nearest page.</pr
     <div class="detail hidden">
       <p><span class="label">How and when it runs</span>Before any commit, when starting or finishing a slice, and before claiming anything is done.</p>
       <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
-      <p><span class="label">In its own words</span><span class="gist">definition of the gate chain. The Stop gate runs a subset of it and says so; the slice-verifier agent runs it via this file; nothing else may restate it. sh pnpm typecheck            # strict tsc — fastest signal, run first pnpm test:unit            # pure logic; needs only Node pnpm test:integratio</span></p>
+      <p><span class="label">In its own words</span><span class="gist">&gt; DEMO PUSH until 2026-08-26 (G-70). The chain below is suspended per &gt; change. Run pnpm typecheck &amp;&amp; pnpm test:unit — 35 seconds — and move on.</span></p>
       <details class="full">
         <summary>Read the full instructions</summary>
-        <pre>Implements SPEC §0 (Build Rule 3), §21 and §26.4. **This file is the only
+        <pre>&gt; **DEMO PUSH until 2026-08-26 (G-70).** The chain below is suspended per
+&gt; change. Run `pnpm typecheck &amp;&amp; pnpm test:unit` — 35 seconds — and move on.
+&gt; The full suite and the verifier run once at the end of the day, and
+&gt; `walk:demo` plus one `pnpm e2e` run before the demo. This note expires
+&gt; with the entry; after 2026-08-26 the chain below is the rule again.
+
+
+Implements SPEC §0 (Build Rule 3), §21 and §26.4. **This file is the only
 definition of the gate chain.** The Stop gate runs a subset of it and says
 so; the slice-verifier agent runs it via this file; nothing else may
 restate it.

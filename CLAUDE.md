@@ -73,6 +73,14 @@ pnpm agent-map     # regenerates docs/agent-map.html from the repo itself
 pnpm uat:new S4    # UAT record skeleton for a slice (rows from SPEC §17/§20)
 ```
 
+## DEMO PUSH — until 2026-08-26 (G-70, read it there)
+
+Demo is 2026-08-25. Every change: `pnpm typecheck && pnpm test:unit` (35s).
+NOT per change: `pnpm e2e`, the slice verifier, per-slice UAT records.
+Before the demo, without exception: `pnpm walk:demo` and one `pnpm e2e`.
+One dev server and one agent — nothing else; a starved machine turned a
+9-second test into 17 minutes.
+
 ## Skills — load them at these moments (SPEC G-18)
 
 Procedures live in `.claude/skills/`, not here. Load the skill *before* the

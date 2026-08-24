@@ -120,14 +120,15 @@ export function AlertBell({
                   <span className="bell-text">
                     <strong>{item.questionLabel}</strong>
                     <span className="bell-meta">
-                      {item.projectName} · from {item.askedByName} · open {item.openFor}
+                      {item.projectName} · from {item.askedByName} · open{" "}
+                      {item.openFor}
                     </span>
                   </span>
                 </button>
               ))}
               <p className="bell-note">
-                These clear themselves when the work is done — they can&rsquo;t be
-                dismissed.
+                These clear themselves when the work is done — they can&rsquo;t
+                be dismissed.
               </p>
             </div>
           )}

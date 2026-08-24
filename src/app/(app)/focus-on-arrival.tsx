@@ -22,7 +22,9 @@ export function FocusOnArrival() {
 
   React.useEffect(() => {
     if (!wanted) return;
-    const target = document.querySelector<HTMLElement>(`[data-focus="${CSS.escape(wanted)}"]`);
+    const target = document.querySelector<HTMLElement>(
+      `[data-focus="${CSS.escape(wanted)}"]`,
+    );
     if (!target) {
       // Honest failure: the alert sent us somewhere the thing is not.
       // Saying so beats leaving a person on a screen with no idea why.
@@ -35,16 +37,19 @@ export function FocusOnArrival() {
       "button, [href], input, select, textarea, [tabindex]",
     );
     (focusable ?? target).focus?.({ preventScroll: true });
-    const done = window.setTimeout(() => target.classList.remove("landed"), 2600);
+    const done = window.setTimeout(
+      () => target.classList.remove("landed"),
+      2600,
+    );
     return () => window.clearTimeout(done);
   }, [wanted]);
 
   if (!missing) return null;
   return (
     <p className="card card-upcoming" role="status">
-      We brought you here for a question that isn&rsquo;t on this screen any more — it
-      may have been answered, or the assessment may have changed since. Nothing is
-      lost; carry on where you are.
+      We brought you here for a question that isn&rsquo;t on this screen any
+      more — it may have been answered, or the assessment may have changed
+      since. Nothing is lost; carry on where you are.
     </p>
   );
 }

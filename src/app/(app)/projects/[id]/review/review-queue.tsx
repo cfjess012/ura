@@ -218,7 +218,25 @@ export function ReviewQueue({
                   setNote("");
                 }}
               >
-                <span className="rail-name">{item.name}</span>
+                <span className="rail-name">
+                  {item.name}
+                  {/* A breach is the thing a reviewer most needs to see
+                      before they click. It was only visible once the item
+                      was selected, which is the wrong way round. */}
+                  {item.findings.some(
+                    (f) => f.open && f.kind === "non-compliance",
+                  ) && (
+                    <span className="rail-flag rail-flag-breach">
+                      Breaches policy
+                    </span>
+                  )}
+                  {item.findings.some(
+                    (f) => f.open && f.kind !== "non-compliance",
+                  ) &&
+                    !item.findings.some(
+                      (f) => f.open && f.kind === "non-compliance",
+                    ) && <span className="rail-flag">Finding</span>}
+                </span>
                 <span className="rail-state">
                   {item.attestation
                     ? actLabel(item.attestation.act)

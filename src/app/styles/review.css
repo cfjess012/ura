@@ -371,3 +371,25 @@
   font-size: 0.92rem;
   font-weight: 600;
 }
+
+/* What a control carries, visible in the queue before it is opened. A
+   reviewer scanning for what needs them most should not have to click each
+   one to find out (§24.5). Words, never colour alone. */
+.rail-flag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  background: var(--surface-3);
+  color: var(--navy);
+}
+.rail-flag-breach {
+  background: var(--warning-bg);
+  color: var(--warning-strong);
+  border: 1px solid var(--warning);
+}

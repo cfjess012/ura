@@ -107,7 +107,7 @@ export function GateForm({
   }
 
   return (
-    <div className="gate-answer">
+    <div>
       {fromIntake && because && (
         <p className="prefill" role="note">
           {/* "From your intake" was a lie when the source was another gate:
