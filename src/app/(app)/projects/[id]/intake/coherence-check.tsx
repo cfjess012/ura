@@ -32,6 +32,15 @@ export function CoherenceCheck({
 }) {
   const [result, setResult] = React.useState<Coherence | null>(null);
   const [running, setRunning] = React.useState(false);
+  const resultRef = React.useRef<HTMLDivElement>(null);
+
+  // Bring the answer into view. It renders below a long form, so on a full
+  // section it landed off the bottom of the screen — and a check that
+  // finished in two seconds looked like a button that did nothing.
+  React.useEffect(() => {
+    if (!result || running) return;
+    resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [result, running]);
 
   async function run() {
     if (running) return;
@@ -75,7 +84,9 @@ export function CoherenceCheck({
         </div>
       )}
 
-      {result && !running && <Result result={result} />}
+      <div ref={resultRef}>
+        {result && !running && <Result result={result} />}
+      </div>
     </div>
   );
 }

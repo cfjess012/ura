@@ -571,11 +571,25 @@ export async function checkIntake(
     const document: string[] = [];
     const longForm: string[] = [];
     for (const section of INTAKE_SECTIONS) {
+      document.push(`\n## ${section.name}`);
       for (const field of section.fields) {
         const value = values[field.id];
-        if (value === undefined || value === null || value === "") continue;
-        const text = Array.isArray(value) ? value.join(", ") : String(value);
-        document.push(`${field.label}: ${text}`);
+        const text =
+          value === undefined || value === null || value === ""
+            ? ""
+            : Array.isArray(value)
+              ? value.join(", ")
+              : String(value);
+        // Every question, answered or not. Omitting the blanks meant the
+        // model could not tell an intake that answered everything thinly
+        // from one that left half of it empty — and "nothing here says who
+        // touches the data" is a different grade from "they were never
+        // asked".
+        document.push(
+          text === ""
+            ? `${field.label}: (not answered)`
+            : `${field.label}: ${text}`,
+        );
         if (field.type === "textarea" && text.trim().split(/\s+/).length > 8) {
           longForm.push(field.id);
         }
