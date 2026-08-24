@@ -25,6 +25,7 @@ import {
   parseAgentEvent,
   type AgentEvent,
   type AgentRequest,
+  type AssessmentContext,
 } from "./agent-contract";
 
 export type AgentTransport = {
@@ -38,6 +39,20 @@ export type AgentTransport = {
    * one that never comes.
    */
   run(request: AgentRequest): AsyncIterable<AgentEvent>;
+  /**
+   * One conversational turn. Resolves to something sayable whatever
+   * happens — a thought partner that throws is worse than one that says it
+   * cannot help right now.
+   */
+  converse(input: {
+    said: string;
+    assessment: AssessmentContext;
+    history: Array<{ speaker: "person" | "agent"; said: string }>;
+  }): Promise<{
+    reply: string;
+    carriesEvidence: boolean;
+    asking: string | null;
+  }>;
 };
 
 /** The state of things today, said plainly rather than by failing. */
@@ -54,17 +69,75 @@ function notConfigured(): AgentTransport {
       };
       yield { type: "done" };
     },
+    async converse() {
+      return {
+        reply:
+          "No agent is connected, so there is nobody here to talk to. Everything on these screens is worked out by rules rather than by a model, and it all works without me.",
+        carriesEvidence: false,
+        asking: null,
+      };
+    },
   };
 }
 
 function localTransport(baseUrl: string): AgentTransport {
+  const url = baseUrl.replace(/\/$/, "");
   return {
     kind: "local",
     available: true,
+    async converse(input) {
+      // Never throws: the caller is a person mid-sentence, and an
+      // exception here would take the screen down with it.
+      try {
+        const response = await fetch(`${url}/converse`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-agent-contract": AGENT_CONTRACT_VERSION,
+          },
+          body: JSON.stringify({
+            said: input.said,
+            assessment: input.assessment,
+            history: input.history,
+            openQuestions: input.assessment.openQuestions,
+            context: input.assessment.activity,
+          }),
+        });
+        if (!response.ok) {
+          return {
+            reply:
+              "I could not reach the assistant just then, so I have nothing useful to add. Everything you have written is saved and the questions work as normal.",
+            carriesEvidence: false,
+            asking: null,
+          };
+        }
+        const body = (await response.json()) as {
+          reply?: unknown;
+          carriesEvidence?: unknown;
+          asking?: unknown;
+        };
+        return {
+          reply:
+            typeof body.reply === "string" && body.reply.trim() !== ""
+              ? body.reply
+              : "I did not have anything useful to say to that.",
+          carriesEvidence: body.carriesEvidence === true,
+          asking: typeof body.asking === "string" ? body.asking : null,
+        };
+      } catch (cause) {
+        console.error("[agent] converse unreachable", cause);
+        return {
+          reply:
+            "I could not reach the assistant just then, so I have nothing useful to add. Everything you have written is saved and the questions work as normal.",
+          carriesEvidence: false,
+          asking: null,
+        };
+      }
+    },
     async *run(request) {
       let response: Response;
       try {
-        response = await fetch(`${baseUrl.replace(/\/$/, "")}/run`, {
+        response = await fetch(`${url}/run`, {
           method: "POST",
           headers: {
             "content-type": "application/json",
@@ -136,6 +209,11 @@ function agentCoreTransport(): AgentTransport {
   return {
     kind: "agentcore",
     available: false,
+    async converse(): Promise<never> {
+      throw new Error(
+        "AGENT_TRANSPORT=agentcore, but the AgentCore Runtime adapter is not implemented. It belongs in this file and nowhere else (SPEC §6.1).",
+      );
+    },
     async *run(): AsyncIterable<AgentEvent> {
       throw new Error(
         "AGENT_TRANSPORT=agentcore, but the AgentCore Runtime adapter is not implemented. It belongs in this file and nowhere else (SPEC §6.1).",

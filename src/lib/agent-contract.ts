@@ -27,6 +27,19 @@ export type AgentRequest = {
   conversationId: string;
   /** Question ids in scope. Empty means "the agent proposes the scope". */
   questionIds: string[];
+  /**
+   * The questions themselves, with the material each may be drafted from.
+   * Sent rather than looked up, because the agent service has no database
+   * and must not grow one — it knows how to judge a quote against a source,
+   * not what an assessment is.
+   */
+  questions?: Array<{
+    questionId: string;
+    question: string;
+    answerShape: string;
+    assessment: AssessmentContext;
+    sources: Array<{ id: string; text: string }>;
+  }>;
   /** Free text the requester supplied for this turn, if any. */
   said?: string;
 };

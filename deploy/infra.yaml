@@ -49,6 +49,55 @@ Parameters:
     Description: Smallest sensible class for a demo. Nothing here is load-bearing.
 
 Resources:
+  AgentRegistry:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: ura-agent
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep the last 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+
+  # The agent service calls Bedrock, so its TASK role carries that
+  # permission — not the execution role, and never an access key in the
+  # environment. This is the whole reason the provider seam resolves
+  # credentials through the AWS chain.
+  AgentTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: uraAgentTaskRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeBedrock
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - bedrock:InvokeModel
+                  - bedrock:InvokeModelWithResponseStream
+                Resource: "*"
+
   Registry:
     Type: AWS::ECR::Repository
     Properties:
@@ -152,8 +201,16 @@ Resources:
 
 Outputs:
   RegistryUri:
-    Description: Push the image here.
+    Description: Push the web image here.
     Value: !GetAtt Registry.RepositoryUri
+
+  AgentRegistryUri:
+    Description: Push the agent image here.
+    Value: !GetAtt AgentRegistry.RepositoryUri
+
+  AgentTaskRoleArn:
+    Description: The role the agent runs as — it is what may call Bedrock.
+    Value: !GetAtt AgentTaskRole.Arn
 
   DatabaseHost:
     Description: RDS endpoint.

@@ -490,3 +490,120 @@ describe("conversation turns are insert-only", () => {
     ).rejects.toThrow(/insert-only/);
   });
 });
+
+/**
+ * §7 · a drafted answer is an unconfirmed answer that carries its evidence.
+ * The never-guess rule is checked in the contract, at the agent's gate, and
+ * here — three times over, because each catches what the others cannot.
+ */
+describe("drafted answers are grounded or they do not exist", () => {
+  async function draft(fields: Record<string, unknown>) {
+    const row = {
+      project_id: projectId,
+      question_id: "gate.ai",
+      value: JSON.stringify("Yes"),
+      source: "drafted",
+      confirmed: false,
+      instrument_version_id: versionId,
+      basis: "stated",
+      source_quote: "The tool uses a machine-learning model to rank claims.",
+      source_ref: "sable-overview.md",
+      ...fields,
+    };
+    const cols = Object.keys(row).join(", ");
+    const params = Object.keys(row)
+      .map((_, i) => `$${i + 1}`)
+      .join(", ");
+    return pg.query(
+      `insert into answers (${cols}) values (${params})`,
+      Object.values(row),
+    );
+  }
+
+  it("accepts a draft that points at the passage it came from", async () => {
+    await expect(draft({})).resolves.toBeTruthy();
+  });
+
+  it("refuses a draft with no quote — that is a guess wearing an answer's clothes", async () => {
+    await expect(draft({ source_quote: null })).rejects.toThrow(
+      /draft_grounded/,
+    );
+    await expect(draft({ source_quote: "   " })).rejects.toThrow(
+      /draft_grounded/,
+    );
+  });
+
+  it("refuses a draft that does not say where the quote came from", async () => {
+    await expect(draft({ source_ref: null })).rejects.toThrow(/draft_grounded/);
+  });
+
+  it("refuses a draft whose basis is an abstention — nothing to record", async () => {
+    await expect(draft({ basis: "not_stated" })).rejects.toThrow(
+      /draft_grounded/,
+    );
+  });
+
+  it("refuses a draft that arrives already confirmed", async () => {
+    // Confirming is a person's act. A draft that could arrive confirmed is
+    // an answer nobody gave.
+    await expect(draft({ confirmed: true })).rejects.toThrow(
+      /draft_unconfirmed/,
+    );
+  });
+
+  it("refuses evidence riding on a person's own answer", async () => {
+    // A person's answer is grounded in the fact that they gave it.
+    await expect(
+      draft({ source: "person", confirmed: true, basis: "stated" }),
+    ).rejects.toThrow(/evidence_is_for_drafts/);
+  });
+
+  it("still refuses a source it does not recognise", async () => {
+    // Without the evidence, so it is the source check that fires and not
+    // the one that keeps evidence on drafts.
+    await expect(
+      draft({
+        source: "imported",
+        basis: null,
+        source_quote: null,
+        source_ref: null,
+      }),
+    ).rejects.toThrow(/source_known/);
+  });
+});
+
+describe("documents keep text, never files", () => {
+  it("refuses an empty document", async () => {
+    await expect(
+      pg.query(
+        "insert into documents (project_id, name, body, uploaded_by) values ($1, 'notes.md', '  ', 'p.sharma')",
+        [projectId],
+      ),
+    ).rejects.toThrow(/body_present/);
+  });
+
+  it("refuses a nameless one — a quote must cite something a person recognises", async () => {
+    await expect(
+      pg.query(
+        "insert into documents (project_id, name, body, uploaded_by) values ($1, '', 'real text', 'p.sharma')",
+        [projectId],
+      ),
+    ).rejects.toThrow(/name_present/);
+  });
+
+  it("will not let an uploaded document be edited or erased", async () => {
+    const row = await pg.query<{ id: string }>(
+      "insert into documents (project_id, name, body, uploaded_by) values ($1, 'overview.md', 'MFA is enforced.', 'p.sharma') returning id",
+      [projectId],
+    );
+    const id = row.rows[0]!.id;
+    await expect(
+      pg.query("update documents set body = 'something else' where id = $1", [
+        id,
+      ]),
+    ).rejects.toThrow(/insert-only/);
+    await expect(
+      pg.query("delete from documents where id = $1", [id]),
+    ).rejects.toThrow(/insert-only/);
+  });
+});

@@ -41,10 +41,14 @@ describe("which areas ask nothing further is derived, not listed", () => {
     // would make an area look deep while asking nothing. The predicate
     // reads the severity set, not merely the presence of paths.
     const withPathsButNoQuestions = CATEGORIES.filter(
-      (c) => (c.pathQuestion?.options.length ?? 0) > 0 && asksNothingFurther(c.key),
+      (c) =>
+        (c.pathQuestion?.options.length ?? 0) > 0 && asksNothingFurther(c.key),
     );
     for (const c of withPathsButNoQuestions) {
-      expect(asksNothingFurther(c.key), `${c.key} has paths but asks nothing`).toBe(true);
+      expect(
+        asksNothingFurther(c.key),
+        `${c.key} has paths but asks nothing`,
+      ).toBe(true);
     }
   });
 });
@@ -72,36 +76,49 @@ describe("how a risk area reads in the rail (verifier F11)", () => {
     // "Yes · from intake" said where the answer came from and nothing about
     // where the product stops, on a surface FR-35 names explicitly. Both
     // facts are true and both are now said.
-    const label = gateStateLabel(at("solution-architecture", { fromIntake: true, origin: "intake" }));
+    const label = gateStateLabel(
+      at("solution-architecture", { fromIntake: true, origin: "intake" }),
+    );
     expect(label).toContain("from intake");
     expect(label).toContain("recorded for review");
   });
 
   it("a deep area pre-filled says only where it came from", () => {
-    expect(gateStateLabel(at("third-party", { fromIntake: true, origin: "intake" }))).toBe(
-      "Yes · from intake",
-    );
-    expect(gateStateLabel(at("third-party", { fromIntake: true, origin: "answers" }))).toBe(
-      "Yes · from your answers",
-    );
+    expect(
+      gateStateLabel(at("third-party", { fromIntake: true, origin: "intake" })),
+    ).toBe("Yes · from intake");
+    expect(
+      gateStateLabel(
+        at("third-party", { fromIntake: true, origin: "answers" }),
+      ),
+    ).toBe("Yes · from your answers");
   });
 
   it("an area that applies to everyone keeps its own wording (G-36)", () => {
     // And only that wording — stacking the boundary note on top said the
     // same thing twice (verifier F12).
-    expect(gateStateLabel(at("governance", { settled: true }))).toBe("Applies · not asked");
+    expect(gateStateLabel(at("governance", { settled: true }))).toBe(
+      "Applies · not asked",
+    );
   });
 
   it("closed and unanswered read as they always did", () => {
-    expect(gateStateLabel(at("operational", { answer: "No" }))).toBe("Not applicable");
+    expect(gateStateLabel(at("operational", { answer: "No" }))).toBe(
+      "Not applicable",
+    );
     expect(gateStateLabel(at("operational", { answer: null }))).toBe("");
   });
 
   it("every quiet area declares the boundary however its Yes arrived", () => {
     for (const c of CATEGORIES.filter((c) => asksNothingFurther(c.key))) {
-      for (const over of [{}, { fromIntake: true, origin: "intake" as const }]) {
+      for (const over of [
+        {},
+        { fromIntake: true, origin: "intake" as const },
+      ]) {
         const label = gateStateLabel(at(c.key, over));
-        expect(label, `${c.key} ${JSON.stringify(over)}`).toMatch(/recorded for review/);
+        expect(label, `${c.key} ${JSON.stringify(over)}`).toMatch(
+          /recorded for review/,
+        );
       }
     }
   });
@@ -113,7 +130,12 @@ describe("every surface a person sees says it stops", () => {
     expect(page).toContain("asksNothingFurther");
     expect(page).toContain("STOPS_HERE");
     // Conditioned on a Yes: an unanswered area must not claim to stop.
-    expect(page).toMatch(/state\.answer === "Yes" && !state\.settled && asksNothingFurther/);
+    // Whitespace-tolerant, because Prettier wraps this condition across
+    // lines the moment anything above it grows — and a test that breaks on
+    // a reflow is testing the formatting rather than the rule.
+    expect(page.replace(/\s+/g, " ")).toMatch(
+      /state\.answer === "Yes" && !state\.settled && asksNothingFurther/,
+    );
   });
 
   it("the Yes option does not promise questions that never come", () => {
@@ -130,7 +152,9 @@ describe("every surface a person sees says it stops", () => {
     // answer, so the declaration rendered only for someone who came back
     // (verifier F10). A Yes on a quiet area now refreshes in place.
     const form = read("src/app/(app)/projects/[id]/assess/gate-form.tsx");
-    expect(form).toMatch(/staysToExplain\s*=\s*value === "Yes" && asksNothingFurther/);
+    expect(form).toMatch(
+      /staysToExplain\s*=\s*value === "Yes" && asksNothingFurther/,
+    );
     expect(form).toMatch(/if \(staysToExplain\) router\.refresh\(\);/);
     expect(form).toMatch(/else router\.push\(nextHref\)/);
   });
@@ -140,16 +164,24 @@ describe("every surface a person sees says it stops", () => {
     // note was added to one branch and the pre-filled branch was forgotten.
     const rail = read("src/app/(app)/projects/[id]/assess/gate-rail.tsx");
     expect(rail).toContain("gateStateLabel(state)");
-    expect(rail, "the rail must not re-derive the label").not.toMatch(/asksNothingFurther/);
+    expect(rail, "the rail must not re-derive the label").not.toMatch(
+      /asksNothingFurther/,
+    );
   });
 
   it("a settled area does not get the boundary block stacked on its own note (F12)", () => {
     const page = read("src/app/(app)/projects/[id]/assess/[category]/page.tsx");
-    expect(page).toMatch(/!state\.settled && asksNothingFurther\(key\)/);
+    // Whitespace-tolerant for the same reason as above: the rule is the
+    // guard, not the line it happens to fit on.
+    expect(page.replace(/\s+/g, " ")).toMatch(
+      /!state\.settled && asksNothingFurther\(key\)/,
+    );
   });
 
   it("the summary counts work separately from what is only recorded", () => {
-    const summary = read("src/app/(app)/projects/[id]/assess/complete/page.tsx");
+    const summary = read(
+      "src/app/(app)/projects/[id]/assess/complete/page.tsx",
+    );
     expect(summary).toMatch(/const deep = applies\.filter/);
     expect(summary).toMatch(/const quiet = applies\.filter/);
     expect(summary).toContain("open detailed questions");

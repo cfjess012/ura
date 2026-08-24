@@ -69,6 +69,10 @@ export type CurrentAnswer = {
   value: AnswerValue;
   source: string;
   confirmed: boolean;
+  /** Present only on a drafted answer: the passage it came from. */
+  basis?: string | null;
+  sourceQuote?: string | null;
+  sourceRef?: string | null;
 };
 
 export interface PeopleStore {
@@ -108,6 +112,22 @@ export interface AnswerStore {
    * checks; that is the failure mode this exists to prevent.
    */
   timesAnswered(projectId: string): Promise<Map<string, number>>;
+  /**
+   * Record answers a model proposed. Always unconfirmed and always
+   * carrying the passage they came from — the schema refuses anything
+   * else (migration 0023).
+   */
+  recordDrafts(
+    inputs: Array<{
+      projectId: string;
+      questionId: string;
+      value: string | string[];
+      basis: string;
+      sourceQuote: string;
+      sourceRef: string;
+      instrumentVersionId: string;
+    }>,
+  ): Promise<void>;
   /**
    * Record several answers as one act. All of them land or none do — a
    * screen that saves four areas in a loop can fail halfway, leaving two
@@ -271,6 +291,23 @@ export function postgresProjectStore(): ProjectStore {
 export function postgresAnswerStore(): AnswerStore {
   const db = getDb();
   return {
+    async recordDrafts(inputs) {
+      if (inputs.length === 0) return;
+      await db.insert(schema.answers).values(
+        inputs.map((input) => ({
+          projectId: input.projectId,
+          questionId: input.questionId,
+          value: input.value,
+          source: "drafted",
+          confirmed: false,
+          basis: input.basis,
+          sourceQuote: input.sourceQuote,
+          sourceRef: input.sourceRef,
+          instrumentVersionId: input.instrumentVersionId,
+          answeredBy: null,
+        })),
+      );
+    },
     async timesAnswered(projectId) {
       const rows = await db
         .select({
@@ -320,6 +357,9 @@ export function postgresAnswerStore(): AnswerStore {
               : String(row.value),
           source: row.source,
           confirmed: row.confirmed,
+          basis: row.basis,
+          sourceQuote: row.sourceQuote,
+          sourceRef: row.sourceRef,
         };
       }
       return latest;

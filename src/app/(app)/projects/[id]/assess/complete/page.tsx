@@ -37,7 +37,9 @@ export default async function GatesCompletePage({
   if (!access.ok) return <NotYourAssessment person={access.person} />;
   const project = access.project;
 
-  const intake = intakeValuesFrom(project as unknown as Record<string, unknown>);
+  const intake = intakeValuesFrom(
+    project as unknown as Record<string, unknown>,
+  );
   // The risk areas reason from the identity record, so an incomplete one is
   // not a cosmetic problem: nothing pre-fills and the person is asked
   // everything. Enforced here rather than only in the form, because the UI
@@ -81,7 +83,9 @@ export default async function GatesCompletePage({
     }
   }
   const owed = accumulateControls(severityQuestions, bands, detailAnswers);
-  const severityAnswered = severityQuestions.filter((q) => bands[q.questionId]).length;
+  const severityAnswered = severityQuestions.filter(
+    (q) => bands[q.questionId],
+  ).length;
   const severityGroupKey = groupsFor(severityQuestions)[0]?.key ?? "";
   // Did anyone actually answer a path question? Distinct from "no paths are
   // lit", which is also true when nobody was ever asked.
@@ -163,10 +167,11 @@ export default async function GatesCompletePage({
             <div className="card card-upcoming">
               <h2>Do these controls exist?</h2>
               <p>
-                {owed.length} control{owed.length === 1 ? "" : "s"} {owed.length === 1 ? "is" : "are"}{" "}
-                required by the answers so far. The next stage asks whether{" "}
-                {owed.length === 1 ? "it is" : "they are"} already in place — and a
-                gap named there becomes a finding a reviewer can act on.
+                {owed.length} control{owed.length === 1 ? "" : "s"}{" "}
+                {owed.length === 1 ? "is" : "are"} required by the answers so
+                far. The next stage asks whether{" "}
+                {owed.length === 1 ? "it is" : "they are"} already in place —
+                and a gap named there becomes a finding a reviewer can act on.
               </p>
               <Link className="btn" href={`/projects/${id}/assess/objectives`}>
                 Answer the control questions &rarr;
@@ -186,36 +191,46 @@ export default async function GatesCompletePage({
                 {owed.map((control) => (
                   <li key={control.objective}>
                     <strong>{control.name}</strong>
-                    <span className="meta"> — {control.because.join("; and ")}</span>
+                    <span className="meta">
+                      {" "}
+                      — {control.because.join("; and ")}
+                    </span>
                   </li>
                 ))}
               </ul>
             </div>
           )}
 
-          {severityQuestions.length > 0 && severityAnswered < severityQuestions.length && (
-            <div className="card card-upcoming">
-              <h2>Still to answer</h2>
-              <p>
-                {severityQuestions.length - severityAnswered} severity question
-                {severityQuestions.length - severityAnswered === 1 ? "" : "s"} have no
-                answer yet
-                {owed.length > 0
-                  ? ", so the list above is incomplete."
-                  : ", so we can't yet say what this activity will require."}
-              </p>
-              <Link className="btn" href={`/projects/${id}/assess/severity/${severityGroupKey}`}>
-                Answer the severity questions &rarr;
-              </Link>
-            </div>
-          )}
+          {severityQuestions.length > 0 &&
+            severityAnswered < severityQuestions.length && (
+              <div className="card card-upcoming">
+                <h2>Still to answer</h2>
+                <p>
+                  {severityQuestions.length - severityAnswered} severity
+                  question
+                  {severityQuestions.length - severityAnswered === 1
+                    ? ""
+                    : "s"}{" "}
+                  have no answer yet
+                  {owed.length > 0
+                    ? ", so the list above is incomplete."
+                    : ", so we can't yet say what this activity will require."}
+                </p>
+                <Link
+                  className="btn"
+                  href={`/projects/${id}/assess/severity/${severityGroupKey}`}
+                >
+                  Answer the severity questions &rarr;
+                </Link>
+              </div>
+            )}
 
           {pathsPending && (
             <div className="card card-upcoming">
               <h2>Still to narrow down</h2>
               <p>
-                Some open areas haven&rsquo;t been narrowed yet, so we don&rsquo;t
-                know which parts of them to ask about.
+                Some open areas haven&rsquo;t been narrowed yet, so we
+                don&rsquo;t know which parts of them to ask about.
               </p>
               <Link className="btn" href={`/projects/${id}/assess/paths`}>
                 Narrow them down →
@@ -233,7 +248,10 @@ export default async function GatesCompletePage({
                   <li key={s.category.key}>
                     <strong>{s.category.name}</strong>
                     {asksNothingFurther(s.category.key) && !s.settled && (
-                      <span className="meta"> — recorded for a reviewer; nothing further is asked here</span>
+                      <span className="meta">
+                        {" "}
+                        — recorded for a reviewer; nothing further is asked here
+                      </span>
                     )}
                     {s.settled && s.because && (
                       <span className="meta"> — {s.because}</span>
@@ -241,7 +259,9 @@ export default async function GatesCompletePage({
                     {s.fromIntake && s.because && (
                       <span className="meta">
                         {" — answered from "}
-                        {s.origin === "answers" ? "your answers" : "your intake"}
+                        {s.origin === "answers"
+                          ? "your answers"
+                          : "your intake"}
                         {" because "}
                         {s.because}
                       </span>
@@ -275,8 +295,8 @@ export default async function GatesCompletePage({
           <div className="card">
             <h2>Hand this to a reviewer</h2>
             <p className="help">
-              You declare your answers accurate, and anything still unanswered is
-              named so a reviewer sees it as it is. Submitting is one-way.
+              You declare your answers accurate, and anything still unanswered
+              is named so a reviewer sees it as it is. Submitting is one-way.
             </p>
             <Link className="btn" href={`/projects/${id}/submit`}>
               Read them and submit &rarr;

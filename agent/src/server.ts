@@ -122,6 +122,25 @@ const server = createServer(async (req, res) => {
   }
 
   const questions = body.questions ?? [];
+  // Same rule as the conversation: without the record there is nothing to
+  // check what is said against, and an unchecked draft is the one thing
+  // this service must not produce.
+  const ungrounded = questions.find(
+    (question) =>
+      !question.assessment || typeof question.assessment.projectId !== "string",
+  );
+  if (ungrounded) {
+    res.write(
+      line({
+        type: "error",
+        message:
+          "No assessment record was supplied, so nothing drafted could be checked against it.",
+        retryable: false,
+      }),
+    );
+    res.end(line({ type: "done" }));
+    return;
+  }
   if (questions.length === 0) {
     res.write(
       line({

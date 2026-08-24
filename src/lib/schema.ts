@@ -75,6 +75,10 @@ export const answers = pgTable(
     value: jsonb("value").$type<string | string[]>().notNull(),
     source: text("source").notNull(),
     confirmed: boolean("confirmed").notNull().default(false),
+    // Provenance, present only on a drafted answer (migration 0023).
+    basis: text("basis"),
+    sourceQuote: text("source_quote"),
+    sourceRef: text("source_ref"),
     instrumentVersionId: uuid("instrument_version_id").notNull(),
     answeredBy: text("answered_by"),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -246,6 +250,26 @@ export const handoffReplies = pgTable(
       .defaultNow(),
   },
   (t) => [index("handoff_replies_by_handoff").on(t.handoffId, t.createdAt)],
+);
+
+/**
+ * Documents a requester supplied. Text only — the file itself is never
+ * stored (§3.6 is open and blocks attachments; extracted text scoped to one
+ * assessment is a narrower thing than a binary store).
+ */
+export const documents = pgTable(
+  "documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id").notNull(),
+    name: text("name").notNull(),
+    body: text("body").notNull(),
+    uploadedBy: text("uploaded_by").notNull(),
+    uploadedAt: timestamp("uploaded_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("documents_by_project").on(t.projectId, t.uploadedAt)],
 );
 
 /**

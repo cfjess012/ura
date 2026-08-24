@@ -36,6 +36,7 @@ describe("§26.1 pure logic is liftable", () => {
     "lib/repo.ts", // speaks to the driver
     "lib/repo-review.ts", // the same store seam, split for NFR-6
     "lib/session.ts", // the conversation-state seam (§6.1), swapped for AgentCore Memory
+    "lib/documents.ts", // the document store — same seam, its own module
     "lib/schema.ts", // drizzle table definitions
     "lib/config.ts", // the one module that may read process.env
     "lib/current-person.ts", // reads the request's cookies
@@ -82,6 +83,7 @@ describe("§26.2 persistence is behind one interface", () => {
       // Memory later. It is allowed the driver for the same reason the
       // stores are: it exists so nothing else needs it.
       "lib/session.ts",
+      "lib/documents.ts",
       "lib/db.ts",
       "lib/schema.ts",
     ]);

@@ -11,6 +11,7 @@ import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { asksNothingFurther, STOPS_HERE } from "@/lib/severity";
 import { openProject } from "@/lib/project-access";
+import { ProposedAnswer } from "../proposed-answer";
 import { NotYourAssessment } from "../../not-yours";
 import { answerStore } from "@/lib/repo";
 import { stageOf } from "@/lib/submission";
@@ -34,7 +35,9 @@ export default async function GatePage({
   if (!access.ok) return <NotYourAssessment person={access.person} />;
   const project = access.project;
 
-  const intake = intakeValuesFrom(project as unknown as Record<string, unknown>);
+  const intake = intakeValuesFrom(
+    project as unknown as Record<string, unknown>,
+  );
   // The risk areas reason from the identity record, so an incomplete one is
   // not a cosmetic problem: nothing pre-fills and the person is asked
   // everything. Enforced here rather than only in the form, because the UI
@@ -44,6 +47,13 @@ export default async function GatePage({
   const stored = await answerStore().current(id);
   const states = gateStates(stored, intake);
   const state = states.find((s) => s.category.key === key)!;
+  // A proposal is only a proposal while nobody has answered: the moment a
+  // person answers, theirs is the newest row and this is gone.
+  const candidate = stored[state.category.questionId];
+  const proposed =
+    candidate && candidate.source === "drafted" && !candidate.confirmed
+      ? candidate
+      : null;
 
   // Navigation walks only what a person is actually asked (C-8): a settled
   // area is shown in the rail and on the summary, never as a step to take.
@@ -107,39 +117,58 @@ export default async function GatePage({
               <p className="prefill" role="note">
                 <span className="prefill-tag">Nothing to answer</span>
                 <span>
-                  We&rsquo;ve recorded this as applying because {state.because}. A
-                  reviewer covers it either way.
+                  We&rsquo;ve recorded this as applying because {state.because}.
+                  A reviewer covers it either way.
                 </span>
               </p>
             ) : (
-            <GateForm
-              projectId={id}
-              categoryKey={key}
-              questionId={category.questionId}
-              answer={state.answer}
-              fromIntake={state.fromIntake}
-              origin={state.origin}
-              because={state.because}
-              nextHref={nextHref}
-              asksNothingFurther={asksNothingFurther(key)}
-            />
+              <>
+                {/* A proposal is shown above the question, never inside it —
+                the answer buttons stay the person's own act. */}
+                {proposed && (
+                  <ProposedAnswer
+                    projectId={id}
+                    questionId={category.questionId}
+                    value={String(proposed.value)}
+                    quote={proposed.sourceQuote ?? ""}
+                    source={proposed.sourceRef ?? "the document you added"}
+                    basis={proposed.basis ?? "stated"}
+                  />
+                )}
+                <GateForm
+                  projectId={id}
+                  categoryKey={key}
+                  questionId={category.questionId}
+                  answer={state.answer}
+                  fromIntake={state.fromIntake}
+                  origin={state.origin}
+                  because={state.because}
+                  nextHref={nextHref}
+                  asksNothingFurther={asksNothingFurther(key)}
+                />
+              </>
             )}
 
             {/* Where the pilot stops, it says so (FR-35, G-50). Silence
                 reads as completeness, and an area that applies but asks
                 nothing is indistinguishable from one that is not built —
                 which is a claim this product cannot afford. */}
-            {state.answer === "Yes" && !state.settled && asksNothingFurther(key) && (
-              <p className="prefill" role="note">
-                <span className="prefill-tag">Nothing further here</span>
-                <span>{STOPS_HERE}</span>
-              </p>
-            )}
+            {state.answer === "Yes" &&
+              !state.settled &&
+              asksNothingFurther(key) && (
+                <p className="prefill" role="note">
+                  <span className="prefill-tag">Nothing further here</span>
+                  <span>{STOPS_HERE}</span>
+                </p>
+              )}
           </div>
 
           <div className="gate-nav">
             {previous ? (
-              <Link className="btn ghost" href={`/projects/${id}/assess/${previous.key}`}>
+              <Link
+                className="btn ghost"
+                href={`/projects/${id}/assess/${previous.key}`}
+              >
                 ← Previous
               </Link>
             ) : (

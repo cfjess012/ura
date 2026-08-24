@@ -1,0 +1,382 @@
+"use server";
+
+/**
+ * Talking to the assistant (SPEC §22.1, the assessment companion).
+ *
+ * Executor only: build the record the agent is allowed to see, call the
+ * seam, write both sides of the conversation down. Every rule about what
+ * the agent may say lives in the agent service and the shared contract —
+ * none of it is re-implemented here.
+ */
+import { revalidatePath } from "next/cache";
+import { agentTransport } from "@/lib/agent";
+import type { AssessmentContext } from "@/lib/agent-contract";
+import { currentPerson } from "@/lib/current-person";
+import { canAnswer, NotPermitted } from "@/lib/people";
+import { failure, type Result } from "@/lib/errors";
+import { intakeValuesFrom } from "@/lib/intake-values";
+import { openProject } from "@/lib/project-access";
+import { answerStore } from "@/lib/repo";
+import { sessionStore } from "@/lib/session";
+import { INTAKE_SECTIONS } from "@/lib/intake";
+import { documentStore } from "@/lib/documents";
+import { quoteAppearsVerbatim } from "@/lib/agent-contract";
+import { CATEGORIES } from "@/lib/instrument";
+import { gateStates } from "@/lib/instrument";
+
+/**
+ * What the agent may see of this assessment.
+ *
+ * Labels and values as displayed, never database rows and never internal
+ * identifiers — hand an agent an id and it will eventually say one out
+ * loud. This is also what its reply is checked against, which is why it is
+ * assembled here rather than left to the caller.
+ */
+async function contextFor(
+  projectId: string,
+  project: Record<string, unknown>,
+): Promise<AssessmentContext> {
+  const values = intakeValuesFrom(project);
+  const stored = await answerStore().current(projectId);
+
+  const onRecord: Array<{ label: string; value: string }> = [];
+  for (const section of INTAKE_SECTIONS) {
+    for (const field of section.fields) {
+      const value = values[field.id];
+      if (value === undefined || value === null || value === "") continue;
+      onRecord.push({
+        label: field.label,
+        value: Array.isArray(value) ? value.join(", ") : String(value),
+      });
+    }
+  }
+
+  // Which risk areas are settled, and which are still open — in their
+  // names, so the agent can talk about them the way a person would.
+  const states = gateStates(stored, values);
+  const openQuestions = states
+    .filter((state) => state.answer === null)
+    .map((state) => `Does ${state.category.name} apply to this activity?`);
+
+  return {
+    projectId,
+    activity:
+      typeof values.projectDescription === "string" &&
+      values.projectDescription.trim() !== ""
+        ? values.projectDescription
+        : "The activity has not been described yet.",
+    onRecord,
+    openQuestions,
+  };
+}
+
+export type AgentTurn = { speaker: "person" | "agent"; said: string };
+
+/**
+ * Ask the assistant something. Returns what it said, and the conversation
+ * is on the record either way — including when it could not help.
+ */
+export async function askAgent(
+  projectId: string,
+  said: string,
+): Promise<Result<{ reply: string; asking: string | null }>> {
+  try {
+    const trimmed = said.trim();
+    if (trimmed === "") {
+      return failure(
+        "askAgent",
+        new Error("nothing said"),
+        "Type something first.",
+        {
+          retryable: false,
+          expected: true,
+        },
+      );
+    }
+    const person = await currentPerson();
+    const access = await openProject(projectId);
+    if (!access.ok) {
+      return failure(
+        "askAgent",
+        new Error("not permitted"),
+        "That assessment isn't yours to work on.",
+        { retryable: false, expected: true },
+      );
+    }
+
+    const transport = agentTransport();
+    const conversationId = `${projectId}:${person.id}`;
+    const assessment = await contextFor(
+      projectId,
+      access.project as unknown as Record<string, unknown>,
+    );
+    const history = (await sessionStore().history(conversationId)).map(
+      (turn) => ({
+        speaker: turn.speaker,
+        said: turn.said,
+      }),
+    );
+
+    // What the person said goes on the record before the model is called,
+    // so a failure mid-turn cannot lose it.
+    await sessionStore().append({
+      conversationId,
+      projectId,
+      speaker: "person",
+      said: trimmed,
+    });
+
+    const answer = await transport.converse({
+      said: trimmed,
+      assessment,
+      history,
+    });
+
+    await sessionStore().append({
+      conversationId,
+      projectId,
+      speaker: "agent",
+      said: answer.reply,
+    });
+
+    revalidatePath(`/projects/${projectId}`);
+    return { ok: true as const, reply: answer.reply, asking: answer.asking };
+  } catch (error) {
+    return failure(
+      "askAgent",
+      error,
+      "I couldn't answer just then. Nothing you have written was affected — the questions still work as normal.",
+    );
+  }
+}
+
+/** The conversation so far, for rendering the panel on the server. */
+export async function conversationFor(projectId: string): Promise<AgentTurn[]> {
+  const person = await currentPerson();
+  const turns = await sessionStore().history(`${projectId}:${person.id}`);
+  return turns.map((turn) => ({ speaker: turn.speaker, said: turn.said }));
+}
+
+/** How much text the pilot will take from one document. */
+const MAX_DOCUMENT_CHARS = 60_000;
+
+/**
+ * Read a document the requester supplied and propose answers from it.
+ *
+ * Every proposal is **unconfirmed** and carries the passage it came from.
+ * It is not their answer until they say so — that is the whole point, and
+ * the schema enforces it: a drafted row cannot arrive confirmed, and it
+ * cannot exist without its quote (migration 0023).
+ *
+ * The quote is re-checked here, against the document as stored, even though
+ * the agent already checked it. The two checks are not redundant: the
+ * agent's protects the wire, this one protects the record, and only one of
+ * them is on this side of the deployment boundary.
+ */
+export async function draftFromDocument(
+  projectId: string,
+  document: { name: string; body: string },
+): Promise<Result<{ proposed: number; abstained: number; document: string }>> {
+  try {
+    const person = await currentPerson();
+    const access = await openProject(projectId);
+    if (!access.ok) {
+      return failure(
+        "draftFromDocument",
+        new Error("not permitted"),
+        "That assessment isn't yours to work on.",
+        { retryable: false, expected: true },
+      );
+    }
+    if (!canAnswer(person.role)) {
+      return failure(
+        "draftFromDocument",
+        new NotPermitted("draft answers", person.role),
+        "Reading a document into an assessment is the requester's act — the answers proposed would be theirs to confirm.",
+        { retryable: false, expected: true },
+      );
+    }
+    const body = document.body.trim().slice(0, MAX_DOCUMENT_CHARS);
+    if (body === "") {
+      return failure(
+        "draftFromDocument",
+        new Error("empty"),
+        "That file had no readable text in it, so there was nothing to read.",
+        { retryable: false, expected: true },
+      );
+    }
+
+    const transport = agentTransport();
+    if (!transport.available) {
+      return failure(
+        "draftFromDocument",
+        new Error("no agent"),
+        "No assistant is connected, so nothing was read. You can still answer the questions yourself.",
+        { retryable: false, expected: true },
+      );
+    }
+
+    const stored = await documentStore().add({
+      projectId,
+      name: document.name.trim() || "the document you added",
+      body,
+      uploadedBy: person.id,
+    });
+
+    // Only the risk-area questions nobody has answered. A draft must never
+    // overwrite something a person already decided.
+    const answers = await answerStore().current(projectId);
+    const values = intakeValuesFrom(
+      access.project as unknown as Record<string, unknown>,
+    );
+    const open = gateStates(answers, values).filter(
+      (state) => state.answer === null,
+    );
+    if (open.length === 0) {
+      return {
+        ok: true as const,
+        proposed: 0,
+        abstained: 0,
+        document: stored.name,
+      };
+    }
+
+    const assessment = await contextFor(
+      projectId,
+      access.project as unknown as Record<string, unknown>,
+    );
+    const versionId = await answerStore().activeVersionId("tier1-gates");
+
+    const drafts: Array<{
+      projectId: string;
+      questionId: string;
+      value: string | string[];
+      basis: string;
+      sourceQuote: string;
+      sourceRef: string;
+      instrumentVersionId: string;
+    }> = [];
+    let abstained = 0;
+
+    for await (const event of transport.run({
+      task: "draft",
+      projectId,
+      conversationId: `${projectId}:${person.id}`,
+      questionIds: open.map((state) => state.category.questionId),
+      questions: open.map((state) => ({
+        questionId: state.category.questionId,
+        question: `${state.category.text} (risk area: ${state.category.name})`,
+        answerShape: 'one of: "Yes", "No"',
+        assessment,
+        sources: [{ id: stored.name, text: body }],
+      })),
+    })) {
+      if (event.type !== "draft") continue;
+      const answer = event.answer;
+      if (answer.basis === "not_stated" || answer.value === null) {
+        abstained += 1;
+        continue;
+      }
+      // The record's own check. The agent already did this; this one is on
+      // the side of the boundary that owns the consequence.
+      if (!answer.quote || !quoteAppearsVerbatim(answer.quote, body)) {
+        abstained += 1;
+        continue;
+      }
+      if (
+        !CATEGORIES.some(
+          (category) => category.questionId === answer.questionId,
+        )
+      ) {
+        abstained += 1;
+        continue;
+      }
+      drafts.push({
+        projectId,
+        questionId: answer.questionId,
+        value: answer.value,
+        basis: answer.basis,
+        sourceQuote: answer.quote,
+        sourceRef: stored.name,
+        instrumentVersionId: versionId,
+      });
+    }
+
+    await answerStore().recordDrafts(drafts);
+    revalidatePath(`/projects/${projectId}`);
+    return {
+      ok: true as const,
+      proposed: drafts.length,
+      abstained,
+      document: stored.name,
+    };
+  } catch (error) {
+    return failure(
+      "draftFromDocument",
+      error,
+      "That document could not be read just then. Nothing was proposed and nothing was changed.",
+    );
+  }
+}
+
+/**
+ * Accept one proposed answer, making it the person's own.
+ *
+ * Insert-only, so this does not change the draft — it puts a person's
+ * answer in front of it. Both stay on the record, which is what makes
+ * "the assistant proposed, I accepted" a readable history rather than a
+ * claim (§5.1, FR-22).
+ */
+export async function acceptDraft(
+  projectId: string,
+  questionId: string,
+): Promise<Result<{ accepted: true }>> {
+  try {
+    const person = await currentPerson();
+    const access = await openProject(projectId);
+    if (!access.ok) {
+      return failure(
+        "acceptDraft",
+        new Error("not permitted"),
+        "That assessment isn't yours to work on.",
+        { retryable: false, expected: true },
+      );
+    }
+    if (!canAnswer(person.role)) {
+      return failure(
+        "acceptDraft",
+        new NotPermitted("answer", person.role),
+        "Accepting a proposed answer makes it your answer, so it is the requester's to accept.",
+        { retryable: false, expected: true },
+      );
+    }
+    const current = (await answerStore().current(projectId))[questionId];
+    if (!current || current.source !== "drafted") {
+      // Nothing to accept means the record moved under them — a person may
+      // have answered it in another tab, and their answer wins.
+      return failure(
+        "acceptDraft",
+        new Error("no draft"),
+        "There is no proposal waiting on that question any more.",
+        { retryable: false, expected: true },
+      );
+    }
+    await answerStore().record({
+      projectId,
+      questionId,
+      value: current.value as string | string[],
+      source: "person",
+      confirmed: true,
+      instrumentVersionId: await answerStore().activeVersionId("tier1-gates"),
+      answeredBy: person.id,
+    });
+    revalidatePath(`/projects/${projectId}`);
+    return { ok: true as const, accepted: true as const };
+  } catch (error) {
+    return failure(
+      "acceptDraft",
+      error,
+      "That wasn't accepted. The proposal is still there — try again in a moment.",
+    );
+  }
+}
