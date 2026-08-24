@@ -51,7 +51,14 @@ export default async function GatePage({
   // person answers, theirs is the newest row and this is gone.
   const candidate = stored[state.category.questionId];
   const proposed =
-    candidate && candidate.source === "drafted" && !candidate.confirmed
+    candidate &&
+    candidate.source === "drafted" &&
+    !candidate.confirmed &&
+    // Never offer "Accept <a sentence>". A value that is not one of the
+    // answers this question offers is not a proposal, it is noise — and it
+    // used to close a whole risk area, because anything not "Yes" reads as
+    // "No" downstream.
+    (candidate.value === "Yes" || candidate.value === "No")
       ? candidate
       : null;
 

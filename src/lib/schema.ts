@@ -190,6 +190,7 @@ export const findings = pgTable(
     raisedBy: text("raised_by").notNull(),
     // Present only on a non-compliance: the clause it breaches (0024).
     policyRef: text("policy_ref"),
+    policyVersion: text("policy_version"),
     clauseId: text("clause_id"),
     clauseText: text("clause_text"),
     expected: text("expected"),

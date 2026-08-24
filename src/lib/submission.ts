@@ -36,6 +36,8 @@ export type FindingKind = "gap" | "enhancement" | "non-compliance";
 /** The clause a non-compliance breaches — shown beside the answer. */
 export type FindingCitation = {
   policyRef: string;
+  /** The edition in force when this was raised (§22.5). */
+  policyVersion: string;
   clauseId: string;
   clauseText: string;
   expected: string;
@@ -103,6 +105,7 @@ export function synthesiseFindings(
         citation: breach
           ? {
               policyRef: breach.policyReference,
+              policyVersion: breach.policyVersion,
               clauseId: breach.clauseId,
               clauseText: breach.clauseText,
               expected: breach.expected,

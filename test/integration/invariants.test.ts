@@ -607,3 +607,58 @@ describe("documents keep text, never files", () => {
     ).rejects.toThrow(/insert-only/);
   });
 });
+
+/**
+ * §22.5 · a finding cites the edition of the policy it breached. A later
+ * revision must never silently rewrite a historical assessment.
+ */
+describe("a breach records which policy version it was raised against", () => {
+  const breach = (over: Record<string, unknown> = {}) => ({
+    project_id: projectId,
+    question_id: "t3.t3_iam_02",
+    objective: "T3-IAM-02",
+    objective_name: "Multi-Factor Authentication",
+    kind: "non-compliance",
+    note: "Not enforced for the vendor.",
+    raised_by: "p.sharma",
+    policy_ref: "IAM-STD-004",
+    policy_version: "4.2",
+    clause_id: "IAM-STD-004 §3.4",
+    clause_text: "Multi-factor authentication shall be enforced.",
+    expected: "Yes",
+    ...over,
+  });
+  const insert = (row: Record<string, unknown>) =>
+    pg.query(
+      `insert into findings (${Object.keys(row).join(", ")}) values (${Object.keys(
+        row,
+      )
+        .map((_, i) => `$${i + 1}`)
+        .join(", ")})`,
+      Object.values(row),
+    );
+
+  it("accepts a breach that names its edition", async () => {
+    await expect(insert(breach())).resolves.toBeTruthy();
+  });
+
+  it("refuses a breach with no version — the clause alone cannot be checked later", async () => {
+    await expect(insert(breach({ policy_version: null }))).rejects.toThrow(
+      /citation_with_breach/,
+    );
+  });
+
+  it("still refuses a gap wearing a full citation — it has no such authority", async () => {
+    await expect(insert(breach({ kind: "gap" }))).rejects.toThrow(
+      /citation_with_breach/,
+    );
+  });
+
+  it("refuses a breach carrying only part of its citation", async () => {
+    // Half a citation is worse than none: it looks like an authority and
+    // cannot be checked against one.
+    await expect(insert(breach({ clause_text: null }))).rejects.toThrow(
+      /citation_with_breach/,
+    );
+  });
+});

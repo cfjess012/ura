@@ -86,6 +86,7 @@ export function postgresSubmissionStore(): SubmissionStore {
               // Present exactly on a non-compliance; the CHECK in 0024
               // refuses either half without the other.
               policyRef: finding.citation?.policyRef ?? null,
+              policyVersion: finding.citation?.policyVersion ?? null,
               clauseId: finding.citation?.clauseId ?? null,
               clauseText: finding.citation?.clauseText ?? null,
               expected: finding.citation?.expected ?? null,
@@ -108,9 +109,14 @@ export function postgresSubmissionStore(): SubmissionStore {
         kind: row.kind as SynthesisedFinding["kind"],
         note: row.note,
         citation:
-          row.policyRef && row.clauseId && row.clauseText && row.expected
+          row.policyRef &&
+          row.policyVersion &&
+          row.clauseId &&
+          row.clauseText &&
+          row.expected
             ? {
                 policyRef: row.policyRef,
+                policyVersion: row.policyVersion,
                 clauseId: row.clauseId,
                 clauseText: row.clauseText,
                 expected: row.expected,

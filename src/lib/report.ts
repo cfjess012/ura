@@ -43,6 +43,8 @@ export type ReportFinding = {
   clause: string | null;
   clauseText: string | null;
   expected: string | null;
+  /** The edition in force when it was raised (§22.5). */
+  policyVersion: string | null;
 };
 
 export type Report = {
@@ -116,6 +118,7 @@ export function reportFrom(input: {
     objectiveName: finding.objectiveName,
     note: finding.note,
     clause: finding.citation?.clauseId ?? null,
+    policyVersion: finding.citation?.policyVersion ?? null,
     clauseText: finding.citation?.clauseText ?? null,
     expected: finding.citation?.expected ?? null,
   }));

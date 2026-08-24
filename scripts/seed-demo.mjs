@@ -524,6 +524,7 @@ if (!sable.skipped) {
       note,
       raised_by: sable.by,
       policy_ref: breaches ? governed.policy.reference : null,
+      policy_version: breaches ? governed.policy.version : null,
       clause_id: breaches ? governed.clause.id : null,
       clause_text: breaches ? governed.clause.text : null,
       expected: breaches ? governed.requirement.expect : null,

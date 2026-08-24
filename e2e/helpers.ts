@@ -11,9 +11,15 @@ import { expect, type Page } from "@playwright/test";
  */
 export async function completeIntake(page: Page, base: string): Promise<void> {
   await page.goto(`${base}/intake/description`);
-  await page.getByLabel("Business Purpose or Objective").fill("Shorten scheduling effort.");
-  await page.getByLabel("Activity / Use-Case Description").fill("Scheduling tool for shifts.");
-  await page.getByLabel("Does this use AI or machine learning?").selectOption("No");
+  await page
+    .getByLabel("Business Purpose or Objective")
+    .fill("Shorten scheduling effort.");
+  await page
+    .getByLabel("Activity / Use-Case Description")
+    .fill("Scheduling tool for shifts.");
+  await page
+    .getByLabel("Does this use AI or machine learning?")
+    .selectOption("No");
   await page.getByRole("button", { name: /Next: Ownership/ }).click();
 
   await expect(page.getByRole("heading", { name: "Ownership" })).toBeVisible();
@@ -23,25 +29,36 @@ export async function completeIntake(page: Page, base: string): Promise<void> {
     .selectOption("Brand new");
   await page.getByRole("button", { name: /Next: Categorization/ }).click();
 
-  await expect(page.getByRole("heading", { name: "Categorization" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Categorization" }),
+  ).toBeVisible();
   await page.getByLabel("Responsible Business Unit").selectOption("BU_OPS");
   await page
     .getByLabel("Does anything about this involve a company outside ours?")
     .selectOption("No");
   await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
 
-  await expect(page.getByRole("heading", { name: "Compliance & Data" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Compliance & Data" }),
+  ).toBeVisible();
   await page.getByRole("radio", { name: /Internal/ }).check();
-  await page.getByRole("button", { name: /Continue to the risk areas/ }).click();
+  await page
+    .getByRole("button", { name: /Continue to the risk areas/ })
+    .click();
   await expect(page).toHaveURL(/\/assess\//);
 }
 
 /** Start an assessment and return its base path. */
-export async function startAssessment(page: Page, name: string): Promise<string> {
+export async function startAssessment(
+  page: Page,
+  name: string,
+): Promise<string> {
   await page.goto("/projects");
   await page.getByLabel("Start a new assessment").fill(name);
   await page.getByRole("button", { name: "Start assessment" }).click();
-  await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Description" }),
+  ).toBeVisible();
   return `/projects/${page.url().split("/projects/")[1]!.split("/")[0]!}`;
 }
 
@@ -53,7 +70,10 @@ export async function startAssessment(page: Page, name: string): Promise<string>
  * answers and quietly test a different assessment from the one intake set
  * up. Each step waits for the URL to change so the walk never races itself.
  */
-export async function answerRemainingGates(page: Page, base: string): Promise<void> {
+export async function answerRemainingGates(
+  page: Page,
+  base: string,
+): Promise<void> {
   // Each step starts from the paths screen, which redirects to the first
   // gate still unanswered. That makes every step independent: no state is
   // carried between iterations, so nothing can race the redirect. Reading
@@ -63,7 +83,9 @@ export async function answerRemainingGates(page: Page, base: string): Promise<vo
     await page.goto(`${base}/assess/paths`);
     await page.waitForLoadState("networkidle");
     if (page.url().includes("/assess/paths")) {
-      await expect(page.getByRole("heading", { name: "Narrow it down" })).toBeVisible();
+      await expect(
+        page.getByRole("heading", { name: "Narrow it down" }),
+      ).toBeVisible();
       return;
     }
     const yes = page.getByRole("button", { name: /Yes, it applies/ });
@@ -95,7 +117,9 @@ export async function answerRemainingGates(page: Page, base: string): Promise<vo
       await expect(stops).toBeVisible();
     }
   }
-  throw new Error("gates did not finish within 14 steps — is a gate not advancing?");
+  throw new Error(
+    "gates did not finish within 14 steps — is a gate not advancing?",
+  );
 }
 
 /**
@@ -124,10 +148,18 @@ export async function becomePerson(page: Page, name: string): Promise<void> {
  */
 export async function scenarioIntake(page: Page, base: string): Promise<void> {
   await page.goto(`${base}/intake/description`);
-  await page.getByLabel("Business Purpose or Objective").fill("Cut rostering effort.");
-  await page.getByLabel("Activity / Use-Case Description").fill("AI drafts weekly shift rosters.");
-  await page.getByLabel("Does this use AI or machine learning?").selectOption("Yes");
-  await page.getByLabel("What does the AI do?").fill("Proposes shifts a supervisor approves.");
+  await page
+    .getByLabel("Business Purpose or Objective")
+    .fill("Cut rostering effort.");
+  await page
+    .getByLabel("Activity / Use-Case Description")
+    .fill("AI drafts weekly shift rosters.");
+  await page
+    .getByLabel("Does this use AI or machine learning?")
+    .selectOption("Yes");
+  await page
+    .getByLabel("What does the AI do?")
+    .fill("Proposes shifts a supervisor approves.");
   await page.getByRole("button", { name: /Next: Ownership/ }).click();
   await page.getByLabel("Business Owner").selectOption("d.chen");
   await page
@@ -142,6 +174,48 @@ export async function scenarioIntake(page: Page, base: string): Promise<void> {
   await page.getByLabel(/Procurement \(Coupa\)/).selectOption("Yes");
   await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
   await page.getByRole("radio", { name: /Confidential/ }).check();
-  await page.getByRole("button", { name: /Continue to the risk areas/ }).click();
+  await page
+    .getByRole("button", { name: /Continue to the risk areas/ })
+    .click();
   await expect(page).toHaveURL(/\/assess\//);
+}
+
+/**
+ * Plant a drafted answer directly, the way the agent would have written
+ * one.
+ *
+ * The accept path is the one place a model's proposal becomes a person's
+ * record, and it had no test at all — because testing it appeared to need
+ * a running model. It does not: what matters is what happens to a drafted
+ * ROW, and a row can be written without one.
+ */
+export async function plantDraft(input: {
+  projectId: string;
+  questionId: string;
+  value: string;
+  quote?: string;
+}): Promise<void> {
+  const postgres = (await import("postgres")).default;
+  // The suite's own database, not the development one — the web server
+  // under test is started with E2E_DATABASE_URL (playwright.config.ts).
+  const sql = postgres(
+    process.env.E2E_DATABASE_URL ?? process.env.DATABASE_URL!,
+    { max: 1 },
+  );
+  try {
+    const [version] = await sql<{ id: string }[]>`
+      select id from instrument_versions
+      where slug = 'tier1-gates' and activated_at is not null limit 1`;
+    await sql`
+      insert into answers
+        (project_id, question_id, value, source, confirmed,
+         instrument_version_id, basis, source_quote, source_ref)
+      values
+        (${input.projectId}, ${input.questionId}, ${JSON.stringify(input.value)},
+         'drafted', false, ${version!.id}, 'stated',
+         ${input.quote ?? "The supplier operates the service on our behalf."},
+         'vendor-overview.md')`;
+  } finally {
+    await sql.end();
+  }
 }

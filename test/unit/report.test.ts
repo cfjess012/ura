@@ -54,6 +54,7 @@ const build = (over: Partial<Parameters<typeof reportFrom>[0]> = {}) =>
         note: "No vault in front of it.",
         citation: {
           policyRef: "IAM-STD-004",
+          policyVersion: "4.2",
           clauseId: "IAM-STD-004 §3.9",
           clauseText: "Privileged accounts shall be individually attributable.",
           expected: "Yes",
