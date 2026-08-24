@@ -14,6 +14,7 @@ import {
   AGENT_CONTRACT_VERSION,
   type AgentEvent,
 } from "../../src/lib/agent-contract.ts";
+import { converse, type ConverseTask } from "./converse.ts";
 import { draftOne, type DraftTask } from "./draft.ts";
 import { modelId } from "./model.ts";
 import { promptVersion } from "./prompt.ts";
@@ -52,6 +53,28 @@ const server = createServer(async (req, res) => {
         prompt: promptVersion(),
       }),
     );
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/converse") {
+    const said: Buffer[] = [];
+    for await (const chunk of req) said.push(chunk as Buffer);
+    let task: ConverseTask;
+    try {
+      task = JSON.parse(Buffer.concat(said).toString("utf8"));
+    } catch {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "the request was not valid JSON" }));
+      return;
+    }
+    const reply = await converse({
+      said: task.said ?? "",
+      history: task.history ?? [],
+      openQuestions: task.openQuestions ?? [],
+      context: task.context ?? "",
+    });
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify(reply));
     return;
   }
 

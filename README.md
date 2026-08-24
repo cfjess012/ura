@@ -1,8 +1,84 @@
-# Universal Risk Assessment
+# Front Door AI Risk Advisor
 
-One front door for risk assessment: a business user describes an activity
-once; every risk area's process integrates behind it. See SPEC.md — the
-spec is the brain; nothing is built that doesn't trace to it.
+One front door for enterprise risk intake. A business owner describes an
+activity once, in their own words; every risk area's process integrates
+behind that single description instead of sending them another form.
 
-Quickstart: `pnpm install && pnpm db:up && pnpm db:migrate && pnpm dev`
-(web on http://localhost:3100).
+`SPEC.md` is the source of truth. Nothing here is built that does not trace
+to it, and every settled decision is recorded in its governance log with the
+reasoning that produced it.
+
+> **This is a pilot, and it has no authentication by design.** You choose
+> who you are from a list on the front door. That is a deliberate stand-in
+> for an identity provider (SPEC §2) and it means **this must not be exposed
+> beyond a sandbox**. All data in it is synthetic.
+
+## What works today
+
+The deterministic platform, end to end:
+
+- **Structured intake** with conditional fields, then **Tier-1 routing** —
+  which risk areas apply, and _why_, in the words the person used.
+- **Tier-2 severity** on rubric-anchored questions, with bands derived where
+  the answers already imply them rather than asked twice.
+- **Tier-3 control objectives** accumulated from those answers, each one
+  naming the answer that pulled it in.
+- **Submission and declaration** — the submitter stands behind the record,
+  by name.
+- **Review and attestation** — a Risk Assessor signs each control answer
+  under their own risk area, and findings close one of exactly four governed
+  ways, including risk acceptance that needs a second person and expires.
+- **The agent service** — drafts answers from supplied evidence with
+  verbatim quotes, and abstains when the evidence is silent.
+
+## What is deliberately not built
+
+Stated so nobody has to discover it: destination write-back, real identity,
+attachment storage (blocked on a retention decision), and composite scoring
+— which is an open question, not an oversight.
+
+## Running it
+
+```sh
+pnpm install
+pnpm db:up && pnpm db:migrate && pnpm instrument:seed
+pnpm demo:seed          # four curated assessments, one already with a reviewer
+pnpm dev                # http://localhost:3100
+```
+
+The agent is a separate service and is **off by default** — with no agent
+connected the product says so rather than implying one runs:
+
+```sh
+pnpm agent:ollama       # free, local, exercises the gates
+AGENT_TRANSPORT=local AGENT_URL=http://localhost:8790 pnpm dev
+```
+
+See `agent/README.md` for Bedrock, and `deploy/README.md` to put it on AWS.
+
+## The parts that are load-bearing
+
+Worth knowing before changing anything:
+
+- **Evidence is insert-only.** Answers, attestations, dispositions and
+  hand-offs are never updated or deleted — corrections are new rows.
+  Enforced by database triggers, not by convention.
+- **Rules live in the schema.** Four-eyes on a risk acceptance is a CHECK
+  constraint, not an `if`. A rule somebody can forget is not a rule.
+- **Derived state is computed, never stored.** Which questions apply, which
+  controls are required, whether a finding is open — all recomputed.
+- **Authority is derived from the question**, never from the request. A
+  permission check that reads a value the requester chose is not a
+  permission check.
+- **The agent proposes; a person decides.** It may never attest, declare,
+  accept or resolve anything, and a quote that is not found verbatim in its
+  source invalidates the draft rather than lowering its confidence.
+
+## Checks
+
+```sh
+pnpm verify        # typecheck, unit, integration
+pnpm e2e           # the full journey in a browser
+pnpm walk:demo     # asserts the demo run sheet still matches the product
+pnpm agent:test    # the gate, against fabricated model replies
+```

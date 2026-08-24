@@ -19,3 +19,8 @@ next-env.d.ts
 
 # Subagent worktrees — isolated copies, never part of the repo
 .claude/worktrees/
+
+# macOS junk, and the extra build dirs the prod/verify scripts create.
+.DS_Store
+.next-prod/
+.next-verify/
