@@ -47,12 +47,27 @@ pnpm dev                # http://localhost:3100
 ```
 
 The agent is a separate service and is **off by default** — with no agent
-connected the product says so rather than implying one runs:
+connected the product says so rather than implying one runs. To see the AI
+features, start both with one command:
 
 ```sh
-pnpm agent:ollama       # free, local, exercises the gates
-AGENT_TRANSPORT=local AGENT_URL=http://localhost:8790 pnpm dev
+pnpm dev:ai             # the agent on a local model, plus the web app wired to it
 ```
+
+It needs `ollama serve` running, and it says so plainly if that is not the
+case. `pnpm dev` on its own gives you the product with no AI, which is the
+same thing a deployment with `AGENT_TRANSPORT` unset gives you.
+
+**Where the AI actually shows up.** Every feature is scoped to a screen, so
+an assessment that has not reached that screen will not show it:
+
+| Feature          | Where                                                | Needs                                                              |
+| ---------------- | ---------------------------------------------------- | ------------------------------------------------------------------ |
+| Assistant        | Bottom-right of any assessment screen                | An agent                                                           |
+| Intake scoring   | The description field, "How does this read?"         | An agent                                                           |
+| Policy authority | Each control question, "Why you are asked this"      | Controls to exist — answer a severity question first               |
+| Policy breach    | The reviewer's queue, on the control that breaches   | A submitted assessment. **Sable claims triage** is seeded that way |
+| Handoff report   | "Read the handoff summary →" in the reviewer's queue | Submitted; the agent adds the summary and scenarios                |
 
 See `agent/README.md` for Bedrock, and `deploy/README.md` to put it on AWS.
 

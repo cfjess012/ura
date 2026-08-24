@@ -25,6 +25,7 @@
     "demo:reset": "node scripts/reset-dev-db.mjs --yes && node scripts/seed-demo.mjs",
     "demo:prod": "NEXT_DIST_DIR=.next-prod next build && cp -r public .next-prod/standalone/ 2>/dev/null; cp -r .next-prod/static .next-prod/standalone/.next-prod/ 2>/dev/null; PORT=3100 NEXT_DIST_DIR=.next-prod node .next-prod/standalone/server.js",
     "walk:demo": "node scripts/walk-demo.mjs",
+    "dev:ai": "node scripts/dev-ai.mjs",
     "agent:dev": "cd agent && PORT=8790 node --experimental-strip-types src/server.ts",
     "agent:ollama": "cd agent && AGENT_PROVIDER=anthropic ANTHROPIC_BASE_URL=http://localhost:11434 AGENT_MODEL=qwen3:14b PORT=8790 node --experimental-strip-types src/server.ts",
     "agent:test": "cd agent && vitest run"
