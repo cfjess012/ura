@@ -1,3 +1,4 @@
+import { agentTransport } from "@/lib/agent";
 import agents from "@/data/agents.json";
 import { currentPerson } from "@/lib/current-person";
 import { canAdminister, ROLE_LABEL } from "@/lib/people";
@@ -33,6 +34,7 @@ type AgentData = {
  * request time (§26.1). A test fails the build if it is stale.
  */
 export default async function AgentsPage() {
+  const transport = agentTransport();
   const person = await currentPerson();
   if (!canAdminister(person.role)) {
     return (
@@ -42,8 +44,9 @@ export default async function AgentsPage() {
           This page is for administrators.
         </h1>
         <p className="lede" style={{ textAlign: "left" }}>
-          You are currently working as <strong>{person.name}</strong> ({ROLE_LABEL[person.role]}).
-          Switch to an administrator in the bar above to see the agent transparency page.
+          You are currently working as <strong>{person.name}</strong> (
+          {ROLE_LABEL[person.role]}). Switch to an administrator in the bar
+          above to see the agent transparency page.
         </p>
       </main>
     );
@@ -51,7 +54,9 @@ export default async function AgentsPage() {
   const data = agents as AgentData;
   const build = data.groups.filter((g) => g.side === "build");
   const runtime = data.groups.filter((g) => g.side === "runtime");
-  const live = data.groups.flatMap((g) => g.nodes).filter((n) => n.status === "live").length;
+  const live = data.groups
+    .flatMap((g) => g.nodes)
+    .filter((n) => n.status === "live").length;
   const registered = data.groups.flatMap((g) => g.nodes).length - live;
 
   return (
@@ -61,21 +66,45 @@ export default async function AgentsPage() {
         Every agent, and what it may never do.
       </h1>
       <p className="lede" style={{ margin: "0 0 1.4rem", textAlign: "left" }}>
-        {live} agents work on this platform today and {registered} more are designed but not built.
-        Each one below says when it runs, what it can reach, and the guardrails it operates under.
-        Nothing here decides anything on its own — every agent proposes, and a named person
-        accepts.
+        {live} agents work on this platform today and {registered} more are
+        designed but not built. Each one below says when it runs, what it can
+        reach, and the guardrails it operates under. Nothing here decides
+        anything on its own — every agent proposes, and a named person accepts.
+      </p>
+
+      {/* Whether anything is actually reading, right now, on this
+          deployment — read from the seam rather than described in prose,
+          because a sentence about it goes stale and this one did. */}
+      <p
+        className={`note ${transport.available ? "note-live" : ""}`}
+        role="note"
+      >
+        <span className="note-title">
+          {transport.available
+            ? "An agent is connected on this deployment."
+            : "No agent is connected on this deployment."}
+        </span>{" "}
+        <span className="note-body">
+          {transport.available
+            ? "The five built features below can read assessment content when a person uses them."
+            : "Nothing below is reading anything. Every feature marked built is unreachable until one is connected."}
+        </span>
       </p>
 
       <div className="note" role="note">
         <p className="note-title">
-          <span aria-hidden="true">ⓘ</span> Two kinds of agent, and the difference matters
+          <span aria-hidden="true">ⓘ</span> Two kinds of agent, and the
+          difference matters
         </p>
         <p className="note-body">
-          <strong>Build-time</strong> agents help construct and check this software; they never see
-          an assessment and never reach production. <strong>Runtime</strong> agents are product
-          features that would read assessment content — all of them are registered and deliberately
-          unbuilt, so nothing is reading your data today.
+          <strong>Build-time</strong> agents help construct and check this
+          software; they never see an assessment and never reach production.{" "}
+          <strong>Runtime</strong> agents are product features that read
+          assessment content. Five are now built and run{" "}
+          <strong>only when an agent is connected</strong> — with none connected
+          they are absent from the product and read nothing. The rest are
+          registered and deliberately unbuilt. Each row below says which it is,
+          and what it may see.
         </p>
       </div>
 
@@ -86,10 +115,11 @@ export default async function AgentsPage() {
           <span aria-hidden="true">↳</span> About this page
         </p>
         <p className="note-body">
-          The role check above is real and enforced on the server — but the persona switcher is a
-          pilot device, not a sign-in: anyone can switch to an administrator. That is deliberate for
-          a demonstration, and it changes when single sign-on arrives. We would rather say so than
-          imply a protection that is not there.
+          The role check above is real and enforced on the server — but the
+          persona switcher is a pilot device, not a sign-in: anyone can switch
+          to an administrator. That is deliberate for a demonstration, and it
+          changes when single sign-on arrives. We would rather say so than imply
+          a protection that is not there.
         </p>
       </div>
     </main>

@@ -45,6 +45,7 @@ export type QueueItem = {
     /** On a non-compliance: the clause it breaches, to show beside it. */
     citation: {
       policyRef: string;
+      policyVersion: string;
       clauseId: string;
       clauseText: string;
       expected: string;
@@ -300,7 +301,8 @@ export function ReviewQueue({
                       {finding.citation && (
                         <div className="breach">
                           <p className="breach-head">
-                            {finding.citation.clauseId} expects{" "}
+                            {finding.citation.clauseId} (version{" "}
+                            {finding.citation.policyVersion}) expects{" "}
                             <strong>{finding.citation.expected}</strong>
                           </p>
                           <blockquote className="breach-quote">

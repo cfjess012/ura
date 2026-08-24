@@ -124,3 +124,10 @@
   white-space: pre-wrap;
   margin: 0.6rem 0 0;
 }
+
+/* Whether an agent is connected on THIS deployment — read from the seam,
+   because a sentence describing it goes stale and this one did (FR-24). */
+.note-live {
+  background: var(--surface-2);
+  border-color: var(--navy);
+}

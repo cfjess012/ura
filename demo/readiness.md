@@ -1,6 +1,6 @@
 ---
 artifact: demo-readiness
-slices-covered: S1, S2, S2.5, S3, S4, S4.7, S4.8, S5, S6, S7
+slices-covered: S1, S2, S2.5, S3, S4, S4.7, S4.8, S5, S6, S7, S8, S11, S12
 reviewed-on: 2026-08-23
 walked-with-owner: partially — S1, S2 and S2.5 walked by the owner; S3 and S4 not yet
 ---

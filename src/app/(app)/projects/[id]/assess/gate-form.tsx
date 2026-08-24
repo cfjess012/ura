@@ -39,6 +39,15 @@ export function GateForm({
 }) {
   const router = useRouter();
   const [choice, setChoice] = React.useState<"Yes" | "No" | null>(answer);
+
+  // Re-sync when the server tree changes underneath. Accepting a proposal
+  // writes the answer and calls router.refresh(), which re-renders this
+  // component with a new `answer` prop — but useState only reads its
+  // initial value, so the record was right and the button stayed blank
+  // until a hard reload. §24.3 is about exactly this control.
+  React.useEffect(() => {
+    setChoice(answer);
+  }, [answer]);
   const [saving, setSaving] = React.useState<"Yes" | "No" | null>(null);
   // What the status region says out loud. A save that only redraws the screen
   // is silent to a screen reader, so the outcome is stated (F12).
@@ -59,7 +68,11 @@ export function GateForm({
       const result = await answerGate(projectId, questionId, value);
       if (isFailure(result)) {
         setChoice(answer); // put it back: nothing was recorded
-        setError({ message: result.message, ref: result.ref, retryable: result.retryable });
+        setError({
+          message: result.message,
+          ref: result.ref,
+          retryable: result.retryable,
+        });
         return;
       }
       // An area that asks nothing further has one thing left to tell the
@@ -101,7 +114,9 @@ export function GateForm({
               it attributed to the person a sentence they never said. The
               reason itself now names the real evidence either way. */}
           <span className="prefill-tag">
-            {origin === "answers" ? "Answered from your answers" : "Answered from your intake"}
+            {origin === "answers"
+              ? "Answered from your answers"
+              : "Answered from your intake"}
           </span>
           <span>
             We&rsquo;ve marked this <strong>{answer}</strong> because {because}.
@@ -156,7 +171,9 @@ export function GateForm({
         {error ? (
           <>
             {error.message}{" "}
-            {error.ref && <span className="err-ref">Reference {error.ref}</span>}
+            {error.ref && (
+              <span className="err-ref">Reference {error.ref}</span>
+            )}
           </>
         ) : (
           announcement

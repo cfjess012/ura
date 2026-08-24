@@ -28,10 +28,23 @@ implementation, stop on ambiguity.
   provenance-on-accept (FR-33) remain
 - S3.5 Destinations — SPEC'd not built (§27) · S4.6 Attachments — blocked on
   §3.6 retention
-- S5..S10 — not started (do not scaffold ahead; SPEC §0 rule 5)
+- S8 Review & attest — DONE 2026-08-23 (FR-16/FR-17/FR-18 · NFR-10: the
+  reviewer queue, attestation with the keyboard loop, authority derived from
+  the question server-side, and the four dispositions with four-eyes and
+  expiry-reopen. Verifier FAIL then fixed — see uat/S8.md)
+- S11 Phase 2 seams — DONE 2026-08-23 (§6.1: agent transport, conversation
+  state shaped for AgentCore Memory, the wire contract. Nothing agentic is
+  reachable when no agent is connected — see uat/S11.md)
+- S12 Agent service & capabilities — DONE 2026-08-24 (FR-39..FR-43: the
+  companion, document drafting, policy authority and breach findings, the
+  handoff report, intake scoring. Two verifier FAILs then fixed — see
+  uat/S12.md)
+- S9 Package & export, S10 Harden — not started (do not scaffold ahead;
+  SPEC §0 rule 5)
 - 2026-08-23 level set: SPEC rewritten to the official mission (G-51..G-55);
-  agentic on Bedrock/AgentCore is the Phase-2 epic and the priority after
-  the demo. The three §6.1 seams do NOT exist in code yet.
+  agentic on Bedrock/AgentCore was the Phase-2 epic and shipped as S11/S12.
+  **The three §6.1 seams exist in code.** The agent is a separate service
+  and is off by default — `AGENT_TRANSPORT` decides.
 - `demo/readiness.md` = what the room sees; the stop gate blocks finishing
   until it covers every DONE slice (G-44). `db:reset` held for demo-data
   day. Audit C-6/7 open (`audits/instrument-2026-08-21.md`).

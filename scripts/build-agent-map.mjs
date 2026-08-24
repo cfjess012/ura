@@ -203,6 +203,18 @@ const registerSection = (() => {
 const registerRows = [...registerSection.matchAll(/^\| (S[^|]*?) \| \*\*(.+?)\*\* \| (.+?) \| (.+?) \|$/gm)]
   .map((m) => [m[0], m[1].trim(), m[2].trim(), m[3].trim(), m[4].trim()]);
 
+/**
+ * The §22.1 features that shipped in S12, by the name the register uses.
+ * Anything not here is genuinely unbuilt.
+ */
+const BUILT_RUNTIME = new Set([
+  "Intake quality assistant",
+  "Assessment companion",
+  "Compliance checking",
+  "Policy-grounded definitions",
+  "Instrument-to-obligation traceability",
+]);
+
 const RUNTIME_ACCESS = {
   "Intake quality assistant":
     "Would read: the description the requester wrote, their other intake answers, and a published rubric. Would not read: anything outside this project, and no other team's assessment.",
@@ -289,11 +301,20 @@ const runtime = Object.entries(runtimeGroups)
     .map((n) => {
       const row = byName.get(n);
       const short = n.replace(/\s*\(.*\)$/, "");
+      // Which §22.1 features actually shipped in S12. Listed here rather
+      // than assumed dormant: the generator asserted "not built" for every
+      // registered feature, so regenerating the map could not fix the
+      // claim — it reproduced it. A transparency page that says nothing is
+      // reading your data while something is, is the one falsehood this
+      // page exists to prevent (FR-24, §24.8).
+      const built = BUILT_RUNTIME.has(short);
       return {
         name: short,
-        status: "dormant",
+        status: built ? "live" : "dormant",
         what: row.does.split(".")[0] + ".",
-        trigger: `Not built. Registered in SPEC §22.1 for ${row.phase}; Phase 1 builds none of it and may foreclose none of it.`,
+        trigger: built
+          ? `Built and running when an agent is connected (S12). Off by default: with AGENT_TRANSPORT unset it is absent from the product and reads nothing.`
+          : `Not built. Registered in SPEC §22.1 for ${row.phase}; Phase 1 builds none of it and may foreclose none of it.`,
         access: RUNTIME_ACCESS[short] ?? RUNTIME_ACCESS[n] ?? "",
         gist: row.does,
         full: `WHAT IT WOULD DO\n\n${row.does}\n\nGUARDRAILS BEYOND THE STANDING SET\n\n${row.guard}\n\nSTANDING GUARDRAILS (inherited by every registered feature)\n\n· It reads what the requester provided; it never invents facts.\n· It proposes; a human accepts. Nothing it produces is final on its own.\n· Any rewrite reorganises the requester's own words, never adds to them.\n· It speaks plain language: no internal identifiers, no scores as verdicts.\n· Its judgements are recorded with their basis, so a reviewer can tell what\n  was machine-suggested from what a human confirmed.`,

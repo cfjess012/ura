@@ -56,7 +56,10 @@ export default async function ReportPage({
 
   const severityBands: Array<{ name: string; band: string }> = [];
   for (const question of SEVERITY.questions ?? []) {
-    const answer = stored[question.questionId]?.value;
+    const held = stored[question.questionId];
+    // A proposal is not a severity a person set.
+    if (held && held.source === "drafted" && !held.confirmed) continue;
+    const answer = held?.value;
     if (typeof answer === "string")
       severityBands.push({ name: question.name, band: answer });
   }
@@ -218,7 +221,12 @@ export default async function ReportPage({
               {finding.clauseText && (
                 <blockquote className="report-clause">
                   “{finding.clauseText}”{" "}
-                  <span className="report-muted">— {finding.clause}</span>
+                  <span className="report-muted">
+                    — {finding.clause}
+                    {finding.policyVersion
+                      ? `, version ${finding.policyVersion}`
+                      : ""}
+                  </span>
                 </blockquote>
               )}
             </div>

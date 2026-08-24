@@ -77,6 +77,12 @@ export type DimensionScore = { id: string; score: 0 | 1 | 2 };
 
 export type RubricVerdict = {
   passes: boolean;
+  /**
+   * Whether anything actually read it. A pass with this false means the
+   * assistant could not be asked — which is a different thing from a
+   * description that reads well, and must never be reported as one.
+   */
+  checkedByModel: boolean;
   /** The opening line, present only when there is something to ask for. */
   opening: string | null;
   /** One sentence per dimension that fell short, verbatim from the data. */
@@ -105,6 +111,7 @@ export function verdictFrom(scores: DimensionScore[]): RubricVerdict {
   }
   return {
     passes: asks.length === 0,
+    checkedByModel: scores.length > 0,
     opening: asks.length === 0 ? null : RUBRIC.engine.opening,
     asks,
   };
@@ -118,7 +125,7 @@ export function verdictFrom(scores: DimensionScore[]): RubricVerdict {
  * the exact failure this rubric exists to avoid.
  */
 export function verdictWhenAgentUnavailable(): RubricVerdict {
-  return { passes: true, opening: null, asks: [] };
+  return { passes: true, checkedByModel: false, opening: null, asks: [] };
 }
 
 /** Every scorable dimension, as the model is asked to score them. */

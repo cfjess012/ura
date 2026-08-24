@@ -214,3 +214,72 @@ describe("the cases independent verification found walking through", () => {
     ).toBeNull();
   });
 });
+
+describe("the second verification pass: what still walked through", () => {
+  /**
+   * G-65 named the failure — "one true clause laundered every false claim
+   * beside it" — and the first fix split on "and" only. A second pass found
+   * the identical failure alive behind "but", a comma and a semicolon.
+   *
+   * Every string here was reported as MISSED. They are the regression suite
+   * for the rule G-65 states: a guardrail is not shipped when it is
+   * written, it is shipped when something proves it fires on the failure it
+   * names.
+   */
+  it("catches laundering behind every separator, not just the one that was fixed", () => {
+    for (const claim of [
+      "You said Yes to AI, but you said the data is Restricted.",
+      "You said Yes to AI, you said the data is Restricted.",
+      "You said Yes to AI; you said the data is Restricted.",
+      "You said the data is Restricted and Yes to AI.",
+    ]) {
+      expect(claimsUnrecordedAnswer(claim, context), claim).toBeTruthy();
+    }
+  });
+
+  it("catches a curly apostrophe, which is what a model actually types", () => {
+    expect(
+      claimsUnrecordedAnswer("You’ve said the data is Restricted.", context),
+    ).toBeTruthy();
+  });
+
+  it("catches an adverb wedged between the pronoun and the verb", () => {
+    expect(
+      claimsUnrecordedAnswer(
+        "You already told us the data is Restricted.",
+        context,
+      ),
+    ).toBeTruthy();
+  });
+
+  it("catches the verbs the first two passes did not know", () => {
+    for (const claim of [
+      "You wrote that the data is Restricted.",
+      "You entered Restricted for the classification.",
+      "You picked Restricted.",
+      "You described it as Restricted.",
+    ]) {
+      expect(claimsUnrecordedAnswer(claim, context), claim).toBeTruthy();
+    }
+  });
+
+  it("matches a recorded value as a word, never as a substring", () => {
+    // "No" is on record in every assessment. A containment test passed any
+    // clause holding "nothing", "not", "none" or "know", which made the
+    // whole check ornamental.
+    const yesNo = {
+      ...context,
+      onRecord: [{ label: "Is a third party involved?", value: "No" }],
+    };
+    expect(
+      claimsUnrecordedAnswer("You said nothing about the vendor.", yesNo),
+    ).toBeTruthy();
+    expect(
+      claimsUnrecordedAnswer("You said you do not know the region.", yesNo),
+    ).toBeTruthy();
+    // And the honest recap still passes.
+    expect(
+      claimsUnrecordedAnswer("You said No to the third-party question.", yesNo),
+    ).toBeNull();
+  });
+});

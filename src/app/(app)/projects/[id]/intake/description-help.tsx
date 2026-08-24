@@ -21,6 +21,8 @@ export function DescriptionHelp({ describe }: { describe: string }) {
   const [verdict, setVerdict] = React.useState<RubricVerdict | null>(null);
   const [checking, setChecking] = React.useState(false);
   const [checkedText, setCheckedText] = React.useState("");
+  /** Whether anything actually read it, as opposed to failing open. */
+  const [checked, setChecked] = React.useState(false);
 
   const text = describe.trim();
   const worthChecking = text.length > 0 && text !== checkedText;
@@ -31,7 +33,12 @@ export function DescriptionHelp({ describe }: { describe: string }) {
     try {
       const result = await checkDescription(text);
       setCheckedText(text);
+      // A pass with no asks can mean "it reads well" or "nobody could
+      // look" — those are different things, and only one of them is worth
+      // telling somebody. With no agent it said "That covers what the
+      // platform needs", which it had not checked.
       setVerdict(isFailure(result) ? null : result.verdict);
+      setChecked(!isFailure(result) && result.verdict.checkedByModel);
     } catch (cause) {
       // Fails open, like everything else about this.
       console.error("checkDescription transport", cause);
@@ -39,6 +46,17 @@ export function DescriptionHelp({ describe }: { describe: string }) {
     } finally {
       setChecking(false);
     }
+  }
+
+  if (verdict?.passes && !checked) {
+    // Nothing read it. Say so plainly rather than congratulating them on a
+    // description nobody looked at.
+    return (
+      <p className="rubric help" role="status">
+        I couldn&rsquo;t check this one just now — carry on, and a reviewer
+        picks up anything that is thin.
+      </p>
+    );
   }
 
   if (verdict?.passes) {

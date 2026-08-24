@@ -177,7 +177,8 @@ export default async function SubmitPage({
                           to stand behind the record. */}
                       {finding.citation && (
                         <p className="help">
-                          {finding.citation.clauseId} expects{" "}
+                          {finding.citation.clauseId} (version{" "}
+                          {finding.citation.policyVersion}) expects{" "}
                           <strong>{finding.citation.expected}</strong> — “
                           {finding.citation.clauseText}”
                         </p>

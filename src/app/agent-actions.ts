@@ -534,6 +534,8 @@ export async function checkDescription(
         ok: true as const,
         verdict: {
           passes: false,
+          // The floor is a real check and needs no model.
+          checkedByModel: true,
           opening: null,
           asks: [
             {

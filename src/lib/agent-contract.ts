@@ -274,23 +274,30 @@ export function claimsUnrecordedAnswer(
   text: string,
   context: AssessmentContext,
 ): string | null {
-  // Widened after verification: the first version knew five verbs and no
-  // contractions, so "You indicated the data is Public" and "You've said
-  // the vendor is UK-based" both walked through.
+  // Verbs a model actually uses, and the apostrophes it actually types.
+  // Widened twice: the first version knew five verbs, the second missed a
+  // curly apostrophe and any adverb between "you" and the verb.
   const CLAIM =
-    /\byou(?:'ve| have)? (?:answered|said|told us|selected|chose|indicated|confirmed|marked|noted|stated|mentioned)\b(.*)$/i;
+    /\byou(?:['\u2019]ve| have)?\s+(?:\w+\s+)?(?:answered|said|told us|selected|chose|indicated|confirmed|marked|noted|stated|mentioned|wrote|entered|picked|described)\b(.*)$/i;
 
+  // Matched as whole words, never as substrings. A containment test over
+  // "No" — on record in every assessment — passed any clause containing
+  // "nothing", "not", "none" or "know", which made the whole check
+  // ornamental for short values.
   const values = context.onRecord
     .map((entry) => normaliseWhitespace(entry.value.toLowerCase()))
     .filter((value) => value !== "");
 
-  // Split into clauses FIRST, then look for a claim in each. Checking a
-  // whole sentence let ONE true clause launder every false claim beside
-  // it: "You said Yes to AI, and you said the data is Restricted" passed
-  // on the strength of "Yes". Split on the conjunction only — splitting on
-  // commas as well caught ordinary trailing prose that claims nothing.
+  const saysValue = (clause: string, value: string): boolean => {
+    const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(?:^|\\W)${escaped}(?:\\W|$)`, "i").test(clause);
+  };
+
+  // Split on every conjunction and separator a model joins clauses with.
+  // Fixing only "and" left the named failure — one true clause laundering
+  // a false one — alive behind "but", a comma and a semicolon.
   const clauses = text
-    .split(/[.!?\n]|\band\b/i)
+    .split(/[.!?\n;,]|\band\b|\bbut\b/i)
     .map((clause) => clause.trim())
     .filter((clause) => clause !== "");
 
@@ -299,7 +306,7 @@ export function claimsUnrecordedAnswer(
     if (!claim) continue;
     const claimed = normaliseWhitespace((claim[1] ?? "").trim().toLowerCase());
     if (claimed === "") continue;
-    if (!values.some((value) => claimed.includes(value))) return claimed;
+    if (!values.some((value) => saysValue(claimed, value))) return claimed;
   }
   return null;
 }

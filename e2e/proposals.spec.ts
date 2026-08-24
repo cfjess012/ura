@@ -78,9 +78,9 @@ test("accepting makes it the person's answer, and the proposal stays on the reco
   await page.goto(`${base}/assess/operational`);
   await page.getByRole("button", { name: /^Accept Yes/ }).click();
   await expect(page.locator(".proposed")).toHaveCount(0);
-  // The accept navigates nothing; it refreshes. Read the answer from a
-  // fresh load rather than racing the refresh.
-  await page.reload();
+  // Without a reload: the button must tick on the refresh, not only after
+  // a hard reload. It did not, and the record being right is not the same
+  // as the screen being right (§24.3).
   await expect(
     page.getByRole("button", { name: /Yes, it applies/ }),
   ).toHaveAttribute("aria-pressed", "true");

@@ -122,6 +122,10 @@ test("the intake assistant fails open — it never blocks the way forward", asyn
       "A claims triage assistant from Sable Analytics that reads an incoming claim and proposes which handling queue it belongs in.",
     );
   await page.getByRole("button", { name: /How does this read/ }).click();
-  await expect(page.locator(".rubric-good")).toBeVisible();
+  // With no agent it must say it could not check — never congratulate them
+  // on a description nobody read. Failing open is required; asserting a
+  // pass is not.
+  await expect(page.locator(".rubric")).toContainText(/couldn.t check/i);
+  await expect(page.locator(".rubric-good")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Next:/ })).toBeEnabled();
 });

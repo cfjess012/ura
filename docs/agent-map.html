@@ -2265,16 +2265,16 @@ process.exit(0);
       <div class="branch-head"><h3>Runtime — the product</h3>
         <p>Registered in SPEC §22, deliberately unbuilt. These become AgentCore runtimes.</p></div>
       <p class="group-label">Intake &amp; conversation</p>
-  <article class="node dormant" data-status="dormant">
+  <article class="node live" data-status="live">
     <button type="button" class="node-head" aria-expanded="false">
       <span class="node-top">
         <span class="node-name">Intake quality assistant</span>
-        <span class="chip dormant">Registered</span>
+        <span class="chip live">Live</span>
       </span>
       <span class="node-what">Grades the description against a published rubric (specificity, scope, data handling, dependencies, outcomes); flags contradictions *within* the intake (e.</span>
     </button>
     <div class="detail hidden">
-      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S1 Intake; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">How and when it runs</span>Built and running when an agent is connected (S12). Off by default: with AGENT_TRANSPORT unset it is absent from the product and reads nothing.</p>
       <p><span class="label">What it can see</span>Would read: the description the requester wrote, and the published rubric it is graded against. Nothing else.</p>
       <p><span class="label">In its own words</span><span class="gist">Grades the description against a published rubric (specificity, scope, data handling, dependencies, outcomes); flags contradictions *within* the intake (e.g. &quot;no personal data&quot; versus an employee-PI selection, or a vendor named while the third-party answer says none); offers a rewrite that reorganizes and tightens the requester's own words.</span></p>
       <details class="full">
@@ -2299,16 +2299,16 @@ STANDING GUARDRAILS (inherited by every registered feature)
       <p class="where"><code>SPEC.md §22.1 · S1 Intake</code></p>
     </div>
   </article>
-  <article class="node dormant" data-status="dormant">
+  <article class="node live" data-status="live">
     <button type="button" class="node-head" aria-expanded="false">
       <span class="node-top">
         <span class="node-name">Assessment companion</span>
-        <span class="chip dormant">Registered</span>
+        <span class="chip live">Live</span>
       </span>
       <span class="node-what">An always-available assistant a person can ask anything of while assessing: &quot;based on my description, what do you think?&quot;, &quot;what does this question mean?&quot;, &quot;can you word this another way?&quot;.</span>
     </button>
     <div class="detail hidden">
-      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S1–S2; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">How and when it runs</span>Built and running when an agent is connected (S12). Off by default: with AGENT_TRANSPORT unset it is absent from the product and reads nothing.</p>
       <p><span class="label">What it can see</span>Would read: everything this requester has said or attached on this assessment, plus the instrument itself. Would not read: another team's content, and nothing leaves the boundary without the §22.3 policy.</p>
       <p><span class="label">In its own words</span><span class="gist">An always-available assistant a person can ask anything of while assessing: &quot;based on my description, what do you think?&quot;, &quot;what does this question mean?&quot;, &quot;can you word this another way?&quot;. Proposes gate answers with its reasoning, explains routing, and drafts nothing without a human click.</span></p>
       <details class="full">
@@ -2401,16 +2401,16 @@ STANDING GUARDRAILS (inherited by every registered feature)
       <p class="where"><code>SPEC.md §22.1 · S2</code></p>
     </div>
   </article>
-  <article class="node dormant" data-status="dormant">
+  <article class="node live" data-status="live">
     <button type="button" class="node-head" aria-expanded="false">
       <span class="node-top">
         <span class="node-name">Policy-grounded definitions</span>
-        <span class="chip dormant">Registered</span>
+        <span class="chip live">Live</span>
       </span>
       <span class="node-what">Where a person must choose against a standard — data classification, criticality, retention — the governing policy's own words appear beside the choice, quoted verbatim with a link to the clause.</span>
     </button>
     <div class="detail hidden">
-      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S3+; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">How and when it runs</span>Built and running when an agent is connected (S12). Off by default: with AGENT_TRANSPORT unset it is absent from the product and reads nothing.</p>
       <p><span class="label">What it can see</span>Would read: the organisation's own policy library, quoted verbatim with clause and version. Nothing from outside the organisation.</p>
       <p><span class="label">In its own words</span><span class="gist">Where a person must choose against a standard — data classification, criticality, retention — the governing policy's own words appear beside the choice, quoted verbatim with a link to the clause. Turns &quot;Confidential&quot; from a bare word into a decision someone can actually make.</span></p>
       <details class="full">
@@ -2469,16 +2469,16 @@ STANDING GUARDRAILS (inherited by every registered feature)
       <p class="where"><code>SPEC.md §22.1 · S3+</code></p>
     </div>
   </article>
-  <article class="node dormant" data-status="dormant">
+  <article class="node live" data-status="live">
     <button type="button" class="node-head" aria-expanded="false">
       <span class="node-top">
         <span class="node-name">Compliance checking</span>
-        <span class="chip dormant">Registered</span>
+        <span class="chip live">Live</span>
       </span>
       <span class="node-what">An attested answer that contradicts a policy requirement raises a finding with both quotes side by side — the requirement and the answer — resolvable only through the four governed dispositions (§4.</span>
     </button>
     <div class="detail hidden">
-      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S3+; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">How and when it runs</span>Built and running when an agent is connected (S12). Off by default: with AGENT_TRANSPORT unset it is absent from the product and reads nothing.</p>
       <p><span class="label">What it can see</span>Would read: attested answers and the policy version in force when they were attested. A later policy revision never rewrites a historical assessment.</p>
       <p><span class="label">In its own words</span><span class="gist">An attested answer that contradicts a policy requirement raises a finding with both quotes side by side — the requirement and the answer — resolvable only through the four governed dispositions (§4.3).</span></p>
       <details class="full">
@@ -2503,16 +2503,16 @@ STANDING GUARDRAILS (inherited by every registered feature)
       <p class="where"><code>SPEC.md §22.1 · S3+</code></p>
     </div>
   </article>
-  <article class="node dormant" data-status="dormant">
+  <article class="node live" data-status="live">
     <button type="button" class="node-head" aria-expanded="false">
       <span class="node-top">
         <span class="node-name">Instrument-to-obligation traceability</span>
-        <span class="chip dormant">Registered</span>
+        <span class="chip live">Live</span>
       </span>
       <span class="node-what">Every question traces to the standard or obligation that requires it — so &quot;why are you asking me this?&quot; is answered with an authority, not only a routing rule.</span>
     </button>
     <div class="detail hidden">
-      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S3+; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">How and when it runs</span>Built and running when an agent is connected (S12). Off by default: with AGENT_TRANSPORT unset it is absent from the product and reads nothing.</p>
       <p><span class="label">What it can see</span>Would read: the instrument and the obligation library, plus human-ratified mappings between them.</p>
       <p><span class="label">In its own words</span><span class="gist">Every question traces to the standard or obligation that requires it — so &quot;why are you asking me this?&quot; is answered with an authority, not only a routing rule. Read the other way it produces two coverage reports: obligations with **no question** (a gap in the instrument) and questions citing **no obligation** (a candidate for deletion).</span></p>
       <details class="full">
