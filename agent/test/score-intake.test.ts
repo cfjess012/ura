@@ -27,9 +27,9 @@ const task: ScoreTask = {
 
 describe("what the scoring gate accepts", () => {
   it("takes the scores it asked for", () => {
-    expect(scoreGate({ scores: { purpose: 2, data: 0 } }, task)).toEqual([
-      { id: "purpose", score: 2 },
-      { id: "data", score: 0 },
+    expect(scoreGate({ scores: { purpose: 4, data: 1 } }, task)).toEqual([
+      { id: "purpose", score: 4 },
+      { id: "data", score: 1 },
     ]);
   });
 
@@ -44,20 +44,21 @@ describe("what the scoring gate accepts", () => {
 
 describe("what it drops", () => {
   it("drops a dimension nobody asked about", () => {
-    expect(scoreGate({ scores: { purpose: 2, invented: 0 } }, task)).toEqual([
-      { id: "purpose", score: 2 },
+    expect(scoreGate({ scores: { purpose: 4, invented: 1 } }, task)).toEqual([
+      { id: "purpose", score: 4 },
     ]);
   });
 
   it("drops a score outside the rubric rather than clamping it", () => {
     // Clamping would turn nonsense into a number somebody then acts on.
     expect(scoreGate({ scores: { purpose: 7 } }, task)).toEqual([]);
+    expect(scoreGate({ scores: { purpose: 0 } }, task)).toEqual([]);
     expect(scoreGate({ scores: { purpose: -1 } }, task)).toEqual([]);
     expect(scoreGate({ scores: { purpose: 1.5 } }, task)).toEqual([]);
   });
 
   it("drops a score that is not a number at all", () => {
-    expect(scoreGate({ scores: { purpose: "2" } }, task)).toEqual([]);
+    expect(scoreGate({ scores: { purpose: "3" } }, task)).toEqual([]);
     expect(scoreGate({ scores: { purpose: null } }, task)).toEqual([]);
   });
 
@@ -65,6 +66,6 @@ describe("what it drops", () => {
     expect(scoreGate({}, task)).toEqual([]);
     expect(scoreGate({ scores: "all good" }, task)).toEqual([]);
     expect(scoreGate(null, task)).toEqual([]);
-    expect(scoreGate("2", task)).toEqual([]);
+    expect(scoreGate("3", task)).toEqual([]);
   });
 });

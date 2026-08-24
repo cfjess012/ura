@@ -46,6 +46,22 @@ export function modelId(): string {
 }
 
 /**
+ * Which model this service is actually talking to, in words — reported on
+ * /healthz so nobody has to infer it from environment variables. "anthropic
+ * with a base URL override" is a local model; without one it is the real
+ * Claude API, and those are very different things to be running.
+ */
+export function providerDescription(): string {
+  const provider = process.env.AGENT_PROVIDER ?? "anthropic";
+  if (provider === "bedrock") return "bedrock";
+  const base = process.env.ANTHROPIC_BASE_URL;
+  if (base) return `local (${base})`;
+  return process.env.ANTHROPIC_API_KEY
+    ? "anthropic-api"
+    : "anthropic-api (no key set)";
+}
+
+/**
  * The text of a reply, ignoring anything that is not text.
  *
  * Reasoning models return `thinking` blocks before the answer. Taking

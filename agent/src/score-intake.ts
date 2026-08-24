@@ -21,7 +21,7 @@ export type ScoreTask = {
   }>;
 };
 
-export type DimensionScore = { id: string; score: 0 | 1 | 2 };
+export type DimensionScore = { id: string; score: 1 | 2 | 3 | 4 };
 
 /**
  * Keep only scores for dimensions that were actually asked about, at values
@@ -37,7 +37,9 @@ export function scoreGate(parsed: unknown, task: ScoreTask): DimensionScore[] {
   const scores: DimensionScore[] = [];
   for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
     if (!asked.has(id)) continue;
-    if (value !== 0 && value !== 1 && value !== 2) continue;
+    // 1-4 against the published anchors. Anything else is dropped rather
+    // than clamped — clamping turns nonsense into a number somebody acts on.
+    if (value !== 1 && value !== 2 && value !== 3 && value !== 4) continue;
     scores.push({ id, score: value });
   }
   return scores;
@@ -56,7 +58,10 @@ export async function scoreIntake(task: ScoreTask): Promise<DimensionScore[]> {
       const client = modelClient();
       const message = await client.messages.create({
         model: modelId(),
-        max_tokens: 1200,
+        // Generous: this reads a whole intake, and a reasoning model spends
+        // most of its budget thinking before it writes anything. At 1200 it
+        // returned no text at all — the same trap the drafting pass hit.
+        max_tokens: 3000,
         messages: [{ role: "user", content: composeScorePrompt(task) }],
       });
       const text = textOf(

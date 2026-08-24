@@ -96,6 +96,7 @@ work, not after:
 | propose or spec anything an agent would do | `agentic-design` |
 | build, change or review a capability in the agent service | `agent-capability` |
 | put a model's output on a screen a person reads | `ai-surface` |
+| change the intake rubric, its scoring, or how a score is shown | `intake-rubric` |
 | write anything to the owner | `owner-brief` |
 | answer design feedback or a screenshot | `design-mock` |
 | finish a review, prep UAT or the demo, or write down a claim | `demo-truth` |

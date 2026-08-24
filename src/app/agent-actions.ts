@@ -23,10 +23,11 @@ import { documentStore } from "@/lib/documents";
 import { quoteAppearsVerbatim } from "@/lib/agent-contract";
 import {
   belowFloor,
+  coherenceFrom,
+  coherenceWhenUnavailable,
   scoringBrief,
-  verdictFrom,
-  verdictWhenAgentUnavailable,
-  type RubricVerdict,
+  type Coherence,
+  type Level,
 } from "@/lib/intake-rubric";
 import { gateStates } from "@/lib/instrument";
 import { whatsOnScreen } from "@/lib/whats-on-screen";
@@ -537,44 +538,111 @@ export async function acceptDraft(
  * a partial answer: all of them pass. A quality assistant that blocks
  * submission has become a gate, and the mission is reducing friction.
  */
-export async function checkDescription(
-  description: string,
-): Promise<Result<{ verdict: RubricVerdict }>> {
+/**
+ * Read the whole intake and say how it reads (FR-43).
+ *
+ * The floor runs here with no model — it costs nothing and catches a
+ * product name. Only what clears it is worth a model call.
+ *
+ * **It fails open at every step.** No agent, a slow agent, a wrong agent,
+ * a partial answer, a thrown error: all pass. A quality assistant that
+ * blocks submission has become a gate (G-69).
+ */
+export async function checkIntake(
+  projectId: string,
+): Promise<Result<{ coherence: Coherence; rewritable: string[] }>> {
   try {
+    const access = await openProject(projectId);
+    if (!access.ok) {
+      return failure(
+        "checkIntake",
+        new Error("not permitted"),
+        "That assessment isn't yours to work on.",
+        { retryable: false, expected: true },
+      );
+    }
+    const values = intakeValuesFrom(
+      access.project as unknown as Record<string, unknown>,
+    );
+
+    // The whole intake, read as one document. Coherence is a property of
+    // the set — "internal tool" and a list of external recipients are only
+    // in conflict when you read both.
+    const document: string[] = [];
+    const longForm: string[] = [];
+    for (const section of INTAKE_SECTIONS) {
+      for (const field of section.fields) {
+        const value = values[field.id];
+        if (value === undefined || value === null || value === "") continue;
+        const text = Array.isArray(value) ? value.join(", ") : String(value);
+        document.push(`${field.label}: ${text}`);
+        if (field.type === "textarea" && text.trim().split(/\s+/).length > 8) {
+          longForm.push(field.id);
+        }
+      }
+    }
+
+    const description =
+      typeof values.projectDescription === "string"
+        ? values.projectDescription
+        : "";
     const floor = belowFloor(description);
     if (floor) {
       return {
         ok: true as const,
-        verdict: {
-          passes: false,
-          // The floor is a real check and needs no model.
-          checkedByModel: true,
+        coherence: {
+          score: null,
+          outOf: 20,
+          band: null,
+          meaning: null,
           opening: null,
+          checkedByModel: true,
           asks: [
             {
               id: "floor",
               label: "The description",
+              level: 1 as Level,
               sentence: floor,
               anchor: "",
+              why: "Everything downstream routes on what you write here.",
+              routing: true,
             },
           ],
         },
+        rewritable: [],
       };
     }
 
     const transport = agentTransport();
     if (!transport.available) {
-      return { ok: true as const, verdict: verdictWhenAgentUnavailable() };
+      return {
+        ok: true as const,
+        coherence: coherenceWhenUnavailable(),
+        rewritable: [],
+      };
     }
     const scores = await transport.scoreIntake({
-      description,
+      description: document.join("\n"),
       dimensions: scoringBrief(),
     });
-    return { ok: true as const, verdict: verdictFrom(scores) };
+    return {
+      ok: true as const,
+      coherence: coherenceFrom(
+        scores.map((s) => ({
+          id: s.id,
+          level: Math.min(4, Math.max(1, s.score)) as Level,
+        })),
+      ),
+      rewritable: longForm,
+    };
   } catch (error) {
     // Even a thrown error passes. Nothing about checking a description is
     // worth stopping somebody over.
-    console.error("[checkDescription]", error);
-    return { ok: true as const, verdict: verdictWhenAgentUnavailable() };
+    console.error("[checkIntake]", error);
+    return {
+      ok: true as const,
+      coherence: coherenceWhenUnavailable(),
+      rewritable: [],
+    };
   }
 }

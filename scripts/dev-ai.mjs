@@ -14,8 +14,17 @@ import { spawn } from "node:child_process";
 
 const AGENT_PORT = Number(process.env.AGENT_PORT ?? 8790);
 const AGENT_URL = `http://localhost:${AGENT_PORT}`;
+/**
+ * Two ways to run the agent, chosen by AGENT_MODE:
+ *   ollama (default) — free, local, exercises the gates
+ *   claude           — the real Claude API, needs ANTHROPIC_API_KEY
+ * Bedrock is the third and belongs to a deployment, not to a dev script.
+ */
+const MODE = process.env.AGENT_MODE ?? "ollama";
+const USING_CLAUDE = MODE === "claude";
 const OLLAMA = process.env.ANTHROPIC_BASE_URL ?? "http://localhost:11434";
-const MODEL = process.env.AGENT_MODEL ?? "qwen3:14b";
+const MODEL =
+  process.env.AGENT_MODEL ?? (USING_CLAUDE ? "claude-sonnet-5" : "qwen3:14b");
 
 const say = (m) => console.log(`\x1b[36m[dev:ai]\x1b[0m ${m}`);
 
@@ -47,7 +56,15 @@ const stop = () => {
 process.on("SIGINT", stop);
 process.on("SIGTERM", stop);
 
-if (!(await ollamaReachable())) {
+if (USING_CLAUDE && !process.env.ANTHROPIC_API_KEY) {
+  console.error(
+    `\n  ANTHROPIC_API_KEY is not set, so there is nothing to talk to.\n` +
+      `  Put it in .env, or run \`pnpm dev:ai\` to use the local model instead.\n`,
+  );
+  process.exit(1);
+}
+
+if (!USING_CLAUDE && !(await ollamaReachable())) {
   console.error(
     `\n  The local model is not answering at ${OLLAMA}.\n` +
       `  Start it with:  ollama serve\n` +
@@ -59,13 +76,15 @@ if (!(await ollamaReachable())) {
 if (await alreadyUp()) {
   say(`an agent is already answering on ${AGENT_PORT} — using it`);
 } else {
-  say(`starting the agent on ${AGENT_PORT} (${MODEL})`);
+  say(`starting the agent on ${AGENT_PORT} — ${USING_CLAUDE ? "Claude API" : "local"}, ${MODEL}`);
   const agent = spawn("node", ["--experimental-strip-types", "src/server.ts"], {
     cwd: new URL("../agent", import.meta.url).pathname,
     env: {
       ...process.env,
       AGENT_PROVIDER: "anthropic",
-      ANTHROPIC_BASE_URL: OLLAMA,
+      // No base URL for the Claude API — that override is what makes the
+      // identical client talk to a local model instead.
+      ...(USING_CLAUDE ? {} : { ANTHROPIC_BASE_URL: OLLAMA }),
       AGENT_MODEL: MODEL,
       PORT: String(AGENT_PORT),
     },

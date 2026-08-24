@@ -1,90 +1,105 @@
 {
-  "version": "2026-08-24.1",
-  "comment": "The intake rubric — the engine behind the quality gate on the first screen a requester sees. Three layers. The FLOOR is heuristic and deterministic: it catches a name, a fragment, or keyboard noise with no model call. The SCORING layer is the only part a model touches, and it does exactly one thing — assign 0, 1 or 2 per dimension against the anchors below, strictly on the presence of factual detail and never on length. Everything downstream is deterministic: the pass rule, and the feedback string for that dimension at that score. Feedback is verbatim business copy — edit it here, never in code. FAIL OPEN: if the model is unavailable or wrong, intake proceeds. A quality assistant that blocks submission has become a gate, and the mission is reducing friction.",
+  "version": "2026-08-24.2",
+  "comment": "The graded rubric behind the intake coherence check (FR-43). Five criteria scored 1-4 over the WHOLE intake read as one document — coherence is a property of the set, not of any one field. A model assigns levels and nothing else; the band, the wording and the order of the asks are all deterministic and all from this file. Anchors and asks are business copy: edit them here, never in code. See .claude/skills/intake-rubric/SKILL.md for why each criterion exists. It never blocks submission (G-69).",
   "floor": {
     "minWords": 15,
     "minDistinctRatio": 0.4,
     "minAverageWordLength": 3
   },
   "engine": {
-    "passScore": 2,
     "failOpenOnAgentError": true,
-    "opening": "Thanks — this is enough to start. A few more specifics would let the platform route this properly and save you questions later:"
+    "opening": "Here is how this reads to a reviewer who has not met you. None of it blocks you — you can submit as it stands and a reviewer will pick up anything thin."
   },
   "messages": {
     "tooShort": "That is too thin to work from. A few sentences about what the activity does, what data it touches and who else is involved gives the platform something to route on — and saves you being asked later.",
     "notProse": "That does not read as a description yet. The platform routes on what you write, so it needs real sentences about the activity."
   },
-  "dimensions": [
+  "bands": [
+    { "from": 17, "label": "Robust", "meaning": "A reviewer can work from this as written." },
+    { "from": 13, "label": "Workable", "meaning": "Usable. The gaps below are specific and quick to close." },
+    { "from": 9, "label": "Thin", "meaning": "Routing will be working from guesses in places." },
+    { "from": 5, "label": "Not yet usable", "meaning": "As written, this cannot be assessed without asking you first." }
+  ],
+  "criteria": [
     {
-      "id": "purpose",
-      "label": "What it does",
+      "id": "clarity",
+      "label": "Clarity & Coherence",
+      "why": "Whether a reviewer can determine the purpose at all.",
       "anchors": {
-        "0": "No indication of what the activity actually does.",
-        "1": "Names a system or a category, but not the business function it serves.",
-        "2": "Names the activity and states the specific business process it supports."
+        "1": "Vague, fragmented, or unintelligible. The core purpose of the project cannot be determined.",
+        "2": "Understandable but lacks detail. Uses heavy jargon without context, leaving some ambiguity.",
+        "3": "Clear and logical. The reviewer can easily grasp the project's purpose, though minor details may be missing.",
+        "4": "Exceptionally clear, well-structured, and precise. Leaves no doubt about the project's exact purpose and functionality."
       },
-      "feedback": {
-        "0": "What it does: describe what this actually does, in one sentence. For example, \"it proposes which queue an incoming insurance claim should go to\".",
-        "1": "What it does: you have named the system — what business process does it support? The specific job it does, rather than the category it belongs to."
-      },
-      "starters": [
-        { "label": "Automates an internal process…", "insert": "It automates our internal process of ", "complete": false },
-        { "label": "Supports a decision…", "insert": "It analyses data to support decisions about ", "complete": false },
-        { "label": "Customer-facing service…", "insert": "It is a customer-facing service that lets customers ", "complete": false }
-      ]
+      "ask": {
+        "1": "Say what this actually does, in one plain sentence — the specific job, not the category it belongs to.",
+        "2": "Cut the jargon or explain it. A reviewer who does not work in your area should be able to follow it.",
+        "3": "Close, and worth one more sentence on the part a stranger would still have to guess at."
+      }
     },
     {
-      "id": "data",
-      "label": "What data it touches",
+      "id": "consistency",
+      "label": "Internal Consistency",
+      "why": "Whether the answers contradict each other — the one thing a person cannot check for themselves, because they know what they meant.",
       "anchors": {
-        "0": "Says nothing about data.",
-        "1": "Mentions data without saying what kind, or how sensitive.",
-        "2": "Names the kinds of data involved and whether any of it identifies people."
+        "1": "Major contradictions (for example, states it is an internal app but lists external users later).",
+        "2": "Contains minor conflicts or confusing statements that require clarification before approval.",
+        "3": "Generally consistent. Facts align throughout with no glaring operational conflicts.",
+        "4": "Fully consistent. Technical, business, and user details align with no contradictions."
       },
-      "feedback": {
-        "0": "Data: what data does this hold or read? Naming it — customer records, employee details, financial transactions — decides which questions you are asked.",
-        "1": "Data: you have mentioned data. Does any of it identify a person, or count as confidential? That is what changes the questions."
-      },
-      "starters": [
-        { "label": "Personal data about customers…", "insert": "It processes personal data about customers, specifically ", "complete": false },
-        { "label": "Employee data…", "insert": "It holds employee data, specifically ", "complete": false },
-        { "label": "No personal data", "insert": "It holds no personal data — only ", "complete": false }
-      ]
+      "ask": {
+        "1": "Two of your answers disagree with each other. Both are named below — one of them needs changing.",
+        "2": "Something here reads two ways. Worth a sentence to settle which you mean.",
+        "3": "Consistent as far as it goes."
+      }
     },
     {
-      "id": "who",
-      "label": "Who else is involved",
+      "id": "audience",
+      "label": "User Audience & Scope",
+      "why": "Who uses it, and where it stops.",
       "anchors": {
-        "0": "Says nothing about suppliers, partners or other teams.",
-        "1": "Alludes to someone outside without naming them or their role.",
-        "2": "Names the supplier or partner and what they do in the activity."
+        "1": "No mention of who will use the system or the overall business scope.",
+        "2": "Mentions users vaguely (for example, \"employees\"). Scope boundaries are blurry.",
+        "3": "Identifies specific user groups (for example, \"HR admins\") and generally defines what the project will and will not do.",
+        "4": "Clearly defines exact user roles, permission levels, and the boundaries of the project's scope."
       },
-      "feedback": {
-        "0": "Who else: is anyone outside the organisation involved — a supplier, a platform, a partner? Naming them here saves the third-party questions being asked cold.",
-        "1": "Who else: you have mentioned someone external. Who are they, and what do they actually do in this activity?"
-      },
-      "starters": [
-        { "label": "A supplier provides it…", "insert": "It is provided by ", "complete": false },
-        { "label": "Built and run in-house", "insert": "It is built and run entirely in-house, with no external supplier involved.", "complete": true }
-      ]
+      "ask": {
+        "1": "Who actually uses this, and what does it deliberately not do? Both change which questions you are asked.",
+        "2": "\"Employees\" could be anyone. Which group — and can they all see everything?",
+        "3": "Worth naming the permission levels if there is more than one."
+      }
     },
     {
-      "id": "where",
-      "label": "Where it runs",
+      "id": "dataAccess",
+      "label": "Data Access & Flow",
+      "why": "Who reaches the data and how it moves. Decides which risk areas open and who reviews it.",
       "anchors": {
-        "0": "Says nothing about where it runs or where data sits.",
-        "1": "Mentions hosting vaguely — \"the cloud\", \"their platform\".",
-        "2": "States where it runs and where the data sits."
+        "1": "Ignores data access entirely. No explanation of how data is accessed, stored, or transferred.",
+        "2": "Mentions data access briefly but misses key details like third-party access or data transit methods.",
+        "3": "Explains who accesses the data and the general data flow, but may lack specifics on downstream systems.",
+        "4": "Fully maps data access, including third-party vendors, APIs, storage locations, and the data lifecycle."
       },
-      "feedback": {
-        "0": "Where it runs: is this in our environment, a supplier's, or somewhere else? Where the data sits changes who has to review it.",
-        "1": "Where it runs: you have said it is hosted — whose environment, and where does the data sit?"
+      "ask": {
+        "1": "Nothing here says who touches the data or where it goes. That decides which risk areas open, so it is the most useful thing you can add.",
+        "2": "Does anyone outside the organisation see this data, and how does it get to them?",
+        "3": "Worth naming where it ends up — the downstream systems, not just the first hop."
+      }
+    },
+    {
+      "id": "sensitivity",
+      "label": "Data Sensitivity",
+      "why": "What kind of data, and how sensitive. Decides the severity questions you are asked.",
+      "anchors": {
+        "1": "Fails to mention what type of data the project will handle.",
+        "2": "Broadly mentions data but does not classify its sensitivity (for example, \"user data\" without specifying personal information).",
+        "3": "Identifies the general data types and acknowledges whether sensitive data (personal, health, financial) is present.",
+        "4": "Explicitly lists the data types, classifies their sensitivity, and notes the compliance requirements that follow."
       },
-      "starters": [
-        { "label": "In our own environment", "insert": "It runs in our own environment, with data held in ", "complete": false },
-        { "label": "In the supplier's environment…", "insert": "It runs in the supplier's environment, with data held in ", "complete": false }
-      ]
+      "ask": {
+        "1": "What data does this hold or read? Naming it decides which questions you are asked next.",
+        "2": "Does any of it identify a person, or count as confidential? That is what changes the assessment.",
+        "3": "Worth naming the regime if one applies — the reviewer will ask."
+      }
     }
   ]
 }

@@ -5,7 +5,7 @@
  * is lost between sections, and reports failure as a designed state (§25).
  */
 import * as React from "react";
-import { DescriptionHelp } from "./description-help";
+import { CoherenceCheck } from "./coherence-check";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { saveIntake } from "@/app/actions";
@@ -278,6 +278,11 @@ export function SectionForm({
             ) : null,
           )}
         </div>
+
+        {/* The coherence check reads the WHOLE intake, so it belongs at the
+            foot of a section rather than beside one field — and beside the
+            way forward rather than in front of it (§22.1, G-69). */}
+        <CoherenceCheck projectId={projectId} save={save} />
 
         <div className="savebar">
           <span
@@ -594,11 +599,6 @@ function Control({
           onChange={(e) => set(field.id, e.target.value)}
           {...validity}
         />
-        {/* Only on the description: it is the field everything downstream
-            is routed from, so it is the one worth helping with (§22.1). */}
-        {field.id === "projectDescription" && (
-          <DescriptionHelp describe={(value as string) ?? ""} />
-        )}
       </>
     );
   }

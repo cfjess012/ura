@@ -19,7 +19,7 @@ import { converse, type ConverseTask } from "./converse.ts";
 import { draftOne, type DraftTask } from "./draft.ts";
 import { writeReport } from "./report.ts";
 import { scoreIntake, type ScoreTask } from "./score-intake.ts";
-import { modelId } from "./model.ts";
+import { modelId, providerDescription } from "./model.ts";
 import { promptVersion } from "./prompt.ts";
 import { startTelemetry } from "./telemetry.ts";
 
@@ -53,6 +53,7 @@ const server = createServer(async (req, res) => {
         service: "ura-agent",
         contract: AGENT_CONTRACT_VERSION,
         model: modelId(),
+        provider: providerDescription(),
         prompt: promptVersion(),
       }),
     );

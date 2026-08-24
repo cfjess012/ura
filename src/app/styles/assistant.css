@@ -277,51 +277,198 @@
   }
 }
 
-/* The intake rubric's suggestions. Beside the box, never in front of the
-   button — a person who wants to write two lines and move on can (§22.1). */
-.rubric {
-  margin-top: 0.5rem;
-}
-.rubric-good {
-  font-size: 0.86rem;
-  font-weight: 600;
-  color: var(--success);
+/* The intake coherence check (FR-43). Beside the way forward, never in
+   front of it — a person who wants to write two lines and move on can. */
+.coherence {
+  margin: 1.2rem 0 0;
   display: flex;
-  align-items: baseline;
-  gap: 0.35rem;
+  flex-direction: column;
+  gap: 0.7rem;
 }
-.rubric-asks {
-  padding: 0.7rem 0.9rem;
-  margin-bottom: 0.4rem;
-  border-radius: 10px;
+
+/* The one button in the product that starts a model. It reads as an AI
+   action because it is one — but it says what it does, not what it is. */
+.ai-check {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.72rem 1.35rem;
+  border-radius: 999px;
+  border: none;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--neutral-0);
+  background: linear-gradient(
+    100deg,
+    var(--primary) 0%,
+    #6f7ee8 55%,
+    #8b7de0 100%
+  );
+  box-shadow: 0 4px 14px rgb(0 118 207 / 26%);
+  cursor: pointer;
+}
+.ai-check:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.ai-check:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+.ai-check:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+.ai-check-spark {
+  flex-shrink: 0;
+}
+
+.coherence-pending {
+  display: flex;
+  gap: 0.3rem;
+  align-self: flex-end;
+  padding: 0.2rem 0;
+}
+.coherence-pending span {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: coherence-dot 1.2s ease-in-out infinite;
+}
+.coherence-pending span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.coherence-pending span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+@keyframes coherence-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coherence-pending span {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+.coherence-result {
+  padding: 0.9rem 1.05rem;
+  border-radius: var(--radius);
   background: var(--surface-1);
   border: 1px solid var(--surface-3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 }
-.rubric-opening {
+
+/* The band, with its meaning beside it. Never a bare number — a number a
+   person cannot check is a number that replaces their judgement. */
+.coherence-band {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.coherence-band-label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+.coherence-score {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--neutral-600);
+}
+.coherence-meaning {
   font-size: 0.88rem;
-  margin-bottom: 0.5rem;
-  color: var(--neutral-800);
+  color: var(--neutral-700);
 }
-.rubric-asks ul {
-  display: grid;
-  gap: 0.5rem;
-  margin-bottom: 0.4rem;
+.coherence-robust .coherence-band-label {
+  color: var(--success);
 }
-.rubric-asks li {
-  display: grid;
-  gap: 0.12rem;
+.coherence-thin .coherence-band-label,
+.coherence-not-yet-usable .coherence-band-label {
+  color: var(--warning-strong);
 }
-.rubric-ask {
+
+.coherence-opening {
   font-size: 0.88rem;
   line-height: 1.5;
-  color: var(--neutral-900);
+  color: var(--neutral-800);
 }
-.rubric-anchor {
-  font-size: 0.78rem;
-  color: var(--neutral-600);
-  line-height: 1.45;
+.coherence-clear {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--success);
 }
-.rubric-asks .help {
+.coherence-nocheck {
   margin: 0;
-  font-size: 0.76rem;
+}
+
+.coherence-asks {
+  display: grid;
+  gap: 0.65rem;
+}
+.coherence-ask {
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  background: var(--neutral-0);
+  border: 1px solid var(--neutral-200);
+}
+/* The two that decide where an assessment goes, marked as such — in words,
+   never by colour alone. */
+.coherence-ask.routing {
+  border-left: 4px solid var(--warning);
+}
+.coherence-ask-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--neutral-900);
+  margin-bottom: 0.2rem;
+}
+.coherence-level {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+.coherence-routing {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--warning-strong);
+}
+.coherence-ask-body {
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.coherence-anchor {
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--neutral-600);
+}
+.coherence .help {
+  margin: 0;
+  font-size: 0.78rem;
 }

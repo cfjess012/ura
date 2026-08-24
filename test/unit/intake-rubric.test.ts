@@ -1,163 +1,176 @@
 /**
- * §22.1 · the intake quality assistant.
+ * FR-43 · the graded intake rubric.
  *
- * The rule that matters most here is not about quality at all: **it fails
- * open**. A quality assistant that blocks submission has become a gate, and
- * the mission is reducing friction.
+ * Five criteria, four levels, scored over the whole intake. The rules that
+ * matter most are not about grading at all: **it never blocks**, and a
+ * score never appears as a bare number.
  */
 import { describe, expect, it } from "vitest";
 import {
+  bandFor,
   belowFloor,
-  DIMENSIONS,
+  coherenceFrom,
+  coherenceWhenUnavailable,
+  CRITERIA,
   RUBRIC_VERSION,
   scoringBrief,
-  verdictFrom,
-  verdictWhenAgentUnavailable,
+  type Level,
 } from "@/lib/intake-rubric";
 
+const all = (level: Level) => CRITERIA.map((c) => ({ id: c.id, level }));
+
 describe("the floor catches what is not a description, with no model", () => {
-  it("refuses a name on its own", () => {
+  it("refuses a product name on its own", () => {
     expect(belowFloor("Salesforce")).toMatch(/too thin/i);
   });
 
-  it("refuses nothing at all", () => {
-    expect(belowFloor("")).toBeTruthy();
-    expect(belowFloor("     ")).toBeTruthy();
-  });
-
   it("refuses keyboard noise", () => {
-    expect(
-      belowFloor(
-        "asdf asdf asdf asdf asdf asdf asdf asdf asdf asdf asdf asdf asdf asdf asdf",
-      ),
-    ).toMatch(/does not read as a description/i);
-  });
-
-  it("refuses a fragment that is too short to route on", () => {
-    expect(belowFloor("A new tool for the finance team.")).toMatch(/too thin/i);
+    expect(belowFloor("asdf ".repeat(20))).toMatch(
+      /does not read as a description/i,
+    );
   });
 
   it("lets a real description through", () => {
     expect(
       belowFloor(
-        "A claims triage assistant from Sable Analytics that reads an incoming claim and proposes which handling queue it belongs in, with a handler confirming every proposal before anything is routed.",
+        "A claims triage assistant from Sable Analytics that reads an incoming claim and proposes which handling queue it belongs in, with a handler confirming every proposal.",
       ),
     ).toBeNull();
   });
 });
 
-describe("what a person is asked for", () => {
-  it("says nothing when every dimension is met", () => {
-    const verdict = verdictFrom(
-      DIMENSIONS.map((d) => ({ id: d.id, score: 2 as const })),
-    );
-    expect(verdict.passes).toBe(true);
-    expect(verdict.asks).toEqual([]);
-    expect(verdict.opening).toBeNull();
-  });
-
-  it("asks only for what is missing, in the rubric's own words", () => {
-    const verdict = verdictFrom([
-      { id: "purpose", score: 2 },
-      { id: "data", score: 0 },
-      { id: "who", score: 1 },
-      { id: "where", score: 2 },
+describe("five criteria, four levels", () => {
+  it("has exactly the five the rubric names", () => {
+    expect(CRITERIA.map((c) => c.id)).toEqual([
+      "clarity",
+      "consistency",
+      "audience",
+      "dataAccess",
+      "sensitivity",
     ]);
-    expect(verdict.passes).toBe(false);
-    expect(verdict.asks.map((a) => a.id)).toEqual(["data", "who"]);
-    // Verbatim from the data file, never composed in code.
-    expect(verdict.asks[0]!.sentence).toBe(DIMENSIONS[1]!.feedback["0"]);
-    expect(verdict.asks[1]!.sentence).toBe(DIMENSIONS[2]!.feedback["1"]);
   });
 
-  it("shows what good looks like, so the grade is never a black box", () => {
-    const verdict = verdictFrom([{ id: "data", score: 0 }]);
-    expect(verdict.asks[0]!.anchor).toBe(
-      DIMENSIONS.find((d) => d.id === "data")!.anchors["2"],
+  it("gives every criterion four anchors and an ask for every shortfall", () => {
+    for (const criterion of CRITERIA) {
+      for (const level of ["1", "2", "3", "4"] as const) {
+        expect(
+          criterion.anchors[level].length,
+          `${criterion.id} anchor ${level}`,
+        ).toBeGreaterThan(30);
+      }
+      for (const level of ["1", "2", "3"] as const) {
+        expect(
+          criterion.ask[level].length,
+          `${criterion.id} ask ${level}`,
+        ).toBeGreaterThan(20);
+      }
+    }
+  });
+
+  it("is versioned, and hands the model the anchors it grades against", () => {
+    expect(RUBRIC_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}/);
+    expect(scoringBrief()).toHaveLength(5);
+    expect(scoringBrief()[0]!.anchors["4"]).toBeTruthy();
+  });
+});
+
+describe("the score becomes a band, never a bare number", () => {
+  it("reads full marks as robust", () => {
+    const result = coherenceFrom(all(4));
+    expect(result.score).toBe(20);
+    expect(result.band).toBe("Robust");
+    expect(result.asks).toEqual([]);
+  });
+
+  it("reads the floor of the scale as not yet usable", () => {
+    const result = coherenceFrom(all(1));
+    expect(result.score).toBe(5);
+    expect(result.band).toBe("Not yet usable");
+  });
+
+  it("bands the middle of the range", () => {
+    expect(bandFor(16).label).toBe("Workable");
+    expect(bandFor(12).label).toBe("Thin");
+  });
+
+  it("always carries a meaning beside the band — a number alone says nothing", () => {
+    for (const level of [1, 2, 3, 4] as Level[]) {
+      const result = coherenceFrom(all(level));
+      expect(result.meaning, `level ${level}`).toBeTruthy();
+    }
+  });
+});
+
+describe("what a person is asked for", () => {
+  it("asks only about what fell short, in the rubric's own words", () => {
+    const result = coherenceFrom([
+      { id: "clarity", level: 4 },
+      { id: "consistency", level: 4 },
+      { id: "audience", level: 2 },
+      { id: "dataAccess", level: 4 },
+      { id: "sensitivity", level: 4 },
+    ]);
+    expect(result.asks).toHaveLength(1);
+    expect(result.asks[0]!.id).toBe("audience");
+    expect(result.asks[0]!.sentence).toBe(
+      CRITERIA.find((c) => c.id === "audience")!.ask["2"],
     );
   });
 
-  it("treats a dimension nobody scored as nothing to ask about", () => {
-    // A model returning partial scores must not invent a demand.
-    expect(verdictFrom([]).passes).toBe(true);
+  it("shows what full marks look like, so the grade is never a black box", () => {
+    const result = coherenceFrom([{ id: "clarity", level: 1 }]);
+    expect(result.asks[0]!.anchor).toBe(CRITERIA[0]!.anchors["4"]);
+  });
+
+  it("puts the two that decide routing first, however thin the others are", () => {
+    // A thin answer on data access is a wrong routing, not a vague one.
+    const result = coherenceFrom([
+      { id: "clarity", level: 1 },
+      { id: "consistency", level: 1 },
+      { id: "audience", level: 1 },
+      { id: "dataAccess", level: 3 },
+      { id: "sensitivity", level: 3 },
+    ]);
+    expect(
+      result.asks
+        .slice(0, 2)
+        .map((a) => a.id)
+        .sort(),
+    ).toEqual(["dataAccess", "sensitivity"]);
+    expect(
+      result.asks.every(
+        (a) => a.routing === (a.id === "dataAccess" || a.id === "sensitivity"),
+      ),
+    ).toBe(true);
+  });
+
+  it("treats a criterion nobody scored as met, not as a demand", () => {
+    // Fail-open, applied one criterion at a time: a partial answer from a
+    // model must never invent a thing to ask for.
+    const result = coherenceFrom([{ id: "clarity", level: 2 }]);
+    expect(result.asks.map((a) => a.id)).toEqual(["clarity"]);
+    expect(result.score).toBe(2 + 4 * 4);
   });
 });
 
 describe("it fails open", () => {
-  it("passes when the model could not be asked", () => {
-    // The alternative — blocking whenever a model is down — is the exact
-    // failure this rubric exists to avoid.
-    const verdict = verdictWhenAgentUnavailable();
-    expect(verdict.passes).toBe(true);
-    expect(verdict.asks).toEqual([]);
-  });
-});
-
-describe("the rubric is data a person could read", () => {
-  it("is versioned", () => {
-    expect(RUBRIC_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}/);
+  it("scores nothing and asks nothing when the model could not be reached", () => {
+    const result = coherenceWhenUnavailable();
+    expect(result.score).toBeNull();
+    expect(result.asks).toEqual([]);
+    // And says so, rather than reporting a pass it never checked.
+    expect(result.checkedByModel).toBe(false);
   });
 
-  it("gives every dimension three anchors and a sentence for each shortfall", () => {
-    for (const dimension of DIMENSIONS) {
-      for (const band of ["0", "1", "2"] as const) {
-        expect(
-          dimension.anchors[band].length,
-          `${dimension.id} anchor ${band}`,
-        ).toBeGreaterThan(20);
-      }
-      for (const band of ["0", "1"] as const) {
-        expect(
-          dimension.feedback[band].length,
-          `${dimension.id} feedback ${band}`,
-        ).toBeGreaterThan(40);
-      }
-    }
+  it("marks a real grading as checked, so a pass can be told from a shrug", () => {
+    expect(coherenceFrom(all(4)).checkedByModel).toBe(true);
   });
 
-  it("never puts an internal id in front of a person", () => {
-    // Identifier-SHAPED, not the bare word: "you have mentioned data."
-    // ends a sentence and is fine; "intake.data" is not.
-    const identifier = /\b[a-z]+[._][a-z_]+\b/;
-    for (const dimension of DIMENSIONS) {
-      expect(dimension.label).not.toMatch(/[._]/);
-      for (const band of ["0", "1"] as const) {
-        expect(dimension.feedback[band], `${dimension.id} ${band}`).not.toMatch(
-          identifier,
-        );
-      }
-      for (const band of ["0", "1", "2"] as const) {
-        expect(
-          dimension.anchors[band],
-          `${dimension.id} anchor ${band}`,
-        ).not.toMatch(identifier);
-      }
-    }
-  });
-
-  it("offers starters that would themselves pass — never one the rubric would mark down", () => {
-    // A product that suggests a sentence its own rubric scores 1 is
-    // arguing with itself. A starter marked incomplete is deliberately a
-    // sentence opener, and it says so by ending mid-phrase.
-    for (const dimension of DIMENSIONS) {
-      for (const starter of dimension.starters) {
-        if (starter.complete) {
-          expect(
-            starter.insert.trim(),
-            `${dimension.id}: ${starter.label}`,
-          ).toMatch(/[.!?]$/);
-        } else {
-          expect(starter.insert, `${dimension.id}: ${starter.label}`).toMatch(
-            /\s$/,
-          );
-        }
-      }
-    }
-  });
-
-  it("hands the model the anchors, so it scores against published words", () => {
-    const brief = scoringBrief();
-    expect(brief).toHaveLength(DIMENSIONS.length);
-    expect(brief[0]!.anchors["2"]).toBeTruthy();
+  it("never returns anything that could block a person", () => {
+    // There is no field here a caller could read as "stop". If one is ever
+    // wanted, that is a governance decision (G-69), not a default.
+    const result = coherenceFrom(all(1));
+    expect(Object.keys(result)).not.toContain("blocked");
+    expect(Object.keys(result)).not.toContain("passes");
   });
 });

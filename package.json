@@ -27,6 +27,8 @@
     "walk:demo": "node scripts/walk-demo.mjs",
     "dev:ai": "node scripts/dev-ai.mjs",
     "agent:dev": "cd agent && PORT=8790 node --experimental-strip-types src/server.ts",
+    "agent:claude": "cd agent && AGENT_PROVIDER=anthropic AGENT_MODEL=${AGENT_MODEL:-claude-sonnet-5} PORT=8790 node --experimental-strip-types src/server.ts",
+    "dev:claude": "AGENT_MODE=claude node scripts/dev-ai.mjs",
     "agent:ollama": "cd agent && AGENT_PROVIDER=anthropic ANTHROPIC_BASE_URL=http://localhost:11434 AGENT_MODEL=qwen3:14b PORT=8790 node --experimental-strip-types src/server.ts",
     "agent:test": "cd agent && vitest run"
   },
