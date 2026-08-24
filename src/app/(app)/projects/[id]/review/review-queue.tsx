@@ -10,7 +10,9 @@ import {
   type ReviewCriterion,
 } from "@/lib/grounding";
 import { TIER3_ANSWERS, type Tier3Answer } from "@/lib/tier3";
+import { ProgressMeter } from "@/app/(app)/progress-meter";
 import { type Acceptor, SettleFinding } from "./settle-finding";
+import { WhatChanged } from "./what-changed";
 
 export type QueueItem = {
   questionId: string;
@@ -184,6 +186,14 @@ export function ReviewQueue({
     <div className="review-layout">
       <nav className="rail review-rail" aria-label="Controls to review">
         <p className="rail-title">{canAttest ? "To attest" : "Controls"}</p>
+        {/* How much is left, without counting the rail by eye. */}
+        <div style={{ margin: "0 0 0.7rem" }}>
+          <ProgressMeter
+            done={items.filter((item) => item.attestation).length}
+            total={items.length}
+            label="signed"
+          />
+        </div>
         <ol>
           {items.map((item, i) => (
             <li key={item.questionId}>
@@ -308,6 +318,13 @@ export function ReviewQueue({
                     ? ` — “${current.attestation.note}”`
                     : ""}
                 </p>
+                {current.attestation.act === "correct" &&
+                  current.attestation.correctedAnswer && (
+                    <WhatChanged
+                      before={`${current.answer ?? "not answered"}${current.note ? ` — ${current.note}` : ""}`}
+                      after={`${current.attestation.correctedAnswer}${current.attestation.note ? ` — ${current.attestation.note}` : ""}`}
+                    />
+                  )}
                 <p className="help">
                   An attested answer is corrected by attesting again, never by
                   erasing this one.

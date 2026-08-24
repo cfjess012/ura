@@ -245,6 +245,7 @@ export default async function ReviewPage({
               : `${mine} control${mine === 1 ? "" : "s"} for you to attest — ${signedCount} of ${items.length} signed.`
         }
         currentStage={2}
+        progress={{ done: signedCount, total: items.length, label: "signed" }}
       />
       <ReviewQueue
         projectId={id}

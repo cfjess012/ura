@@ -210,3 +210,128 @@
   outline-offset: 3px;
   border-radius: 4px;
 }
+
+/* How far through something a person is (G-63). The numbers are always
+   rendered — the bar reinforces a fact, it is never the only place it
+   exists. Tokens only; a meter is not a reason for a new palette. */
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.meter-track {
+  height: 6px;
+  flex: 1;
+  min-width: 6rem;
+  border-radius: 999px;
+  background: var(--neutral-200);
+  overflow: hidden;
+}
+.meter-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary);
+  transition: width 300ms ease-out;
+}
+.meter-complete .meter-fill {
+  background: var(--success);
+}
+.meter-count {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--neutral-700);
+}
+/* On navy the light tokens vanish, so the accent earns its one allowed use. */
+.meter-dark .meter-track {
+  background: rgba(252, 252, 252, 0.22);
+}
+.meter-dark .meter-fill {
+  background: var(--accent);
+}
+.meter-dark .meter-count {
+  color: var(--neutral-0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meter-fill {
+    transition: none;
+  }
+}
+
+/* What a correction changed (§4.2). Never colour alone: struck through and
+   underlined, so the two read apart in greyscale. */
+.changed {
+  margin-top: 0.7rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
+}
+.changed-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--neutral-600);
+  margin-bottom: 0.35rem;
+}
+.changed-panes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0.9rem;
+}
+.changed-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--neutral-600);
+  margin-bottom: 0.2rem;
+}
+.changed-body {
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+.changed-removed {
+  text-decoration: line-through;
+  color: var(--warning-strong);
+}
+.changed-added {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: var(--success);
+  font-weight: 600;
+}
+
+/* The meter sits under the NEXT line in the navy header. */
+.projhead-progress {
+  max-width: 22rem;
+  margin: 0.7rem 0 0;
+}
+
+/* A button that acts like a link: it opens a form in place rather than
+   navigating. Added at S8 and never styled — two controls shipped looking
+   like raw browser buttons, which is what happens when a class name is
+   invented at the call site and nowhere else. */
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 0.4rem;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.link-button:hover {
+  color: var(--primary-hover);
+}
+.link-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

@@ -4,6 +4,7 @@
  * the requester should see the whole journey from step one, including the
  * parts that do not exist yet (they read as upcoming, never as broken).
  */
+import { ProgressMeter } from "@/app/(app)/progress-meter";
 
 export type StageState = "done" | "current" | "upcoming";
 
@@ -19,11 +20,18 @@ export function ProjectHeader({
   status,
   nextLine,
   currentStage,
+  progress,
 }: {
   name: string;
   status: string;
   nextLine: string;
   currentStage: number;
+  /**
+   * Optional: how far through the work of this screen a person is. On the
+   * navy header, so it uses the dark tone — and it only appears where
+   * there is a real count to show, never as decoration.
+   */
+  progress?: { done: number; total: number; label: string };
 }) {
   return (
     <section className="projhead">
@@ -36,6 +44,17 @@ export function ProjectHeader({
         <span className="tag">NEXT</span>
         <span>{nextLine}</span>
       </p>
+
+      {progress && progress.total > 0 && (
+        <div className="projhead-progress">
+          <ProgressMeter
+            done={progress.done}
+            total={progress.total}
+            label={progress.label}
+            tone="dark"
+          />
+        </div>
+      )}
 
       <ol className="stepper" aria-label="Assessment progress">
         {STAGES.map((stage, i) => {
