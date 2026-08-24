@@ -6,10 +6,21 @@ import { questionLabelFor } from "@/lib/question-label";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
-import { answerStore, handoffStore, peopleStore, submissionStore } from "@/lib/repo";
+import {
+  answerStore,
+  handoffStore,
+  peopleStore,
+  submissionStore,
+} from "@/lib/repo";
 import { accumulatedFor, severityQuestionsFor } from "@/lib/severity";
 import { objectivesFor, isTier3Value, type Tier3Value } from "@/lib/tier3";
-import { declarableFrom, earlierGaps, gapsIn, stageOf, synthesiseFindings } from "@/lib/submission";
+import {
+  declarableFrom,
+  earlierGaps,
+  gapsIn,
+  stageOf,
+  synthesiseFindings,
+} from "@/lib/submission";
 import { NotYourAssessment } from "../not-yours";
 import { ProjectHeader } from "../project-header";
 import { SubmitForm } from "./submit-form";
@@ -24,44 +35,65 @@ export const dynamic = "force-dynamic";
  * answers they are declaring accurate, and — if any — the questions still
  * unanswered, by name.
  */
-export default async function SubmitPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SubmitPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
   const access = await openProject(id);
   if (!access.ok) return <NotYourAssessment person={access.person} />;
   const project = access.project;
 
-  const intake = intakeValuesFrom(project as unknown as Record<string, unknown>);
+  const intake = intakeValuesFrom(
+    project as unknown as Record<string, unknown>,
+  );
   const incomplete = firstIncompleteSection(intake);
   if (incomplete) redirect(`/projects/${id}/intake/${incomplete}?needed=1`);
 
   const stored = await answerStore().current(id);
-  const required = objectivesFor(accumulatedFor(stored, intake).map((c) => c.objective));
+  const required = objectivesFor(
+    accumulatedFor(stored, intake).map((c) => c.objective),
+  );
   const values: Record<string, Tier3Value> = {};
   for (const [questionId, value] of Object.entries(stored)) {
-    if (questionId.startsWith("t3.") && isTier3Value(value.value)) values[questionId] = value.value;
+    if (questionId.startsWith("t3.") && isTier3Value(value.value))
+      values[questionId] = value.value;
   }
   const lookup: Record<string, string | string[]> = {};
   const paths: string[] = [];
   for (const [questionId, value] of Object.entries(stored)) {
-    if (typeof value.value === "string" || Array.isArray(value.value)) lookup[questionId] = value.value;
-    if (questionId.startsWith("path.") && Array.isArray(value.value)) paths.push(...value.value);
+    if (typeof value.value === "string" || Array.isArray(value.value))
+      lookup[questionId] = value.value;
+    if (questionId.startsWith("path.") && Array.isArray(value.value))
+      paths.push(...value.value);
   }
   lookup.paths = paths;
 
-  const declarable = declarableFrom(project as unknown as Record<string, unknown>);
+  const declarable = declarableFrom(
+    project as unknown as Record<string, unknown>,
+  );
   // The same earlier-tier gaps the action counts, so the screen and the
   // server cannot disagree about what is missing (verifier B1).
   const gates = gateStates(stored, intake);
   const selections: Record<string, string[]> = {};
   for (const category of CATEGORIES) {
-    const value = category.pathQuestion ? stored[category.pathQuestion.questionId]?.value : undefined;
+    const value = category.pathQuestion
+      ? stored[category.pathQuestion.questionId]?.value
+      : undefined;
     if (Array.isArray(value)) selections[category.key] = value as string[];
   }
   const lit = litPaths(CATEGORIES, gates, selections, intake);
   const severityQuestions = severityQuestionsFor(lit.map((path) => path.id));
-  const openHandoffs = (await handoffStore().forProject(id)).filter((h) => h.resolvedAt === null);
+  const openHandoffs = (await handoffStore().forProject(id)).filter(
+    (h) => h.resolvedAt === null,
+  );
   const earlier = earlierGaps({
-    gates: gates.map((g) => ({ category: g.category, answer: g.answer, settled: g.settled })),
+    gates: gates.map((g) => ({
+      category: g.category,
+      answer: g.answer,
+      settled: g.settled,
+    })),
     severity: severityQuestions.map((question) => ({
       questionId: question.questionId,
       name: question.name,
@@ -87,7 +119,8 @@ export default async function SubmitPage({ params }: { params: Promise<{ id: str
     // an internal identifier on the one screen whose whole point is that a
     // named person stands behind the record.
     const declaredBy =
-      everyone.find((someone) => someone.id === declaration?.declaredBy)?.name ?? "the submitter";
+      everyone.find((someone) => someone.id === declaration?.declaredBy)
+        ?.name ?? "the submitter";
     return (
       <main>
         <ProjectHeader
@@ -102,29 +135,53 @@ export default async function SubmitPage({ params }: { params: Promise<{ id: str
           <section>
             <p className="eyebrow">Step 5 · Submitted</p>
             <h2 className="display">With a reviewer</h2>
-            <p className="lede" style={{ textAlign: "left", margin: "0 0 1.2rem" }}>
+            <p
+              className="lede"
+              style={{ textAlign: "left", margin: "0 0 1.2rem" }}
+            >
               Declared accurate by {declaredBy} on{" "}
-              {declaration?.declaredAt.toLocaleDateString() ?? "submission"}. Nothing here
-              can be changed now — an answer edited after the declaration would make it
-              describe a record that no longer exists.
+              {declaration?.declaredAt.toLocaleDateString() ?? "submission"}.
+              Nothing here can be changed now — an answer edited after the
+              declaration would make it describe a record that no longer exists.
             </p>
 
             {findings.length > 0 ? (
               <div className="card owed">
                 <h2>
-                  {findings.length} finding{findings.length === 1 ? "" : "s"} for the reviewer
+                  {findings.length} finding{findings.length === 1 ? "" : "s"}{" "}
+                  for the reviewer
                 </h2>
                 <p className="help">
-                  Raised from the control answers. Each carries what was written about it.
+                  Raised from the control answers. Each carries what was written
+                  about it.
                 </p>
                 <ul className="summary-list">
                   {findings.map((finding) => (
                     <li key={finding.id}>
                       <strong>{finding.objectiveName}</strong>
-                      <span className={`band-tag band-${finding.kind === "gap" ? "high" : "medium"}`}>
-                        {finding.kind === "gap" ? "Gap" : "Enhancement"}
+                      <span
+                        className={`band-tag band-${
+                          finding.kind === "enhancement" ? "medium" : "high"
+                        }`}
+                      >
+                        {finding.kind === "gap"
+                          ? "Gap"
+                          : finding.kind === "enhancement"
+                            ? "Enhancement"
+                            : "Breaches policy"}
                       </span>
                       <span className="meta"> — {finding.note}</span>
+                      {/* The clause, on the screen the requester signs. A
+                          breach shown without its authority is an
+                          assertion, and this is the moment they are asked
+                          to stand behind the record. */}
+                      {finding.citation && (
+                        <p className="help">
+                          {finding.citation.clauseId} expects{" "}
+                          <strong>{finding.citation.expected}</strong> — “
+                          {finding.citation.clauseText}”
+                        </p>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -149,8 +206,8 @@ export default async function SubmitPage({ params }: { params: Promise<{ id: str
               <div className="card">
                 <h2>Submitted with {declaration!.gaps.length} unanswered</h2>
                 <p className="help">
-                  Named and confirmed at submission, so a reviewer sees them exactly as
-                  they were.
+                  Named and confirmed at submission, so a reviewer sees them
+                  exactly as they were.
                 </p>
                 <ul className="summary-list">
                   {declaration!.gaps.map((gap) => (
@@ -161,7 +218,10 @@ export default async function SubmitPage({ params }: { params: Promise<{ id: str
             )}
 
             <p className="rail-back" style={{ marginTop: "1rem" }}>
-              <Link className="rail-back-link" href={`/projects/${id}/assess/complete`}>
+              <Link
+                className="rail-back-link"
+                href={`/projects/${id}/assess/complete`}
+              >
                 ← See the whole assessment
               </Link>
               <Link className="rail-back-link" href={`/projects/${id}/review`}>
@@ -190,10 +250,13 @@ export default async function SubmitPage({ params }: { params: Promise<{ id: str
         <section>
           <p className="eyebrow">Step 5 · Submit</p>
           <h2 className="display">Declare and hand over</h2>
-          <p className="lede" style={{ textAlign: "left", margin: "0 0 1.2rem" }}>
-            A reviewer works from what you have written, so this is the moment to
-            say it is right. Submitting is one-way: after this the assessment is
-            theirs and you cannot change your answers.
+          <p
+            className="lede"
+            style={{ textAlign: "left", margin: "0 0 1.2rem" }}
+          >
+            A reviewer works from what you have written, so this is the moment
+            to say it is right. Submitting is one-way: after this the assessment
+            is theirs and you cannot change your answers.
           </p>
 
           <SubmitForm

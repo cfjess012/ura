@@ -88,8 +88,23 @@ export function Assistant({
     }
   }
 
+  /** Roughly the server's own ceiling, so the refusal arrives instantly. */
+  const MAX_FILE_BYTES = 400_000;
+
   async function readDocument(file: File) {
     if (busy) return;
+    if (file.size > MAX_FILE_BYTES) {
+      setTurns((was) => [
+        ...was,
+        { speaker: "person", said: `📄 ${file.name}` },
+        {
+          speaker: "agent",
+          said: `That file is too large for me to read — try the section that covers security and data, rather than the whole thing.`,
+        },
+      ]);
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
     setBusy(true);
     setTurns((was) => [...was, { speaker: "person", said: `📄 ${file.name}` }]);
     try {
@@ -98,11 +113,19 @@ export function Assistant({
         name: file.name,
         body,
       });
+      // Only claim what actually happened. "Every question was already
+      // answered" was said when the service was simply unreachable.
+      const partly =
+        !isFailure(result) && result.truncated
+          ? " I only read the first part of it — it is longer than I can take in one go."
+          : "";
       const said = isFailure(result)
         ? result.message
         : result.proposed === 0
-          ? `I read ${result.document} and could not answer anything from it. ${result.abstained > 0 ? "Nothing in it said what I would have needed." : "Every question was already answered."}`
-          : `I read ${result.document} and proposed ${result.proposed} answer${result.proposed === 1 ? "" : "s"}${result.abstained > 0 ? `, and left ${result.abstained} alone because it did not say` : ""}. Each one is on the risk areas below with the sentence it came from — none of them counts until you accept it.`;
+          ? result.abstained > 0
+            ? `I read ${result.document} and could not answer anything from it — nothing in it said what I would have needed.${partly}`
+            : `I read ${result.document}, and there was nothing open for it to answer.${partly}`
+          : `I read ${result.document} and proposed ${result.proposed} answer${result.proposed === 1 ? "" : "s"}${result.abstained > 0 ? `, and left ${result.abstained} alone because it did not say` : ""}.${partly} Each one is on the risk areas below with the sentence it came from — none of them counts until you accept it.`;
       setTurns((was) => [...was, { speaker: "agent", said }]);
       router.refresh();
     } catch (cause) {

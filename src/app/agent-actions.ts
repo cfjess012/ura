@@ -13,9 +13,9 @@ import { agentTransport } from "@/lib/agent";
 import type { AssessmentContext } from "@/lib/agent-contract";
 import { currentPerson } from "@/lib/current-person";
 import { canAnswer, NotPermitted } from "@/lib/people";
-import { failure, type Result } from "@/lib/errors";
+import { failure, isFailure, type Result } from "@/lib/errors";
 import { intakeValuesFrom } from "@/lib/intake-values";
-import { openProject } from "@/lib/project-access";
+import { editableProject, openProject } from "@/lib/project-access";
 import { answerStore } from "@/lib/repo";
 import { sessionStore } from "@/lib/session";
 import { INTAKE_SECTIONS } from "@/lib/intake";
@@ -163,8 +163,16 @@ export async function conversationFor(projectId: string): Promise<AgentTurn[]> {
   return turns.map((turn) => ({ speaker: turn.speaker, said: turn.said }));
 }
 
-/** How much text the pilot will take from one document. */
+/**
+ * How much text the pilot will take from one document, and the most it will
+ * accept at all.
+ *
+ * Truncating silently meant a quote from beyond the cut could never be
+ * found, and the person was never told which part had been read. A 2.6 MB
+ * file of noise was accepted and stored as evidence.
+ */
 const MAX_DOCUMENT_CHARS = 60_000;
+const MAX_UPLOAD_CHARS = 400_000;
 
 /**
  * Read a document the requester supplied and propose answers from it.
@@ -182,15 +190,38 @@ const MAX_DOCUMENT_CHARS = 60_000;
 export async function draftFromDocument(
   projectId: string,
   document: { name: string; body: string },
-): Promise<Result<{ proposed: number; abstained: number; document: string }>> {
+): Promise<
+  Result<{
+    proposed: number;
+    abstained: number;
+    document: string;
+    truncated: boolean;
+  }>
+> {
   try {
     const person = await currentPerson();
+    // editableProject, not openProject: a submitted assessment is closed to
+    // everyone, and reading a document into one would put a proposal behind
+    // a declaration somebody has already signed.
+    const allowed = await editableProject(projectId, "draftFromDocument");
+    if (isFailure(allowed)) return allowed;
     const access = await openProject(projectId);
     if (!access.ok) {
       return failure(
         "draftFromDocument",
         new Error("not permitted"),
         "That assessment isn't yours to work on.",
+        { retryable: false, expected: true },
+      );
+    }
+    // The requester's act, and the record says so — so it must be theirs.
+    // canAnswer alone let an assessor record a Tier-1 answer on somebody
+    // else's assessment, indistinguishable from the owner's own.
+    if (access.project.createdBy !== person.id) {
+      return failure(
+        "draftFromDocument",
+        new NotPermitted("draft answers", person.role),
+        "Reading a document into an assessment proposes answers in the owner's name, so it is theirs to do.",
         { retryable: false, expected: true },
       );
     }
@@ -202,7 +233,17 @@ export async function draftFromDocument(
         { retryable: false, expected: true },
       );
     }
-    const body = document.body.trim().slice(0, MAX_DOCUMENT_CHARS);
+    const whole = document.body.trim();
+    if (whole.length > MAX_UPLOAD_CHARS) {
+      return failure(
+        "draftFromDocument",
+        new Error("too large"),
+        `That file is too large to read — about ${Math.round(whole.length / 1000)},000 characters, and the limit is ${MAX_UPLOAD_CHARS / 1000},000. Try the section that covers security and data.`,
+        { retryable: false, expected: true },
+      );
+    }
+    const body = whole.slice(0, MAX_DOCUMENT_CHARS);
+    const truncated = whole.length > MAX_DOCUMENT_CHARS;
     if (body === "") {
       return failure(
         "draftFromDocument",
@@ -252,6 +293,7 @@ export async function draftFromDocument(
         proposed: 0,
         abstained: 0,
         document: stored.name,
+        truncated,
       };
     }
 
@@ -272,6 +314,7 @@ export async function draftFromDocument(
     }> = [];
     let abstained = 0;
 
+    let failed: string | null = null;
     for await (const event of transport.run({
       task: "draft",
       projectId,
@@ -285,6 +328,13 @@ export async function draftFromDocument(
         sources: [{ id: stored.name, text: body }],
       })),
     })) {
+      // An error is the whole answer, not something to skip past. Dropping
+      // these reported "Every question was already answered" when the
+      // service was simply unreachable — two false statements in one line.
+      if (event.type === "error") {
+        failed = event.message;
+        continue;
+      }
       if (event.type !== "draft") continue;
       const answer = event.answer;
       if (answer.basis === "not_stated" || answer.value === null) {
@@ -306,6 +356,15 @@ export async function draftFromDocument(
         abstained += 1;
         continue;
       }
+      // The value must be an answer this question actually offers. Nothing
+      // checked it before, and gateStates coerces anything that is not
+      // "Yes" to "No" — so a hedge like "Probably, if the pilot expands"
+      // closed an entire risk area. A non-answer must never produce a
+      // negative answer with consequences (§3.2.1, positive evidence only).
+      if (answer.value !== "Yes" && answer.value !== "No") {
+        abstained += 1;
+        continue;
+      }
       drafts.push({
         projectId,
         questionId: answer.questionId,
@@ -317,6 +376,13 @@ export async function draftFromDocument(
       });
     }
 
+    if (failed && drafts.length === 0) {
+      return failure("draftFromDocument", new Error(failed), failed, {
+        retryable: true,
+        expected: true,
+      });
+    }
+
     await answerStore().recordDrafts(drafts);
     revalidatePath(`/projects/${projectId}`);
     return {
@@ -324,6 +390,9 @@ export async function draftFromDocument(
       proposed: drafts.length,
       abstained,
       document: stored.name,
+      // Said out loud: a quote from past the cut could never be found, and
+      // silence about that reads as "I read all of it".
+      truncated,
     };
   } catch (error) {
     return failure(
@@ -348,12 +417,26 @@ export async function acceptDraft(
 ): Promise<Result<{ accepted: true }>> {
   try {
     const person = await currentPerson();
+    // Same lock as every other write: an answer accepted after submission
+    // would make the declaration describe a record that no longer exists.
+    const allowed = await editableProject(projectId, "acceptDraft");
+    if (isFailure(allowed)) return allowed;
     const access = await openProject(projectId);
     if (!access.ok) {
       return failure(
         "acceptDraft",
         new Error("not permitted"),
         "That assessment isn't yours to work on.",
+        { retryable: false, expected: true },
+      );
+    }
+    // Accepting writes an answer in the owner's name. Anyone else doing it
+    // is answering on their behalf, which §22.1 forbids in as many words.
+    if (access.project.createdBy !== person.id) {
+      return failure(
+        "acceptDraft",
+        new NotPermitted("answer", person.role),
+        "Accepting a proposal makes it the owner's answer, so it is theirs to accept.",
         { retryable: false, expected: true },
       );
     }
@@ -385,6 +468,17 @@ export async function acceptDraft(
       );
     }
     const current = stored[questionId];
+    // Checked again here rather than trusted: this row could have been
+    // written by an older build, or by anything else that reaches the
+    // table. A gate answer is Yes or No.
+    if (current && current.value !== "Yes" && current.value !== "No") {
+      return failure(
+        "acceptDraft",
+        new Error("not an answer"),
+        "That proposal is not one of the answers this question offers, so it cannot be accepted.",
+        { retryable: false, expected: true },
+      );
+    }
     if (!current || current.source !== "drafted") {
       // Nothing to accept means the record moved under them — a person may
       // have answered it in another tab, and their answer wins.

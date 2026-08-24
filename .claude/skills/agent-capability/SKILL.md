@@ -51,6 +51,13 @@ The cited source must be one that was actually supplied. Inventing the
 provenance is worse than inventing the answer, because it survives review.
 
 **4 · Contextual** (`contextualGuardrail`, shared contract)
+
+> Verified 2026-08-24: this one shipped **imported and never called** in the
+> drafting gate, while the specification said it ran. An unused import
+> passes the type checker. **Prove a guardrail fires before you write that
+> it does** — a test that feeds it the thing it should refuse, not a reading
+> of the code.
+
 Everything a person reads — a conversational reply, and a draft's `because`
 — is checked against the assessment record:
 

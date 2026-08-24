@@ -118,9 +118,13 @@ export function validate(candidate: Instrument): Instrument {
       problems.push(`${where}: path question needs text`);
     for (const derived of category.derivedPaths ?? []) {
       if (!derived.because?.trim())
-        problems.push(`${where}: derived path ${derived.id} needs a plain-language reason`);
+        problems.push(
+          `${where}: derived path ${derived.id} needs a plain-language reason`,
+        );
       if (!derived.when?.length)
-        problems.push(`${where}: derived path ${derived.id} needs at least one condition`);
+        problems.push(
+          `${where}: derived path ${derived.id} needs at least one condition`,
+        );
     }
     for (const rule of category.prefill ?? []) {
       if (rule.when?.field === `gate.${category.key}`)
@@ -137,13 +141,16 @@ export function validate(candidate: Instrument): Instrument {
   // validates as well-formed and then never fires — and a rule that looks
   // correct and does nothing is worse than one that is rejected.
   const derivedIds = new Set(
-    (candidate.categories ?? []).flatMap((c) => (c.derivedPaths ?? []).map((d) => d.id)),
+    (candidate.categories ?? []).flatMap((c) =>
+      (c.derivedPaths ?? []).map((d) => d.id),
+    ),
   );
   for (const category of candidate.categories ?? []) {
     for (const derived of category.derivedPaths ?? []) {
       for (const condition of derived.when ?? []) {
         if (!("includesAny" in condition)) continue;
-        if (condition.field !== "paths" && !condition.field.startsWith("path.")) continue;
+        if (condition.field !== "paths" && !condition.field.startsWith("path."))
+          continue;
         const optionIds = new Set(
           (candidate.categories ?? []).flatMap((c) =>
             (c.pathQuestion?.options ?? []).map((o) => o.id),
@@ -177,7 +184,9 @@ export function validate(candidate: Instrument): Instrument {
     }
     if (field.startsWith("gate.")) {
       const key = field.slice("gate.".length);
-      return categoryKeys.has(key) ? null : `${where}: reads unknown gate "${key}"`;
+      return categoryKeys.has(key)
+        ? null
+        : `${where}: reads unknown gate "${key}"`;
     }
     return INTAKE_FIELD_IDS.has(field)
       ? null
@@ -185,7 +194,11 @@ export function validate(candidate: Instrument): Instrument {
   };
   for (const category of candidate.categories ?? []) {
     for (const rule of category.prefill ?? []) {
-      const problem = knownField(rule.when?.field ?? "", `${category.key} prefill`, false);
+      const problem = knownField(
+        rule.when?.field ?? "",
+        `${category.key} prefill`,
+        false,
+      );
       if (problem) problems.push(problem);
     }
     for (const derived of category.derivedPaths ?? []) {
@@ -269,7 +282,10 @@ export function gateStates(
   // A stored answer may be a string, a list, or — from Tier 3 — an object.
   // Gates read only the first; anything else simply does not match, which
   // is the positive-evidence rule doing its job (§3.2.1).
-  stored: Record<string, { value: unknown; source: string; confirmed: boolean }>,
+  stored: Record<
+    string,
+    { value: unknown; source: string; confirmed: boolean }
+  >,
   intake: AnswerLookup,
   categories: Category[] = CATEGORIES,
 ): GateState[] {
@@ -292,12 +308,31 @@ export function gateStates(
       };
     }
     const existing = stored[category.questionId];
+    // A proposal is NOT an answer. A drafted row is unconfirmed by
+    // construction, and treating it as answered made it pre-select the
+    // button, count towards "every risk area has an answer", drive routing,
+    // and disappear from the gaps a person confirms at submission — a
+    // model's suggestion signed for as their own record (FR-22, §5.2).
+    // Fall through to the prefill path: as far as every consumer is
+    // concerned this question is still unanswered, which it is.
+    if (existing && existing.source === "drafted" && !existing.confirmed) {
+      const prefilled = prefillFor(category, lookup);
+      return {
+        category,
+        answer: prefilled?.answer ?? null,
+        fromIntake: prefilled !== null,
+        origin: prefilled === null ? null : origin,
+        because: prefilled?.because ?? null,
+        settled: false,
+      };
+    }
     if (existing) {
       return {
         category,
         answer: existing.value === "Yes" ? "Yes" : "No",
         fromIntake: existing.source === "intake" && !existing.confirmed,
-        origin: existing.source === "intake" && !existing.confirmed ? "intake" : null,
+        origin:
+          existing.source === "intake" && !existing.confirmed ? "intake" : null,
         because:
           existing.source === "intake" && !existing.confirmed
             ? (prefillFor(category, lookup)?.because ?? null)

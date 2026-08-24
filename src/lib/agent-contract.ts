@@ -225,12 +225,26 @@ export type AssessmentContext = {
 };
 
 /**
- * Shapes that are ours and must never reach a person: question ids, control
- * objective codes, severity codes, and the `initial.surname` form the pilot
- * directory uses for people.
+ * Shapes that are ours and must never reach a person.
+ *
+ * Widened after verification found the first version catching almost
+ * nothing real: it knew `t3.foo` and `T3-IAM-02` and missed `p.requester`,
+ * `TPR_LA`, `AI_DEC`, and anything upper-cased. Every pattern below is a
+ * shape that exists in this system's own data.
  */
-const INTERNAL_IDENTIFIER =
-  /\b(?:t3|sev|gate|path)\.[a-z0-9_]+\b|\b T?[23]-[A-Z]{2,4}-\d{1,2}\b|\bT[23]-[A-Z]{2,4}-\d{1,2}\b/;
+const INTERNAL_IDENTIFIER_PATTERNS: RegExp[] = [
+  // Question ids: t3.t3_iam_02, sev.tpr_la_1, gate.ai, path.security
+  /\b(?:t3|sev|gate|path)\.[a-z0-9_]+\b/i,
+  // Objective and severity codes: T3-IAM-02, T2-TPR-1
+  /\bT[23]-[A-Z]{2,5}-\d{1,2}\b/i,
+  // Path codes: TPR_LA, AI_DEC, SR_INT — upper-case with an underscore
+  /\b[A-Z]{2,5}_[A-Z]{2,6}\b/,
+  // Person ids: p.requester, d.grant, a.security. `e.g.` and `i.e.` are
+  // ordinary prose and must not trip this.
+  /\b(?!e\.g|i\.e)[a-z]\.[a-z]{3,}\b/,
+  // Anything's uuid.
+  /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i,
+];
 
 /**
  * An internal identifier the agent said out loud, or null.
@@ -239,8 +253,11 @@ const INTERNAL_IDENTIFIER =
  * is handed ids in its own instructions and repeating one feels helpful.
  */
 export function utteredInternalIdentifier(text: string): string | null {
-  const found = text.match(INTERNAL_IDENTIFIER);
-  return found ? found[0].trim() : null;
+  for (const pattern of INTERNAL_IDENTIFIER_PATTERNS) {
+    const found = text.match(pattern);
+    if (found) return found[0].trim();
+  }
+  return null;
 }
 
 /**
@@ -257,23 +274,32 @@ export function claimsUnrecordedAnswer(
   text: string,
   context: AssessmentContext,
 ): string | null {
-  // "you answered X", "you said X", "you told us X", "you selected X".
-  const claims = [
-    ...text.matchAll(
-      /\byou (?:answered|said|told us|selected|chose)\b([^.!?\n]{0,120})/gi,
-    ),
-  ];
-  for (const claim of claims) {
-    const claimed = (claim[1] ?? "").trim();
+  // Widened after verification: the first version knew five verbs and no
+  // contractions, so "You indicated the data is Public" and "You've said
+  // the vendor is UK-based" both walked through.
+  const CLAIM =
+    /\byou(?:'ve| have)? (?:answered|said|told us|selected|chose|indicated|confirmed|marked|noted|stated|mentioned)\b(.*)$/i;
+
+  const values = context.onRecord
+    .map((entry) => normaliseWhitespace(entry.value.toLowerCase()))
+    .filter((value) => value !== "");
+
+  // Split into clauses FIRST, then look for a claim in each. Checking a
+  // whole sentence let ONE true clause launder every false claim beside
+  // it: "You said Yes to AI, and you said the data is Restricted" passed
+  // on the strength of "Yes". Split on the conjunction only — splitting on
+  // commas as well caught ordinary trailing prose that claims nothing.
+  const clauses = text
+    .split(/[.!?\n]|\band\b/i)
+    .map((clause) => clause.trim())
+    .filter((clause) => clause !== "");
+
+  for (const clause of clauses) {
+    const claim = clause.match(CLAIM);
+    if (!claim) continue;
+    const claimed = normaliseWhitespace((claim[1] ?? "").trim().toLowerCase());
     if (claimed === "") continue;
-    const supported = context.onRecord.some(
-      (entry) =>
-        entry.value.trim() !== "" &&
-        normaliseWhitespace(claimed.toLowerCase()).includes(
-          normaliseWhitespace(entry.value.toLowerCase()),
-        ),
-    );
-    if (!supported) return claimed;
+    if (!values.some((value) => claimed.includes(value))) return claimed;
   }
   return null;
 }

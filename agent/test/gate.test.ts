@@ -136,3 +136,34 @@ describe("what the gate refuses", () => {
     expect(refusal({ ...good, quote: "" })).toMatch(/passage it came from/i);
   });
 });
+
+describe("the contextual guardrail runs on the reason a person reads", () => {
+  /**
+   * G-65 said this ran on a drafted answer's `because`. It did not: the
+   * import was here and nothing called it. Documented before it existed,
+   * which is the failure this project treats most seriously.
+   */
+  it("refuses a reason that says an internal identifier out loud", () => {
+    const verdict = gate({ ...good, because: "Required by T3-IAM-02." }, task);
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) expect(verdict.why).toMatch(/our problem, not theirs/);
+  });
+
+  it("refuses a reason attributing an answer nobody gave", () => {
+    const verdict = gate(
+      { ...good, because: "You told us there is no personal data." },
+      task,
+    );
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) expect(verdict.why).toMatch(/not on the record/i);
+  });
+
+  it("still accepts a reason that reads like a person wrote it", () => {
+    expect(
+      gate(
+        { ...good, because: "The source says MFA is enforced for admins." },
+        task,
+      ).ok,
+    ).toBe(true);
+  });
+});

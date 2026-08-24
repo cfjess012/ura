@@ -86,6 +86,13 @@ export function gate(
     };
   }
 
+  // `because` is shown to a person, so it meets the same bar as anything
+  // else said to one: no internal identifiers, no answers attributed to
+  // somebody who never gave them. This call was documented as existing
+  // before it did — the import was here and nothing used it.
+  const ungrounded = contextualGuardrail(answer.because, task.assessment);
+  if (ungrounded) return { ok: false, why: ungrounded };
+
   if (answer.basis !== "not_stated") {
     // The source must be one that was actually supplied. A model naming a
     // document it was never given has invented the provenance, which is a

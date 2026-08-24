@@ -83,7 +83,9 @@ describe("an answer is never attributed to somebody who did not give it", () => 
         "You selected Restricted for classification.",
         context,
       ),
-    ).toMatch(/Restricted/);
+      // Lower-cased: what comes back is the clause that was compared, not
+      // a quotation to put in front of anyone.
+    ).toMatch(/restricted/i);
   });
 
   it("ignores sentences that attribute nothing", () => {
@@ -122,5 +124,93 @@ describe("one guardrail, so a new capability cannot ship with half the checks", 
     expect(contextualGuardrail("You said it is Public data.", context)).toMatch(
       /not on the record/i,
     );
+  });
+});
+
+describe("the cases independent verification found walking through", () => {
+  /**
+   * Every string below was reported as MISSED by a verifier attacking the
+   * first version of these guardrails. They are the regression suite for
+   * that report, and each is a shape that exists in this system's own data.
+   */
+  it("catches a person id, which the docstring claimed and the regex did not", () => {
+    expect(
+      utteredInternalIdentifier("This was flagged to a.security for review."),
+    ).toBe("a.security");
+    expect(utteredInternalIdentifier("p.requester has not answered it.")).toBe(
+      "p.requester",
+    );
+  });
+
+  it("catches a path code", () => {
+    expect(
+      utteredInternalIdentifier(
+        "The control TPR_LA was pulled in by your answers.",
+      ),
+    ).toBe("TPR_LA");
+    expect(utteredInternalIdentifier("Answer AI_DEC first.")).toBe("AI_DEC");
+  });
+
+  it("catches an identifier however it is cased", () => {
+    expect(
+      utteredInternalIdentifier("Question GATE.SOLUTION_ARCHITECTURE is open."),
+    ).toBeTruthy();
+    expect(utteredInternalIdentifier("See T3-DP-01.")).toBeTruthy();
+  });
+
+  it("catches a uuid", () => {
+    expect(
+      utteredInternalIdentifier(
+        "Your assessment id is 81f66f7c-1e3a-4a2b-9c8d-2f4e6a8b0c1d.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("still leaves ordinary abbreviations alone", () => {
+    // e.g. and i.e. have the same shape as a person id and must not trip it.
+    for (const fine of [
+      "Encrypt it in transit, e.g. with TLS.",
+      "The classification, i.e. Confidential, decides this.",
+      "Version 3.2 of the policy defines it.",
+    ]) {
+      expect(utteredInternalIdentifier(fine), fine).toBeNull();
+    }
+  });
+
+  it("catches a claim however it is phrased", () => {
+    for (const claim of [
+      "You indicated the data is Public.",
+      "You've said the vendor is UK-based.",
+      "You confirmed there is no personal data.",
+      "You marked it as internal only.",
+    ]) {
+      expect(claimsUnrecordedAnswer(claim, context), claim).toBeTruthy();
+    }
+  });
+
+  it("refuses to let one true clause launder a false one beside it", () => {
+    // The important one. Whole-sentence matching passed this on the
+    // strength of "Yes" alone.
+    expect(
+      claimsUnrecordedAnswer(
+        "You said Yes to AI, and you said the data is Restricted and personal information is involved.",
+        context,
+      ),
+    ).toBeTruthy();
+    expect(
+      claimsUnrecordedAnswer(
+        "You selected Yes, and you selected Public for classification.",
+        context,
+      ),
+    ).toBeTruthy();
+  });
+
+  it("still lets an honest recap through, trailing prose and all", () => {
+    expect(
+      claimsUnrecordedAnswer(
+        "You answered Yes to the AI question, so I need to know whether it processes personal data.",
+        context,
+      ),
+    ).toBeNull();
   });
 });
