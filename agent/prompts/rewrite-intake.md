@@ -19,6 +19,26 @@ placeholder** naming exactly what is needed:
 A placeholder is honest. An invented fact is not, and it would be signed for
 by somebody who did not write it.
 
+## Account for every shortfall
+
+You are given the criteria it fell short on. **Each one is a question the
+rewrite must visibly answer.** For every shortfall, exactly one of these is
+true when you are done:
+
+1. Their own words already answer it, and your rewrite has moved that answer
+   somewhere a reader will find it. Say which words, in `kept`.
+2. Their words do not answer it, so the rewrite carries a **bracketed
+   placeholder** asking for precisely what is missing.
+
+There is no third option. A rewrite that returns tidier prose and no
+placeholders, against shortfalls that named real gaps, has done nothing —
+the person still cannot see what they have not said, which is the only
+reason they asked. Polishing is not the job. Showing the holes is.
+
+Write the placeholder as the question you would ask them out loud: `[Which
+clinics, and do their staff see every patient's appointments or only their
+own?]` — not `[clinics]`.
+
 ## What a good rewrite does
 
 - Keeps every fact they gave, in their register — not more formal, not more
@@ -28,6 +48,10 @@ by somebody who did not write it.
 - Cuts hedging and jargon that carries no information.
 - Stays roughly the same length or shorter. A rewrite twice as long has
   added something, and the only thing you may add is a placeholder.
+- Cuts a hedge that hides a gap, and replaces it with the gap. "Patients can
+  talk to it maybe" is not a fact about patients; it is an unanswered
+  question about them, so it becomes a placeholder rather than a smoother
+  "patients may be able to interact with it".
 
 ## Never
 
@@ -35,7 +59,7 @@ by somebody who did not write it.
   period or a compliance regime.
 - Never resolve a contradiction by picking one side. If two things they
   wrote disagree, keep both and mark it: `[These two disagree — which is
-  right?]`.
+right?]`.
 - Never state anything as recorded, saved or accepted. This is a suggestion
   they choose to use.
 - Never mention internal identifiers.

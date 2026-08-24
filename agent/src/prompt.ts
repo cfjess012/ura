@@ -143,7 +143,8 @@ export function composeScorePrompt(task: ScoreTask): string {
 export function composeRewritePrompt(task: RewriteTask): string {
   const shortfalls = task.shortfalls
     .map(
-      (s) => `- **${s.label}** — ${s.ask}\n  Full marks would be: ${s.anchor}`,
+      (s, at) =>
+        `${at + 1}. **${s.label}** — ${s.ask}\n   Full marks would be: ${s.anchor}`,
     )
     .join("\n");
   return [
