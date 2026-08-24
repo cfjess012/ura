@@ -12,7 +12,13 @@ import { redirect } from "next/navigation";
 import { currentPerson, PERSON_COOKIE } from "@/lib/current-person";
 import { failure, isFailure, type Failure, type Result } from "@/lib/errors";
 import { attestationProblem, attestationRefusal } from "@/lib/attestation";
-import { canAnswer, canStartAssessment, NotPermitted } from "@/lib/people";
+import { type DispositionKind, dispositionProblem } from "@/lib/disposition";
+import {
+  canAnswer,
+  canAttest,
+  canStartAssessment,
+  NotPermitted,
+} from "@/lib/people";
 import {
   intakeChanges,
   intakePatchFrom,
@@ -40,7 +46,16 @@ import {
   type Declared,
   type Gap,
 } from "@/lib/submission";
-import { TIER3, isTier3Value, objectivesFor, submissionProblems, type Tier3Value } from "@/lib/tier3";
+import {
+  TIER3,
+  TIER3_ANSWERS,
+  isTier3Value,
+  objectiveForQuestion,
+  objectivesFor,
+  submissionProblems,
+  type Tier3Answer,
+  type Tier3Value,
+} from "@/lib/tier3";
 import { editableProject, openProject } from "@/lib/project-access";
 import {
   AlreadySubmitted,
@@ -116,7 +131,10 @@ export async function saveIntake(
     const { project: before, person } = allowed;
     // What moved, decided by pure logic, so the history is testable without
     // a database (F5).
-    const changes = intakeChanges(before as unknown as Record<string, unknown>, patch);
+    const changes = intakeChanges(
+      before as unknown as Record<string, unknown>,
+      patch,
+    );
     const existed = await projectStore().updateIntake(projectId, patch, {
       changes,
       changedBy: person.id,
@@ -229,7 +247,8 @@ export async function answerPaths(
     const versionId = await answerStore().activeVersionId(INSTRUMENT.slug);
     const rows = Object.entries(selections).map(([categoryKey, selected]) => ({
       projectId,
-      questionId: CATEGORIES.find((c) => c.key === categoryKey)!.pathQuestion!.questionId,
+      questionId: CATEGORIES.find((c) => c.key === categoryKey)!.pathQuestion!
+        .questionId,
       value: selected,
       source: "person" as const,
       confirmed: true,
@@ -274,12 +293,12 @@ async function lookupFor(projectId: string): Promise<AnswerLookup> {
     if (typeof value.value === "string" || Array.isArray(value.value)) {
       lookup[questionId] = value.value;
     }
-    if (questionId.startsWith("path.") && Array.isArray(value.value)) paths.push(...value.value);
+    if (questionId.startsWith("path.") && Array.isArray(value.value))
+      paths.push(...value.value);
   }
   lookup.paths = paths;
   return lookup;
 }
-
 
 /**
  * Unanswered work from the tiers before Tier 3, for the declaration.
@@ -294,99 +313,35 @@ async function earlierGapsFor(
   const gates = gateStates(stored, intake);
   const selections: Record<string, string[]> = {};
   for (const category of CATEGORIES) {
-    const value = category.pathQuestion ? stored[category.pathQuestion.questionId]?.value : undefined;
+    const value = category.pathQuestion
+      ? stored[category.pathQuestion.questionId]?.value
+      : undefined;
     if (Array.isArray(value)) selections[category.key] = value as string[];
   }
   const lit = litPaths(CATEGORIES, gates, selections, intake);
-  const severity = severityQuestionsFor(lit.map((path) => path.id)).map((question) => ({
-    questionId: question.questionId,
-    name: question.name,
-    text: question.text,
-    answered: stored[question.questionId] !== undefined,
-  }));
-  const open = (await handoffStore().forProject(projectId)).filter((h) => h.resolvedAt === null);
+  const severity = severityQuestionsFor(lit.map((path) => path.id)).map(
+    (question) => ({
+      questionId: question.questionId,
+      name: question.name,
+      text: question.text,
+      answered: stored[question.questionId] !== undefined,
+    }),
+  );
+  const open = (await handoffStore().forProject(projectId)).filter(
+    (h) => h.resolvedAt === null,
+  );
   return earlierGaps({
-    gates: gates.map((g) => ({ category: g.category, answer: g.answer, settled: g.settled })),
+    gates: gates.map((g) => ({
+      category: g.category,
+      answer: g.answer,
+      settled: g.settled,
+    })),
     severity,
     handedOff: open.map((h) => ({
       questionId: h.questionId,
       label: `${questionLabelFor(h.questionId)} — with a risk assessor`,
     })),
   });
-}
-
-/**
- * A reviewer signs off one control answer (S8, FR-16, FR-17).
- *
- * Authority is checked here and nowhere else that matters: a Risk Assessor
- * attests under their own profile, for the risk area accountable for that
- * control family. §19 requires that a forged client request fails, so the
- * screen is a convenience and this is the rule.
- */
-export async function attestAnswer(
-  projectId: string,
-  input: {
-    questionId: string;
-    objective: string;
-    act: "approve" | "correct" | "not-applicable";
-    correctedAnswer: string | null;
-    note: string;
-  },
-): Promise<Result<{ attested: true }>> {
-  try {
-    const person = await currentPerson();
-    const access = await openProject(projectId);
-    if (!access.ok) {
-      return failure(
-        "attestAnswer",
-        new Error("not permitted"),
-        "That assessment isn't yours to review.",
-        { retryable: false, expected: true },
-      );
-    }
-    // Nothing is attested before it is submitted: attesting a draft would
-    // sign off answers the person can still change (§4.1).
-    if (access.project.submittedAt === null) {
-      return failure(
-        "attestAnswer",
-        new Error("not submitted"),
-        "This assessment hasn't been submitted yet, so there is nothing to attest. Its answers can still change.",
-        { retryable: false, expected: true },
-      );
-    }
-    const refusal = attestationRefusal(person, input.objective);
-    if (refusal) {
-      return failure("attestAnswer", new NotPermitted("attest", person.role), refusal, {
-        retryable: false,
-        expected: true,
-      });
-    }
-    const problem = attestationProblem(input.act, input.correctedAnswer, input.note);
-    if (problem) {
-      return failure("attestAnswer", new Error(problem), problem, {
-        retryable: false,
-        expected: true,
-      });
-    }
-
-    await reviewStore().attest({
-      projectId,
-      questionId: input.questionId,
-      person: person.id,
-      domain: person.riskDomain,
-      act: input.act,
-      correctedAnswer: input.correctedAnswer,
-      note: input.note,
-    });
-    revalidatePath(`/projects/${projectId}/review`);
-    return { ok: true as const, attested: true as const };
-  } catch (error) {
-    return failure(
-      "attestAnswer",
-      error,
-      "That wasn't recorded. Nothing was signed — try again in a moment.",
-    );
-  }
 }
 
 /**
@@ -417,9 +372,13 @@ export async function submitAssessment(
       );
     }
 
-    const intake = intakeValuesFrom(project as unknown as Record<string, unknown>);
+    const intake = intakeValuesFrom(
+      project as unknown as Record<string, unknown>,
+    );
     // The project row, so reference answers keep their labels (B2).
-    const current = declarableFrom(project as unknown as Record<string, unknown>);
+    const current = declarableFrom(
+      project as unknown as Record<string, unknown>,
+    );
     if (!declarationMatches(input.shown, current)) {
       return failure(
         "submitAssessment",
@@ -430,13 +389,21 @@ export async function submitAssessment(
     }
 
     const stored = await answerStore().current(projectId);
-    const required = objectivesFor(accumulatedFor(stored, intake).map((c) => c.objective));
+    const required = objectivesFor(
+      accumulatedFor(stored, intake).map((c) => c.objective),
+    );
     const values: Record<string, Tier3Value> = {};
     for (const [questionId, value] of Object.entries(stored)) {
-      if (questionId.startsWith("t3.") && isTier3Value(value.value)) values[questionId] = value.value;
+      if (questionId.startsWith("t3.") && isTier3Value(value.value))
+        values[questionId] = value.value;
     }
     const lookup = await lookupFor(projectId);
-    const gaps = gapsIn(required, values, lookup, await earlierGapsFor(projectId, intake, stored));
+    const gaps = gapsIn(
+      required,
+      values,
+      lookup,
+      await earlierGapsFor(projectId, intake, stored),
+    );
 
     const problem = submissionProblem({
       alreadySubmitted: project.submittedAt !== null,
@@ -446,10 +413,15 @@ export async function submitAssessment(
       gapCount: gaps.length,
     });
     if (problem) {
-      return failure("submitAssessment", new Error(problem), `${problem} Nothing was submitted.`, {
-        retryable: false,
-        expected: true,
-      });
+      return failure(
+        "submitAssessment",
+        new Error(problem),
+        `${problem} Nothing was submitted.`,
+        {
+          retryable: false,
+          expected: true,
+        },
+      );
     }
 
     const raised = synthesiseFindings(required, values, lookup);
@@ -467,7 +439,11 @@ export async function submitAssessment(
     });
     revalidatePath(`/projects/${projectId}`);
     revalidatePath("/", "layout");
-    return { ok: true as const, submitted: true as const, findings: raised.length };
+    return {
+      ok: true as const,
+      submitted: true as const,
+      findings: raised.length,
+    };
   } catch (error) {
     if (error instanceof AlreadySubmitted) {
       return failure(
@@ -528,9 +504,17 @@ export async function answerObjectives(
     // refused, not ignored: ignoring it is what allowed a forged request to
     // write an object into a gate answer and flip it (verifier S6-2).
     const stored = await answerStore().current(projectId);
-    const intake = intakeValuesFrom(allowed.project as unknown as Record<string, unknown>);
-    const required = objectivesFor(accumulatedFor(stored, intake).map((c) => c.objective));
-    const problems = submissionProblems(required, shaped, await lookupFor(projectId));
+    const intake = intakeValuesFrom(
+      allowed.project as unknown as Record<string, unknown>,
+    );
+    const required = objectivesFor(
+      accumulatedFor(stored, intake).map((c) => c.objective),
+    );
+    const problems = submissionProblems(
+      required,
+      shaped,
+      await lookupFor(projectId),
+    );
     if (problems.length > 0) {
       return failure(
         "answerObjectives",
@@ -655,168 +639,4 @@ export async function choosePerson(formData: FormData): Promise<void> {
   const jar = await cookies();
   jar.set(PERSON_COOKIE, id, { path: "/", sameSite: "lax", httpOnly: false });
   redirect("/projects");
-}
-
-/**
- * Hand a question to a person or an office (S4.7, FR-35).
- *
- * Not an answer: the record says the question moved, not that it was
- * answered. The requester keeps going, which is the whole point.
- */
-export async function handOffQuestion(
-  projectId: string,
-  input: { questionId: string; toPersonId: string | null; toDomain: string | null; note: string },
-): Promise<Result<{ handoffId: string }>> {
-  try {
-    const allowed = await editableProject(projectId, "handOffQuestion");
-    if (isFailure(allowed)) return allowed;
-    const { person } = allowed;
-    if (!input.questionId || (!input.toPersonId && !input.toDomain)) {
-      return failure(
-        "handOffQuestion",
-        new Error("a hand-off needs a question and a recipient"),
-        "Pick who should look at this, and we'll pass it on.",
-        { retryable: false, expected: true },
-      );
-    }
-    const already = (await handoffStore().forProject(projectId)).find(
-      (h) => h.questionId === input.questionId && h.resolvedAt === null,
-    );
-    // Asking twice is the same ask — return the open one rather than
-    // stacking a second alert on the same question.
-    if (already) return { ok: true as const, handoffId: already.id };
-    const handoffId = await handoffStore().open({
-      projectId,
-      questionId: input.questionId,
-      toPersonId: input.toPersonId,
-      toDomain: input.toDomain,
-      note: input.note.trim(),
-      askedBy: person.id,
-    });
-    revalidatePath(`/projects/${projectId}`);
-    return { ok: true as const, handoffId };
-  } catch (error) {
-    return failure(
-      "handOffQuestion",
-      error,
-      "That wasn't handed over just now, so nobody has been told. Your answers are safe — try again in a moment.",
-    );
-  }
-}
-
-/** Say something in the conversation on a hand-off (FR-36). */
-export async function replyToHandoff(
-  projectId: string,
-  input: { handoffId: string; parentId: string | null; body: string },
-): Promise<Result<{ posted: true }>> {
-  try {
-    const allowed = await openProject(projectId);
-    if (!allowed.ok)
-      return failure(
-        "replyToHandoff",
-        new Error("not permitted"),
-        "This conversation belongs to an assessment you can't open.",
-        { retryable: false, expected: true },
-      );
-    if (input.body.trim() === "")
-      return failure("replyToHandoff", new Error("empty"), "Write something first.", {
-        retryable: false,
-        expected: true,
-      });
-    // The hand-off must belong to the project we just authorised. Without
-    // this, authority was checked against the caller's OWN project id while
-    // the write used the caller's hand-off id, and the two were never
-    // required to match: a requester posted into a thread on an assessment
-    // the same session refused to open by URL, and it rendered under their
-    // name in the owner's thread and the assessor's bell. `resolveHandoff`
-    // already scoped this way; this is the same check, and the reason the
-    // rule is "authority is decided on the object" (§2, N1, verifier F2).
-    const handoff = (await handoffStore().forProject(projectId)).find(
-      (h) => h.id === input.handoffId,
-    );
-    if (!handoff)
-      return failure(
-        "replyToHandoff",
-        new Error("no such hand-off in this assessment"),
-        "That conversation is gone.",
-        { retryable: false, expected: true },
-      );
-    await handoffStore().reply({
-      handoffId: input.handoffId,
-      parentId: input.parentId,
-      authorId: allowed.person.id,
-      body: input.body.trim(),
-    });
-    revalidatePath(`/projects/${projectId}`);
-    return { ok: true as const, posted: true as const };
-  } catch (error) {
-    return failure(
-      "replyToHandoff",
-      error,
-      "That reply didn't post, so nobody has seen it. It's still on screen — try again in a moment.",
-    );
-  }
-}
-
-/**
- * Close a hand-off (FR-37).
- *
- * Deliberately narrow: only the person it was handed to, and only once the
- * question actually has an answer. Otherwise "resolved" would mean
- * "somebody clicked resolved", and a pinned alert that can be clicked away
- * with the work undone is just a message with extra steps.
- */
-export async function resolveHandoff(
-  projectId: string,
-  handoffId: string,
-): Promise<Result<{ resolved: true }>> {
-  try {
-    const allowed = await openProject(projectId);
-    if (!allowed.ok)
-      return failure("resolveHandoff", new Error("not permitted"), "That isn't yours to close.", {
-        retryable: false,
-        expected: true,
-      });
-    const handoff = (await handoffStore().forProject(projectId)).find((h) => h.id === handoffId);
-    if (!handoff)
-      return failure("resolveHandoff", new Error("no such hand-off"), "That hand-off is gone.", {
-        retryable: false,
-        expected: true,
-      });
-    const answers = await answerStore().current(projectId);
-    const problem = resolutionProblem(
-      handoff,
-      allowed.person,
-      answers[handoff.questionId] !== undefined,
-      allowed.project.submittedAt !== null,
-    );
-    if (problem)
-      return failure("resolveHandoff", new Error(problem), problem, {
-        retryable: false,
-        expected: true,
-      });
-    await handoffStore().resolve(handoffId, allowed.person.id);
-    revalidatePath(`/projects/${projectId}`);
-    revalidatePath("/", "layout");
-    return { ok: true as const, resolved: true as const };
-  } catch (error) {
-    return failure(
-      "resolveHandoff",
-      error,
-      "That didn't close just now, so it's still open. Try again in a moment.",
-    );
-  }
-}
-
-/**
- * Mark everything said so far as read.
- *
- * One watermark on the person, not a row per message. There is nothing to
- * mark read individually because there are no message rows — news is
- * derived from the replies themselves.
- */
-export async function clearNews(): Promise<void> {
-  const person = await currentPerson();
-  await handoffStore().clearNews(person.id);
-  revalidatePath("/", "layout");
 }

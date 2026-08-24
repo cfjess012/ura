@@ -34,6 +34,7 @@ describe("§26.1 pure logic is liftable", () => {
   const IMPURE = new Set([
     "lib/db.ts", // opens the connection
     "lib/repo.ts", // speaks to the driver
+    "lib/repo-review.ts", // the same store seam, split for NFR-6
     "lib/schema.ts", // drizzle table definitions
     "lib/config.ts", // the one module that may read process.env
     "lib/current-person.ts", // reads the request's cookies
@@ -72,7 +73,13 @@ describe("§26.1 pure logic is liftable", () => {
 
 describe("§26.2 persistence is behind one interface", () => {
   it("only the store and the db module touch the driver", () => {
-    const allowed = new Set(["lib/repo.ts", "lib/db.ts", "lib/schema.ts"]);
+    // The store seam is two files since S8 (NFR-6); it is still the seam.
+    const allowed = new Set([
+      "lib/repo.ts",
+      "lib/repo-review.ts",
+      "lib/db.ts",
+      "lib/schema.ts",
+    ]);
     const offenders = filesUnder(SRC)
       .filter((f) => !allowed.has(rel(f)))
       .filter((f) => /from "drizzle-orm|from "postgres"|getDb\(/.test(read(f)))
@@ -112,27 +119,36 @@ describe("§3.3 there is no second evaluator", () => {
   const severity = read(join(SRC, "lib/severity.ts"));
 
   it("Tier-2 routing is expressed as conditions the one predicate evaluates", () => {
-    expect(severity).toMatch(/import \{[^}]*\bmatches\b[^}]*\} from "\.\/conditions"/s);
+    expect(severity).toMatch(
+      /import \{[^}]*\bmatches\b[^}]*\} from "\.\/conditions"/s,
+    );
     // The three routing decisions Tier 2 makes, each published as a
     // condition rather than decided in place.
     for (const emitter of ["askedWhen", "detailWhen", "requiredWhen"])
       expect(severity, emitter).toMatch(new RegExp(`function ${emitter}\\(`));
-    expect((severity.match(/\bmatches\(/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect(
+      (severity.match(/\bmatches\(/g) ?? []).length,
+    ).toBeGreaterThanOrEqual(3);
   });
 
   it("every Tier-2 routing decision is taken by the predicate", () => {
     // Not "the file mentions matches somewhere": each of the three
     // deciding functions must reach it. The originals decided in place —
     // firesAt.includes(band), a rank comparison, a Set of lit path ids.
-    for (const fn of ["severityQuestionsFor", "detailFires", "accumulateControls"]) {
+    for (const fn of [
+      "severityQuestionsFor",
+      "detailFires",
+      "accumulateControls",
+    ]) {
       const from = severity.indexOf(`export function ${fn}`);
       expect(from, `${fn} is gone`).toBeGreaterThan(-1);
       const body = severity.slice(from, severity.indexOf("\n}\n", from));
       expect(body, `${fn} decides without the predicate`).toMatch(/matches\(/);
     }
-    expect(severity, "a band list read directly is a second evaluator").not.toMatch(
-      /firesAt\.(includes|indexOf|some|filter)/,
-    );
+    expect(
+      severity,
+      "a band list read directly is a second evaluator",
+    ).not.toMatch(/firesAt\.(includes|indexOf|some|filter)/);
   });
 
   it("only the engine knows the order of the bands", () => {
@@ -161,8 +177,12 @@ describe("§24.3 the assessment screens autosave the same way, once", () => {
       expect(source, form).toMatch(/from "\.\.\/autosave"/);
       expect(source, form).toMatch(/<SaveBar\b/);
       // Each piece that was duplicated, named so a copy is caught by name.
-      expect(source, `${form} tracks its own in-flight save`).not.toMatch(/inFlight/);
-      expect(source, `${form} renders its own save status`).not.toMatch(/role="status"/);
+      expect(source, `${form} tracks its own in-flight save`).not.toMatch(
+        /inFlight/,
+      );
+      expect(source, `${form} renders its own save status`).not.toMatch(
+        /role="status"/,
+      );
       expect(source, `${form} shapes its own failure`).not.toMatch(/retryable/);
     }
   });
@@ -177,7 +197,9 @@ describe("§25 error handling is structural", () => {
     // straight past this guard and landed a refusal on the generic error
     // boundary (N15, N3). `redirect()` throws by design and is exempt.
     const throws = source.match(/throw new \w+/g) ?? [];
-    expect(throws, "server actions return failures; they do not throw").toEqual([]);
+    expect(throws, "server actions return failures; they do not throw").toEqual(
+      [],
+    );
     expect(source).toMatch(/failure\(/);
   });
 });
@@ -198,9 +220,13 @@ describe("§2 authority is checked on the object, not only on the listing", () =
   it("every write action decides authority before it writes", () => {
     const source = read(join(SRC, "app", "actions.ts"));
     for (const action of ["saveIntake", "answerGate", "answerPaths"]) {
-      const body = source.slice(source.indexOf(`export async function ${action}`));
+      const body = source.slice(
+        source.indexOf(`export async function ${action}`),
+      );
       const upToWrite = body.slice(0, body.indexOf("Store()."));
-      expect(upToWrite, `${action} writes before checking`).toMatch(/editableProject/);
+      expect(upToWrite, `${action} writes before checking`).toMatch(
+        /editableProject/,
+      );
     }
   });
 });
@@ -217,7 +243,16 @@ describe("an action authorises the OBJECT, not only the id it was handed", () =>
    * G-33 recorded this rule once already, for pages. This is the same rule
    * for actions: a fix aimed at a finding tends to stop at the finding.
    */
-  const actions = read(join(SRC, "app", "actions.ts"));
+  /**
+   * Every server-action module, not one file by name. `actions.ts` was
+   * split at S8 and these checks silently stopped covering the actions that
+   * moved — a rule that only holds while the code stays in one file is a
+   * rule with an expiry date on it.
+   */
+  const actions = readdirSync(join(SRC, "app"))
+    .filter((file) => file.endsWith("actions.ts"))
+    .map((file) => read(join(SRC, "app", file)))
+    .join("\n");
 
   const bodyOf = (name: string) => {
     const at = actions.indexOf(`export async function ${name}(`);
@@ -231,7 +266,9 @@ describe("an action authorises the OBJECT, not only the id it was handed", () =>
     "%s proves the hand-off belongs to the project it authorised",
     (name) => {
       const body = bodyOf(name);
-      expect(body, `${name} must authorise the project`).toMatch(/openProject\(projectId\)/);
+      expect(body, `${name} must authorise the project`).toMatch(
+        /openProject\(projectId\)/,
+      );
       expect(
         body,
         `${name} takes a hand-off id from the caller and must look it up within that project`,
@@ -246,7 +283,10 @@ describe("an action authorises the OBJECT, not only the id it was handed", () =>
       const write = body.indexOf("handoffStore().reply(");
       expect(lookup, `${name}: lookup missing`).toBeGreaterThan(-1);
       expect(write, `${name}: write missing`).toBeGreaterThan(-1);
-      expect(lookup, `${name}: the write must come after the lookup`).toBeLessThan(write);
+      expect(
+        lookup,
+        `${name}: the write must come after the lookup`,
+      ).toBeLessThan(write);
     }
   });
 });
@@ -269,7 +309,52 @@ describe("a submitted assessment is closed to writing (S7, FR-37)", () => {
     const actions = read(join(SRC, "app", "actions.ts"));
     const bypasses = [...actions.matchAll(/editableProject\([^)]*,\s*true\)/g)];
     expect(bypasses).toHaveLength(1);
-    const at = actions.indexOf('editableProject(projectId, "submitAssessment", true)');
+    const at = actions.indexOf(
+      'editableProject(projectId, "submitAssessment", true)',
+    );
     expect(at, "the bypass must be submitAssessment's").toBeGreaterThan(-1);
+  });
+});
+
+describe("authority is never read from the caller's payload", () => {
+  /**
+   * `attestAnswer` checked the caller's authority against an `objective`
+   * the caller put in the request, then wrote the row against the
+   * `questionId` they also put in the request. Nothing tied the two
+   * together, so a Data-Privacy assessor named a Privacy objective and
+   * signed a Security control: the check ran, passed, and protected
+   * nothing (independent verification of S8, 2026-08-23, G-60).
+   *
+   * The rule this pins: **a permission check reading a value the requester
+   * chose is not a permission check.** The objective must be derived from
+   * the question being signed.
+   */
+  const modules = readdirSync(join(SRC, "app"))
+    .filter((file) => file.endsWith("actions.ts"))
+    .map((file) => ({ file, source: read(join(SRC, "app", file)) }));
+
+  it("no action asks attestationRefusal about something from the request", () => {
+    for (const { file, source } of modules) {
+      const calls = [
+        ...source.matchAll(
+          /attestationRefusal\(\s*[a-zA-Z.]+\s*,\s*([^)]+)\)/g,
+        ),
+      ];
+      for (const call of calls) {
+        expect(
+          call[1]!.trim(),
+          `${file} decides authority from the caller's own payload`,
+        ).not.toMatch(/^input\./);
+      }
+    }
+  });
+
+  it("the wire carries no objective for the reviewer's acts", () => {
+    const review = read(join(SRC, "app", "review-actions.ts"));
+    // If the field does not exist, a forged request cannot supply one.
+    expect(review).not.toMatch(/^\s*objective: string;/m);
+    expect(review, "the objective is derived from the question").toMatch(
+      /objectiveForQuestion\(/,
+    );
   });
 });

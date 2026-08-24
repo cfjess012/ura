@@ -30,6 +30,8 @@ export type ProjectSummary = {
   updatedAt: Date;
   /** Who started it. Null for rows created before people existed. */
   startedBy: string | null;
+  /** When it was submitted, or null while it is still a draft (§4.1). */
+  submittedAt: Date | null;
 };
 
 /**
@@ -99,6 +101,14 @@ export interface AnswerStore {
   activeVersionId(slug: string): Promise<string>;
   current(projectId: string): Promise<Record<string, CurrentAnswer>>;
   /**
+   * How many times each question has been answered. The table is
+   * insert-only, so this is a count of rows — and it is the only way the
+   * review rubric can honestly say whether somebody kept changing their
+   * mind. It was hardcoded to 1 once, under a heading promising mechanical
+   * checks; that is the failure mode this exists to prevent.
+   */
+  timesAnswered(projectId: string): Promise<Map<string, number>>;
+  /**
    * Record several answers as one act. All of them land or none do — a
    * screen that saves four areas in a loop can fail halfway, leaving two
    * committed while telling the person nothing was saved (found by
@@ -129,7 +139,10 @@ export interface ProjectStore {
    */
   countUnattributed(): Promise<number>;
   get(id: string): Promise<ProjectRecord | null>;
-  create(projectName: string, createdBy: string | null): Promise<{ id: string }>;
+  create(
+    projectName: string,
+    createdBy: string | null,
+  ): Promise<{ id: string }>;
   /**
    * Apply an intake patch and record what moved, attributed to a person.
    * The two writes share a transaction: a change that is applied but not
@@ -155,26 +168,42 @@ export function postgresProjectStore(): ProjectStore {
           businessUnit: schema.projects.businessUnit,
           updatedAt: schema.projects.updatedAt,
           startedBy: schema.people.name,
+          submittedAt: schema.projects.submittedAt,
         })
         .from(schema.projects)
-        .leftJoin(schema.people, eq(schema.people.id, schema.projects.createdBy))
-        .where(scope.createdBy ? eq(schema.projects.createdBy, scope.createdBy) : undefined)
+        .leftJoin(
+          schema.people,
+          eq(schema.people.id, schema.projects.createdBy),
+        )
+        .where(
+          scope.createdBy
+            ? eq(schema.projects.createdBy, scope.createdBy)
+            : undefined,
+        )
         .orderBy(desc(schema.projects.updatedAt));
       // No limit means no limit. A silent internal cap would be the same
       // quiet truncation F11 objected to, one layer down.
-      const rows = await (scope.limit === undefined ? query : query.limit(scope.limit));
+      const rows = await (scope.limit === undefined
+        ? query
+        : query.limit(scope.limit));
       // The stored label, never today's list — that is what makes a rename
       // safe (NFR-22).
       return rows.map((row) => ({
         ...row,
-        businessUnit: row.businessUnit ? labelOf(row.businessUnit as ReferenceAnswer) : null,
+        businessUnit: row.businessUnit
+          ? labelOf(row.businessUnit as ReferenceAnswer)
+          : null,
       }));
     },
     async count(scope) {
       const [row] = await db
         .select({ total: sql<number>`count(*)::int` })
         .from(schema.projects)
-        .where(scope.createdBy ? eq(schema.projects.createdBy, scope.createdBy) : undefined);
+        .where(
+          scope.createdBy
+            ? eq(schema.projects.createdBy, scope.createdBy)
+            : undefined,
+        );
       return row?.total ?? 0;
     },
     async countUnattributed() {
@@ -222,9 +251,15 @@ export function postgresProjectStore(): ProjectStore {
     },
     async lastIntakeChange(projectId) {
       const [row] = await db
-        .select({ byName: schema.people.name, at: schema.intakeEvents.createdAt })
+        .select({
+          byName: schema.people.name,
+          at: schema.intakeEvents.createdAt,
+        })
         .from(schema.intakeEvents)
-        .leftJoin(schema.people, eq(schema.people.id, schema.intakeEvents.changedBy))
+        .leftJoin(
+          schema.people,
+          eq(schema.people.id, schema.intakeEvents.changedBy),
+        )
         .where(eq(schema.intakeEvents.projectId, projectId))
         .orderBy(desc(schema.intakeEvents.createdAt))
         .limit(1);
@@ -236,6 +271,17 @@ export function postgresProjectStore(): ProjectStore {
 export function postgresAnswerStore(): AnswerStore {
   const db = getDb();
   return {
+    async timesAnswered(projectId) {
+      const rows = await db
+        .select({
+          questionId: schema.answers.questionId,
+          times: sql<number>`count(*)::int`,
+        })
+        .from(schema.answers)
+        .where(eq(schema.answers.projectId, projectId))
+        .groupBy(schema.answers.questionId);
+      return new Map(rows.map((row) => [row.questionId, Number(row.times)]));
+    },
     async activeVersionId(slug) {
       const [row] = await db
         .select({ id: schema.instrumentVersions.id })
@@ -311,7 +357,11 @@ export function postgresPeopleStore(): PeopleStore {
       // alphabet's: a requester looking for who owns privacy is scanning
       // risk areas, and the areas already have an order that the whole
       // product uses. The generalist sits last, after every named owner.
-      const order: Record<string, number> = { requester: 0, assessor: 1, admin: 2 };
+      const order: Record<string, number> = {
+        requester: 0,
+        assessor: 1,
+        admin: 2,
+      };
       const domainOrder = new Map(CATEGORIES.map((c, i) => [c.key, i]));
       const byDomain = (person: Person) =>
         person.riskDomain ? (domainOrder.get(person.riskDomain) ?? 998) : 999;
@@ -329,7 +379,10 @@ export function postgresPeopleStore(): PeopleStore {
       return (await this.list()).filter((person) => person.signsIn);
     },
     async get(id) {
-      const [row] = await db.select().from(schema.people).where(eq(schema.people.id, id));
+      const [row] = await db
+        .select()
+        .from(schema.people)
+        .where(eq(schema.people.id, id));
       return row ? shape(row) : null;
     },
   };
@@ -416,7 +469,10 @@ function postgresHandoffStore(): HandoffStore {
         resolvedBy: schema.handoffs.resolvedBy,
       })
       .from(schema.handoffs)
-      .innerJoin(schema.projects, eq(schema.projects.id, schema.handoffs.projectId))
+      .innerJoin(
+        schema.projects,
+        eq(schema.projects.id, schema.handoffs.projectId),
+      )
       .innerJoin(schema.people, eq(schema.people.id, schema.handoffs.askedBy));
 
   return {
@@ -456,7 +512,10 @@ function postgresHandoffStore(): HandoffStore {
           createdAt: schema.handoffReplies.createdAt,
         })
         .from(schema.handoffReplies)
-        .innerJoin(schema.people, eq(schema.people.id, schema.handoffReplies.authorId))
+        .innerJoin(
+          schema.people,
+          eq(schema.people.id, schema.handoffReplies.authorId),
+        )
         .where(inArray(schema.handoffReplies.handoffId, handoffIds))
         .orderBy(schema.handoffReplies.createdAt);
       return rows;
@@ -478,33 +537,40 @@ function postgresHandoffStore(): HandoffStore {
           resolvedAt: schema.handoffs.resolvedAt,
         })
         .from(schema.handoffReplies)
-        .innerJoin(schema.handoffs, eq(schema.handoffs.id, schema.handoffReplies.handoffId))
-        .innerJoin(schema.projects, eq(schema.projects.id, schema.handoffs.projectId))
-        .innerJoin(schema.people, eq(schema.people.id, schema.handoffReplies.authorId))
+        .innerJoin(
+          schema.handoffs,
+          eq(schema.handoffs.id, schema.handoffReplies.handoffId),
+        )
+        .innerJoin(
+          schema.projects,
+          eq(schema.projects.id, schema.handoffs.projectId),
+        )
+        .innerJoin(
+          schema.people,
+          eq(schema.people.id, schema.handoffReplies.authorId),
+        )
         .orderBy(desc(schema.handoffReplies.createdAt))
         .limit(50);
       const since = person.newsClearedAt;
-      return rows
-        .filter((r) => r.authorId !== person.id)
-        .filter((r) => (since ? r.createdAt > since : true))
-        // Yours if you asked, or if it is waiting on you. Scoped here rather
-        // than left global: the prior platform showed every reviewer every
-        // other team's counts.
-        .filter(
-          (r) =>
-            r.askedBy === person.id ||
-            isWaitingOn(r, person),
-        )
-        .map((r) => ({
-          replyId: r.replyId,
-          handoffId: r.handoffId,
-          projectId: r.projectId,
-          projectName: r.projectName,
-          questionId: r.questionId,
-          questionLabel: questionLabelFor(r.questionId),
-          authorName: r.authorName,
-          createdAt: r.createdAt,
-        }));
+      return (
+        rows
+          .filter((r) => r.authorId !== person.id)
+          .filter((r) => (since ? r.createdAt > since : true))
+          // Yours if you asked, or if it is waiting on you. Scoped here rather
+          // than left global: the prior platform showed every reviewer every
+          // other team's counts.
+          .filter((r) => r.askedBy === person.id || isWaitingOn(r, person))
+          .map((r) => ({
+            replyId: r.replyId,
+            handoffId: r.handoffId,
+            projectId: r.projectId,
+            projectName: r.projectName,
+            questionId: r.questionId,
+            questionLabel: questionLabelFor(r.questionId),
+            authorName: r.authorName,
+            createdAt: r.createdAt,
+          }))
+      );
     },
     async clearNews(personId) {
       await db
@@ -518,7 +584,9 @@ function postgresHandoffStore(): HandoffStore {
       // count and the screen. The prior platform queried obligations
       // globally and every reviewer saw every other team's counts.
       if (person.role === "requester") return [];
-      const rows = (await hydrate().where(isNull(schema.handoffs.resolvedAt))).map(shapeHandoff);
+      const rows = (
+        await hydrate().where(isNull(schema.handoffs.resolvedAt))
+      ).map(shapeHandoff);
       if (rows.length === 0) return [];
       // Answered questions carry no obligation. Read the answers for exactly
       // the (project, question) pairs still open — one statement, not one
@@ -567,204 +635,22 @@ function shapeHandoff(row: {
   return { ...row, questionLabel: questionLabelFor(row.questionId) };
 }
 
-/**
- * Submission: the fact, the declaration, and the findings it raised (S7).
- * One act, one transaction — a submission recorded without its declaration
- * would be a stamp nobody stands behind (G-40a).
- */
-export interface SubmissionStore {
-  submit(input: {
-    projectId: string;
-    person: string;
-    shown: Declared[];
-    gaps: Gap[];
-    findings: SynthesisedFinding[];
-  }): Promise<void>;
-  findingsFor(projectId: string): Promise<FindingRow[]>;
-  declarationFor(projectId: string): Promise<DeclarationRow | null>;
-}
-
-export type FindingRow = SynthesisedFinding & { id: string; raisedAt: Date; raisedBy: string };
-export type DeclarationRow = {
-  declaredBy: string;
-  declaredAt: Date;
-  shown: Declared[];
-  gaps: Gap[];
-};
-
-/** Raised when a submission has already been claimed by another call. */
-export class AlreadySubmitted extends Error {
-  constructor(projectId: string) {
-    super(`project ${projectId} was already submitted`);
-    this.name = "AlreadySubmitted";
-  }
-}
-
-export function postgresSubmissionStore(): SubmissionStore {
-  const db = getDb();
-  return {
-    async submit({ projectId, person, shown, gaps, findings: raised }) {
-      // All of it or none: the stamp, what was declared, and what it
-      // raised are one act.
-      await db.transaction(async (tx) => {
-        // Claim the submission first, and only proceed if THIS call is the
-        // one that set the stamp. Guarding the update without checking
-        // whether it changed anything let three concurrent submits each
-        // write a declaration and a duplicate set of findings.
-        const claimed = await tx
-          .update(schema.projects)
-          .set({ submittedAt: new Date(), submittedBy: person })
-          .where(and(eq(schema.projects.id, projectId), isNull(schema.projects.submittedAt)))
-          .returning({ id: schema.projects.id });
-        if (claimed.length === 0) {
-          throw new AlreadySubmitted(projectId);
-        }
-        await tx.insert(schema.declarations).values({ projectId, declaredBy: person, shown, gaps });
-        if (raised.length > 0) {
-          await tx.insert(schema.findings).values(
-            raised.map((finding) => ({
-              projectId,
-              questionId: finding.questionId,
-              objective: finding.objective,
-              objectiveName: finding.objectiveName,
-              kind: finding.kind,
-              note: finding.note,
-              raisedBy: person,
-            })),
-          );
-        }
-      });
-    },
-    async findingsFor(projectId) {
-      const rows = await db
-        .select()
-        .from(schema.findings)
-        .where(eq(schema.findings.projectId, projectId))
-        .orderBy(schema.findings.raisedAt);
-      return rows.map((row) => ({
-        id: row.id,
-        questionId: row.questionId,
-        objective: row.objective,
-        objectiveName: row.objectiveName,
-        kind: row.kind as SynthesisedFinding["kind"],
-        note: row.note,
-        raisedAt: row.raisedAt,
-        raisedBy: row.raisedBy,
-      }));
-    },
-    async declarationFor(projectId) {
-      const [row] = await db
-        .select()
-        .from(schema.declarations)
-        .where(eq(schema.declarations.projectId, projectId))
-        .orderBy(desc(schema.declarations.declaredAt))
-        .limit(1);
-      if (!row) return null;
-      return {
-        declaredBy: row.declaredBy,
-        declaredAt: row.declaredAt,
-        shown: row.shown as Declared[],
-        gaps: row.gaps as Gap[],
-      };
-    },
-  };
-}
-
-export function submissionStore(): SubmissionStore {
-  return postgresSubmissionStore();
-}
-
-/** Attestations and dispositions — the reviewer's acts (S8). */
-export interface ReviewStore {
-  attestationsFor(projectId: string): Promise<AttestationRow[]>;
-  attest(input: {
-    projectId: string;
-    questionId: string;
-    person: string;
-    domain: string | null;
-    act: "approve" | "correct" | "not-applicable";
-    correctedAnswer: string | null;
-    note: string;
-  }): Promise<void>;
-  dispositionsFor(projectId: string): Promise<DispositionRow[]>;
-}
-
-export type AttestationRow = {
-  id: string;
-  questionId: string;
-  attestedBy: string;
-  attestedDomain: string | null;
-  attestedAt: Date;
-  act: string;
-  correctedAnswer: string | null;
-  note: string;
-};
-
-export type DispositionRow = {
-  findingId: string;
-  kind: string;
-  resolvedBy: string;
-  resolvedAt: Date;
-  note: string;
-  expiresAt: Date | null;
-};
-
-export function postgresReviewStore(): ReviewStore {
-  const db = getDb();
-  return {
-    async attestationsFor(projectId) {
-      const rows = await db
-        .select()
-        .from(schema.attestations)
-        .where(eq(schema.attestations.projectId, projectId))
-        .orderBy(desc(schema.attestations.attestedAt));
-      return rows.map((row) => ({
-        id: row.id,
-        questionId: row.questionId,
-        attestedBy: row.attestedBy,
-        attestedDomain: row.attestedDomain,
-        attestedAt: row.attestedAt,
-        act: row.act,
-        correctedAnswer: row.correctedAnswer,
-        note: row.note,
-      }));
-    },
-    async attest(input) {
-      // Insert-only: correcting an attestation is a new row, so the
-      // sequence of who signed what and when survives intact (§5.1).
-      await db.insert(schema.attestations).values({
-        projectId: input.projectId,
-        questionId: input.questionId,
-        attestedBy: input.person,
-        attestedDomain: input.domain,
-        act: input.act,
-        correctedAnswer: input.correctedAnswer,
-        note: input.note,
-      });
-    },
-    async dispositionsFor(projectId) {
-      const rows = await db
-        .select({
-          findingId: schema.dispositions.findingId,
-          kind: schema.dispositions.kind,
-          resolvedBy: schema.dispositions.resolvedBy,
-          resolvedAt: schema.dispositions.resolvedAt,
-          note: schema.dispositions.note,
-          expiresAt: schema.dispositions.expiresAt,
-        })
-        .from(schema.dispositions)
-        .innerJoin(schema.findings, eq(schema.findings.id, schema.dispositions.findingId))
-        .where(eq(schema.findings.projectId, projectId))
-        .orderBy(desc(schema.dispositions.resolvedAt));
-      return rows;
-    },
-  };
-}
-
-export function reviewStore(): ReviewStore {
-  return postgresReviewStore();
-}
-
 export function handoffStore(): HandoffStore {
   return postgresHandoffStore();
 }
+
+// Submission and review live in their own module (NFR-6), re-exported here
+// so the store seam stays one import for every caller.
+export {
+  AlreadySubmitted,
+  postgresReviewStore,
+  postgresSubmissionStore,
+  reviewStore,
+  submissionStore,
+  type AttestationRow,
+  type DeclarationRow,
+  type DispositionRow,
+  type FindingRow,
+  type ReviewStore,
+  type SubmissionStore,
+} from "./repo-review";

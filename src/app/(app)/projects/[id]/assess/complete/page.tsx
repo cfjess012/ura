@@ -286,9 +286,9 @@ export default async function GatesCompletePage({
           <div className="card card-upcoming">
             <h2>Coming next</h2>
             <p>
-              A reviewer attests every answer and disposes the findings this
-              raises. Those screens are still being built — everything you have
-              answered is saved.
+              A Risk Assessor signs every control answer and settles the
+              findings this raises — one of four ways, each of which says what
+              it commits to. Everything you have answered is saved.
             </p>
             <Link className="btn ghost" href={`/projects/${id}`}>
               Back to the assessment

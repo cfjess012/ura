@@ -10,7 +10,7 @@
  */
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { handOffQuestion, replyToHandoff, resolveHandoff } from "@/app/actions";
+import { handOffQuestion, replyToHandoff, resolveHandoff } from "@/app/handoff-actions";
 import { errorRef, isFailure } from "@/lib/errors";
 import { initialsOf, saidAt, thread, timeAgo, type Reply } from "@/lib/handoff";
 

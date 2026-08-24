@@ -94,6 +94,25 @@ const bell=await p.getByRole('button',{name:/^Alerts/}).getAttribute('aria-label
 ok(`Beat 5 · Samuel's bell (${bell})`, /[1-9]\d* needing action/.test(bell));
 await p.getByRole('button',{name:/^Alerts/}).click(); await p.waitForTimeout(600);
 ok('Beat 5 · the promise on the band', (await p.locator('body').innerText()).includes("These clear themselves when the work is done — they can’t be dismissed."));
+
+// The run sheet now offers a follow-on: "Sable claims triage is already
+// with a reviewer — sign in as Diego Marquez and it opens on his queue."
+// A claim the run sheet makes is a claim the product makes (G-56).
+await p.goto('http://localhost:3100/'); await settle();
+await p.getByText('Diego Marquez').first().click(); await p.waitForURL(/\/projects$/); await settle();
+const listed = await p.locator('.list-row', { hasText: 'Sable claims triage' }).innerText();
+ok('Follow-on · Sable is listed as in review', /In review/i.test(listed));
+await p.getByRole('link', { name: /Sable claims triage/ }).click(); await settle();
+ok("Follow-on · it opens on the reviewer's queue", /\/review$/.test(p.url()));
+ok('Follow-on · the queue names controls, not codes',
+   /Access Review & Recertification/.test(await p.locator('.review-layout').innerText()));
+// The queue opens on what needs a person most, which is not necessarily
+// the control carrying the finding — so go to that one.
+await p.locator('.review-item', { hasText: 'Access Review & Recertification' }).click();
+await p.waitForTimeout(500);
+ok('Follow-on · a finding is waiting to be settled',
+   (await p.getByRole('button', { name: /Settle this finding/ }).count()) > 0);
+
 console.log("\n  page errors:", errs.length ? errs : "none");
 await b.close();
 reset("rebuilding it again, since the walk answered questions");

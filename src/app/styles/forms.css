@@ -47,10 +47,19 @@
   margin: 1.1rem 0 0.3rem;
   color: var(--neutral-900);
 }
-.field .req { color: var(--warning-strong); }
-.help { color: var(--neutral-600); font-size: 0.85rem; margin: 0 0 0.45rem; }
+.field .req {
+  color: var(--warning-strong);
+}
+.help {
+  color: var(--neutral-600);
+  font-size: 0.85rem;
+  margin: 0 0 0.45rem;
+}
 
-input[type="text"], input[type="date"], textarea, select {
+input[type="text"],
+input[type="date"],
+textarea,
+select {
   width: 100%;
   font: inherit;
   color: var(--neutral-900);
@@ -58,16 +67,43 @@ input[type="text"], input[type="date"], textarea, select {
   border: 1px solid var(--neutral-300);
   border-radius: 10px;
   background: var(--neutral-0);
-  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+  transition:
+    border-color 0.15s var(--ease),
+    box-shadow 0.15s var(--ease);
 }
-input:hover, textarea:hover, select:hover { border-color: var(--neutral-500); }
-input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible {
+input:hover,
+textarea:hover,
+select:hover {
+  border-color: var(--neutral-500);
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
   border-color: var(--focus-ring);
 }
-textarea { min-height: 6.5rem; resize: vertical; line-height: 1.5; }
-select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--neutral-600) 50%), linear-gradient(135deg, var(--neutral-600) 50%, transparent 50%); background-position: right 1.05rem center, right 0.8rem center; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 2rem; }
+textarea {
+  min-height: 6.5rem;
+  resize: vertical;
+  line-height: 1.5;
+}
+select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--neutral-600) 50%),
+    linear-gradient(135deg, var(--neutral-600) 50%, transparent 50%);
+  background-position:
+    right 1.05rem center,
+    right 0.8rem center;
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 2rem;
+}
 
 /* conditional reveal */
 .reveal {
@@ -87,44 +123,97 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
   gap: 0.4rem;
   align-items: baseline;
 }
-.reveal .field { margin-top: 0.35rem; }
+.reveal .field {
+  margin-top: 0.35rem;
+}
 @keyframes reveal {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .reveal { animation: none; }
-  * { transition-duration: 0.01ms !important; }
+  .reveal {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
 }
 
-.checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.15rem 1rem; }
-.checks label {
-  display: flex; gap: 0.55rem; align-items: baseline;
-  font-size: 0.93rem; font-weight: 400; padding: 0.3rem 0.4rem;
-  border-radius: 8px; cursor: pointer;
+.checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 0.15rem 1rem;
 }
-.checks label:hover { background: var(--surface-1); }
-.checks input { accent-color: var(--primary); }
+.checks label {
+  display: flex;
+  gap: 0.55rem;
+  align-items: baseline;
+  font-size: 0.93rem;
+  font-weight: 400;
+  padding: 0.3rem 0.4rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.checks label:hover {
+  background: var(--surface-1);
+}
+.checks input {
+  accent-color: var(--primary);
+}
 
 /* ---------- buttons ---------- */
 .btn {
-  font: inherit; font-weight: 700; font-size: 0.95rem;
-  background: var(--primary); color: #fff; border: 1px solid transparent;
-  border-radius: 999px; padding: 0.6rem 1.4rem; cursor: pointer;
-  display: inline-flex; gap: 0.5rem; align-items: center; white-space: nowrap;
-  transition: background 0.15s var(--ease), transform 0.15s var(--ease);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  background: var(--primary);
+  color: #fff;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.6rem 1.4rem;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  white-space: nowrap;
+  transition:
+    background 0.15s var(--ease),
+    transform 0.15s var(--ease);
 }
-.btn:hover:not(:disabled) { background: var(--primary-hover); }
-.btn:active:not(:disabled) { transform: translateY(1px); }
-.btn:disabled { background: var(--neutral-300); color: var(--neutral-600); cursor: not-allowed; }
-.btn.ghost { background: transparent; color: var(--navy); border-color: var(--neutral-300); }
-.btn.ghost:hover { background: var(--surface-1); border-color: var(--neutral-500); }
+.btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  background: var(--neutral-300);
+  color: var(--neutral-600);
+  cursor: not-allowed;
+}
+.btn.ghost {
+  background: transparent;
+  color: var(--navy);
+  border-color: var(--neutral-300);
+}
+.btn.ghost:hover {
+  background: var(--surface-1);
+  border-color: var(--neutral-500);
+}
 
 /* ---------- save bar ---------- */
 /* The bar is sticky and is the form's last child, so at rest it lands on
    top of the final field — and taller in the error state, hiding more (N5).
    The field card reserves that height instead. */
-.intake-main > .card { padding-bottom: 5.5rem; }
+.intake-main > .card {
+  padding-bottom: 5.5rem;
+}
 /* Intake puts its rail inside the form (so it tracks unsaved answers), which
    makes the form the two-column grid rather than the page. */
 .intake-form {
@@ -133,49 +222,114 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
   gap: 0 2rem;
   align-items: start;
 }
-.intake-form > .projhead { grid-column: 1 / -1; }
-.intake-form > .rail { margin-top: 1.6rem; }
-.intake-form > .intake-main { min-width: 0; }
-.intake-form > .savebar { grid-column: 1 / -1; }
-.intake-form > .gate-nav { grid-column: 2; }
+.intake-form > .projhead {
+  grid-column: 1 / -1;
+}
+.intake-form > .rail {
+  margin-top: 1.6rem;
+}
+.intake-form > .intake-main {
+  min-width: 0;
+}
+.intake-form > .savebar {
+  grid-column: 1 / -1;
+}
+.intake-form > .gate-nav {
+  grid-column: 2;
+}
 @media (max-width: 900px) {
-  .intake-form { grid-template-columns: 1fr; }
-  .intake-form > .gate-nav { grid-column: 1; }
+  .intake-form {
+    grid-template-columns: 1fr;
+  }
+  .intake-form > .gate-nav {
+    grid-column: 1;
+  }
 }
 .savebar {
-  position: sticky; bottom: 0; z-index: 5;
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
   background: rgba(252, 252, 252, 0.94);
   backdrop-filter: blur(6px);
   border-top: 1px solid var(--neutral-200);
   margin: 1.4rem -1.5rem 0;
   padding: 0.9rem 1.5rem;
-  display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
 }
-.saved { color: var(--success); font-weight: 700; font-size: 0.9rem; }
+.saved {
+  color: var(--success);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
 /* Wrap rather than truncate: "1 still needed here — Is this a new
    initiative, or…" told the person nothing (N5). */
-.missing { color: var(--neutral-600); font-size: 0.88rem; min-width: 0; }
-.missing strong { color: var(--neutral-800); }
+.missing {
+  color: var(--neutral-600);
+  font-size: 0.88rem;
+  min-width: 0;
+}
+.missing strong {
+  color: var(--neutral-800);
+}
 
 /* ---------- project list ---------- */
 .list-row {
-  display: flex; justify-content: space-between; gap: 1rem; align-items: baseline;
-  padding: 0.95rem 1.2rem; background: var(--neutral-0);
-  border: 1px solid var(--neutral-200); border-radius: var(--radius);
-  margin-bottom: 0.55rem; transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.95rem 1.2rem;
+  background: var(--neutral-0);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius);
+  margin-bottom: 0.55rem;
+  transition:
+    border-color 0.15s var(--ease),
+    box-shadow 0.15s var(--ease);
 }
-.list-row:hover { border-color: var(--brand); box-shadow: var(--shadow-card); }
-.list-row a { color: var(--navy); text-decoration: none; font-weight: 700; }
-.meta { color: var(--neutral-600); font-size: 0.86rem; }
+.list-row:hover {
+  border-color: var(--brand);
+  box-shadow: var(--shadow-card);
+}
+.list-row a {
+  color: var(--navy);
+  text-decoration: none;
+  font-weight: 700;
+}
+.meta {
+  color: var(--neutral-600);
+  font-size: 0.86rem;
+}
 .empty {
-  text-align: center; padding: 2.6rem 1rem; color: var(--neutral-600);
-  background: var(--neutral-0); border: 1px dashed var(--neutral-300);
+  text-align: center;
+  padding: 2.6rem 1rem;
+  color: var(--neutral-600);
+  background: var(--neutral-0);
+  border: 1px dashed var(--neutral-300);
   border-radius: var(--radius-lg);
 }
-.empty p { margin: 0.3rem 0; }
-.start-card { display: flex; gap: 0.6rem; align-items: center; }
-.start-card input { flex: 1; }
-.card-heading { font-size: 0.76rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--neutral-600); margin: 2rem 0 0.7rem; }
+.empty p {
+  margin: 0.3rem 0;
+}
+.start-card {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+.start-card input {
+  flex: 1;
+}
+.card-heading {
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--neutral-600);
+  margin: 2rem 0 0.7rem;
+}
 
 /* Reassurance note — answers a worry, never asks a question (§24.1). */
 .note {
@@ -195,26 +349,57 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
   gap: 0.4rem;
   align-items: baseline;
 }
-.note-body { margin: 0; font-size: 0.9rem; color: var(--neutral-700); }
-@media (prefers-reduced-motion: reduce) { .note { animation: none; } }
-.save-failed { color: var(--error); font-weight: 700; font-size: 0.9rem; max-width: 46rem; }
-.savebar { flex-wrap: wrap; row-gap: 0.5rem; }
-.err-ref { color: var(--neutral-600); font-weight: 600; white-space: nowrap; }
+.note-body {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--neutral-700);
+}
+@media (prefers-reduced-motion: reduce) {
+  .note {
+    animation: none;
+  }
+}
+.save-failed {
+  color: var(--error);
+  font-weight: 700;
+  font-size: 0.9rem;
+  max-width: 46rem;
+}
+.savebar {
+  flex-wrap: wrap;
+  row-gap: 0.5rem;
+}
+.err-ref {
+  color: var(--neutral-600);
+  font-weight: 600;
+  white-space: nowrap;
+}
 
 .list-more {
   color: var(--neutral-600);
   font-size: 0.86rem;
   margin: 0.9rem 0 0;
 }
-.list-more a { color: var(--link); font-weight: 700; }
+.list-more a {
+  color: var(--link);
+  font-weight: 700;
+}
 .attribution {
   color: var(--neutral-600);
   font-size: 0.82rem;
   margin: 1rem 0 0;
 }
-.attribution strong { color: var(--neutral-800); font-weight: 700; }
-.start-card { flex-wrap: wrap; }
-.start-card .save-failed { flex-basis: 100%; margin: 0.2rem 0 0; }
+.attribution strong {
+  color: var(--neutral-800);
+  font-weight: 700;
+}
+.start-card {
+  flex-wrap: wrap;
+}
+.start-card .save-failed {
+  flex-basis: 100%;
+  margin: 0.2rem 0 0;
+}
 
 /* A required answer someone tried to move past (FR-28). Never colour alone:
    the save bar names the fields and the live region reads them out. */
@@ -225,14 +410,25 @@ select.flagged {
   border-color: var(--warning-strong);
   background: var(--warning-bg);
 }
-.checks.flagged { border-radius: var(--radius); padding: 0.35rem; }
-.missing.blocked { color: var(--warning-strong); font-weight: 700; white-space: normal; }
+.checks.flagged {
+  border-radius: var(--radius);
+  padding: 0.35rem;
+}
+.missing.blocked {
+  color: var(--warning-strong);
+  font-weight: 700;
+  white-space: normal;
+}
 
 /* A single answer on an ordered scale (C-3). Laid out as a scale so the
    ordering is visible: a dropdown would hide both the options and the fact
    that they rank. Rank is shown by filled pips AND by position AND by the
    description — never by colour (§11.1). */
-.levels { display: grid; gap: 0.5rem; margin-bottom: 0.4rem; }
+.levels {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
 .level {
   display: flex;
   gap: 0.75rem;
@@ -242,19 +438,52 @@ select.flagged {
   border-radius: var(--radius);
   background: var(--neutral-0);
   cursor: pointer;
-  transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+  transition:
+    border-color 0.15s var(--ease),
+    background 0.15s var(--ease);
 }
-.level:hover { border-color: var(--brand); background: var(--surface-1); }
-.level input { margin-top: 0.25rem; accent-color: var(--primary); }
+.level:hover {
+  border-color: var(--brand);
+  background: var(--surface-1);
+}
+.level input {
+  margin-top: 0.25rem;
+  accent-color: var(--primary);
+}
 .level.chosen {
   border-color: var(--navy);
   background: var(--surface-2);
   box-shadow: inset 4px 0 0 var(--navy);
 }
-.level-body { display: block; min-width: 0; }
-.level-name { display: flex; align-items: baseline; gap: 0.5rem; font-weight: 700; }
-.level.chosen .level-name { color: var(--navy); }
-.level-rank { font-size: 0.6rem; letter-spacing: 0.1em; color: var(--navy); }
-.level-rank-rest { color: var(--neutral-300); }
-.level-what { display: block; font-size: 0.85rem; color: var(--neutral-600); margin-top: 0.15rem; }
-.levels.flagged { border: 2px solid var(--warning-strong); border-radius: var(--radius); padding: 0.35rem; }
+.level-body {
+  display: block;
+  min-width: 0;
+}
+.level-name {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-weight: 700;
+}
+.level.chosen .level-name {
+  color: var(--navy);
+}
+.level-rank {
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  color: var(--navy);
+}
+.level-rank-rest {
+  color: var(--neutral-300);
+}
+.level-what {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--neutral-600);
+  margin-top: 0.15rem;
+}
+.levels.flagged {
+  border: 2px solid var(--warning-strong);
+  border-radius: var(--radius);
+  padding: 0.35rem;
+}

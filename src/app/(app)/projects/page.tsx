@@ -30,7 +30,10 @@ export default async function Projects({
   const showingAll = all === "1";
 
   const [rows, total, unattributed] = await Promise.all([
-    projectStore().list({ ...scope, limit: showingAll ? undefined : PAGE_SIZE }),
+    projectStore().list({
+      ...scope,
+      limit: showingAll ? undefined : PAGE_SIZE,
+    }),
     projectStore().count(scope),
     everyone ? Promise.resolve(0) : projectStore().countUnattributed(),
   ]);
@@ -76,7 +79,9 @@ export default async function Projects({
         <div className="empty">
           <p>
             <strong>
-              {everyone ? "Nothing has been started yet." : "No assessments yet."}
+              {everyone
+                ? "Nothing has been started yet."
+                : "No assessments yet."}
             </strong>
           </p>
           <p>
@@ -95,6 +100,11 @@ export default async function Projects({
                 {everyone && p.startedBy ? `${p.startedBy} · ` : ""}
                 updated {p.updatedAt.toLocaleDateString()}
               </span>
+              {/* A reviewer's list showed no sign of which assessments were
+                  waiting on them — the one thing it is for (§24.7). */}
+              {p.submittedAt !== null && (
+                <span className="pill-status">In review</span>
+              )}
             </div>
           ))}
           {/* Say what is being withheld rather than quietly truncating (F11). */}
@@ -106,14 +116,16 @@ export default async function Projects({
           )}
           {unattributed > 0 && (
             <p className="list-more">
-              {unattributed} earlier assessment{unattributed === 1 ? " has" : "s have"} no
-              recorded owner and can&rsquo;t be shown here — they were started before the
-              platform recorded who was working. A Risk Assessor can still open them.
+              {unattributed} earlier assessment
+              {unattributed === 1 ? " has" : "s have"} no recorded owner and
+              can&rsquo;t be shown here — they were started before the platform
+              recorded who was working. A Risk Assessor can still open them.
             </p>
           )}
           {showingAll && total > PAGE_SIZE && (
             <p className="list-more">
-              Showing all {total}. <Link href="/projects">Show recent only</Link>
+              Showing all {total}.{" "}
+              <Link href="/projects">Show recent only</Link>
             </p>
           )}
         </>

@@ -10,6 +10,8 @@
 @import "./styles/chrome.css";
 @import "./styles/forms.css";
 @import "./styles/assess.css";
+@import "./styles/controls.css";
+@import "./styles/review.css";
 @import "./styles/admin.css";
 @import "./styles/landing.css";
 @import "./styles/status.css";

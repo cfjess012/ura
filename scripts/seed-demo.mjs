@@ -215,6 +215,35 @@ const PROJECTS = [
       target_go_live: "2026-10-15",
     },
   },
+  {
+    // Already submitted, so the reviewer's queue has real work in it. Without
+    // this the whole of S7 and S8 is unreachable from seeded data — the
+    // screens exist and the demo has nothing to show them with.
+    name: "Sable claims triage",
+    by: "d.grant", // Alison Grant
+    submitted: true,
+    intake: {
+      business_purpose:
+        "Cut the time a claims handler spends reading a new claim before deciding where it should go.",
+      project_description:
+        "A triage assistant from Sable Analytics that reads an incoming claim and proposes which queue it belongs in, with the sentences it based that on. A handler accepts or overrides every proposal; nothing routes on its own.",
+      uses_ai: "Yes",
+      ai_use_case:
+        "It proposes a routing queue and shows the passages of the claim it read. The handler decides.",
+      initiative_type: "Brand new",
+      third_party_involved: "Yes",
+      coupa_onboarded: "Yes",
+      data_classification: "Confidential",
+      business_owner: person("d.grant", "Alison Grant"),
+      technical_owner: person("d.chen", "Wei Chen"),
+      collaborators: "Claims operations",
+      business_unit: ref("business-units", "Finance"),
+      other_units: [],
+      vendor_names: [unlisted("vendors", "Sable Analytics")],
+      data_elements: ["Customer personal information"],
+      target_go_live: "2026-12-01",
+    },
+  },
 ];
 
 /**
@@ -222,6 +251,16 @@ const PROJECTS = [
  * cannot show the requester half of the journey: two of three curated
  * assessments had owners absent from the front door (verifier finding F6).
  */
+/**
+ * By name, never by position. Inserting one project into this array
+ * silently reassigned every index the last time it used them.
+ */
+const projectNamed = (name) => {
+  const found = PROJECTS.find((p) => p.name === name);
+  if (!found) throw new Error(`the seed refers to "${name}", which is not in PROJECTS`);
+  return found;
+};
+
 const OWNERS = [...new Set(PROJECTS.map((p) => p.by))];
 await sql`update people set signs_in = true where id in ${sql(OWNERS)}`;
 console.log(`sign-in enabled for ${OWNERS.length} assessment owners`);
@@ -311,6 +350,31 @@ const PARTNER_ANSWERS = [
   [pathId("security-resilience"), ["SR_INT"], gatesVersion],
 ];
 
+/**
+ * Project 4 — answered all the way through, then submitted. Its Tier-3
+ * answers are what raise the findings the reviewer settles: one No (a gap)
+ * and one Partial (an enhancement).
+ */
+const SABLE_ANSWERS = [
+  [gateId("third-party"), "Yes", gatesVersion],
+  [gateId("ai"), "Yes", gatesVersion],
+  [gateId("data-privacy"), "Yes", gatesVersion],
+  [gateId("security-resilience"), "Yes", gatesVersion],
+  [gateId("legal-regulatory"), "No", gatesVersion],
+  [gateId("solution-architecture"), "No", gatesVersion],
+  [gateId("operational"), "No", gatesVersion],
+  [gateId("ethics-conduct"), "No", gatesVersion],
+  [gateId("people-capacity"), "No", gatesVersion],
+  [gateId("jurisdiction"), "No", gatesVersion],
+  [pathId("third-party"), ["TPR_LA", "TPR_DH"], gatesVersion],
+  [pathId("ai"), ["AI_DEC"], gatesVersion],
+  [pathId("data-privacy"), ["PRIV"], gatesVersion],
+  [pathId("security-resilience"), ["SR_INT"], gatesVersion],
+  // Privileged access is what pulls the identity controls in — the same
+  // derivation Beat 3 demonstrates live on Novara.
+  ["sev.tpr_la_1", "High", severityVersion],
+];
+
 for (const spec of PROJECTS) {
   for (const field of ["initiative_type", "uses_ai", "third_party_involved", "coupa_onboarded", "data_classification"])
     checkChoice(spec.name, field, spec.intake[field]);
@@ -349,16 +413,22 @@ const record = async (projectId, rows, answeredBy, intake) => {
   }
 };
 
-if (!PROJECTS[0].skipped)
-  await record(PROJECTS[0].id, NOVARA_ANSWERS, PROJECTS[0].by, PROJECTS[0].intake);
-if (!PROJECTS[2].skipped)
-  await record(PROJECTS[2].id, PARTNER_ANSWERS, PROJECTS[2].by, PROJECTS[2].intake);
+const novara = projectNamed("Novara scheduling assistant");
+const partner = projectNamed("Partner data exchange");
+const sable = projectNamed("Sable claims triage");
+if (!novara.skipped) await record(novara.id, NOVARA_ANSWERS, novara.by, novara.intake);
+if (!partner.skipped) await record(partner.id, PARTNER_ANSWERS, partner.by, partner.intake);
+if (!sable.skipped) await record(sable.id, SABLE_ANSWERS, sable.by, sable.intake);
 // What was WRITTEN, not what was offered: the gates intake decides are
 // deliberately left to the engine, and a count that ignored that reported
 // 27 while writing 17.
-const offered = PROJECTS.filter((p) => !p.skipped).length
-  ? NOVARA_ANSWERS.length + PARTNER_ANSWERS.length
-  : 0;
+// Every set that was actually offered — a hardcoded pair reported -4 gates
+// "left to the engine" the moment a third assessment was seeded.
+const offered = [
+  [novara, NOVARA_ANSWERS],
+  [partner, PARTNER_ANSWERS],
+  [sable, SABLE_ANSWERS],
+].reduce((total, [project, rows]) => total + (project.skipped ? 0 : rows.length), 0);
 console.log(
   offered === 0
     ? "recorded 0 answers — every project was already present"
@@ -367,12 +437,74 @@ console.log(
 
 // A live hand-off on project 3, so the bell has real work waiting and the
 // obligation is derived rather than staged (FR-36).
-if (!PROJECTS[2].skipped)
+if (!partner.skipped)
   await sql`
   insert into handoffs (project_id, question_id, asked_by, to_domain, note)
-  values (${PROJECTS[2].id}, ${"sev.tpr_dh_1"}, ${PROJECTS[2].by}, ${"third-party"},
+  values (${partner.id}, ${"sev.tpr_dh_1"}, ${partner.by}, ${"third-party"},
           ${"I don't know what classification the partners hold this under once it lands their side."})`;
 console.log("handed off sev.tpr_dh_1 on Partner data exchange → Third-Party & Supply Chain");
 
+/**
+ * The submitted assessment's control answers, and the submission itself.
+ *
+ * The findings are NOT hand-written here: they are derived from these
+ * answers by the same rule the product uses (No → gap, Partial →
+ * enhancement, §4.3), so seeded data cannot claim a finding the answers
+ * would not raise.
+ */
+if (!sable.skipped) {
+  const tier3Version = await activeVersion("tier3-objectives");
+  const CONTROL_ANSWERS = [
+    ["t3.t3_iam_02", "T3-IAM-02", "Multi-Factor Authentication", "Yes",
+      "Enforced for every administrative session, including the vendor's."],
+    ["t3.t3_iam_05", "T3-IAM-05", "Access Review & Recertification", "No",
+      "No recertification process exists today — access is granted and not reviewed again."],
+    ["t3.t3_iam_03", "T3-IAM-03", "Privileged Access Management", "Partial",
+      "Admin accounts are named and logged, but they are not checked out through a vault."],
+  ];
+  for (const [questionId, , , answer, note] of CONTROL_ANSWERS)
+    await sql`insert into answers ${sql({
+      project_id: sable.id,
+      question_id: questionId,
+      value: JSON.stringify({ answer, note }),
+      source: "person",
+      confirmed: true,
+      instrument_version_id: tier3Version,
+      answered_by: sable.by,
+    })}`;
+
+  const declared = Object.entries({
+    "intake.business_purpose": ["Business Purpose or Objective", sable.intake.business_purpose],
+    "intake.uses_ai": ["Does this use AI or machine learning?", sable.intake.uses_ai],
+    "intake.third_party_involved": ["Is a third party involved?", sable.intake.third_party_involved],
+    "intake.data_classification": ["Data classification", sable.intake.data_classification],
+  }).map(([questionId, [label, value]]) => ({ questionId, label, value }));
+
+  await sql`
+    update projects set submitted_at = now() - interval '1 day', submitted_by = ${sable.by}
+    where id = ${sable.id}`;
+  await sql`insert into declarations ${sql({
+    project_id: sable.id,
+    declared_by: sable.by,
+    shown: JSON.stringify(declared),
+    gaps: JSON.stringify([]),
+  })}`;
+
+  const raised = CONTROL_ANSWERS.filter(([, , , answer]) => answer !== "Yes");
+  for (const [questionId, objective, objectiveName, answer, note] of raised)
+    await sql`insert into findings ${sql({
+      project_id: sable.id,
+      question_id: questionId,
+      objective,
+      objective_name: objectiveName,
+      kind: answer === "No" ? "gap" : "enhancement",
+      note,
+      raised_by: sable.by,
+    })}`;
+  console.log(
+    `submitted Sable claims triage with ${raised.length} findings for a reviewer to settle`,
+  );
+}
+
 await sql.end();
-console.log("\ndemo data ready: 3 assessments, 1 waiting obligation.");
+console.log("\ndemo data ready: 4 assessments, 1 waiting obligation, 1 with a reviewer.");

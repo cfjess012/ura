@@ -1,13 +1,21 @@
 /* ---------- waiting, failing, missing (SPEC §25) ---------- */
-.recover .summary-list { margin-bottom: 1.1rem; }
-.recover .savebar { border-top: 0; padding-top: 0; }
+.recover .summary-list {
+  margin-bottom: 1.1rem;
+}
+.recover .savebar {
+  border-top: 0;
+  padding-top: 0;
+}
 
 .loading-note {
   color: var(--neutral-600);
   font-size: 0.9rem;
   margin: 2.4rem 0 0.8rem;
 }
-.skeleton-card { display: grid; gap: 0.7rem; }
+.skeleton-card {
+  display: grid;
+  gap: 0.7rem;
+}
 .skeleton {
   display: block;
   height: 0.85rem;
@@ -21,13 +29,25 @@
   background-size: 400% 100%;
   animation: shimmer 1.4s var(--ease) infinite;
 }
-.w-40 { width: 40%; }
-.w-60 { width: 60%; }
-.w-80 { width: 80%; }
+.w-40 {
+  width: 40%;
+}
+.w-60 {
+  width: 60%;
+}
+.w-80 {
+  width: 80%;
+}
 @keyframes shimmer {
-  0% { background-position: 100% 0; }
-  100% { background-position: 0 0; }
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .skeleton { animation: none; }
+  .skeleton {
+    animation: none;
+  }
 }

@@ -56,18 +56,24 @@ function validate(candidate: Tier3Doc): Tier3Doc {
   if (candidate.objectives.length === 0) fail("has no objectives");
   const declared = new Set(candidate.answers);
   for (const answer of TIER3_ANSWERS) {
-    if (!declared.has(answer)) fail(`does not declare the "${answer}" answer (§3.4)`);
+    if (!declared.has(answer))
+      fail(`does not declare the "${answer}" answer (§3.4)`);
   }
   for (const objective of candidate.objectives) {
-    for (const id of [objective.questionId, ...objective.children.map((c) => c.questionId)]) {
+    for (const id of [
+      objective.questionId,
+      ...objective.children.map((c) => c.questionId),
+    ]) {
       if (seen.has(id)) fail(`question id "${id}" appears twice`);
       seen.add(id);
-      if (!id.startsWith("t3.")) fail(`question id "${id}" is not namespaced t3.`);
+      if (!id.startsWith("t3."))
+        fail(`question id "${id}" is not namespaced t3.`);
     }
     if (!objective.text.trim()) fail(`${objective.id} has no question text`);
     // A control nobody can be asked about is content that never reaches a
     // person — the reachability rule, one tier down (audit C-10).
-    if (!controlName(objective.id)) fail(`${objective.id} is not in the control catalogue`);
+    if (!controlName(objective.id))
+      fail(`${objective.id} is not in the control catalogue`);
   }
   return candidate;
 }
@@ -88,7 +94,9 @@ const BY_ID = new Map(OBJECTIVES.map((o) => [o.id, o]));
  * areas draw (G-50), one tier down.
  */
 export function objectivesFor(accumulated: string[]): Tier3Objective[] {
-  return accumulated.map((id) => BY_ID.get(id)).filter((o): o is Tier3Objective => o !== undefined);
+  return accumulated
+    .map((id) => BY_ID.get(id))
+    .filter((o): o is Tier3Objective => o !== undefined);
 }
 
 /** Accumulated controls the pilot asks nothing about. */
@@ -125,7 +133,10 @@ export function noteRequired(answer: Tier3Answer): boolean {
 }
 
 /** What a person is told they still owe. Empty means the answer is complete. */
-export function noteProblem(answer: Tier3Answer | null, note: string): string | null {
+export function noteProblem(
+  answer: Tier3Answer | null,
+  note: string,
+): string | null {
   if (answer === null) return null;
   if (!noteRequired(answer)) return null;
   if (note.trim().length > 0) return null;
@@ -146,8 +157,6 @@ export function isTier3Value(value: unknown): value is Tier3Value {
     typeof candidate.note === "string"
   );
 }
-
-
 
 /**
  * Exactly which Tier-3 questions may be answered right now.
@@ -211,7 +220,26 @@ export function submissionProblems(
       continue;
     }
     const problem = noteProblem(value.answer, value.note);
-    if (problem) problems.push(`${labels.get(questionId) ?? questionId}: ${problem}`);
+    if (problem)
+      problems.push(`${labels.get(questionId) ?? questionId}: ${problem}`);
   }
   return problems;
+}
+
+/**
+ * The control objective a Tier-3 question belongs to — parent or child.
+ *
+ * This exists because authority must never be decided from a value the
+ * client supplied (verifier finding 1). The question being signed is the
+ * fact; which risk area owns it is derived from that, here, on the server.
+ */
+export function objectiveForQuestion(
+  questionId: string,
+): Tier3Objective | null {
+  for (const objective of OBJECTIVES) {
+    if (objective.questionId === questionId) return objective;
+    if (objective.children.some((child) => child.questionId === questionId))
+      return objective;
+  }
+  return null;
 }

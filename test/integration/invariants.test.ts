@@ -16,7 +16,9 @@ let versionId: string;
 beforeAll(async () => {
   pg = new PGlite();
   const dir = join(__dirname, "..", "..", "drizzle");
-  for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
+  for (const file of readdirSync(dir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()) {
     await pg.exec(readFileSync(join(dir, file), "utf8"));
   }
   const project = await pg.query<{ id: string }>(
@@ -30,7 +32,11 @@ beforeAll(async () => {
   versionId = version.rows[0]!.id;
 });
 
-async function insertAnswer(value: string, source = "person", confirmed = true) {
+async function insertAnswer(
+  value: string,
+  source = "person",
+  confirmed = true,
+) {
   const result = await pg.query<{ id: string }>(
     `insert into answers (project_id, question_id, value, source, confirmed, instrument_version_id)
      values ($1, 'gate.ai', $2::jsonb, $3, $4, $5) returning id`,
@@ -43,15 +49,17 @@ describe("answers are insert-only (NFR-1)", () => {
   it("refuses UPDATE at the database, not in application code", async () => {
     const id = await insertAnswer("Yes");
     await expect(
-      pg.query("update answers set value = '\"No\"'::jsonb where id = $1", [id]),
+      pg.query("update answers set value = '\"No\"'::jsonb where id = $1", [
+        id,
+      ]),
     ).rejects.toThrow(/insert-only/);
   });
 
   it("refuses DELETE — history is not editable", async () => {
     const id = await insertAnswer("Yes");
-    await expect(pg.query("delete from answers where id = $1", [id])).rejects.toThrow(
-      /insert-only/,
-    );
+    await expect(
+      pg.query("delete from answers where id = $1", [id]),
+    ).rejects.toThrow(/insert-only/);
   });
 
   it("a correction is a new row, and both rows survive", async () => {
@@ -65,7 +73,9 @@ describe("answers are insert-only (NFR-1)", () => {
   });
 
   it("rejects an unknown source, and a 'person' answer that is not confirmed", async () => {
-    await expect(insertAnswer("Yes", "agent")).rejects.toThrow(/answers_source_known/);
+    await expect(insertAnswer("Yes", "agent")).rejects.toThrow(
+      /answers_source_known/,
+    );
     await expect(insertAnswer("Yes", "person", false)).rejects.toThrow(
       /answers_person_is_confirmed/,
     );
@@ -75,9 +85,10 @@ describe("answers are insert-only (NFR-1)", () => {
 describe("activated instrument versions are immutable (NFR-11)", () => {
   it("refuses any change once activated — a change is a new version", async () => {
     await expect(
-      pg.query("update instrument_versions set content = '{\"x\":1}'::jsonb where id = $1", [
-        versionId,
-      ]),
+      pg.query(
+        "update instrument_versions set content = '{\"x\":1}'::jsonb where id = $1",
+        [versionId],
+      ),
     ).rejects.toThrow(/activated and immutable/);
   });
 
@@ -92,10 +103,13 @@ describe("activated instrument versions are immutable (NFR-11)", () => {
       `insert into instrument_versions (slug, version, content)
        values ('tier1-gates', 'draft.deletable', '{}'::jsonb) returning id`,
     );
-    await pg.query("delete from instrument_versions where id = $1", [draft.rows[0]!.id]);
-    const gone = await pg.query("select 1 from instrument_versions where id = $1", [
+    await pg.query("delete from instrument_versions where id = $1", [
       draft.rows[0]!.id,
     ]);
+    const gone = await pg.query(
+      "select 1 from instrument_versions where id = $1",
+      [draft.rows[0]!.id],
+    );
     expect(gone.rows).toHaveLength(0);
   });
 
@@ -104,9 +118,10 @@ describe("activated instrument versions are immutable (NFR-11)", () => {
       `insert into instrument_versions (slug, version, content)
        values ('tier1-gates', 'draft.1', '{}'::jsonb) returning id`,
     );
-    await pg.query("update instrument_versions set activated_at = now() where id = $1", [
-      draft.rows[0]!.id,
-    ]);
+    await pg.query(
+      "update instrument_versions set activated_at = now() where id = $1",
+      [draft.rows[0]!.id],
+    );
     const after = await pg.query<{ activated_at: string | null }>(
       "select activated_at from instrument_versions where id = $1",
       [draft.rows[0]!.id],
@@ -142,7 +157,11 @@ describe("intake history is evidence too (F5)", () => {
        values ($1, 'dataClassification', '["Internal"]'::jsonb, '["Confidential"]'::jsonb, 'p.requester')`,
       [projectId],
     );
-    const row = await pg.query<{ id: string; previous_value: string[]; changed_by: string }>(
+    const row = await pg.query<{
+      id: string;
+      previous_value: string[];
+      changed_by: string;
+    }>(
       "select id, previous_value, changed_by from intake_events where project_id = $1",
       [projectId],
     );
@@ -150,7 +169,9 @@ describe("intake history is evidence too (F5)", () => {
     expect(row.rows[0]!.changed_by).toBe("p.requester");
 
     await expect(
-      pg.query("update intake_events set value = '[]'::jsonb where id = $1", [row.rows[0]!.id]),
+      pg.query("update intake_events set value = '[]'::jsonb where id = $1", [
+        row.rows[0]!.id,
+      ]),
     ).rejects.toThrow(/insert-only/);
     await expect(
       pg.query("delete from intake_events where id = $1", [row.rows[0]!.id]),
@@ -163,9 +184,15 @@ describe("attribution (S2.5)", () => {
     const rows = await pg.query<{ role: string; count: string }>(
       "select role, count(*)::text as count from people group by role order by role",
     );
-    expect(rows.rows.map((r) => r.role)).toEqual(["admin", "assessor", "requester"]);
+    expect(rows.rows.map((r) => r.role)).toEqual([
+      "admin",
+      "assessor",
+      "requester",
+    ]);
     await expect(
-      pg.query("insert into people (id, name, role) values ('x', 'X', 'auditor')"),
+      pg.query(
+        "insert into people (id, name, role) values ('x', 'X', 'auditor')",
+      ),
     ).rejects.toThrow(/people_role_known/);
   });
 
@@ -206,7 +233,9 @@ describe("attribution (S2.5)", () => {
  */
 describe("only personas can be signed in as", () => {
   it("the directory is bigger than the sign-in list", async () => {
-    const all = await pg.query<{ count: number }>("select count(*)::int as count from people");
+    const all = await pg.query<{ count: number }>(
+      "select count(*)::int as count from people",
+    );
     const personas = await pg.query<{ count: number }>(
       "select count(*)::int as count from people where signs_in",
     );
@@ -221,7 +250,11 @@ describe("only personas can be signed in as", () => {
     const rows = await pg.query<{ role: string }>(
       "select distinct role from people where signs_in order by role",
     );
-    expect(rows.rows.map((r) => r.role)).toEqual(["admin", "assessor", "requester"]);
+    expect(rows.rows.map((r) => r.role)).toEqual([
+      "admin",
+      "assessor",
+      "requester",
+    ]);
   });
 
   it("directory people carry an address and cannot sign in", async () => {
@@ -240,18 +273,26 @@ describe("only personas can be signed in as", () => {
     // hand-off routes by this column, so a typo here would route a question
     // to nobody, silently.
     const gates = JSON.parse(
-      readFileSync(join(__dirname, "..", "..", "src", "data", "instrument", "gates.json"), "utf8"),
+      readFileSync(
+        join(__dirname, "..", "..", "src", "data", "instrument", "gates.json"),
+        "utf8",
+      ),
     ) as { categories: { key: string }[] };
     const known = new Set(gates.categories.map((c) => c.key));
-    const rows = await pg.query<{ id: string; role: string; risk_domain: string | null }>(
+    const rows = await pg.query<{
+      id: string;
+      role: string;
+      risk_domain: string | null;
+    }>(
       "select id, role, risk_domain from people where risk_domain is not null",
     );
     expect(rows.rows.length).toBeGreaterThan(5);
     for (const row of rows.rows) {
       expect(row.role, row.id).toBe("assessor");
-      expect(known, `${row.id} owns "${row.risk_domain}", which is not a risk area`).toContain(
-        row.risk_domain!,
-      );
+      expect(
+        known,
+        `${row.id} owns "${row.risk_domain}", which is not a risk area`,
+      ).toContain(row.risk_domain!);
     }
   });
 
@@ -271,18 +312,144 @@ describe("only personas can be signed in as", () => {
 describe("assessors are offices, in the instrument's order", () => {
   it("every risk area has exactly one office, and none is a job title", async () => {
     const gates = JSON.parse(
-      readFileSync(join(__dirname, "..", "..", "src", "data", "instrument", "gates.json"), "utf8"),
+      readFileSync(
+        join(__dirname, "..", "..", "src", "data", "instrument", "gates.json"),
+        "utf8",
+      ),
     ) as { categories: { key: string }[] };
     const rows = await pg.query<{ risk_domain: string; title: string }>(
       "select risk_domain, title from people where role = 'assessor' and risk_domain is not null",
     );
     const owned = rows.rows.map((r) => r.risk_domain).sort();
     expect(owned).toEqual(gates.categories.map((c) => c.key).sort());
-    expect(new Set(owned).size, "two people own the same risk area").toBe(owned.length);
+    expect(new Set(owned).size, "two people own the same risk area").toBe(
+      owned.length,
+    );
     for (const row of rows.rows) {
       // "Privacy Officer" is HR's word for the person; "Privacy Office" is
       // where a question goes. The second is what a requester needs.
-      expect(row.title, row.risk_domain).not.toMatch(/\b(Officer|Manager|Lead|Partner|Advisor|Counsel|Architect)\b/);
+      expect(row.title, row.risk_domain).not.toMatch(
+        /\b(Officer|Manager|Lead|Partner|Advisor|Counsel|Architect)\b/,
+      );
     }
+  });
+});
+
+/**
+ * §4.3 · the four dispositions, attacked at the database. The rules are
+ * stated in prose, checked in `src/lib/disposition.ts` for the person's
+ * sake, and enforced here — where no code path can miss them (G-59).
+ */
+describe("dispositions are governed by the schema (FR-18)", () => {
+  async function raiseFinding() {
+    const row = await pg.query<{ id: string }>(
+      `insert into findings (project_id, question_id, objective, objective_name, kind, note, raised_by)
+       values ($1, 't3.mfa', 'CTRL.MFA', 'Multi-Factor Authentication', 'gap', 'No MFA on admin access', 'p.sharma')
+       returning id`,
+      [projectId],
+    );
+    return row.rows[0]!.id;
+  }
+
+  it("refuses a fifth way of settling one", async () => {
+    const finding = await raiseFinding();
+    await expect(
+      pg.query(
+        "insert into dispositions (finding_id, kind, resolved_by, note) values ($1, 'closed', 'n.kahan', 'done')",
+        [finding],
+      ),
+    ).rejects.toThrow(/dispositions_kind/);
+  });
+
+  it("refuses a remediation with nobody owning it", async () => {
+    const finding = await raiseFinding();
+    await expect(
+      pg.query(
+        `insert into dispositions (finding_id, kind, resolved_by, note, remediation_due)
+         values ($1, 'remediation', 'n.kahan', 'planned', now() + interval '30 days')`,
+        [finding],
+      ),
+    ).rejects.toThrow(/remediation_complete/);
+  });
+
+  it("refuses a remediation with no date — a fix with no date is a wish", async () => {
+    const finding = await raiseFinding();
+    await expect(
+      pg.query(
+        `insert into dispositions (finding_id, kind, resolved_by, note, remediation_owner)
+         values ($1, 'remediation', 'n.kahan', 'planned', 'd.whitfield')`,
+        [finding],
+      ),
+    ).rejects.toThrow(/remediation_complete/);
+  });
+
+  it("refuses a person accepting their own risk — four-eyes, in the database", async () => {
+    const finding = await raiseFinding();
+    await expect(
+      pg.query(
+        `insert into dispositions (finding_id, kind, resolved_by, note, accepted_by, expires_at)
+         values ($1, 'risk-accepted', 'n.kahan', 'compensating control', 'n.kahan', now() + interval '90 days')`,
+        [finding],
+      ),
+    ).rejects.toThrow(/four_eyes/);
+  });
+
+  it("refuses an acceptance with no expiry — that would be a closure", async () => {
+    const finding = await raiseFinding();
+    await expect(
+      pg.query(
+        `insert into dispositions (finding_id, kind, resolved_by, note, accepted_by)
+         values ($1, 'risk-accepted', 'n.kahan', 'compensating control', 't.holland')`,
+        [finding],
+      ),
+    ).rejects.toThrow(/four_eyes/);
+  });
+
+  it("refuses a wordless settlement, except a correction", async () => {
+    const finding = await raiseFinding();
+    await expect(
+      pg.query(
+        "insert into dispositions (finding_id, kind, resolved_by) values ($1, 'not-applicable', 'n.kahan')",
+        [finding],
+      ),
+    ).rejects.toThrow(/dispositions_explained/);
+    // A correction speaks for itself: the corrected answer is the reason.
+    await expect(
+      pg.query(
+        "insert into dispositions (finding_id, kind, resolved_by) values ($1, 'answer-corrected', 'n.kahan')",
+        [finding],
+      ),
+    ).resolves.toBeTruthy();
+  });
+
+  it("accepts a well-formed acceptance by a second person", async () => {
+    const finding = await raiseFinding();
+    await expect(
+      pg.query(
+        `insert into dispositions (finding_id, kind, resolved_by, note, accepted_by, expires_at)
+         values ($1, 'risk-accepted', 'n.kahan', 'compensating control in place', 't.holland', now() + interval '90 days')`,
+        [finding],
+      ),
+    ).resolves.toBeTruthy();
+  });
+
+  it("will not let a settlement be edited or erased afterwards (NFR-1)", async () => {
+    const finding = await raiseFinding();
+    const row = await pg.query<{ id: string }>(
+      `insert into dispositions (finding_id, kind, resolved_by, note, accepted_by, expires_at)
+       values ($1, 'risk-accepted', 'n.kahan', 'accepted', 't.holland', now() + interval '10 days')
+       returning id`,
+      [finding],
+    );
+    const id = row.rows[0]!.id;
+    await expect(
+      pg.query(
+        "update dispositions set expires_at = now() + interval '999 days' where id = $1",
+        [id],
+      ),
+    ).rejects.toThrow(/insert-only/);
+    await expect(
+      pg.query("delete from dispositions where id = $1", [id]),
+    ).rejects.toThrow(/insert-only/);
   });
 });

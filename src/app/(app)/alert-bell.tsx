@@ -16,7 +16,7 @@
  */
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { clearNews } from "@/app/actions";
+import { clearNews } from "@/app/handoff-actions";
 import { timeAgo } from "@/lib/handoff";
 
 export type Obligation = {

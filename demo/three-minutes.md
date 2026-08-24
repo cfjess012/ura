@@ -13,7 +13,7 @@ problem statements — say the problem, then show the answer to it.
 **Before you start — do this, not just the browser bit:**
 
 ```sh
-pnpm demo:reset      # rebuilds the database and the three curated assessments
+pnpm demo:reset      # rebuilds the database and the four curated assessments
 pnpm demo:prod       # production build, then serve it
 ```
 
@@ -146,9 +146,17 @@ Switch to **Samuel Okonkwo**. The bell shows it, on the warm band:
 > today and we don't pretend otherwise."
 
 **"What happens after the assessment?"**
-> "Submission, reviewer attestation and the export package are the next
-> three slices. The stages are on screen marked as upcoming — we don't show
-> stages that don't exist."
+> "The submitter declares the record accurate, and a Risk Assessor signs
+> every control answer under their own risk area — the platform refuses a
+> signature from the wrong area, and refuses one on an assessment that can
+> still change. A No becomes a finding, and a finding closes one of exactly
+> four ways: the answer was wrong, it doesn't apply, someone is fixing it by
+> a date, or the risk is accepted by a second person until a date it comes
+> back on its own. The export package is the one stage still to build, and
+> the stepper marks it as upcoming."
+
+If they want to see it: **Sable claims triage** is already with a reviewer.
+Sign in as **Diego Marquez** and it opens on his queue.
 
 **"How much of the instrument is covered?"**
 > "Eleven risk areas, all asked. Detailed questions in four of them, and

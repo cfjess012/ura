@@ -94,7 +94,9 @@ export default async function SubmitPage({ params }: { params: Promise<{ id: str
           name={project.projectName}
           status={stageOf(project.submittedAt)}
           nextLine="Submitted. A Risk Assessor picks this up from here."
-          currentStage={3}
+          // Review is where it IS, not a stage already behind it: a ticked
+          // "Review & attest" with nothing attested claims work nobody did.
+          currentStage={2}
         />
         <div className="assess-single">
           <section>
