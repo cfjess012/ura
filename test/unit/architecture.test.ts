@@ -428,3 +428,43 @@ describe("§6.1 the three seams are not scattered", () => {
     }
   });
 });
+
+describe("an accepted proposal is an answer to a question that was asked", () => {
+  /**
+   * A drafted answer can outlive the question it was drafted for: change
+   * the intake and a gate can become derived, settled, or gone. Accepting a
+   * stale proposal would then record an answer to something nobody was
+   * asked — which is what G-42 forbids, arriving by the back door.
+   *
+   * Pinned as source structure rather than behaviour because the action is
+   * a server action: what matters is that the check exists ahead of the
+   * write, and that the version pin is derived rather than assumed.
+   */
+  const actions = read(join(SRC, "app", "agent-actions.ts"));
+  const accept = actions.slice(
+    actions.indexOf("export async function acceptDraft"),
+  );
+  const body = accept.slice(0, accept.indexOf("\nexport async function ", 1));
+
+  it("checks the question is still being asked before it writes", () => {
+    expect(body, "acceptDraft must confirm the question is asked").toMatch(
+      /gateStates\(/,
+    );
+    const upToWrite = body.slice(0, body.indexOf("answerStore().record"));
+    expect(upToWrite, "the check must come before the write").toMatch(
+      /gateStates\(/,
+    );
+  });
+
+  it("refuses rather than proceeding when it is not", () => {
+    expect(body).toMatch(/not asked/);
+  });
+
+  it("derives the instrument version from the question, never assumes it", () => {
+    // Drafts are Tier-1 gates today. Assuming that in a version pin goes
+    // quietly wrong the first time one is for anything else.
+    expect(body.replace(/\s+/g, " ")).toMatch(
+      /questionId\.startsWith\("t3\."\) \? "tier3-objectives" : "tier1-gates"/,
+    );
+  });
+});

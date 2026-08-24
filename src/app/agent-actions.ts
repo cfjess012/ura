@@ -21,7 +21,6 @@ import { sessionStore } from "@/lib/session";
 import { INTAKE_SECTIONS } from "@/lib/intake";
 import { documentStore } from "@/lib/documents";
 import { quoteAppearsVerbatim } from "@/lib/agent-contract";
-import { CATEGORIES } from "@/lib/instrument";
 import {
   belowFloor,
   scoringBrief,
@@ -239,6 +238,14 @@ export async function draftFromDocument(
     const open = gateStates(answers, values).filter(
       (state) => state.answer === null,
     );
+    // The questions we actually asked about. Answers are insert-only and
+    // the newest row wins, so a draft for an already-answered gate would
+    // arrive on top of a person's own answer and show as a proposal over a
+    // decision they had already made.
+    const openQuestionIds = new Set(
+      open.map((state) => state.category.questionId),
+    );
+
     if (open.length === 0) {
       return {
         ok: true as const,
@@ -290,11 +297,12 @@ export async function draftFromDocument(
         abstained += 1;
         continue;
       }
-      if (
-        !CATEGORIES.some(
-          (category) => category.questionId === answer.questionId,
-        )
-      ) {
+      // It must be one of the questions we actually asked about — not
+      // merely a real question. Answers are insert-only and the newest row
+      // wins, so a draft for an already-answered gate would arrive on top
+      // of a person's own answer and show as a proposal over a decision
+      // they had already made.
+      if (!openQuestionIds.has(answer.questionId)) {
         abstained += 1;
         continue;
       }
@@ -357,7 +365,26 @@ export async function acceptDraft(
         { retryable: false, expected: true },
       );
     }
-    const current = (await answerStore().current(projectId))[questionId];
+    // The question must be one this assessment actually asks, right now.
+    // Without this, a proposal left over from before an intake change could
+    // be accepted into a question nobody was asked — which is the thing
+    // G-42 forbids, arriving by the back door.
+    const stored = await answerStore().current(projectId);
+    const values = intakeValuesFrom(
+      access.project as unknown as Record<string, unknown>,
+    );
+    const asked = gateStates(stored, values).find(
+      (state) => state.category.questionId === questionId && !state.settled,
+    );
+    if (!asked) {
+      return failure(
+        "acceptDraft",
+        new Error("not asked"),
+        "That question isn't being asked on this assessment any more, so there is nothing to accept.",
+        { retryable: false, expected: true },
+      );
+    }
+    const current = stored[questionId];
     if (!current || current.source !== "drafted") {
       // Nothing to accept means the record moved under them — a person may
       // have answered it in another tab, and their answer wins.
@@ -374,7 +401,12 @@ export async function acceptDraft(
       value: current.value as string | string[],
       source: "person",
       confirmed: true,
-      instrumentVersionId: await answerStore().activeVersionId("tier1-gates"),
+      // Derived from the question, not assumed. Drafts are Tier-1 gates
+      // today; assuming that in a version pin would go quietly wrong the
+      // first time a draft is for anything else.
+      instrumentVersionId: await answerStore().activeVersionId(
+        questionId.startsWith("t3.") ? "tier3-objectives" : "tier1-gates",
+      ),
       answeredBy: person.id,
     });
     revalidatePath(`/projects/${projectId}`);
