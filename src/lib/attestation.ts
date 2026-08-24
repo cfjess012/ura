@@ -93,3 +93,28 @@ export function attestationRefusal(person: Person, objectiveId: string): string 
   const because = whyThatDomain(objectiveId);
   return `This one is ${area}'s to attest${because ? ` — ${because}` : ""}.`;
 }
+
+/**
+ * What is wrong with an attestation, if anything (§4.2).
+ *
+ * A correction replaces the person's answer, and an N-A excuses it — both
+ * are the reviewer overriding somebody, and an override owes its reasoning
+ * to whoever reads the record next. Approving as-is needs no note: the
+ * answer speaks for itself and the signature is the act.
+ */
+export function attestationProblem(
+  act: "approve" | "correct" | "not-applicable",
+  correctedAnswer: string | null,
+  note: string,
+): string | null {
+  if (act === "correct") {
+    if (!correctedAnswer) return "Choose the answer you are correcting it to.";
+    if (note.trim().length === 0) {
+      return "Say why you are correcting it — the person who answered will read this.";
+    }
+  }
+  if (act === "not-applicable" && note.trim().length === 0) {
+    return "Say why this control doesn't apply here — it is exported as your reason, never as a blank.";
+  }
+  return null;
+}

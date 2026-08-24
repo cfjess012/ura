@@ -11,6 +11,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { currentPerson, PERSON_COOKIE } from "@/lib/current-person";
 import { failure, isFailure, type Failure, type Result } from "@/lib/errors";
+import { attestationProblem, attestationRefusal } from "@/lib/attestation";
 import { canAnswer, canStartAssessment, NotPermitted } from "@/lib/people";
 import {
   intakeChanges,
@@ -47,6 +48,7 @@ import {
   handoffStore,
   peopleStore,
   projectStore,
+  reviewStore,
   submissionStore,
 } from "@/lib/repo";
 import { resolutionProblem } from "@/lib/handoff";
@@ -311,6 +313,80 @@ async function earlierGapsFor(
       label: `${questionLabelFor(h.questionId)} — with a risk assessor`,
     })),
   });
+}
+
+/**
+ * A reviewer signs off one control answer (S8, FR-16, FR-17).
+ *
+ * Authority is checked here and nowhere else that matters: a Risk Assessor
+ * attests under their own profile, for the risk area accountable for that
+ * control family. §19 requires that a forged client request fails, so the
+ * screen is a convenience and this is the rule.
+ */
+export async function attestAnswer(
+  projectId: string,
+  input: {
+    questionId: string;
+    objective: string;
+    act: "approve" | "correct" | "not-applicable";
+    correctedAnswer: string | null;
+    note: string;
+  },
+): Promise<Result<{ attested: true }>> {
+  try {
+    const person = await currentPerson();
+    const access = await openProject(projectId);
+    if (!access.ok) {
+      return failure(
+        "attestAnswer",
+        new Error("not permitted"),
+        "That assessment isn't yours to review.",
+        { retryable: false, expected: true },
+      );
+    }
+    // Nothing is attested before it is submitted: attesting a draft would
+    // sign off answers the person can still change (§4.1).
+    if (access.project.submittedAt === null) {
+      return failure(
+        "attestAnswer",
+        new Error("not submitted"),
+        "This assessment hasn't been submitted yet, so there is nothing to attest. Its answers can still change.",
+        { retryable: false, expected: true },
+      );
+    }
+    const refusal = attestationRefusal(person, input.objective);
+    if (refusal) {
+      return failure("attestAnswer", new NotPermitted("attest", person.role), refusal, {
+        retryable: false,
+        expected: true,
+      });
+    }
+    const problem = attestationProblem(input.act, input.correctedAnswer, input.note);
+    if (problem) {
+      return failure("attestAnswer", new Error(problem), problem, {
+        retryable: false,
+        expected: true,
+      });
+    }
+
+    await reviewStore().attest({
+      projectId,
+      questionId: input.questionId,
+      person: person.id,
+      domain: person.riskDomain,
+      act: input.act,
+      correctedAnswer: input.correctedAnswer,
+      note: input.note,
+    });
+    revalidatePath(`/projects/${projectId}/review`);
+    return { ok: true as const, attested: true as const };
+  } catch (error) {
+    return failure(
+      "attestAnswer",
+      error,
+      "That wasn't recorded. Nothing was signed — try again in a moment.",
+    );
+  }
 }
 
 /**

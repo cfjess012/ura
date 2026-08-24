@@ -359,3 +359,56 @@
 .confirm input { margin-top: 0.2rem; width: 1.05rem; height: 1.05rem; flex: none; }
 .confirm input:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .confirm span { font-size: 0.92rem; line-height: 1.45; }
+
+/* ---------- S8 · the reviewer's workspace ---------- */
+/* Three columns, the prior platform's shape in this product's tokens. */
+.review-layout {
+  display: grid; grid-template-columns: 17rem minmax(0, 1fr);
+  gap: 2rem; align-items: start; margin-top: 1.6rem;
+}
+@media (max-width: 980px) { .review-layout { grid-template-columns: 1fr; } }
+.review-rail ol { max-height: 70vh; overflow-y: auto; }
+/* This row has no number cell, so it must not inherit the two-column grid
+   the gate rail uses — name and status printed on top of each other. */
+.review-item {
+  width: 100%; text-align: left; font: inherit; cursor: pointer;
+  display: flex; flex-direction: column; gap: 0.15rem;
+}
+.review-item .rail-name { white-space: normal; line-height: 1.3; }
+.review-item.settled .rail-name { color: var(--neutral-600); }
+.review-item.settled .rail-state { color: var(--success); font-weight: 700; }
+
+/* The band: bars, a count, and a word. Never a number on its own, and
+   never colour alone (§23). */
+.band-strip { margin-top: 0.8rem; border-radius: var(--radius); border: 1px solid var(--neutral-200); }
+.band-summary {
+  display: flex; align-items: center; gap: 0.6rem; width: 100%;
+  background: transparent; border: 0; font: inherit; cursor: pointer;
+  padding: 0.55rem 0.7rem; text-align: left; color: var(--navy);
+}
+.band-summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.band-bars { display: inline-flex; gap: 3px; }
+.band-bar {
+  width: 5px; height: 13px; border-radius: 2px;
+  border: 1px solid var(--neutral-400); background: transparent;
+}
+.band-strip-routine .band-bar.on { background: var(--success); border-color: var(--success); }
+.band-strip-worth-a-look .band-bar.on { background: var(--neutral-600); border-color: var(--neutral-600); }
+.band-strip-verify-closely .band-bar.on { background: var(--warning-strong); border-color: var(--warning-strong); }
+.band-strip-verify-closely { border-color: var(--warning); background: var(--warning-bg); }
+.band-count { font-variant-numeric: tabular-nums; color: var(--neutral-700); font-size: 0.85rem; }
+.band-toggle { margin-left: auto; font-size: 0.8rem; color: var(--link); text-decoration: underline; }
+
+.band-receipts {
+  list-style: none; margin: 0; padding: 0.2rem 0.7rem 0.7rem;
+  display: flex; flex-direction: column; gap: 0.4rem;
+}
+.band-receipts-head {
+  font-size: 0.78rem; color: var(--neutral-700); font-weight: 600;
+  border-top: 1px solid var(--neutral-200); padding-top: 0.5rem;
+}
+.band-receipts li { display: flex; gap: 0.5rem; font-size: 0.85rem; line-height: 1.45; }
+.band-mark { flex: none; width: 1rem; font-weight: 700; }
+.mark-true { color: var(--success); }
+.mark-false { color: var(--warning-strong); }
+.mark-null { color: var(--neutral-500); }

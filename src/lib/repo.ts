@@ -674,6 +674,97 @@ export function submissionStore(): SubmissionStore {
   return postgresSubmissionStore();
 }
 
+/** Attestations and dispositions — the reviewer's acts (S8). */
+export interface ReviewStore {
+  attestationsFor(projectId: string): Promise<AttestationRow[]>;
+  attest(input: {
+    projectId: string;
+    questionId: string;
+    person: string;
+    domain: string | null;
+    act: "approve" | "correct" | "not-applicable";
+    correctedAnswer: string | null;
+    note: string;
+  }): Promise<void>;
+  dispositionsFor(projectId: string): Promise<DispositionRow[]>;
+}
+
+export type AttestationRow = {
+  id: string;
+  questionId: string;
+  attestedBy: string;
+  attestedDomain: string | null;
+  attestedAt: Date;
+  act: string;
+  correctedAnswer: string | null;
+  note: string;
+};
+
+export type DispositionRow = {
+  findingId: string;
+  kind: string;
+  resolvedBy: string;
+  resolvedAt: Date;
+  note: string;
+  expiresAt: Date | null;
+};
+
+export function postgresReviewStore(): ReviewStore {
+  const db = getDb();
+  return {
+    async attestationsFor(projectId) {
+      const rows = await db
+        .select()
+        .from(schema.attestations)
+        .where(eq(schema.attestations.projectId, projectId))
+        .orderBy(desc(schema.attestations.attestedAt));
+      return rows.map((row) => ({
+        id: row.id,
+        questionId: row.questionId,
+        attestedBy: row.attestedBy,
+        attestedDomain: row.attestedDomain,
+        attestedAt: row.attestedAt,
+        act: row.act,
+        correctedAnswer: row.correctedAnswer,
+        note: row.note,
+      }));
+    },
+    async attest(input) {
+      // Insert-only: correcting an attestation is a new row, so the
+      // sequence of who signed what and when survives intact (§5.1).
+      await db.insert(schema.attestations).values({
+        projectId: input.projectId,
+        questionId: input.questionId,
+        attestedBy: input.person,
+        attestedDomain: input.domain,
+        act: input.act,
+        correctedAnswer: input.correctedAnswer,
+        note: input.note,
+      });
+    },
+    async dispositionsFor(projectId) {
+      const rows = await db
+        .select({
+          findingId: schema.dispositions.findingId,
+          kind: schema.dispositions.kind,
+          resolvedBy: schema.dispositions.resolvedBy,
+          resolvedAt: schema.dispositions.resolvedAt,
+          note: schema.dispositions.note,
+          expiresAt: schema.dispositions.expiresAt,
+        })
+        .from(schema.dispositions)
+        .innerJoin(schema.findings, eq(schema.findings.id, schema.dispositions.findingId))
+        .where(eq(schema.findings.projectId, projectId))
+        .orderBy(desc(schema.dispositions.resolvedAt));
+      return rows;
+    },
+  };
+}
+
+export function reviewStore(): ReviewStore {
+  return postgresReviewStore();
+}
+
 export function handoffStore(): HandoffStore {
   return postgresHandoffStore();
 }

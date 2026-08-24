@@ -162,6 +162,9 @@ export default async function SubmitPage({ params }: { params: Promise<{ id: str
               <Link className="rail-back-link" href={`/projects/${id}/assess/complete`}>
                 ← See the whole assessment
               </Link>
+              <Link className="rail-back-link" href={`/projects/${id}/review`}>
+                Open the reviewer&rsquo;s view →
+              </Link>
             </p>
           </section>
         </div>
