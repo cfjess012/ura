@@ -160,3 +160,30 @@ export function parseAgentEvent(line: string): AgentEvent | null {
       return null;
   }
 }
+
+/**
+ * Collapse every run of whitespace to one space. Presentation-only
+ * differences — a hard-wrapped document, a pasted line break — must not
+ * make a quote fail, while any change to the actual words must.
+ */
+export function normaliseWhitespace(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * True when `quote` appears verbatim inside `source`, ignoring how the
+ * whitespace happens to fall.
+ *
+ * **There is one of these and there must only ever be one.** The gate that
+ * rejects a bad draft, the eval scorer, and the panel that highlights the
+ * passage on screen all ask this same function. A second matcher anywhere
+ * means a quote can pass the gate and then fail to highlight — provenance
+ * appearing broken at the exact moment somebody checks it.
+ *
+ * An empty quote never matches: an empty string is not evidence.
+ */
+export function quoteAppearsVerbatim(quote: string, source: string): boolean {
+  const needle = normaliseWhitespace(quote);
+  if (needle.length === 0) return false;
+  return normaliseWhitespace(source).includes(needle);
+}

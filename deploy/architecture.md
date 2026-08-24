@@ -113,7 +113,7 @@ that moving to AWS changes configuration, not code.
 |---|---|---|---|
 | Agent access | `src/lib/agent.ts` | How the agent is reached | Local HTTP now, **AgentCore Runtime** later |
 | Session state | `src/lib/session.ts` | Where conversation state lives | Postgres now, **AgentCore Memory** later |
-| Model access | the agent service only | That a model exists at all | **Bedrock**; the web app never imports a model SDK |
+| Model access | `agent/src/model.ts` | That a model exists at all | **Bedrock** via `AGENT_PROVIDER`; the web app never imports a model SDK |
 
 **The rule that keeps it true:** nothing else in the codebase may address the
 agent, read conversation state, or import a model SDK. That is not a

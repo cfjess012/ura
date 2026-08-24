@@ -8,6 +8,7 @@ import { agentTransport } from "@/lib/agent";
 import {
   AGENT_CONTRACT_VERSION,
   parseAgentEvent,
+  quoteAppearsVerbatim,
   violatesNeverGuess,
 } from "@/lib/agent-contract";
 import type { AgentEvent } from "@/lib/agent-contract";
@@ -163,6 +164,54 @@ describe("the never-guess rule (SPEC §7)", () => {
   it("refuses a grounded basis that proposes nothing", () => {
     expect(violatesNeverGuess({ ...grounded, value: null })).toMatch(
       /must propose a value/i,
+    );
+  });
+});
+
+describe("verbatim means whitespace-normalised, and there is one matcher", () => {
+  const source =
+    "Multi-factor authentication is enforced\nfor all administrative access,\nincluding the vendor's.";
+
+  it("matches across a line break the source happens to have", () => {
+    expect(
+      quoteAppearsVerbatim("enforced for all administrative access", source),
+    ).toBe(true);
+  });
+
+  it("matches whatever whitespace the quote arrives with", () => {
+    expect(
+      quoteAppearsVerbatim(
+        "enforced   for  all\n\nadministrative access",
+        source,
+      ),
+    ).toBe(true);
+  });
+
+  it("refuses a paraphrase, however close", () => {
+    expect(
+      quoteAppearsVerbatim("MFA is enforced for all admin access", source),
+    ).toBe(false);
+  });
+
+  it("refuses a stitched quote — two real fragments spliced together", () => {
+    // Each half appears; the sentence never did. This is the failure mode
+    // that looks most like a correct answer.
+    expect(
+      quoteAppearsVerbatim(
+        "Multi-factor authentication is enforced including the vendor's",
+        source,
+      ),
+    ).toBe(false);
+  });
+
+  it("refuses an empty quote — an empty string is not evidence", () => {
+    expect(quoteAppearsVerbatim("", source)).toBe(false);
+    expect(quoteAppearsVerbatim("   ", source)).toBe(false);
+  });
+
+  it("is case-sensitive: changing the words changes the quote", () => {
+    expect(quoteAppearsVerbatim("MULTI-FACTOR AUTHENTICATION", source)).toBe(
+      false,
     );
   });
 });
