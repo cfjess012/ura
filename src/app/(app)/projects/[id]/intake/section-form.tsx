@@ -5,6 +5,7 @@
  * is lost between sections, and reports failure as a designed state (§25).
  */
 import * as React from "react";
+import { DescriptionHelp } from "./description-help";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { saveIntake } from "@/app/actions";
@@ -98,7 +99,10 @@ export function SectionForm({
         if (field.type === "multi" || field.type === "pick-many") {
           const got = submitted.getAll(field.id).map(String);
           const before = (prev[field.id] as string[] | undefined) ?? [];
-          if (got.length !== before.length || got.some((v, i) => v !== before[i])) {
+          if (
+            got.length !== before.length ||
+            got.some((v, i) => v !== before[i])
+          ) {
             next[field.id] = got;
             changed = true;
           }
@@ -121,7 +125,9 @@ export function SectionForm({
   // Only after someone tries to move on. Marking a field as a problem before
   // they have had a chance to fill it in is scolding, not helping (§24.4).
   const [flagged, setFlagged] = React.useState(false);
-  const flaggedIds = flagged ? new Set(missingFields.map((f) => f.id)) : new Set<string>();
+  const flaggedIds = flagged
+    ? new Set(missingFields.map((f) => f.id))
+    : new Set<string>();
 
   async function save(): Promise<boolean> {
     setSaving(true);
@@ -136,23 +142,32 @@ export function SectionForm({
       for (const field of section.fields) {
         if (field.type === "note") continue;
         if (!isFieldVisible(field, values)) {
-          if (field.type !== "multi" && field.type !== "pick-many") formData.set(field.id, "");
+          if (field.type !== "multi" && field.type !== "pick-many")
+            formData.set(field.id, "");
           continue;
         }
         const v = values[field.id];
         if (field.type === "multi" || field.type === "pick-many") {
-          for (const item of (v as string[] | undefined) ?? []) formData.append(field.id, item);
+          for (const item of (v as string[] | undefined) ?? [])
+            formData.append(field.id, item);
         } else {
           formData.set(field.id, (v as string | undefined) ?? "");
         }
         // The name typed for an off-list answer travels with its field.
         if (field.type === "pick" || field.type === "pick-many") {
-          formData.set(unlistedKey(field.id), (values[unlistedKey(field.id)] as string) ?? "");
+          formData.set(
+            unlistedKey(field.id),
+            (values[unlistedKey(field.id)] as string) ?? "",
+          );
         }
       }
       const result = await saveIntake(projectId, formData);
       if (isFailure(result)) {
-        setError({ message: result.message, ref: result.ref, retryable: result.retryable });
+        setError({
+          message: result.message,
+          ref: result.ref,
+          retryable: result.retryable,
+        });
         return false;
       }
       setSavedAt(result.savedAt);
@@ -226,7 +241,11 @@ export function SectionForm({
         currentStage={0}
       />
 
-      <IntakeRail projectId={projectId} progress={progress} currentKey={sectionKey} />
+      <IntakeRail
+        projectId={projectId}
+        progress={progress}
+        currentKey={sectionKey}
+      />
 
       <div className="intake-main">
         <p className="eyebrow">{stepLine}</p>
@@ -245,78 +264,98 @@ export function SectionForm({
           </p>
         )}
 
-      <div className="card">
-        {section.fields.map((field) =>
-          isFieldVisible(field, values) ? (
-            <Field
-              key={field.id}
-              field={field}
-              values={values}
-              set={set}
-              flagged={flaggedIds.has(field.id)}
-              people={people}
-            />
-          ) : null,
-        )}
-      </div>
-
-      <div className="savebar">
-        <span className={flagged && missing.length > 0 ? "missing blocked" : "missing"}>
-          {missing.length === 0 ? (
-            "Nothing outstanding in this section."
-          ) : flagged ? (
-            <>
-              Answer {missing.length === 1 ? "this first" : `these ${missing.length} first`} —{" "}
-              {missing.join(", ")}
-            </>
-          ) : (
-            <>
-              <strong>{missing.length}</strong> still needed here — {missing.slice(0, 2).join(", ")}
-              {missing.length > 2 && ` and ${missing.length - 2} more`}
-            </>
+        <div className="card">
+          {section.fields.map((field) =>
+            isFieldVisible(field, values) ? (
+              <Field
+                key={field.id}
+                field={field}
+                values={values}
+                set={set}
+                flagged={flaggedIds.has(field.id)}
+                people={people}
+              />
+            ) : null,
           )}
-        </span>
-        <span style={{ display: "flex", gap: "0.8rem", alignItems: "center" }}>
-          <span role="status" aria-live="polite" className={error ? "save-failed" : "saved"}>
-            {saving ? (
-              "Saving…"
-            ) : error ? (
-              /* A failure outranks a completeness nag. This branch sat
+        </div>
+
+        <div className="savebar">
+          <span
+            className={
+              flagged && missing.length > 0 ? "missing blocked" : "missing"
+            }
+          >
+            {missing.length === 0 ? (
+              "Nothing outstanding in this section."
+            ) : flagged ? (
+              <>
+                Answer{" "}
+                {missing.length === 1
+                  ? "this first"
+                  : `these ${missing.length} first`}{" "}
+                — {missing.join(", ")}
+              </>
+            ) : (
+              <>
+                <strong>{missing.length}</strong> still needed here —{" "}
+                {missing.slice(0, 2).join(", ")}
+                {missing.length > 2 && ` and ${missing.length - 2} more`}
+              </>
+            )}
+          </span>
+          <span
+            style={{ display: "flex", gap: "0.8rem", alignItems: "center" }}
+          >
+            <span
+              role="status"
+              aria-live="polite"
+              className={error ? "save-failed" : "saved"}
+            >
+              {saving ? (
+                "Saving…"
+              ) : error ? (
+                /* A failure outranks a completeness nag. This branch sat
                  BELOW the "Saved." one, so a save that failed on a partly
                  filled section reported success and hid its own error. */
 
-              <>
-                {error.message}{" "}
-                {error.ref && <span className="err-ref">Reference {error.ref}</span>}
-              </>
-            ) : flagged && missing.length > 0 ? (
-              `Saved. ${missing.length} answer${missing.length === 1 ? "" : "s"} still needed before the next section: ${missing.join(", ")}.`
-            ) : savedAt ? (
-              "Saved"
-            ) : (
-              ""
-            )}
-          </span>
-          {/* Never invite a retry that cannot work (§25.4, N2). When the
+                <>
+                  {error.message}{" "}
+                  {error.ref && (
+                    <span className="err-ref">Reference {error.ref}</span>
+                  )}
+                </>
+              ) : flagged && missing.length > 0 ? (
+                `Saved. ${missing.length} answer${missing.length === 1 ? "" : "s"} still needed before the next section: ${missing.join(", ")}.`
+              ) : savedAt ? (
+                "Saved"
+              ) : (
+                ""
+              )}
+            </span>
+            {/* Never invite a retry that cannot work (§25.4, N2). When the
               assessment is gone or isn't theirs, retrying is not the next
               step — leaving with their answers intact is. */}
-          {error && !error.retryable ? (
-            <Link className="btn ghost" href="/projects">
-              Go to my assessments
-            </Link>
-          ) : (
-            <button className="btn" type="submit" disabled={saving}>
-              {saving ? "Saving…" : error ? "Try again" : nextLabel}
-            </button>
-          )}
-        </span>
-      </div>
+            {error && !error.retryable ? (
+              <Link className="btn ghost" href="/projects">
+                Go to my assessments
+              </Link>
+            ) : (
+              <button className="btn" type="submit" disabled={saving}>
+                {saving ? "Saving…" : error ? "Try again" : nextLabel}
+              </button>
+            )}
+          </span>
+        </div>
 
-      <div className="gate-nav">
-        <Link className="btn ghost" href={previousHref} onClick={() => void save()}>
-          {previousLabel}
-        </Link>
-      </div>
+        <div className="gate-nav">
+          <Link
+            className="btn ghost"
+            href={previousHref}
+            onClick={() => void save()}
+          >
+            {previousLabel}
+          </Link>
+        </div>
 
         {lastChange && (
           <p className="attribution">
@@ -429,7 +468,9 @@ function Control({
   } as const;
   if (field.type === "pick" || field.type === "pick-many") {
     const many = field.type === "pick-many";
-    const chosen = many ? ((value as string[]) ?? []) : [(value as string) ?? ""];
+    const chosen = many
+      ? ((value as string[]) ?? [])
+      : [(value as string) ?? ""];
     const offList = chosen.includes(UNLISTED_OPTION);
     const typedKey = unlistedKey(field.id);
     const typed = (values[typedKey] as string) ?? "";
@@ -454,7 +495,11 @@ function Control({
     return (
       <>
         {many ? (
-          <div className="checks pickopts" role="group" aria-labelledby={labelId}>
+          <div
+            className="checks pickopts"
+            role="group"
+            aria-labelledby={labelId}
+          >
             {options.map((option) => (
               <label key={option.id} className="pickopt">
                 <input
@@ -492,7 +537,9 @@ function Control({
                 {option.label}
               </option>
             ))}
-            <option value={UNLISTED_OPTION}>Something else — not on this list</option>
+            <option value={UNLISTED_OPTION}>
+              Something else — not on this list
+            </option>
           </select>
         )}
         {offList && (
@@ -543,13 +590,20 @@ function Control({
   }
   if (field.type === "textarea") {
     return (
-      <textarea
-        id={field.id}
-        name={field.id}
-        value={(value as string) ?? ""}
-        onChange={(e) => set(field.id, e.target.value)}
-        {...validity}
-      />
+      <>
+        <textarea
+          id={field.id}
+          name={field.id}
+          value={(value as string) ?? ""}
+          onChange={(e) => set(field.id, e.target.value)}
+          {...validity}
+        />
+        {/* Only on the description: it is the field everything downstream
+            is routed from, so it is the one worth helping with (§22.1). */}
+        {field.id === "projectDescription" && (
+          <DescriptionHelp describe={(value as string) ?? ""} />
+        )}
+      </>
     );
   }
   if (field.type === "select") {
@@ -597,7 +651,9 @@ function Control({
               <span className="level-name">
                 <span className="level-rank" aria-hidden="true">
                   {"●".repeat(i + 1)}
-                  <span className="level-rank-rest">{"○".repeat(field.options!.length - i - 1)}</span>
+                  <span className="level-rank-rest">
+                    {"○".repeat(field.options!.length - i - 1)}
+                  </span>
                 </span>
                 {o}
               </span>
@@ -631,7 +687,12 @@ function Control({
             value={o}
             checked={selected.includes(o)}
             onChange={(e) =>
-              set(field.id, e.target.checked ? [...selected, o] : selected.filter((x) => x !== o))
+              set(
+                field.id,
+                e.target.checked
+                  ? [...selected, o]
+                  : selected.filter((x) => x !== o),
+              )
             }
           />
           {o}

@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import type { DraftTask } from "./draft.ts";
 import type { ConverseTask } from "./converse.ts";
 import type { ReportTask } from "./report.ts";
+import type { ScoreTask } from "./score-intake.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const CORE = readFileSync(join(here, "..", "prompts", "core.md"), "utf8");
@@ -21,6 +22,10 @@ const CONVERSE = readFileSync(
   "utf8",
 );
 const REPORT = readFileSync(join(here, "..", "prompts", "report.md"), "utf8");
+const SCORE = readFileSync(
+  join(here, "..", "prompts", "score-intake.md"),
+  "utf8",
+);
 
 /**
  * A short hash of the locked core, recorded on every span. If a run's
@@ -31,6 +36,7 @@ export function promptVersion(): string {
     .update(CORE)
     .update(CONVERSE)
     .update(REPORT)
+    .update(SCORE)
     .digest("hex")
     .slice(0, 12);
 }
@@ -87,5 +93,23 @@ export function composeReportPrompt(task: ReportTask): string {
     "",
     "## The record",
     task.record,
+  ].join("\n\n");
+}
+
+export function composeScorePrompt(task: ScoreTask): string {
+  const dimensions = task.dimensions
+    .map(
+      (d) =>
+        `### ${d.id} — ${d.label}\n\n0: ${d.anchors["0"]}\n1: ${d.anchors["1"]}\n2: ${d.anchors["2"]}`,
+    )
+    .join("\n\n");
+  return [
+    SCORE,
+    "---",
+    "## The dimensions",
+    dimensions,
+    "",
+    "## The description",
+    task.description,
   ].join("\n\n");
 }

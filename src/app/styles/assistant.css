@@ -276,3 +276,52 @@
     opacity: 0.6;
   }
 }
+
+/* The intake rubric's suggestions. Beside the box, never in front of the
+   button — a person who wants to write two lines and move on can (§22.1). */
+.rubric {
+  margin-top: 0.5rem;
+}
+.rubric-good {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--success);
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+.rubric-asks {
+  padding: 0.7rem 0.9rem;
+  margin-bottom: 0.4rem;
+  border-radius: 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
+}
+.rubric-opening {
+  font-size: 0.88rem;
+  margin-bottom: 0.5rem;
+  color: var(--neutral-800);
+}
+.rubric-asks ul {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.rubric-asks li {
+  display: grid;
+  gap: 0.12rem;
+}
+.rubric-ask {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--neutral-900);
+}
+.rubric-anchor {
+  font-size: 0.78rem;
+  color: var(--neutral-600);
+  line-height: 1.45;
+}
+.rubric-asks .help {
+  margin: 0;
+  font-size: 0.76rem;
+}

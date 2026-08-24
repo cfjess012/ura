@@ -56,6 +56,19 @@ export type AgentTransport = {
     summary: string;
     scenarios: Array<{ scenario: string; ask: string; from: string[] }>;
   } | null>;
+  /**
+   * Score a description against the rubric. An empty list means the model
+   * could not be asked — and the caller lets the person through, because a
+   * quality assistant that blocks is a gate (§22.1).
+   */
+  scoreIntake(input: {
+    description: string;
+    dimensions: Array<{
+      id: string;
+      label: string;
+      anchors: Record<string, string>;
+    }>;
+  }): Promise<Array<{ id: string; score: 0 | 1 | 2 }>>;
   converse(input: {
     said: string;
     assessment: AssessmentContext;
@@ -83,6 +96,9 @@ function notConfigured(): AgentTransport {
     },
     async writeReport() {
       return null;
+    },
+    async scoreIntake() {
+      return [];
     },
     async converse() {
       return {
@@ -116,6 +132,25 @@ function localTransport(baseUrl: string): AgentTransport {
       } catch (cause) {
         console.error("[agent] report unreachable", cause);
         return null;
+      }
+    },
+    async scoreIntake(input) {
+      try {
+        const response = await fetch(`${url}/score-intake`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-agent-contract": AGENT_CONTRACT_VERSION,
+          },
+          body: JSON.stringify(input),
+        });
+        if (!response.ok) return [];
+        const body = (await response.json()) as { scores?: unknown };
+        return Array.isArray(body.scores) ? body.scores : [];
+      } catch (cause) {
+        // Fails open, deliberately and visibly.
+        console.error("[agent] score-intake unreachable", cause);
+        return [];
       }
     },
     async converse(input) {
@@ -242,6 +277,11 @@ function agentCoreTransport(): AgentTransport {
   return {
     kind: "agentcore",
     available: false,
+    async scoreIntake(): Promise<never> {
+      throw new Error(
+        "AGENT_TRANSPORT=agentcore, but the AgentCore Runtime adapter is not implemented. It belongs in this file and nowhere else (SPEC §6.1).",
+      );
+    },
     async writeReport(): Promise<never> {
       throw new Error(
         "AGENT_TRANSPORT=agentcore, but the AgentCore Runtime adapter is not implemented. It belongs in this file and nowhere else (SPEC §6.1).",

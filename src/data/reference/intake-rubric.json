@@ -1,0 +1,90 @@
+{
+  "version": "2026-08-24.1",
+  "comment": "The intake rubric — the engine behind the quality gate on the first screen a requester sees. Three layers. The FLOOR is heuristic and deterministic: it catches a name, a fragment, or keyboard noise with no model call. The SCORING layer is the only part a model touches, and it does exactly one thing — assign 0, 1 or 2 per dimension against the anchors below, strictly on the presence of factual detail and never on length. Everything downstream is deterministic: the pass rule, and the feedback string for that dimension at that score. Feedback is verbatim business copy — edit it here, never in code. FAIL OPEN: if the model is unavailable or wrong, intake proceeds. A quality assistant that blocks submission has become a gate, and the mission is reducing friction.",
+  "floor": {
+    "minWords": 15,
+    "minDistinctRatio": 0.4,
+    "minAverageWordLength": 3
+  },
+  "engine": {
+    "passScore": 2,
+    "failOpenOnAgentError": true,
+    "opening": "Thanks — this is enough to start. A few more specifics would let the platform route this properly and save you questions later:"
+  },
+  "messages": {
+    "tooShort": "That is too thin to work from. A few sentences about what the activity does, what data it touches and who else is involved gives the platform something to route on — and saves you being asked later.",
+    "notProse": "That does not read as a description yet. The platform routes on what you write, so it needs real sentences about the activity."
+  },
+  "dimensions": [
+    {
+      "id": "purpose",
+      "label": "What it does",
+      "anchors": {
+        "0": "No indication of what the activity actually does.",
+        "1": "Names a system or a category, but not the business function it serves.",
+        "2": "Names the activity and states the specific business process it supports."
+      },
+      "feedback": {
+        "0": "What it does: describe what this actually does, in one sentence. For example, \"it proposes which queue an incoming insurance claim should go to\".",
+        "1": "What it does: you have named the system — what business process does it support? The specific job it does, rather than the category it belongs to."
+      },
+      "starters": [
+        { "label": "Automates an internal process…", "insert": "It automates our internal process of ", "complete": false },
+        { "label": "Supports a decision…", "insert": "It analyses data to support decisions about ", "complete": false },
+        { "label": "Customer-facing service…", "insert": "It is a customer-facing service that lets customers ", "complete": false }
+      ]
+    },
+    {
+      "id": "data",
+      "label": "What data it touches",
+      "anchors": {
+        "0": "Says nothing about data.",
+        "1": "Mentions data without saying what kind, or how sensitive.",
+        "2": "Names the kinds of data involved and whether any of it identifies people."
+      },
+      "feedback": {
+        "0": "Data: what data does this hold or read? Naming it — customer records, employee details, financial transactions — decides which questions you are asked.",
+        "1": "Data: you have mentioned data. Does any of it identify a person, or count as confidential? That is what changes the questions."
+      },
+      "starters": [
+        { "label": "Personal data about customers…", "insert": "It processes personal data about customers, specifically ", "complete": false },
+        { "label": "Employee data…", "insert": "It holds employee data, specifically ", "complete": false },
+        { "label": "No personal data", "insert": "It holds no personal data — only ", "complete": false }
+      ]
+    },
+    {
+      "id": "who",
+      "label": "Who else is involved",
+      "anchors": {
+        "0": "Says nothing about suppliers, partners or other teams.",
+        "1": "Alludes to someone outside without naming them or their role.",
+        "2": "Names the supplier or partner and what they do in the activity."
+      },
+      "feedback": {
+        "0": "Who else: is anyone outside the organisation involved — a supplier, a platform, a partner? Naming them here saves the third-party questions being asked cold.",
+        "1": "Who else: you have mentioned someone external. Who are they, and what do they actually do in this activity?"
+      },
+      "starters": [
+        { "label": "A supplier provides it…", "insert": "It is provided by ", "complete": false },
+        { "label": "Built and run in-house", "insert": "It is built and run entirely in-house, with no external supplier involved.", "complete": true }
+      ]
+    },
+    {
+      "id": "where",
+      "label": "Where it runs",
+      "anchors": {
+        "0": "Says nothing about where it runs or where data sits.",
+        "1": "Mentions hosting vaguely — \"the cloud\", \"their platform\".",
+        "2": "States where it runs and where the data sits."
+      },
+      "feedback": {
+        "0": "Where it runs: is this in our environment, a supplier's, or somewhere else? Where the data sits changes who has to review it.",
+        "1": "Where it runs: you have said it is hosted — whose environment, and where does the data sit?"
+      },
+      "starters": [
+        { "label": "In our own environment", "insert": "It runs in our own environment, with data held in ", "complete": false },
+        { "label": "In the supplier's environment…", "insert": "It runs in the supplier's environment, with data held in ", "complete": false }
+      ]
+    }
+  ]
+}

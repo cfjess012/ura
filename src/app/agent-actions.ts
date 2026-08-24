@@ -22,6 +22,13 @@ import { INTAKE_SECTIONS } from "@/lib/intake";
 import { documentStore } from "@/lib/documents";
 import { quoteAppearsVerbatim } from "@/lib/agent-contract";
 import { CATEGORIES } from "@/lib/instrument";
+import {
+  belowFloor,
+  scoringBrief,
+  verdictFrom,
+  verdictWhenAgentUnavailable,
+  type RubricVerdict,
+} from "@/lib/intake-rubric";
 import { gateStates } from "@/lib/instrument";
 
 /**
@@ -378,5 +385,55 @@ export async function acceptDraft(
       error,
       "That wasn't accepted. The proposal is still there — try again in a moment.",
     );
+  }
+}
+
+/**
+ * Ask the rubric how the description reads (SPEC §22.1).
+ *
+ * The floor runs here with no model — it costs nothing and catches a name
+ * or keyboard noise. Only what clears the floor is worth a model call.
+ *
+ * **It fails open at every step.** No agent, a slow agent, a wrong agent,
+ * a partial answer: all of them pass. A quality assistant that blocks
+ * submission has become a gate, and the mission is reducing friction.
+ */
+export async function checkDescription(
+  description: string,
+): Promise<Result<{ verdict: RubricVerdict }>> {
+  try {
+    const floor = belowFloor(description);
+    if (floor) {
+      return {
+        ok: true as const,
+        verdict: {
+          passes: false,
+          opening: null,
+          asks: [
+            {
+              id: "floor",
+              label: "The description",
+              sentence: floor,
+              anchor: "",
+            },
+          ],
+        },
+      };
+    }
+
+    const transport = agentTransport();
+    if (!transport.available) {
+      return { ok: true as const, verdict: verdictWhenAgentUnavailable() };
+    }
+    const scores = await transport.scoreIntake({
+      description,
+      dimensions: scoringBrief(),
+    });
+    return { ok: true as const, verdict: verdictFrom(scores) };
+  } catch (error) {
+    // Even a thrown error passes. Nothing about checking a description is
+    // worth stopping somebody over.
+    console.error("[checkDescription]", error);
+    return { ok: true as const, verdict: verdictWhenAgentUnavailable() };
   }
 }
