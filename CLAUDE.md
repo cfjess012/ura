@@ -18,6 +18,9 @@ implementation, stop on ambiguity.
   areas say on screen that they stop deliberately; derived, never listed)
 - S5 Ledger — DONE 2026-08-23 (FR-10/FR-11: active paths, severities and the
   objectives they require, recomputed live and never stored; G-57)
+- S7 Submit & findings — DONE 2026-08-23 (FR-14/FR-15/FR-37: the declaration
+  records what was SHOWN; gaps named not counted; findings derived from the
+  control answers. Verifier FAIL then fixed — see uat/S7.md)
 - S6 Tier 3 — DONE 2026-08-23 (FR-12/FR-13: does the control exist; children
   on Yes only; notes required on Partial/No/N-A. FR-21 half-met — the free
   note is deferred to S8, see uat/S6.md)

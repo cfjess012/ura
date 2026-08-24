@@ -9,7 +9,6 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   isWaitingOn,
-  resolutionProblem,
   mayResolve,
   recipientLabel,
   resolutionProblem,
