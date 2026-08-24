@@ -1,0 +1,171 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Front Door AI Risk Advisor — the boring half of the deployment: a registry
+  to push the image to, a Postgres to point it at, and the two IAM roles ECS
+  Express Mode requires. The service itself is created by one CLI command
+  afterwards, because it needs the image to exist first.
+
+Parameters:
+  DbPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 12
+    Description: >
+      Master password for the demo database. Twelve characters or more, and
+      no / @ " or space — RDS rejects those, and they would break the
+      connection string anyway.
+    AllowedPattern: '[^/@"\s]+'
+    ConstraintDescription: 'No / @ " or whitespace.'
+
+  AdminCidr:
+    Type: String
+    Description: >
+      The one address allowed to reach Postgres from outside the VPC — your
+      CloudShell session. Get it with:  curl -s https://checkip.amazonaws.com
+      and append /32. Never 0.0.0.0/0.
+    AllowedPattern: '^(\d{1,3}\.){3}\d{1,3}/\d{1,2}$'
+    ConstraintDescription: "Must be a CIDR such as 203.0.113.7/32."
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: >
+      Your default VPC. ECS Express Mode puts its load balancer and tasks in
+      the default VPC's public subnets, so the database must sit where those
+      tasks can reach it.
+
+  VpcCidr:
+    Type: String
+    Default: 172.31.0.0/16
+    Description: >
+      The VPC's own address range, so the running tasks can reach Postgres.
+      172.31.0.0/16 is the AWS default; check yours with
+      aws ec2 describe-vpcs --vpc-ids <VpcId> --query 'Vpcs[0].CidrBlock'.
+      Get this wrong and the app deploys but /readyz reports the database
+      unreachable — which is exactly what that endpoint is for.
+
+  DbInstanceClass:
+    Type: String
+    Default: db.t4g.micro
+    Description: Smallest sensible class for a demo. Nothing here is load-bearing.
+
+Resources:
+  Registry:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: ura-web
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      # A demo account should not accumulate images nobody will ever run.
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep the last 5 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 5
+                },
+                "action": { "type": "expire" }
+              }
+            ]
+          }
+
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Postgres for the Front Door demo
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # You, from CloudShell, to run the migrations and the seed.
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: !Ref AdminCidr
+          Description: CloudShell (migrations and seeding)
+        # The running tasks. Express Mode creates its own security group and
+        # its id is not knowable here, so this allows the VPC's own range.
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: !Ref VpcCidr
+          Description: ECS Express tasks inside the VPC
+      Tags:
+        - Key: Name
+          Value: ura-db
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    # Keep the data if the stack is torn down by accident mid-demo.
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier: ura-db
+      Engine: postgres
+      EngineVersion: "16"
+      DBInstanceClass: !Ref DbInstanceClass
+      AllocatedStorage: "20"
+      StorageType: gp3
+      MasterUsername: ura
+      MasterUserPassword: !Ref DbPassword
+      DBName: ura
+      PubliclyAccessible: true
+      VPCSecurityGroups:
+        - !Ref DbSecurityGroup
+      BackupRetentionPeriod: 1
+      # A demo does not need multi-AZ, and it doubles the bill.
+      MultiAZ: false
+      AutoMinorVersionUpgrade: true
+
+  # ECS Express Mode requires exactly these two roles. Created here so the
+  # deployment is one stack plus one command, not six CLI calls.
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ecsTaskExecutionRole
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  ExpressInfrastructureRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ecsInfrastructureRoleForExpressServices
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowAccessInfrastructureForECSExpressServices
+            Effect: Allow
+            Principal:
+              Service: ecs.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSInfrastructureRoleforExpressGatewayServices
+
+Outputs:
+  RegistryUri:
+    Description: Push the image here.
+    Value: !GetAtt Registry.RepositoryUri
+
+  DatabaseHost:
+    Description: RDS endpoint.
+    Value: !GetAtt Database.Endpoint.Address
+
+  DatabaseUrlTemplate:
+    Description: >
+      Your DATABASE_URL, with the password you chose substituted in.
+    Value: !Sub "postgres://ura:<DbPassword>@${Database.Endpoint.Address}:5432/ura"
+
+  TaskExecutionRoleArn:
+    Value: !GetAtt TaskExecutionRole.Arn
+
+  ExpressInfrastructureRoleArn:
+    Value: !GetAtt ExpressInfrastructureRole.Arn

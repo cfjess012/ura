@@ -453,3 +453,40 @@ describe("dispositions are governed by the schema (FR-18)", () => {
     ).rejects.toThrow(/insert-only/);
   });
 });
+
+/**
+ * §6.1 · conversation state is evidence too. The session seam becomes
+ * AgentCore Memory later; what it stores is insert-only now, so a
+ * conversation cannot be edited into a better version of itself.
+ */
+describe("conversation turns are insert-only", () => {
+  async function say(speaker: string, said: string) {
+    const row = await pg.query<{ id: string }>(
+      `insert into conversation_turns (conversation_id, project_id, speaker, said)
+       values ('c1', $1, $2, $3) returning id`,
+      [projectId, speaker, said],
+    );
+    return row.rows[0]!.id;
+  }
+
+  it("refuses a speaker that is neither a person nor the agent", async () => {
+    await expect(say("system", "hello")).rejects.toThrow(/speaker/);
+  });
+
+  it("refuses an empty turn", async () => {
+    await expect(say("agent", "   ")).rejects.toThrow(/said_present/);
+  });
+
+  it("refuses UPDATE and DELETE — a conversation is not rewritten", async () => {
+    const id = await say("person", "We use MFA for admin access.");
+    await expect(
+      pg.query(
+        "update conversation_turns set said = 'something else' where id = $1",
+        [id],
+      ),
+    ).rejects.toThrow(/insert-only/);
+    await expect(
+      pg.query("delete from conversation_turns where id = $1", [id]),
+    ).rejects.toThrow(/insert-only/);
+  });
+});

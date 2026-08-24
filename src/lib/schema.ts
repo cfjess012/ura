@@ -59,7 +59,9 @@ export const instrumentVersions = pgTable(
     version: text("version").notNull(),
     content: jsonb("content").notNull(),
     activatedAt: timestamp("activated_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [unique().on(t.slug, t.version)],
 );
@@ -75,7 +77,9 @@ export const answers = pgTable(
     confirmed: boolean("confirmed").notNull().default(false),
     instrumentVersionId: uuid("instrument_version_id").notNull(),
     answeredBy: text("answered_by"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [index("answers_current").on(t.projectId, t.questionId, t.createdAt)],
 );
@@ -98,7 +102,9 @@ export const people = pgTable("people", {
   riskDomain: text("risk_domain"),
   /** Everything before this has been read. News is derived, not stored. */
   newsClearedAt: timestamp("news_cleared_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });
 
 export const intakeEvents = pgTable(
@@ -112,7 +118,9 @@ export const intakeEvents = pgTable(
     previousValue: jsonb("previous_value").$type<IntakeStored>(),
     value: jsonb("value").$type<IntakeStored>(),
     changedBy: text("changed_by"),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [index("intake_events_by_project").on(t.projectId, t.createdAt)],
 );
@@ -130,7 +138,9 @@ export const handoffs = pgTable(
     toDomain: text("to_domain"),
     note: text("note").notNull().default(""),
     askedBy: text("asked_by").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     resolvedAt: timestamp("resolved_at", { withTimezone: true }),
     resolvedBy: text("resolved_by"),
   },
@@ -147,7 +157,9 @@ export const declarations = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     projectId: uuid("project_id").notNull(),
     declaredBy: text("declared_by").notNull(),
-    declaredAt: timestamp("declared_at", { withTimezone: true }).notNull().defaultNow(),
+    declaredAt: timestamp("declared_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     /** The answers as displayed at the moment of signing. */
     shown: jsonb("shown").notNull(),
     /** The gaps named and accepted at the same moment (FR-14). */
@@ -168,7 +180,9 @@ export const findings = pgTable(
     /** "gap" from a No, "enhancement" from a Partial (§4.3). */
     kind: text("kind").notNull(),
     note: text("note").notNull(),
-    raisedAt: timestamp("raised_at", { withTimezone: true }).notNull().defaultNow(),
+    raisedAt: timestamp("raised_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     raisedBy: text("raised_by").notNull(),
   },
   (t) => [index("findings_by_project").on(t.projectId, t.raisedAt)],
@@ -184,7 +198,9 @@ export const attestations = pgTable(
     attestedBy: text("attested_by").notNull(),
     /** The risk area they signed under — authority is a fact about them. */
     attestedDomain: text("attested_domain"),
-    attestedAt: timestamp("attested_at", { withTimezone: true }).notNull().defaultNow(),
+    attestedAt: timestamp("attested_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     act: text("act").notNull(),
     correctedAnswer: text("corrected_answer"),
     note: text("note").notNull().default(""),
@@ -204,7 +220,9 @@ export const dispositions = pgTable(
     findingId: uuid("finding_id").notNull(),
     kind: text("kind").notNull(),
     resolvedBy: text("resolved_by").notNull(),
-    resolvedAt: timestamp("resolved_at", { withTimezone: true }).notNull().defaultNow(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     note: text("note").notNull().default(""),
     remediationOwner: text("remediation_owner"),
     remediationDue: timestamp("remediation_due", { withTimezone: true }),
@@ -223,7 +241,29 @@ export const handoffReplies = pgTable(
     parentId: uuid("parent_id"),
     authorId: text("author_id").notNull(),
     body: text("body").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [index("handoff_replies_by_handoff").on(t.handoffId, t.createdAt)],
+);
+
+/**
+ * Conversation state (Phase 2). Read and written only through
+ * `src/lib/session.ts` — the seam that becomes AgentCore Memory.
+ */
+export const conversationTurns = pgTable(
+  "conversation_turns",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: text("conversation_id").notNull(),
+    projectId: uuid("project_id").notNull(),
+    speaker: text("speaker").notNull(),
+    said: text("said").notNull(),
+    saidAt: timestamp("said_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("conversation_turns_by_conversation").on(t.conversationId, t.saidAt),
+    index("conversation_turns_by_project").on(t.projectId, t.saidAt),
+  ],
 );

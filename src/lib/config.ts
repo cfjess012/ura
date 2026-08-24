@@ -26,6 +26,21 @@ export const config = {
     return requireEnv("DATABASE_URL");
   },
   /**
+   * How the agent is reached (SPEC §6.1). `none` is the default and the
+   * honest state: no agent is connected, and the product says so rather
+   * than implying one runs. `local` is an agent service over HTTP;
+   * `agentcore` is AgentCore Runtime, not yet implemented.
+   */
+  get agentTransport(): "none" | "local" | "agentcore" {
+    const raw = (process.env.AGENT_TRANSPORT ?? "none").trim();
+    return raw === "local" || raw === "agentcore" ? raw : "none";
+  },
+  /** Where the agent service listens, when the transport is `local`. */
+  get agentUrl(): string | null {
+    const raw = process.env.AGENT_URL?.trim();
+    return raw ? raw : null;
+  },
+  /**
    * Serverless connection ceiling. Lambda scales horizontally and Postgres
    * does not: keep the per-instance pool tiny and put RDS Proxy in front on
    * AWS (recorded in the migration guide, SPEC §26.6).

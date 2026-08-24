@@ -1,0 +1,17 @@
+# Used by the CodeBuild fallback (deploy/codebuild.md). The image it produces
+# is byte-for-byte the one `docker build` produces in CloudShell — same
+# Dockerfile, same context, so there is only ever one way this app is built.
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Logging in to ECR"
+      - aws ecr get-login-password --region "$AWS_DEFAULT_REGION" | docker login --username AWS --password-stdin "${REGISTRY%/*}"
+  build:
+    commands:
+      - docker build -t "$REGISTRY:latest" .
+  post_build:
+    commands:
+      - docker push "$REGISTRY:latest"
+      - echo "Pushed $REGISTRY:latest"

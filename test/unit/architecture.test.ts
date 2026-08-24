@@ -35,6 +35,7 @@ describe("§26.1 pure logic is liftable", () => {
     "lib/db.ts", // opens the connection
     "lib/repo.ts", // speaks to the driver
     "lib/repo-review.ts", // the same store seam, split for NFR-6
+    "lib/session.ts", // the conversation-state seam (§6.1), swapped for AgentCore Memory
     "lib/schema.ts", // drizzle table definitions
     "lib/config.ts", // the one module that may read process.env
     "lib/current-person.ts", // reads the request's cookies
@@ -77,6 +78,10 @@ describe("§26.2 persistence is behind one interface", () => {
     const allowed = new Set([
       "lib/repo.ts",
       "lib/repo-review.ts",
+      // The session seam is persistence too — Postgres today, AgentCore
+      // Memory later. It is allowed the driver for the same reason the
+      // stores are: it exists so nothing else needs it.
+      "lib/session.ts",
       "lib/db.ts",
       "lib/schema.ts",
     ]);
@@ -356,5 +361,68 @@ describe("authority is never read from the caller's payload", () => {
     expect(review, "the objective is derived from the question").toMatch(
       /objectiveForQuestion\(/,
     );
+  });
+});
+
+describe("§6.1 the three seams are not scattered", () => {
+  /**
+   * The whole portability claim rests on three modules: how the agent is
+   * reached, where conversation state lives, and the fact that a model
+   * exists at all. Each is one file, and these tests are what stop a second
+   * one appearing the first time somebody is in a hurry.
+   */
+  const files = filesUnder(SRC);
+
+  it("only the agent seam knows how the agent is reached", () => {
+    const offenders = files
+      .filter((file) => rel(file) !== "lib/agent.ts")
+      .filter((file) => {
+        const source = read(file);
+        // Addressing the agent means fetching it or reading its address.
+        return /process\.env\.AGENT_URL|AGENT_TRANSPORT/.test(source);
+      })
+      .map(rel)
+      // config.ts is the one place the environment is read at all (§26.3).
+      .filter((name) => name !== "lib/config.ts");
+    expect(offenders, "these address the agent directly").toEqual([]);
+  });
+
+  it("only the session seam reads conversation state", () => {
+    const offenders = files
+      .filter((file) => rel(file) !== "lib/session.ts")
+      .filter((file) =>
+        /schema\.conversationTurns|conversation_turns/.test(read(file)),
+      )
+      .map(rel)
+      .filter((name) => name !== "lib/schema.ts");
+    expect(
+      offenders,
+      "these reach conversation state without the seam",
+    ).toEqual([]);
+  });
+
+  it("the web application never imports a model SDK", () => {
+    // Only the agent service may know a model exists (§6.1). It is a
+    // separate image; nothing under src/ may pull one in.
+    const sdks = /from "(@anthropic-ai\/|openai|@aws-sdk\/client-bedrock)/;
+    const offenders = files.filter((file) => sdks.test(read(file))).map(rel);
+    expect(offenders, "the web app must never import a model SDK").toEqual([]);
+  });
+
+  it("the wire contract carries no field that could record an attestation", () => {
+    // A drafted answer is a proposal. If the type could carry a signature,
+    // something would eventually set it (SPEC §7).
+    const contract = read(join(SRC, "lib", "agent-contract.ts"));
+    for (const forbidden of [
+      "attested",
+      "attestedBy",
+      "declaredBy",
+      "approved",
+    ]) {
+      expect(
+        contract,
+        `the contract must not carry "${forbidden}"`,
+      ).not.toMatch(new RegExp(`\\b${forbidden}\\b`));
+    }
   });
 });

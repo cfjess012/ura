@@ -32,9 +32,10 @@
     "**/*.ts",
     "**/*.tsx",
     ".next-e2e/types/**/*.ts",
+    ".next-prod/types/**/*.ts",
     ".next/types/**/*.ts",
     "next-env.d.ts",
-    ".next-prod/types/**/*.ts"
+    ".next-verify/types/**/*.ts"
   ],
   // scripts/ holds plain .mjs (hooks run under bare node, no build step),
   // which allowJs:false already ignores. Only its .d.ts files are wanted —

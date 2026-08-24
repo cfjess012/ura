@@ -53,3 +53,41 @@ guarantees into application code.
 import in a logic module, driver access outside the store, `process.env`
 outside config, or a hardcoded connection string. Add a case there when you
 add a rule.
+
+## The deployment actually exists now (2026-08-23)
+
+`deploy/` holds the real path, and it is the reference — do not invent a
+second one:
+
+- `deploy/README.md` — the CloudShell runbook, top to bottom.
+- `deploy/infra.yaml` — CloudFormation: ECR, RDS Postgres 16, the security
+  group, and the two IAM roles ECS Express Mode requires.
+- `deploy/architecture.md` — what runs today, and what changes at Phase 2.
+- `deploy/codebuild.md` — the fallback when CloudShell runs out of disk.
+
+**Compute is ECS Express Mode, not App Runner.** App Runner closed to new
+customers on 30 April 2026; Express Mode is AWS's named successor and gives
+the same one-command shape (Fargate + ALB + TLS + a URL).
+
+### Things that will break a deploy, learned the hard way
+
+- **Health checks must point at `/healthz`**, which answers without touching
+  Postgres. Pointed at `/`, an unreachable database fails the health check,
+  the platform restarts the task, and it reads as a broken application. Use
+  `/readyz` to ask whether the database is reachable — it answers in one
+  line and scrubs credentials out of the driver error.
+- **`HOSTNAME=0.0.0.0` in the image.** Next's standalone server otherwise
+  binds to localhost and nothing can reach it.
+- **`packageManager` in package.json.** Without it corepack picks a pnpm
+  that does not match the lockfile.
+- **`.dockerignore` must exclude `.env`.** The build context ships into the
+  image.
+- **The task's route to Postgres** is the `VpcCidr` parameter. Wrong value,
+  and the app deploys healthy while `/readyz` reports the database
+  unreachable — which is the endpoint doing its job.
+
+### Adding an environment variable
+
+It goes in `src/lib/config.ts` and nowhere else (§26.3), then into the
+`--primary-container` JSON in the runbook. Never a `local vs cloud` branch
+in code — that is §6.4 obligation 2 and it is checked in review.

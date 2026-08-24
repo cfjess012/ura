@@ -1,0 +1,20 @@
+# The build context is copied into the image: anything here would ship.
+.env
+.env.*
+!.env.example
+node_modules
+.next
+.next-*
+.git
+.claude
+audits
+e2e
+test
+test-results
+playwright-report
+uat
+docs
+demo
+scratchpad
+*.log
+.DS_Store

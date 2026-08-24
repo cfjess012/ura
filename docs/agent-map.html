@@ -88,7 +88,7 @@
   @media (prefers-reduced-motion:reduce){ *{transition:none!important;} }
 </style>
 <main>
-  <p class="kicker">Universal Risk Assessment · generated 2026-08-23</p>
+  <p class="kicker">Universal Risk Assessment · generated 2026-08-24</p>
   <h1>Agent Topology</h1>
   <p class="lede">
     Every agent in this project, what triggers it, what it can see, and its full instruction set.
@@ -348,7 +348,55 @@ Phase 1 builds **none** of this and forecloses **none** of it (§16, Build
 Rule 12). The practical obligation while building today: keep the raw
 material an agent will need — the requester's own prose, the attestation
 record, the reason a value was derived. Discarding those is what makes a
-registered feature impossible later.</pre>
+registered feature impossible later.
+
+## Building one, now that the seams exist (2026-08-23)
+
+The three seams from §6.1 are in code. A capability is added **behind** them
+or it is added wrong.
+
+| Seam | File | Rule |
+|---|---|---|
+| Agent access | `src/lib/agent.ts` | The only module that may address the agent. `AGENT_TRANSPORT` selects `none` \| `local` \| `agentcore`; `none` is the default and returns a plain refusal. |
+| Session state | `src/lib/session.ts` | The only module that may read conversation state. Narrow on purpose — append and history — because AgentCore Memory offers other things differently. |
+| Model access | the agent service only | Nothing under `src/` may import a model SDK. Asserted in `test/unit/architecture.test.ts`. |
+
+The wire contract is `src/lib/agent-contract.ts`. It is a **deployment
+boundary**: both images ship separately and can be at different versions, so
+changing it is a compatibility event. It carries no field that could record
+an attestation, and a test enforces that — drafting and signing are
+different acts by different parties.
+
+### The order to build in
+
+1. **The agent service itself** — its own image, its own Express Mode
+   service. OpenTelemetry spans from its **first day** (§6.4 obligation 5);
+   the web app is exempt, the agent service is not.
+2. **One capability**, end to end, with its eval. `draft` is the obvious
+   first: it is the one the whole product is shaped around.
+3. Only then the next one. The §22.1 register has fifteen and they are
+   sequenced there, not here.
+
+### What a drafted answer must carry
+
+Every one, with no exceptions and no &quot;confidence&quot; instead:
+
+- the **verbatim** quote it came from — the receiving side verifies it
+  appears in the source, and one that does not is an **error**, not a
+  lower-confidence answer;
+- the source, named as a person would name it;
+- a `because` in words a requester can judge.
+
+**Full abstention on absent evidence is a correct answer** and is scored as
+one. An agent that answers from nothing has failed even when it is right.
+
+### Where it plugs into what already exists
+
+The reviewer's rubric (`src/lib/grounding.ts`) already has the criterion,
+deliberately empty: *&quot;Grounded in a quoted source — nothing drafts answers
+yet, so there is no evidence trail to weigh.&quot;* When drafting ships, that
+criterion stops being null. It still only **orders** the queue; it may never
+gate, skip or pre-approve an attestation (G-61).</pre>
       </details>
       <p class="where"><code>.claude/skills/agentic-design/SKILL.md</code></p>
     </div>
@@ -416,7 +464,45 @@ guarantees into application code.
 `test/unit/architecture.test.ts` fails the build on drift: a framework
 import in a logic module, driver access outside the store, `process.env`
 outside config, or a hardcoded connection string. Add a case there when you
-add a rule.</pre>
+add a rule.
+
+## The deployment actually exists now (2026-08-23)
+
+`deploy/` holds the real path, and it is the reference — do not invent a
+second one:
+
+- `deploy/README.md` — the CloudShell runbook, top to bottom.
+- `deploy/infra.yaml` — CloudFormation: ECR, RDS Postgres 16, the security
+  group, and the two IAM roles ECS Express Mode requires.
+- `deploy/architecture.md` — what runs today, and what changes at Phase 2.
+- `deploy/codebuild.md` — the fallback when CloudShell runs out of disk.
+
+**Compute is ECS Express Mode, not App Runner.** App Runner closed to new
+customers on 30 April 2026; Express Mode is AWS's named successor and gives
+the same one-command shape (Fargate + ALB + TLS + a URL).
+
+### Things that will break a deploy, learned the hard way
+
+- **Health checks must point at `/healthz`**, which answers without touching
+  Postgres. Pointed at `/`, an unreachable database fails the health check,
+  the platform restarts the task, and it reads as a broken application. Use
+  `/readyz` to ask whether the database is reachable — it answers in one
+  line and scrubs credentials out of the driver error.
+- **`HOSTNAME=0.0.0.0` in the image.** Next's standalone server otherwise
+  binds to localhost and nothing can reach it.
+- **`packageManager` in package.json.** Without it corepack picks a pnpm
+  that does not match the lockfile.
+- **`.dockerignore` must exclude `.env`.** The build context ships into the
+  image.
+- **The task's route to Postgres** is the `VpcCidr` parameter. Wrong value,
+  and the app deploys healthy while `/readyz` reports the database
+  unreachable — which is the endpoint doing its job.
+
+### Adding an environment variable
+
+It goes in `src/lib/config.ts` and nowhere else (§26.3), then into the
+`--primary-container` JSON in the runbook. Never a `local vs cloud` branch
+in code — that is §6.4 obligation 2 and it is checked in review.</pre>
       </details>
       <p class="where"><code>.claude/skills/aws-ready/SKILL.md</code></p>
     </div>

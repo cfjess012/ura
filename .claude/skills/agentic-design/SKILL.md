@@ -103,3 +103,51 @@ Rule 12). The practical obligation while building today: keep the raw
 material an agent will need — the requester's own prose, the attestation
 record, the reason a value was derived. Discarding those is what makes a
 registered feature impossible later.
+
+## Building one, now that the seams exist (2026-08-23)
+
+The three seams from §6.1 are in code. A capability is added **behind** them
+or it is added wrong.
+
+| Seam | File | Rule |
+|---|---|---|
+| Agent access | `src/lib/agent.ts` | The only module that may address the agent. `AGENT_TRANSPORT` selects `none` \| `local` \| `agentcore`; `none` is the default and returns a plain refusal. |
+| Session state | `src/lib/session.ts` | The only module that may read conversation state. Narrow on purpose — append and history — because AgentCore Memory offers other things differently. |
+| Model access | the agent service only | Nothing under `src/` may import a model SDK. Asserted in `test/unit/architecture.test.ts`. |
+
+The wire contract is `src/lib/agent-contract.ts`. It is a **deployment
+boundary**: both images ship separately and can be at different versions, so
+changing it is a compatibility event. It carries no field that could record
+an attestation, and a test enforces that — drafting and signing are
+different acts by different parties.
+
+### The order to build in
+
+1. **The agent service itself** — its own image, its own Express Mode
+   service. OpenTelemetry spans from its **first day** (§6.4 obligation 5);
+   the web app is exempt, the agent service is not.
+2. **One capability**, end to end, with its eval. `draft` is the obvious
+   first: it is the one the whole product is shaped around.
+3. Only then the next one. The §22.1 register has fifteen and they are
+   sequenced there, not here.
+
+### What a drafted answer must carry
+
+Every one, with no exceptions and no "confidence" instead:
+
+- the **verbatim** quote it came from — the receiving side verifies it
+  appears in the source, and one that does not is an **error**, not a
+  lower-confidence answer;
+- the source, named as a person would name it;
+- a `because` in words a requester can judge.
+
+**Full abstention on absent evidence is a correct answer** and is scored as
+one. An agent that answers from nothing has failed even when it is right.
+
+### Where it plugs into what already exists
+
+The reviewer's rubric (`src/lib/grounding.ts`) already has the criterion,
+deliberately empty: *"Grounded in a quoted source — nothing drafts answers
+yet, so there is no evidence trail to weigh."* When drafting ships, that
+criterion stops being null. It still only **orders** the queue; it may never
+gate, skip or pre-approve an attestation (G-61).
