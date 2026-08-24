@@ -140,6 +140,36 @@ evidence trail to weigh."*
 
 ---
 
+## Documents: why there is no S3 bucket yet
+
+The obvious answer to "where do uploaded documents go" is S3, and that is
+where the **files** will go. Today there are no files.
+
+What a requester hands the assistant is read, its **text** is extracted and
+stored against that one assessment, and the original is not kept. That is a
+deliberate narrowing, not an oversight:
+
+- **§3.6 leaves the attachment retention posture open**, and it blocks S4.6.
+  How long bytes live, who may purge them, and what an export carries are
+  owner decisions that have not been taken.
+- Text scoped to one assessment is a **smaller thing to be wrong about**
+  than a binary store: no download path, no content-type handling, no
+  bucket policy, and nothing in it a person did not already hand over.
+- The text is what the product actually needs. A quote is checked against
+  it, and the source panel highlights it. The original file is not evidence
+  of anything the extracted text is not.
+
+**When the retention decision lands**, S3 is the right home for originals
+and the change is contained: `src/lib/documents.ts` is the one module that
+reads or writes a document, in the same way `src/lib/agent.ts` is the one
+module that reaches the agent. Adding a bucket means an implementation
+behind that interface, a bucket with encryption and a lifecycle rule
+matching whatever retention is settled, and `s3:GetObject`/`PutObject` on
+the web task role. Nothing above it changes.
+
+Until then the honest statement is: **no bucket, no files, extracted text
+only, synthetic pilot data.**
+
 ## Cost, roughly
 
 For a demo left running in a sandbox:

@@ -248,6 +248,9 @@ export default async function ReviewPage({
         currentStage={2}
         progress={{ done: signedCount, total: items.length, label: "signed" }}
       />
+      <p className="review-report-link">
+        <Link href={`/projects/${id}/report`}>Read the handoff summary →</Link>
+      </p>
       <ReviewQueue
         projectId={id}
         items={items}

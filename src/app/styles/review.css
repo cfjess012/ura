@@ -364,3 +364,10 @@
 .breach .help {
   margin: 0;
 }
+
+/* The way into the handoff summary, from the queue. */
+.review-report-link {
+  margin: 0.9rem 0 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+}

@@ -12,6 +12,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { DraftTask } from "./draft.ts";
 import type { ConverseTask } from "./converse.ts";
+import type { ReportTask } from "./report.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const CORE = readFileSync(join(here, "..", "prompts", "core.md"), "utf8");
@@ -19,6 +20,7 @@ const CONVERSE = readFileSync(
   join(here, "..", "prompts", "converse.md"),
   "utf8",
 );
+const REPORT = readFileSync(join(here, "..", "prompts", "report.md"), "utf8");
 
 /**
  * A short hash of the locked core, recorded on every span. If a run's
@@ -28,6 +30,7 @@ export function promptVersion(): string {
   return createHash("sha256")
     .update(CORE)
     .update(CONVERSE)
+    .update(REPORT)
     .digest("hex")
     .slice(0, 12);
 }
@@ -72,5 +75,17 @@ export function composeConversePrompt(task: ConverseTask): string {
     "",
     "## What they just said",
     task.said,
+  ].join("\n\n");
+}
+
+export function composeReportPrompt(task: ReportTask): string {
+  return [
+    REPORT,
+    "---",
+    "## The activity",
+    task.assessment.activity,
+    "",
+    "## The record",
+    task.record,
   ].join("\n\n");
 }

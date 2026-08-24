@@ -195,6 +195,62 @@ assessments behind it, one of them already with a reviewer.
 
 ---
 
+## Step 7 · The agent service (optional, and off by default)
+
+The product works without it. With no agent connected it says so rather than
+implying one runs, and every deterministic screen behaves identically. Add it
+when you want drafting and the assistant.
+
+```bash
+# build and push its image — same repo root, different Dockerfile
+docker build -f agent/Dockerfile -t "$AGENTREGISTRYURI:latest" .
+docker push "$AGENTREGISTRYURI:latest"
+
+# its own Express Mode service, running as the role that may call Bedrock
+aws ecs create-express-gateway-service \
+  --service-name ura-agent \
+  --execution-role-arn "$TASKEXECUTIONROLEARN" \
+  --infrastructure-role-arn "$EXPRESSINFRASTRUCTUREROLEARN" \
+  --primary-container "{\"image\":\"${AGENTREGISTRYURI}:latest\",\"containerPort\":8787,\"environment\":[{\"name\":\"AGENT_PROVIDER\",\"value\":\"bedrock\"},{\"name\":\"AGENT_MODEL\",\"value\":\"global.anthropic.claude-sonnet-5-v1:0\"}]}" \
+  --health-check-path "/healthz" \
+  --cpu 1 --memory 2 \
+  --scaling-target '{"minTaskCount":1,"maxTaskCount":2}' \
+  --monitor-resources
+```
+
+Two things to know.
+
+**The task role is what calls Bedrock, not a key.** The stack creates
+`uraAgentTaskRole` with `bedrock:InvokeModel`; the provider seam resolves
+credentials through the standard AWS chain, so there is nothing to put in
+the environment. If you use your own task definition, set its task role to
+that ARN — the execution role is not enough.
+
+**Set the model to one your account has access to.** `AGENT_MODEL` is the
+Bedrock model id. Check what is granted with:
+
+```bash
+aws bedrock list-foundation-models --query 'modelSummaries[?contains(modelId,`claude`)].modelId' --output text
+```
+
+Then point the web service at it and redeploy that one:
+
+```bash
+aws ecs update-express-gateway-service --service-name ura-web \
+  --primary-container "{\"image\":\"${REGISTRYURI}:latest\",\"containerPort\":3000,\"environment\":[{\"name\":\"DATABASE_URL\",\"value\":\"${DATABASE_URL}\"},{\"name\":\"AGENT_TRANSPORT\",\"value\":\"local\"},{\"name\":\"AGENT_URL\",\"value\":\"https://ura-agent.ecs.${AWS_REGION}.on.aws\"}]}" \
+  --monitor-resources
+```
+
+Check it the same way as the web service:
+
+```bash
+curl -s https://ura-agent.ecs.${AWS_REGION}.on.aws/healthz
+# {"ok":true,"service":"ura-agent","contract":"1","model":"…","prompt":"…"}
+```
+
+The `prompt` value is a hash of the locked prompt files. If behaviour ever
+changes, that number tells you whether the prompt changed with it.
+
 ## Updating it
 
 ```bash

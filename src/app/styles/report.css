@@ -1,0 +1,279 @@
+/* The handoff report (§4.4, §4.5) — the one screen in this product written
+   to be read by somebody who was not involved. It is a document, so it is
+   set like one: a single measured column, generous leading, and a rule that
+   nothing decorative earns its place. Tokens only (§23). */
+
+.report {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.report-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 1.25rem;
+  border-bottom: 2px solid var(--navy);
+  margin-bottom: 1.75rem;
+}
+.report-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--link);
+  margin-bottom: 0.4rem;
+}
+.report-head h1 {
+  font-size: clamp(1.6rem, 3.2vw, 2.2rem);
+  line-height: 1.15;
+  color: var(--navy);
+  text-wrap: balance;
+  margin-bottom: 0.4rem;
+}
+.report-standing {
+  font-size: 1rem;
+  color: var(--neutral-700);
+  max-width: 34rem;
+}
+.report-facts {
+  display: grid;
+  gap: 0.6rem;
+  min-width: 12rem;
+}
+.report-facts div {
+  display: grid;
+  gap: 0.1rem;
+}
+.report-facts dt {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--neutral-600);
+}
+.report-facts dd {
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--neutral-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.report-card {
+  padding: 1.2rem 1.4rem;
+  margin-bottom: 1.1rem;
+  border-radius: var(--radius);
+  background: var(--neutral-0);
+  border: 1px solid var(--neutral-200);
+}
+.report-card h2 {
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--neutral-600);
+  margin-bottom: 0.7rem;
+}
+.report-card p {
+  line-height: 1.65;
+}
+.report-muted {
+  color: var(--neutral-600);
+  font-size: 0.9rem;
+}
+
+/* The one moment of emphasis: the assistant's reading, set apart because a
+   reader must be able to tell derived prose from derived fact. */
+.report-summary {
+  background: var(--surface-1);
+  border-color: var(--surface-3);
+  border-left: 4px solid var(--navy);
+}
+.report-lede {
+  font-size: 1.08rem;
+  line-height: 1.6;
+  color: var(--neutral-900);
+}
+.report-byline {
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--neutral-600);
+}
+
+.report-areas {
+  display: grid;
+  gap: 0.5rem;
+}
+.report-area {
+  display: grid;
+  grid-template-columns: minmax(9rem, 14rem) minmax(7rem, auto) 1fr;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--neutral-100);
+  font-size: 0.92rem;
+}
+.report-area:last-child {
+  border-bottom: none;
+}
+.report-area-name {
+  font-weight: 650;
+  color: var(--neutral-900);
+}
+.report-area-standing {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--neutral-700);
+}
+.report-closed .report-area-name {
+  color: var(--neutral-600);
+}
+.report-closed .report-area-standing {
+  color: var(--neutral-500);
+}
+.report-area-why {
+  color: var(--neutral-600);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.report-sev {
+  display: grid;
+  gap: 0.4rem;
+}
+.report-sev li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--neutral-100);
+  font-size: 0.92rem;
+}
+.report-sev li:last-child {
+  border-bottom: none;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.report-table th {
+  text-align: left;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--neutral-600);
+  padding: 0 0.6rem 0.45rem 0;
+  border-bottom: 1px solid var(--neutral-200);
+}
+.report-table td {
+  padding: 0.55rem 0.6rem 0.55rem 0;
+  border-bottom: 1px solid var(--neutral-100);
+  vertical-align: top;
+  line-height: 1.5;
+}
+.report-table tr:last-child td {
+  border-bottom: none;
+}
+.report-unanswered {
+  margin-top: 0.8rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning);
+  font-size: 0.88rem;
+}
+
+.report-finding {
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--neutral-100);
+}
+.report-finding:last-child {
+  border-bottom: none;
+}
+.report-finding-head {
+  font-weight: 650;
+  margin-bottom: 0.3rem;
+}
+.report-clause {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.8rem;
+  border-left: 3px solid var(--surface-3);
+  background: var(--surface-1);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.report-scenarios {
+  border-left: 4px solid var(--link);
+}
+.report-scenarios-note {
+  margin-bottom: 0.8rem;
+}
+.report-scenario {
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--neutral-100);
+}
+.report-scenario:last-child {
+  border-bottom: none;
+}
+.report-scenario-what {
+  font-weight: 650;
+  color: var(--neutral-900);
+}
+.report-scenario-ask {
+  color: var(--link);
+  font-weight: 600;
+  margin: 0.2rem 0;
+}
+
+.report-foot {
+  margin-top: 1.6rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--neutral-200);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* It is a document, so it must print like one. */
+@media print {
+  .appbar,
+  .report-foot,
+  .assistant,
+  .assistant-launch {
+    display: none !important;
+  }
+  .report {
+    max-width: none;
+    padding: 0;
+  }
+  .report-card {
+    border: none;
+    padding: 0.6rem 0;
+    break-inside: avoid;
+  }
+  .report-summary {
+    border-left: 3px solid #333;
+    padding-left: 0.8rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .report-area {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+  .report-table {
+    font-size: 0.84rem;
+  }
+}

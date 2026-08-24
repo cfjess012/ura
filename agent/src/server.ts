@@ -13,9 +13,11 @@ import { createServer } from "node:http";
 import {
   AGENT_CONTRACT_VERSION,
   type AgentEvent,
+  type AssessmentContext,
 } from "../../src/lib/agent-contract.ts";
 import { converse, type ConverseTask } from "./converse.ts";
 import { draftOne, type DraftTask } from "./draft.ts";
+import { writeReport } from "./report.ts";
 import { modelId } from "./model.ts";
 import { promptVersion } from "./prompt.ts";
 import { startTelemetry } from "./telemetry.ts";
@@ -53,6 +55,37 @@ const server = createServer(async (req, res) => {
         prompt: promptVersion(),
       }),
     );
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/report") {
+    const body: Buffer[] = [];
+    for await (const chunk of req) body.push(chunk as Buffer);
+    let task: { assessment?: AssessmentContext; record?: string };
+    try {
+      task = JSON.parse(Buffer.concat(body).toString("utf8"));
+    } catch {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "the request was not valid JSON" }));
+      return;
+    }
+    if (!task.assessment || typeof task.assessment.projectId !== "string") {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error:
+            "no assessment record was supplied, so nothing written could be checked against it",
+        }),
+      );
+      return;
+    }
+    const writing = await writeReport({
+      assessment: task.assessment,
+      record: task.record ?? "",
+    });
+    res.writeHead(200, { "content-type": "application/json" });
+    // null is a real answer: the report is complete without a summary.
+    res.end(JSON.stringify(writing));
     return;
   }
 

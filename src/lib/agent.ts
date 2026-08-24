@@ -44,6 +44,18 @@ export type AgentTransport = {
    * happens — a thought partner that throws is worse than one that says it
    * cannot help right now.
    */
+  /**
+   * The handoff summary and the scenarios worth asking about. Resolves to
+   * null when there is nothing — the report is complete without it, so a
+   * missing summary is an answer rather than a failure.
+   */
+  writeReport(input: {
+    assessment: AssessmentContext;
+    record: string;
+  }): Promise<{
+    summary: string;
+    scenarios: Array<{ scenario: string; ask: string; from: string[] }>;
+  } | null>;
   converse(input: {
     said: string;
     assessment: AssessmentContext;
@@ -69,6 +81,9 @@ function notConfigured(): AgentTransport {
       };
       yield { type: "done" };
     },
+    async writeReport() {
+      return null;
+    },
     async converse() {
       return {
         reply:
@@ -85,6 +100,24 @@ function localTransport(baseUrl: string): AgentTransport {
   return {
     kind: "local",
     available: true,
+    async writeReport(input) {
+      try {
+        const response = await fetch(`${url}/report`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-agent-contract": AGENT_CONTRACT_VERSION,
+          },
+          body: JSON.stringify(input),
+        });
+        if (!response.ok) return null;
+        const body = await response.json();
+        return body && typeof body.summary === "string" ? body : null;
+      } catch (cause) {
+        console.error("[agent] report unreachable", cause);
+        return null;
+      }
+    },
     async converse(input) {
       // Never throws: the caller is a person mid-sentence, and an
       // exception here would take the screen down with it.
@@ -209,6 +242,11 @@ function agentCoreTransport(): AgentTransport {
   return {
     kind: "agentcore",
     available: false,
+    async writeReport(): Promise<never> {
+      throw new Error(
+        "AGENT_TRANSPORT=agentcore, but the AgentCore Runtime adapter is not implemented. It belongs in this file and nowhere else (SPEC §6.1).",
+      );
+    },
     async converse(): Promise<never> {
       throw new Error(
         "AGENT_TRANSPORT=agentcore, but the AgentCore Runtime adapter is not implemented. It belongs in this file and nowhere else (SPEC §6.1).",
