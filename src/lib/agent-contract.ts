@@ -187,3 +187,102 @@ export function quoteAppearsVerbatim(quote: string, source: string): boolean {
   if (needle.length === 0) return false;
   return normaliseWhitespace(source).includes(needle);
 }
+
+/**
+ * The assessment record an agent is allowed to see, and the only thing it
+ * may speak about.
+ *
+ * Deliberately not database rows. Every field here is already in the words a
+ * person would recognise, because the moment an agent is handed an internal
+ * identifier it will eventually say one out loud — and a requester told
+ * "t3.t3_iam_02 is unanswered" has been handed the system's problem instead
+ * of an answer (§24.2, NFR-9).
+ *
+ * It is also the thing the output is checked against. An agent that cannot
+ * be told what is on record cannot be caught claiming something that is not.
+ */
+export type AssessmentContext = {
+  projectId: string;
+  /** The activity, as the person described it. Never a summary we wrote. */
+  activity: string;
+  /** What is on record — label and value, exactly as displayed. */
+  onRecord: Array<{ label: string; value: string }>;
+  /** What is still open, in the question's own words. */
+  openQuestions: string[];
+};
+
+/**
+ * Shapes that are ours and must never reach a person: question ids, control
+ * objective codes, severity codes, and the `initial.surname` form the pilot
+ * directory uses for people.
+ */
+const INTERNAL_IDENTIFIER =
+  /\b(?:t3|sev|gate|path)\.[a-z0-9_]+\b|\b T?[23]-[A-Z]{2,4}-\d{1,2}\b|\bT[23]-[A-Z]{2,4}-\d{1,2}\b/;
+
+/**
+ * An internal identifier the agent said out loud, or null.
+ *
+ * This is the guardrail most likely to fire in practice, because the model
+ * is handed ids in its own instructions and repeating one feels helpful.
+ */
+export function utteredInternalIdentifier(text: string): string | null {
+  const found = text.match(INTERNAL_IDENTIFIER);
+  return found ? found[0].trim() : null;
+}
+
+/**
+ * An answer the agent attributed to the person that is not on the record,
+ * or null.
+ *
+ * G-42, enforced rather than asked for: never state as somebody's answer a
+ * thing they were not asked. The failure this catches is specific and
+ * plausible — a model recapping "you said the data is Confidential" when
+ * they said no such thing, which a busy person will read as confirmation
+ * and stop checking.
+ */
+export function claimsUnrecordedAnswer(
+  text: string,
+  context: AssessmentContext,
+): string | null {
+  // "you answered X", "you said X", "you told us X", "you selected X".
+  const claims = [
+    ...text.matchAll(
+      /\byou (?:answered|said|told us|selected|chose)\b([^.!?\n]{0,120})/gi,
+    ),
+  ];
+  for (const claim of claims) {
+    const claimed = (claim[1] ?? "").trim();
+    if (claimed === "") continue;
+    const supported = context.onRecord.some(
+      (entry) =>
+        entry.value.trim() !== "" &&
+        normaliseWhitespace(claimed.toLowerCase()).includes(
+          normaliseWhitespace(entry.value.toLowerCase()),
+        ),
+    );
+    if (!supported) return claimed;
+  }
+  return null;
+}
+
+/**
+ * Everything wrong with something an agent is about to say to a person,
+ * checked against the record it was given. Null when it may be shown.
+ *
+ * One function, so a new capability cannot ship with half the checks: the
+ * drafting pass and the conversation both call exactly this.
+ */
+export function contextualGuardrail(
+  text: string,
+  context: AssessmentContext,
+): string | null {
+  const identifier = utteredInternalIdentifier(text);
+  if (identifier) {
+    return `it said "${identifier}" to a person — an internal identifier is our problem, not theirs`;
+  }
+  const unrecorded = claimsUnrecordedAnswer(text, context);
+  if (unrecorded) {
+    return `it attributed an answer to the person that is not on the record: "${unrecorded}"`;
+  }
+  return null;
+}

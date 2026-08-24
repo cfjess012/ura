@@ -16,6 +16,10 @@
  * sweep. Intent is not a pattern match.
  */
 import { trace } from "@opentelemetry/api";
+import {
+  contextualGuardrail,
+  type AssessmentContext,
+} from "../../src/lib/agent-contract.ts";
 import { extractJson, modelClient, modelId, textOf } from "./model.ts";
 import { composeConversePrompt, promptVersion } from "./prompt.ts";
 
@@ -24,6 +28,12 @@ const tracer = trace.getTracer("ura-agent");
 export type ConverseTask = {
   /** What the person just said. */
   said: string;
+  /**
+   * The assessment this is about. Required, not optional: an agent that
+   * cannot be told what is on record cannot be caught claiming something
+   * that is not.
+   */
+  assessment: AssessmentContext;
   /** The conversation so far, oldest first. */
   history: Array<{ speaker: "person" | "agent"; said: string }>;
   /** Questions still open, in their own words — never their ids. */
@@ -48,6 +58,7 @@ export type ConverseReply = {
  */
 export function conversationGate(
   parsed: unknown,
+  assessment: AssessmentContext,
 ): { ok: true; reply: ConverseReply } | { ok: false; why: string } {
   if (typeof parsed !== "object" || parsed === null) {
     return {
@@ -86,6 +97,12 @@ export function conversationGate(
     };
   }
 
+  // The contextual guardrails: nothing said to a person may carry an
+  // internal identifier or attribute an answer they never gave. Shared with
+  // the drafting pass, so a new capability cannot ship with half of them.
+  const ungrounded = contextualGuardrail(reply, assessment);
+  if (ungrounded) return { ok: false, why: ungrounded };
+
   return {
     ok: true,
     reply: {
@@ -117,7 +134,10 @@ export async function converse(task: ConverseTask): Promise<ConverseReply> {
           content: Array<{ type: string; text?: string }>;
         },
       );
-      const verdict = conversationGate(JSON.parse(extractJson(text)));
+      const verdict = conversationGate(
+        JSON.parse(extractJson(text)),
+        task.assessment,
+      );
       if (!verdict.ok) {
         span.setAttribute("gate.result", "refused");
         span.setAttribute("gate.why", verdict.why);

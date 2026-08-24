@@ -73,6 +73,7 @@ work, not after:
 | add a feature, utility, or data access path | `aws-ready` |
 | change anything a person is asked, or activate a version | `instrument` |
 | propose or spec anything an agent would do | `agentic-design` |
+| build, change or review a capability in the agent service | `agent-capability` |
 | write anything to the owner | `owner-brief` |
 | answer design feedback or a screenshot | `design-mock` |
 | finish a review, prep UAT or the demo, or write down a claim | `demo-truth` |

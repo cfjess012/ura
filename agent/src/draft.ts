@@ -11,9 +11,11 @@
  */
 import { trace } from "@opentelemetry/api";
 import {
+  contextualGuardrail,
   quoteAppearsVerbatim,
   violatesNeverGuess,
   type AgentEvent,
+  type AssessmentContext,
   type Basis,
   type DraftedAnswer,
 } from "../../src/lib/agent-contract.ts";
@@ -26,6 +28,12 @@ const tracer = trace.getTracer("ura-agent");
 export type DraftTask = {
   questionId: string;
   question: string;
+  /**
+   * The assessment this belongs to. Required: `because` is prose a person
+   * reads, so it is held to the same standard as anything else said to
+   * them — no internal identifiers, no answers they never gave.
+   */
+  assessment: AssessmentContext;
   /** How the answer must be shaped, in words the model can follow. */
   answerShape: string;
   sources: Array<{ id: string; text: string }>;

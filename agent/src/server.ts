@@ -67,8 +67,22 @@ const server = createServer(async (req, res) => {
       res.end(JSON.stringify({ error: "the request was not valid JSON" }));
       return;
     }
+    if (!task.assessment || typeof task.assessment.projectId !== "string") {
+      // Refused rather than defaulted: without the record there is nothing
+      // to check the reply against, and an unguarded reply is the one thing
+      // this service must not produce.
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error:
+            "no assessment record was supplied, so nothing said back could be checked against it",
+        }),
+      );
+      return;
+    }
     const reply = await converse({
       said: task.said ?? "",
+      assessment: task.assessment,
       history: task.history ?? [],
       openQuestions: task.openQuestions ?? [],
       context: task.context ?? "",

@@ -104,7 +104,14 @@ material an agent will need — the requester's own prose, the attestation
 record, the reason a value was derived. Discarding those is what makes a
 registered feature impossible later.
 
-## Building one, now that the seams exist (2026-08-23)
+## Building one — see `agent-capability`
+
+That skill is the build guide: the four gates, the assessment record every
+capability is grounded in, and the eval that decides whether it ships. This
+skill stays about **whether** a capability should exist and what it may
+never do. Do not restate the gates here; one definition, cited.
+
+## The seams, as they stand (2026-08-23)
 
 The three seams from §6.1 are in code. A capability is added **behind** them
 or it is added wrong.

@@ -17,6 +17,12 @@ const SOURCE = {
 const task: DraftTask = {
   questionId: "t3.t3_iam_02",
   question: "Is MFA enforced?",
+  assessment: {
+    projectId: "9f1c",
+    activity: "A claims triage assistant from Sable.",
+    onRecord: [{ label: "Is a third party involved?", value: "Yes" }],
+    openQuestions: [],
+  },
   answerShape: "one of: Yes, Partial, No, N-A",
   sources: [SOURCE],
 };

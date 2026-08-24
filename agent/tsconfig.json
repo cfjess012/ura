@@ -12,5 +12,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "../src/lib/agent-contract.ts"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "../src/lib/agent-contract.ts"]
 }

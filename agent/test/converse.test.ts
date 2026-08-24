@@ -9,6 +9,19 @@
  */
 import { describe, expect, it } from "vitest";
 import { conversationGate } from "../src/converse.ts";
+import type { AssessmentContext } from "../../src/lib/agent-contract.ts";
+
+/**
+ * The record every reply is checked against. Required by the gate — an
+ * agent that cannot be told what is on record cannot be caught claiming
+ * something that is not.
+ */
+const assessment: AssessmentContext = {
+  projectId: "9f1c",
+  activity: "A claims triage assistant from Sable.",
+  onRecord: [{ label: "Does this use AI or machine learning?", value: "Yes" }],
+  openQuestions: ["Does it process personal data?"],
+};
 
 const good = {
   reply:
@@ -21,34 +34,40 @@ describe("what a thought partner may say", () => {
   it("lets a helpful reply through, general knowledge and all", () => {
     // World knowledge in conversation is the point (§22.2). It just never
     // becomes evidence.
-    const verdict = conversationGate(good);
+    const verdict = conversationGate(good, assessment);
     expect(verdict.ok).toBe(true);
     if (verdict.ok) expect(verdict.reply.asking).toMatch(/personal data/);
   });
 
   it("carries the evidence flag through when the model sets it", () => {
-    const verdict = conversationGate({ ...good, carriesEvidence: true });
+    const verdict = conversationGate(
+      { ...good, carriesEvidence: true },
+      assessment,
+    );
     expect(verdict.ok && verdict.reply.carriesEvidence).toBe(true);
   });
 
   it("treats a missing or non-boolean flag as no evidence, never as yes", () => {
     // Defaulting the other way would start a drafting pass over nothing.
-    expect(conversationGate({ ...good, carriesEvidence: undefined }).ok).toBe(
-      true,
+    expect(
+      conversationGate({ ...good, carriesEvidence: undefined }, assessment).ok,
+    ).toBe(true);
+    const verdict = conversationGate(
+      { ...good, carriesEvidence: "yes" },
+      assessment,
     );
-    const verdict = conversationGate({ ...good, carriesEvidence: "yes" });
     expect(verdict.ok && verdict.reply.carriesEvidence).toBe(false);
   });
 
   it("treats an empty question as no question", () => {
-    const verdict = conversationGate({ ...good, asking: "   " });
+    const verdict = conversationGate({ ...good, asking: "   " }, assessment);
     expect(verdict.ok && verdict.reply.asking).toBeNull();
   });
 });
 
 describe("what it may never say", () => {
   const refusal = (reply: string) => {
-    const verdict = conversationGate({ ...good, reply });
+    const verdict = conversationGate({ ...good, reply }, assessment);
     expect(verdict.ok, `should have been refused: "${reply}"`).toBe(false);
     return verdict.ok ? "" : verdict.why;
   };
@@ -83,17 +102,60 @@ describe("what it may never say", () => {
       "You'll be asked to confirm these answers are accurate before it goes.",
       "If you answer No here, that becomes a finding a reviewer settles.",
     ]) {
-      expect(conversationGate({ ...good, reply: fine }).ok, fine).toBe(true);
+      expect(
+        conversationGate({ ...good, reply: fine }, assessment).ok,
+        fine,
+      ).toBe(true);
     }
   });
 
   it("refuses an empty reply", () => {
     expect(refusal("   ")).toMatch(/empty/i);
-    expect(conversationGate({ ...good, reply: undefined }).ok).toBe(false);
+    expect(conversationGate({ ...good, reply: undefined }, assessment).ok).toBe(
+      false,
+    );
   });
 
   it("refuses something that is not an object", () => {
-    expect(conversationGate("just a string").ok).toBe(false);
-    expect(conversationGate(null).ok).toBe(false);
+    expect(conversationGate("just a string", assessment).ok).toBe(false);
+    expect(conversationGate(null, assessment).ok).toBe(false);
+  });
+});
+
+describe("the contextual guardrails fire inside the gate, not only in isolation", () => {
+  it("refuses a reply that says an internal identifier out loud", () => {
+    // The likeliest failure in practice: the model is handed ids in its own
+    // instructions and repeating one feels helpful.
+    const verdict = conversationGate(
+      { ...good, reply: "You still need to answer t3.t3_iam_02." },
+      assessment,
+    );
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) expect(verdict.why).toMatch(/our problem, not theirs/);
+  });
+
+  it("refuses a reply attributing an answer the person never gave", () => {
+    const verdict = conversationGate(
+      {
+        ...good,
+        reply: "You told us there is no personal data, so we can move on.",
+      },
+      assessment,
+    );
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) expect(verdict.why).toMatch(/not on the record/i);
+  });
+
+  it("allows a reply that recaps what genuinely is on the record", () => {
+    expect(
+      conversationGate(
+        {
+          ...good,
+          reply:
+            "You answered Yes to the AI question — does it use personal data?",
+        },
+        assessment,
+      ).ok,
+    ).toBe(true);
   });
 });
