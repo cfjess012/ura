@@ -237,3 +237,42 @@
 .proposed .help {
   margin: 0;
 }
+
+/* Working, without claiming to know how long. */
+.assistant-dots {
+  display: inline-flex;
+  gap: 0.22rem;
+  align-items: center;
+  height: 1.1rem;
+}
+.assistant-dots i {
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 50%;
+  background: var(--neutral-500);
+  animation: assistant-dot 1.2s ease-in-out infinite;
+}
+.assistant-dots i:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.assistant-dots i:nth-child(3) {
+  animation-delay: 0.32s;
+}
+@keyframes assistant-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.28;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .assistant-dots i {
+    animation: none;
+    opacity: 0.6;
+  }
+}

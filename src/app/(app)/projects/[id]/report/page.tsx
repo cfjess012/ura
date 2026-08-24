@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { agentTransport } from "@/lib/agent";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { gateStates } from "@/lib/instrument";
 import { openProject } from "@/lib/project-access";
 import { answerStore, peopleStore, submissionStore } from "@/lib/repo";
 import { accumulatedFor, asksNothingFurther, SEVERITY } from "@/lib/severity";
-import { groundedScenarios, reportFrom, standingLine } from "@/lib/report";
+import { reportFrom, standingLine } from "@/lib/report";
 import { isTier3Value, objectivesFor, type Tier3Value } from "@/lib/tier3";
 import { NotYourAssessment } from "../not-yours";
+import { ReportSummary, SummaryPending } from "./summary";
 
 export const dynamic = "force-dynamic";
 
@@ -74,23 +76,8 @@ export default async function ReportPage({
     asksNothingFurther,
   });
 
-  // The agent's reading of it. Absent is a normal state, not an error.
   const transport = agentTransport();
-  const writing = transport.available
-    ? await transport.writeReport({
-        assessment: {
-          projectId: id,
-          activity: report.activity,
-          onRecord: report.controls.map((c) => ({
-            label: c.name,
-            value: c.answer,
-          })),
-          openQuestions: report.unanswered,
-        },
-        record: asPlainText(report),
-      })
-    : null;
-  const scenarios = writing ? groundedScenarios(writing.scenarios, report) : [];
+  const record = asPlainText(report);
 
   const nameOf = (personId: string | null) =>
     everyone.find((someone) => someone.id === personId)?.name ?? "—";
@@ -123,15 +110,12 @@ export default async function ReportPage({
         </dl>
       </header>
 
-      {writing && (
-        <section className="report-card report-summary">
-          <h2>In short</h2>
-          <p className="report-lede">{writing.summary}</p>
-          <p className="report-byline">
-            Written by the assistant from the record below. It proposes; every
-            fact on this page is derived from answers a person gave.
-          </p>
-        </section>
+      {/* Streamed: the derived report is already complete, so nobody waits
+          on a model to read what a person actually answered. */}
+      {transport.available && (
+        <Suspense fallback={<SummaryPending />}>
+          <ReportSummary projectId={id} report={report} record={record} />
+        </Suspense>
       )}
 
       <section className="report-card">
@@ -237,25 +221,6 @@ export default async function ReportPage({
                   <span className="report-muted">— {finding.clause}</span>
                 </blockquote>
               )}
-            </div>
-          ))}
-        </section>
-      )}
-
-      {scenarios.length > 0 && (
-        <section className="report-card report-scenarios">
-          <h2>Worth asking about</h2>
-          <p className="report-muted report-scenarios-note">
-            Proposed by the assistant from the answers named beneath each one.
-            These are questions, not findings — nothing here has been decided.
-          </p>
-          {scenarios.map((scenario, i) => (
-            <div key={i} className="report-scenario">
-              <p className="report-scenario-what">{scenario.scenario}</p>
-              <p className="report-scenario-ask">{scenario.ask}</p>
-              <p className="report-muted">
-                Read from: {scenario.from.join(", ")}
-              </p>
             </div>
           ))}
         </section>

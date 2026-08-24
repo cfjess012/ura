@@ -177,7 +177,15 @@ export function Assistant({
         {busy && (
           <p className="assistant-turn assistant-agent assistant-thinking">
             <span className="assistant-who">Assistant</span>
-            Thinking…
+            {/* Three dots rather than the word "Thinking": the shape people
+                already read as "it is working", and it does not claim to
+                know how long. Screen readers get the sentence instead. */}
+            <span className="assistant-dots" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span className="sr-only">The assistant is writing a reply.</span>
           </p>
         )}
         <div ref={endRef} />
