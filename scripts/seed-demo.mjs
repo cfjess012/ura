@@ -262,7 +262,11 @@ const projectNamed = (name) => {
 };
 
 const OWNERS = [...new Set(PROJECTS.map((p) => p.by))];
-await sql`update people set signs_in = true where id in ${sql(OWNERS)}`;
+// Everyone who owns seeded work, plus the personas the owner asked to be
+// able to sign in as. A directory entry becomes a persona here rather than
+// in a migration, so the `d.` prefix keeps meaning what it says.
+const SIGN_INS = [...new Set([...OWNERS, "d.withers"])];
+await sql`update people set signs_in = true where id in ${sql(SIGN_INS)}`;
 console.log(`sign-in enabled for ${OWNERS.length} assessment owners`);
 
 const activeVersion = async (slug) => {
