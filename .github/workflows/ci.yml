@@ -1,0 +1,49 @@
+# Everything that can run without a database or a browser. The unit and
+# integration suites boot PGlite — Postgres compiled to WebAssembly — and
+# apply the real migrations, so "integration" here is genuinely against SQL
+# and still needs no service container.
+#
+# The end-to-end suite is deliberately not here: it wants a real Postgres, a
+# built app and a browser, and a CI job that is slow and flaky gets ignored,
+# which is worse than one that does less honestly.
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Unit and integration
+        run: pnpm test
+
+  agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install the agent service
+        run: pnpm install --frozen-lockfile
+        working-directory: agent
+      - name: Typecheck
+        run: npx tsc --noEmit
+        working-directory: agent
+      - name: The gates, against fabricated model replies
+        run: npx vitest run
+        working-directory: agent

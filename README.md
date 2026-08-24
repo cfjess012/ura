@@ -74,6 +74,16 @@ Worth knowing before changing anything:
   accept or resolve anything, and a quote that is not found verbatim in its
   source invalidates the draft rather than lowering its confidence.
 
+## Deploying it
+
+`deploy/READINESS.md` says where this stands for AWS — what has been
+verified and how, and what has not. `deploy/README.md` is the runbook,
+written to be run top to bottom in CloudShell.
+
+Compute is **ECS Express Mode** on Fargate (App Runner closed to new
+customers on 30 April 2026), with RDS PostgreSQL 16 behind it and the agent
+as a second, optional service talking to Bedrock.
+
 ## Checks
 
 ```sh
