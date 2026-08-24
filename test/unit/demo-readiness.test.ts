@@ -19,9 +19,19 @@ const rows = (heading: string) =>
   (doc.split(heading)[1] ?? "")
     .split(/^## /m)[0]!
     .split("\n")
-    .filter((l) => l.startsWith("|") && !l.includes("---") && !/^\|\s*#\s*\|/.test(l))
-    .filter((l) => !/^\| Risk \|/.test(l))
-    .map((l) => l.split("|").slice(1, -1).map((c) => c.trim()));
+    .filter(
+      (l) => l.startsWith("|") && !l.includes("---") && !/^\|\s*#\s*\|/.test(l),
+    )
+    // Whitespace-tolerant: Prettier pads markdown table cells, and a filter
+    // that only knew "| Risk |" started matching the header as a risk the
+    // moment the file was formatted.
+    .filter((l) => !/^\|\s*Risk\s*\|/.test(l))
+    .map((l) =>
+      l
+        .split("|")
+        .slice(1, -1)
+        .map((c) => c.trim()),
+    );
 
 describe("the demo readiness record is complete", () => {
   it("covers exactly the slices that are finished", () => {
@@ -33,23 +43,35 @@ describe("the demo readiness record is complete", () => {
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
-    expect([...covered].sort(), "demo/readiness.md is stale — a slice finished and nobody revisited the demo").toEqual(
-      [...done].sort(),
-    );
+    expect(
+      [...covered].sort(),
+      "demo/readiness.md is stale — a slice finished and nobody revisited the demo",
+    ).toEqual([...done].sort());
   });
 
   it("every beat says what it is, who delivers it, and what happens if it breaks", () => {
     const beats = rows("## The beats");
     expect(beats.length).toBeGreaterThan(5);
     for (const cells of beats) {
-      expect(cells.length, `row has ${cells.length} cells: ${cells[1]}`).toBe(6);
+      expect(cells.length, `row has ${cells.length} cells: ${cells[1]}`).toBe(
+        6,
+      );
       for (const [i, cell] of cells.entries()) {
-        expect(cell.length, `beat "${cells[1]}" has an empty column ${i + 1}`).toBeGreaterThan(0);
-        expect(/^(tbd|todo|\?+)$/i.test(cell), `beat "${cells[1]}" column ${i + 1} is a placeholder`).toBe(false);
+        expect(
+          cell.length,
+          `beat "${cells[1]}" has an empty column ${i + 1}`,
+        ).toBeGreaterThan(0);
+        expect(
+          /^(tbd|todo|\?+)$/i.test(cell),
+          `beat "${cells[1]}" column ${i + 1} is a placeholder`,
+        ).toBe(false);
       }
       // A fallback is the column people skip. It is also the only one that
       // matters when something fails in front of an audience.
-      expect(cells[5]!.length, `beat "${cells[1]}" has no fallback`).toBeGreaterThan(15);
+      expect(
+        cells[5]!.length,
+        `beat "${cells[1]}" has no fallback`,
+      ).toBeGreaterThan(15);
     }
   });
 
@@ -69,13 +91,18 @@ describe("the demo readiness record is complete", () => {
     expect(risks.length).toBeGreaterThan(2);
     for (const cells of risks) {
       expect(cells.length).toBe(3);
-      expect(cells[2]!.length, `risk "${cells[0]}" has no mitigation`).toBeGreaterThan(15);
+      expect(
+        cells[2]!.length,
+        `risk "${cells[0]}" has no mitigation`,
+      ).toBeGreaterThan(15);
     }
   });
 
   it("keeps a list of what will not be claimed", () => {
     const section = doc.split("## What we will not claim")[1] ?? "";
-    expect(section.split("\n").filter((l) => l.startsWith("- ")).length).toBeGreaterThan(1);
+    expect(
+      section.split("\n").filter((l) => l.startsWith("- ")).length,
+    ).toBeGreaterThan(1);
   });
 });
 
@@ -90,16 +117,26 @@ describe("the three-minute run sheet quotes the product, not a memory of it", ()
   const source = (file: string) => readFileSync(join(ROOT, file), "utf8");
 
   it("every control it names by label exists in the app", () => {
-    const labels = [...sheet.matchAll(/\*\*((?:Answer|Hand|Save)[^*]{3,60}?)(?:\s*(?:→|&rarr;))?\*\*/g)].map(
-      (m) => m[1]!.replace(/\s*(→|&rarr;)\s*$/, "").trim(),
-    );
-    expect(labels.length, "no labelled controls found in the sheet").toBeGreaterThan(2);
-    const app = ["src/app/(app)/projects/[id]/assess/complete/page.tsx",
-                 "src/app/(app)/projects/[id]/assess/severity/handoff-panel.tsx"]
+    const labels = [
+      ...sheet.matchAll(
+        /\*\*((?:Answer|Hand|Save)[^*]{3,60}?)(?:\s*(?:→|&rarr;))?\*\*/g,
+      ),
+    ].map((m) => m[1]!.replace(/\s*(→|&rarr;)\s*$/, "").trim());
+    expect(
+      labels.length,
+      "no labelled controls found in the sheet",
+    ).toBeGreaterThan(2);
+    const app = [
+      "src/app/(app)/projects/[id]/assess/complete/page.tsx",
+      "src/app/(app)/projects/[id]/assess/severity/handoff-panel.tsx",
+    ]
       .map(source)
       .join("\n");
     for (const label of labels) {
-      expect(app, `the sheet says click "${label}" — no such control`).toContain(label);
+      expect(
+        app,
+        `the sheet says click "${label}" — no such control`,
+      ).toContain(label);
     }
   });
 
@@ -115,8 +152,13 @@ describe("the three-minute run sheet quotes the product, not a memory of it", ()
     // this the sheet's own Beat 3 breaks on second use and there is no way
     // back (verifier D2, D3).
     expect(sheet).toMatch(/pnpm demo:reset/);
-    const scripts = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")).scripts;
-    expect(scripts["demo:reset"], "demo:reset is referenced but not defined").toBeTruthy();
+    const scripts = JSON.parse(
+      readFileSync(join(ROOT, "package.json"), "utf8"),
+    ).scripts;
+    expect(
+      scripts["demo:reset"],
+      "demo:reset is referenced but not defined",
+    ).toBeTruthy();
     expect(scripts["demo:reset"]).toContain("seed-demo");
   });
 });
