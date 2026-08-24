@@ -5,7 +5,11 @@
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { agentTransport } from "@/lib/agent";
-import { AGENT_CONTRACT_VERSION, parseAgentEvent } from "@/lib/agent-contract";
+import {
+  AGENT_CONTRACT_VERSION,
+  parseAgentEvent,
+  violatesNeverGuess,
+} from "@/lib/agent-contract";
 import type { AgentEvent } from "@/lib/agent-contract";
 
 const request = {
@@ -96,5 +100,69 @@ describe("the wire contract is strict about what it accepts", () => {
 
   it("has a version, so a mismatch between the two images is visible", () => {
     expect(AGENT_CONTRACT_VERSION).toMatch(/^\d+$/);
+  });
+});
+
+describe("the never-guess rule (SPEC §7)", () => {
+  const grounded = {
+    basis: "stated" as const,
+    value: "Yes",
+    quote:
+      "Multi-factor authentication is enforced for all administrative access.",
+    source: "novara-security-overview.pdf",
+  };
+
+  it("accepts an answer that carries what it came from", () => {
+    expect(violatesNeverGuess(grounded)).toBeNull();
+  });
+
+  it("accepts an abstention that abstains completely", () => {
+    expect(
+      violatesNeverGuess({
+        basis: "not_stated",
+        value: null,
+        quote: null,
+        source: null,
+      }),
+    ).toBeNull();
+  });
+
+  it("refuses an abstention that smuggles an answer through anyway", () => {
+    expect(
+      violatesNeverGuess({
+        basis: "not_stated",
+        value: "Yes",
+        quote: null,
+        source: null,
+      }),
+    ).toMatch(/carries no answer/i);
+  });
+
+  it("refuses a stated answer with nothing to point at", () => {
+    expect(violatesNeverGuess({ ...grounded, quote: null })).toMatch(
+      /passage it came from/i,
+    );
+    expect(violatesNeverGuess({ ...grounded, source: null })).toMatch(
+      /passage it came from/i,
+    );
+  });
+
+  it("refuses an inference with no grounding quote — that is a guess", () => {
+    // The distinction the whole basis vocabulary exists for: an inference
+    // is still evidence-backed, it just took one step to get there.
+    expect(
+      violatesNeverGuess({
+        basis: "inferred",
+        value: "Yes",
+        quote: null,
+        source: "a document",
+      }),
+    ).toMatch(/is a guess/i);
+  });
+
+  it("refuses a grounded basis that proposes nothing", () => {
+    expect(violatesNeverGuess({ ...grounded, value: null })).toMatch(
+      /must propose a value/i,
+    );
   });
 });
