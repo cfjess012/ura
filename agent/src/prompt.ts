@@ -14,6 +14,7 @@ import type { DraftTask } from "./draft.ts";
 import type { ConverseTask } from "./converse.ts";
 import type { ReportTask } from "./report.ts";
 import type { ScoreTask } from "./score-intake.ts";
+import type { RewriteTask } from "./rewrite-intake.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const CORE = readFileSync(join(here, "..", "prompts", "core.md"), "utf8");
@@ -24,6 +25,10 @@ const CONVERSE = readFileSync(
 const REPORT = readFileSync(join(here, "..", "prompts", "report.md"), "utf8");
 const SCORE = readFileSync(
   join(here, "..", "prompts", "score-intake.md"),
+  "utf8",
+);
+const REWRITE = readFileSync(
+  join(here, "..", "prompts", "rewrite-intake.md"),
   "utf8",
 );
 
@@ -37,6 +42,7 @@ export function promptVersion(): string {
     .update(CONVERSE)
     .update(REPORT)
     .update(SCORE)
+    .update(REWRITE)
     .digest("hex")
     .slice(0, 12);
 }
@@ -131,5 +137,26 @@ export function composeScorePrompt(task: ScoreTask): string {
     "",
     "## The description",
     task.description,
+  ].join("\n\n");
+}
+
+export function composeRewritePrompt(task: RewriteTask): string {
+  const shortfalls = task.shortfalls
+    .map(
+      (s) => `- **${s.label}** — ${s.ask}\n  Full marks would be: ${s.anchor}`,
+    )
+    .join("\n");
+  return [
+    REWRITE,
+    "---",
+    `## The field: ${task.label}`,
+    "",
+    "## What they wrote",
+    task.original,
+    "",
+    "## What it fell short on",
+    shortfalls === ""
+      ? "(nothing specific — tighten it without adding)"
+      : shortfalls,
   ].join("\n\n");
 }

@@ -59,10 +59,19 @@ export default async function IntakeSectionPage({
     ? `/projects/${id}/intake/${sectionKey(next.name)}`
     : `/projects/${id}/assess/${askableCategories()[0]!.key}`;
   const outstanding = progress.reduce((sum, s) => sum + s.missing.length, 0);
+  // The AI check reads the WHOLE intake, so it belongs on the last section
+  // and only once the earlier ones are answered. Offered sooner it grades a
+  // quarter-filled form, where most of the answer is "they were never
+  // asked" — which tells a person nothing they did not already know.
+  const earlierOutstanding = progress
+    .filter((_, at) => at < index)
+    .reduce((sum, s) => sum + s.missing.length, 0);
+  const readyForCheck = next === undefined && earlierOutstanding === 0;
 
   return (
     <main>
       <SectionForm
+        readyForCheck={readyForCheck}
         projectName={project.projectName}
         stage={stageOf(project.submittedAt)}
         stepLine={`Step 1 · Section ${index + 1} of ${INTAKE_SECTIONS.length}`}

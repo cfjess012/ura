@@ -472,3 +472,44 @@
   margin: 0;
   font-size: 0.78rem;
 }
+
+/* A suggested rewrite. Offered, never applied — and when used it goes into
+   the field for the person to edit, not into the record (FR-22). */
+.rewrite-ask {
+  margin: 0;
+  font-size: 0.88rem;
+}
+.rewrite {
+  margin-top: 0.3rem;
+  padding: 0.8rem 0.95rem;
+  border-radius: 10px;
+  background: var(--neutral-0);
+  border: 1px solid var(--surface-3);
+  border-left: 4px solid var(--primary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.rewrite-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--link);
+}
+.rewrite-body {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--neutral-900);
+  white-space: pre-wrap;
+}
+.rewrite-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-top: 0.2rem;
+}
+.rewrite .help {
+  margin: 0;
+}

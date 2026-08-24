@@ -38,9 +38,17 @@ export function SectionForm({
   sectionKey,
   people,
   lastChange,
+  readyForCheck,
 }: {
   projectId: string;
   projectName: string;
+  /**
+   * Whether the AI check belongs on this screen. It reads the WHOLE intake,
+   * so offering it on section one invites running it over a quarter-filled
+   * form — where most of the answer is "they were never asked". True only
+   * on the last section, and only once the earlier ones are complete.
+   */
+  readyForCheck: boolean;
   /** Draft or In review — read from the record, never a literal. */
   stage: string;
   stepLine: string;
@@ -282,7 +290,16 @@ export function SectionForm({
         {/* The coherence check reads the WHOLE intake, so it belongs at the
             foot of a section rather than beside one field — and beside the
             way forward rather than in front of it (§22.1, G-69). */}
-        <CoherenceCheck projectId={projectId} save={save} />
+        {readyForCheck && (
+          <CoherenceCheck
+            projectId={projectId}
+            save={save}
+            // Into the field, for them to edit — never into the record. The
+            // grading judges whatever they finally submit, not what was
+            // offered (FR-22).
+            onRewrite={(fieldId, text) => set(fieldId, text)}
+          />
+        )}
 
         <div className="savebar">
           <span

@@ -18,7 +18,7 @@ import { intakeValuesFrom } from "@/lib/intake-values";
 import { editableProject, openProject } from "@/lib/project-access";
 import { answerStore } from "@/lib/repo";
 import { sessionStore } from "@/lib/session";
-import { INTAKE_SECTIONS } from "@/lib/intake";
+import { ALL_FIELDS, INTAKE_SECTIONS } from "@/lib/intake";
 import { documentStore } from "@/lib/documents";
 import { quoteAppearsVerbatim } from "@/lib/agent-contract";
 import {
@@ -658,5 +658,80 @@ export async function checkIntake(
       coherence: coherenceWhenUnavailable(),
       rewritable: [],
     };
+  }
+}
+
+/** What a rewrite offers back. Never saved — the person decides. */
+export type Suggestion = {
+  rewrite: string;
+  placeholders: string[];
+  kept: string;
+};
+
+/**
+ * Suggest a rewrite of one long-form intake field (FR-43).
+ *
+ * It reorganises what the person wrote and marks what is missing with a
+ * bracketed placeholder — never an invented fact. Nothing is saved: the
+ * suggestion goes back for them to edit, accept or ignore, and the grading
+ * judges whatever they finally submit.
+ */
+export async function suggestRewrite(
+  projectId: string,
+  fieldId: string,
+  shortfalls: Array<{ label: string; ask: string; anchor: string }>,
+): Promise<Result<{ suggestion: Suggestion | null }>> {
+  try {
+    const access = await openProject(projectId);
+    if (!access.ok) {
+      return failure(
+        "suggestRewrite",
+        new Error("not permitted"),
+        "That assessment isn't yours to work on.",
+        { retryable: false, expected: true },
+      );
+    }
+    const field = ALL_FIELDS.find((candidate) => candidate.id === fieldId);
+    if (!field) {
+      // The field must be one the instrument actually asks. A caller naming
+      // anything else is not describing a field on their screen.
+      return failure(
+        "suggestRewrite",
+        new Error("unknown field"),
+        "That isn't a field on this form.",
+        { retryable: false, expected: true },
+      );
+    }
+    const values = intakeValuesFrom(
+      access.project as unknown as Record<string, unknown>,
+    );
+    const original =
+      typeof values[fieldId] === "string" ? (values[fieldId] as string) : "";
+    if (original.trim() === "") {
+      return failure(
+        "suggestRewrite",
+        new Error("nothing to rewrite"),
+        "There is nothing written there yet to rewrite.",
+        { retryable: false, expected: true },
+      );
+    }
+
+    const transport = agentTransport();
+    if (!transport.available) {
+      // Nothing to offer is a real answer, not a failure to handle.
+      return { ok: true as const, suggestion: null };
+    }
+    const suggestion = await transport.rewriteIntake({
+      label: field.label,
+      original,
+      shortfalls,
+    });
+    return { ok: true as const, suggestion };
+  } catch (error) {
+    return failure(
+      "suggestRewrite",
+      error,
+      "I couldn't suggest anything just then. What you wrote is untouched.",
+    );
   }
 }

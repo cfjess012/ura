@@ -1,7 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { checkIntake } from "@/app/agent-actions";
+import {
+  checkIntake,
+  suggestRewrite,
+  type Suggestion,
+} from "@/app/agent-actions";
 import { isFailure } from "@/lib/errors";
 import type { Coherence } from "@/lib/intake-rubric";
 
@@ -19,8 +23,11 @@ import type { Coherence } from "@/lib/intake-rubric";
 export function CoherenceCheck({
   projectId,
   save,
+  onRewrite,
 }: {
   projectId: string;
+  /** Puts a suggestion into the field, for them to edit. Never saves it. */
+  onRewrite?: (fieldId: string, text: string) => void;
   /**
    * Saves what is on screen. The button says "Save & run AI check" and it
    * has to do both: the check reads the RECORD, so without saving first it
@@ -32,6 +39,7 @@ export function CoherenceCheck({
 }) {
   const [result, setResult] = React.useState<Coherence | null>(null);
   const [running, setRunning] = React.useState(false);
+  const [rewritable, setRewritable] = React.useState<string[]>([]);
   const resultRef = React.useRef<HTMLDivElement>(null);
 
   // Bring the answer into view. It renders below a long form, so on a full
@@ -55,6 +63,7 @@ export function CoherenceCheck({
       }
       const outcome = await checkIntake(projectId);
       setResult(isFailure(outcome) ? null : outcome.coherence);
+      setRewritable(isFailure(outcome) ? [] : outcome.rewritable);
     } catch (cause) {
       // Fails open, like everything else about this.
       console.error("checkIntake transport", cause);
@@ -85,13 +94,30 @@ export function CoherenceCheck({
       )}
 
       <div ref={resultRef}>
-        {result && !running && <Result result={result} />}
+        {result && !running && (
+          <Result
+            result={result}
+            projectId={projectId}
+            rewritable={rewritable}
+            onRewrite={onRewrite}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-function Result({ result }: { result: Coherence }) {
+function Result({
+  result,
+  projectId,
+  rewritable,
+  onRewrite,
+}: {
+  result: Coherence;
+  projectId: string;
+  rewritable: string[];
+  onRewrite?: (fieldId: string, text: string) => void;
+}) {
   if (result.score === null && result.asks.length === 0) {
     return (
       <p className="help coherence-nocheck" role="status">
@@ -151,6 +177,22 @@ function Result({ result }: { result: Coherence }) {
         </ul>
       )}
 
+      {/* Offered only where there is long-form text to work with and
+          something to fix. It reorganises their words and brackets what is
+          missing — it never invents a fact. */}
+      {onRewrite && rewritable.length > 0 && result.asks.length > 0 && (
+        <RewriteOffer
+          projectId={projectId}
+          fieldId={rewritable[0]!}
+          shortfalls={result.asks.map((a) => ({
+            label: a.label,
+            ask: a.sentence,
+            anchor: a.anchor,
+          }))}
+          onUse={(text) => onRewrite(rewritable[0]!, text)}
+        />
+      )}
+
       <p className="help">
         Suggestions, not requirements. You can submit as it stands.
       </p>
@@ -182,5 +224,100 @@ function Sparkle() {
         d="M5 14.5l.7 1.8 1.8.7-1.8.7L5 19.5l-.7-1.8-1.8-.7 1.8-.7.7-1.8z"
       />
     </svg>
+  );
+}
+
+/**
+ * A suggested rewrite, offered and never applied.
+ *
+ * It reorganises what the person wrote and marks what is missing with a
+ * bracketed placeholder. Nothing is saved until they choose to use it, and
+ * even then it goes into the field for them to edit rather than into the
+ * record (§7, FR-22).
+ */
+function RewriteOffer({
+  projectId,
+  fieldId,
+  shortfalls,
+  onUse,
+}: {
+  projectId: string;
+  fieldId: string;
+  shortfalls: Array<{ label: string; ask: string; anchor: string }>;
+  onUse: (text: string) => void;
+}) {
+  const [suggestion, setSuggestion] = React.useState<Suggestion | null>(null);
+  const [asking, setAsking] = React.useState(false);
+  const [nothing, setNothing] = React.useState(false);
+
+  async function ask() {
+    if (asking) return;
+    setAsking(true);
+    setNothing(false);
+    try {
+      const outcome = await suggestRewrite(projectId, fieldId, shortfalls);
+      const offered = isFailure(outcome) ? null : outcome.suggestion;
+      setSuggestion(offered);
+      setNothing(offered === null);
+    } catch (cause) {
+      console.error("suggestRewrite transport", cause);
+      setNothing(true);
+    } finally {
+      setAsking(false);
+    }
+  }
+
+  if (suggestion) {
+    return (
+      <div className="rewrite">
+        <p className="rewrite-title">A suggested rewrite</p>
+        <p className="rewrite-body">{suggestion.rewrite}</p>
+        {suggestion.placeholders.length > 0 && (
+          <p className="help">
+            The parts in [brackets] are things you have not said yet — it will
+            not invent them. Fill them in and they disappear.
+          </p>
+        )}
+        {suggestion.kept && <p className="help">{suggestion.kept}</p>}
+        <div className="rewrite-actions">
+          <button
+            type="button"
+            className="btn"
+            onClick={() => {
+              onUse(suggestion.rewrite);
+              setSuggestion(null);
+            }}
+          >
+            Use this — I&rsquo;ll edit it
+          </button>
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => setSuggestion(null)}
+          >
+            No thanks
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <p className="rewrite-ask">
+      <button
+        type="button"
+        className="link-button"
+        onClick={() => void ask()}
+        disabled={asking}
+      >
+        {asking ? "Writing one…" : "Suggest a rewrite →"}
+      </button>
+      {nothing && (
+        <span className="help">
+          {" "}
+          Nothing worth suggesting just now — what you wrote stands.
+        </span>
+      )}
+    </p>
   );
 }

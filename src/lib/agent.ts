@@ -69,6 +69,15 @@ export type AgentTransport = {
       anchors: Record<string, string>;
     }>;
   }): Promise<Array<{ id: string; score: 0 | 1 | 2 }>>;
+  /**
+   * Suggest a rewrite of one long-form field. Null means none to offer —
+   * a real answer, not a failure to handle.
+   */
+  rewriteIntake(input: {
+    label: string;
+    original: string;
+    shortfalls: Array<{ label: string; ask: string; anchor: string }>;
+  }): Promise<{ rewrite: string; placeholders: string[]; kept: string } | null>;
   converse(input: {
     said: string;
     assessment: AssessmentContext;
@@ -99,6 +108,9 @@ function notConfigured(): AgentTransport {
     },
     async scoreIntake() {
       return [];
+    },
+    async rewriteIntake() {
+      return null;
     },
     async converse() {
       return {
@@ -151,6 +163,24 @@ function localTransport(baseUrl: string): AgentTransport {
         // Fails open, deliberately and visibly.
         console.error("[agent] score-intake unreachable", cause);
         return [];
+      }
+    },
+    async rewriteIntake(input) {
+      try {
+        const response = await fetch(`${url}/rewrite-intake`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-agent-contract": AGENT_CONTRACT_VERSION,
+          },
+          body: JSON.stringify(input),
+        });
+        if (!response.ok) return null;
+        const body = await response.json();
+        return body && typeof body.rewrite === "string" ? body : null;
+      } catch (cause) {
+        console.error("[agent] rewrite unreachable", cause);
+        return null;
       }
     },
     async converse(input) {
@@ -277,6 +307,11 @@ function agentCoreTransport(): AgentTransport {
   return {
     kind: "agentcore",
     available: false,
+    async rewriteIntake(): Promise<never> {
+      throw new Error(
+        "AGENT_TRANSPORT=agentcore, but the AgentCore Runtime adapter is not implemented. It belongs in this file and nowhere else (SPEC §6.1).",
+      );
+    },
     async scoreIntake(): Promise<never> {
       throw new Error(
         "AGENT_TRANSPORT=agentcore, but the AgentCore Runtime adapter is not implemented. It belongs in this file and nowhere else (SPEC §6.1).",

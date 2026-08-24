@@ -58,10 +58,11 @@ export async function scoreIntake(task: ScoreTask): Promise<DimensionScore[]> {
       const client = modelClient();
       const message = await client.messages.create({
         model: modelId(),
-        // Generous: this reads a whole intake, and a reasoning model spends
-        // most of its budget thinking before it writes anything. At 1200 it
-        // returned no text at all — the same trap the drafting pass hit.
-        max_tokens: 3000,
+        // Generous, twice over. This reads a whole intake — every section,
+        // answered or not — and a reasoning model spends most of its budget
+        // thinking before it writes. It returned no text at all at 1200,
+        // then again at 3000 once the unanswered questions were included.
+        max_tokens: 6000,
         messages: [{ role: "user", content: composeScorePrompt(task) }],
       });
       const text = textOf(

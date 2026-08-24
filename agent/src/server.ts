@@ -19,6 +19,7 @@ import { converse, type ConverseTask } from "./converse.ts";
 import { draftOne, type DraftTask } from "./draft.ts";
 import { writeReport } from "./report.ts";
 import { scoreIntake, type ScoreTask } from "./score-intake.ts";
+import { rewriteIntake, type RewriteTask } from "./rewrite-intake.ts";
 import { modelId, providerDescription } from "./model.ts";
 import { promptVersion } from "./prompt.ts";
 import { startTelemetry } from "./telemetry.ts";
@@ -57,6 +58,27 @@ const server = createServer(async (req, res) => {
         prompt: promptVersion(),
       }),
     );
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/rewrite-intake") {
+    const body: Buffer[] = [];
+    for await (const chunk of req) body.push(chunk as Buffer);
+    let task: RewriteTask;
+    try {
+      task = JSON.parse(Buffer.concat(body).toString("utf8"));
+    } catch {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "the request was not valid JSON" }));
+      return;
+    }
+    const suggestion = await rewriteIntake({
+      label: task.label ?? "",
+      original: task.original ?? "",
+      shortfalls: task.shortfalls ?? [],
+    });
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify(suggestion));
     return;
   }
 
