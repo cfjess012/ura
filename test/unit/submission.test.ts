@@ -17,7 +17,10 @@ import { OBJECTIVES, childrenAsked, type Tier3Value } from "@/lib/tier3";
 
 const objective = OBJECTIVES.find((o) => o.children.length > 0)!;
 const child = childrenAsked(objective, "Yes", {})[0]!;
-const val = (answer: Tier3Value["answer"], note = ""): Tier3Value => ({ answer, note });
+const val = (answer: Tier3Value["answer"], note = ""): Tier3Value => ({
+  answer,
+  note,
+});
 
 describe("what becomes a finding (§4.3)", () => {
   it("No is a gap and Partial is an enhancement", () => {
@@ -43,9 +46,24 @@ describe("what becomes a finding (§4.3)", () => {
     expect(found[0]).toMatchObject({
       objective: objective.id,
       objectiveName: objective.name,
-      kind: "gap",
       note: "Nothing exists yet.",
     });
+  });
+
+  it("a No on a policy-governed control is a non-compliance, carrying the clause", () => {
+    // One fact, one finding. Raising a bare gap AND a breach would report
+    // the same thing twice and tell the reviewer nothing extra — so where a
+    // policy governs the question, the breach IS the finding, and it
+    // carries the authority a gap could not.
+    const found = synthesiseFindings(
+      [objective],
+      { [objective.questionId]: val("No", "Nothing exists yet.") },
+      {},
+    );
+    expect(found[0]!.kind).toBe("non-compliance");
+    expect(found[0]!.citation?.policyRef).toBe("IAM-STD-004");
+    expect(found[0]!.citation?.expected).toBe("Yes");
+    expect(found[0]!.citation?.clauseText).toMatch(/documented business need/);
   });
 
   it("children under a Yes parent produce findings of their own", () => {
@@ -58,7 +76,10 @@ describe("what becomes a finding (§4.3)", () => {
       {},
     );
     expect(found).toHaveLength(1);
-    expect(found[0]).toMatchObject({ kind: "enhancement", note: "Only for admins." });
+    expect(found[0]).toMatchObject({
+      kind: "enhancement",
+      note: "Only for admins.",
+    });
   });
 
   it("a child whose parent is not Yes was never asked, so it is not a finding", () => {
@@ -85,12 +106,20 @@ describe("gaps are named, not counted (FR-14)", () => {
   });
 
   it("a revealed child that is unanswered is a gap too", () => {
-    const gaps = gapsIn([objective], { [objective.questionId]: val("Yes") }, {});
+    const gaps = gapsIn(
+      [objective],
+      { [objective.questionId]: val("Yes") },
+      {},
+    );
     expect(gaps.map((g) => g.questionId)).toContain(child.questionId);
   });
 
   it("a suppressed child is not a gap — it was never asked", () => {
-    const gaps = gapsIn([objective], { [objective.questionId]: val("No", "none") }, {});
+    const gaps = gapsIn(
+      [objective],
+      { [objective.questionId]: val("No", "none") },
+      {},
+    );
     expect(gaps).toEqual([]);
   });
 });
@@ -109,25 +138,35 @@ describe("what stops a submission", () => {
   });
 
   it("refuses a second submission — it is a one-way act (§4.1)", () => {
-    expect(submissionProblem({ ...base, alreadySubmitted: true })).toMatch(/already been submitted/);
+    expect(submissionProblem({ ...base, alreadySubmitted: true })).toMatch(
+      /already been submitted/,
+    );
   });
 
   it("refuses when the answers shown are not the answers on record", () => {
     // The declaration is about what the person READ. If that changed under
     // them, their confirmation describes something else.
-    expect(submissionProblem({ ...base, declaredCount: 7 })).toMatch(/have changed/);
+    expect(submissionProblem({ ...base, declaredCount: 7 })).toMatch(
+      /have changed/,
+    );
   });
 
   it("allows gaps, but only once they are confirmed by name", () => {
-    expect(submissionProblem({ ...base, gapCount: 3 })).toMatch(/3 questions are unanswered/);
-    expect(submissionProblem({ ...base, gapCount: 3, gapsAcknowledged: true })).toBeNull();
-    expect(submissionProblem({ ...base, gapCount: 1 })).toMatch(/1 question is unanswered/);
+    expect(submissionProblem({ ...base, gapCount: 3 })).toMatch(
+      /3 questions are unanswered/,
+    );
+    expect(
+      submissionProblem({ ...base, gapCount: 3, gapsAcknowledged: true }),
+    ).toBeNull();
+    expect(submissionProblem({ ...base, gapCount: 1 })).toMatch(
+      /1 question is unanswered/,
+    );
   });
 
   it("refuses before there is anything to declare", () => {
-    expect(submissionProblem({ ...base, declaredCount: 0, expectedCount: 0 })).toMatch(
-      /complete the intake/,
-    );
+    expect(
+      submissionProblem({ ...base, declaredCount: 0, expectedCount: 0 }),
+    ).toMatch(/complete the intake/);
   });
 });
 

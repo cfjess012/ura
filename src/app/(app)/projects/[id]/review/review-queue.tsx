@@ -42,6 +42,13 @@ export type QueueItem = {
     settlement: string | null;
     /** The reason the person gave for settling it that way. */
     settlementNote: string;
+    /** On a non-compliance: the clause it breaches, to show beside it. */
+    citation: {
+      policyRef: string;
+      clauseId: string;
+      clauseText: string;
+      expected: string;
+    } | null;
     /** Why an expired acceptance put it back, when that is what happened. */
     reopened: string | null;
   }[];
@@ -277,11 +284,35 @@ export function ReviewQueue({
                   {current.findings.map((finding) => (
                     <li key={finding.id}>
                       <span
-                        className={`band-tag band-${finding.kind === "gap" ? "high" : "medium"}`}
+                        className={`band-tag band-${
+                          finding.kind === "enhancement" ? "medium" : "high"
+                        }`}
                       >
-                        {finding.kind === "gap" ? "Gap" : "Enhancement"}
+                        {finding.kind === "gap"
+                          ? "Gap"
+                          : finding.kind === "enhancement"
+                            ? "Enhancement"
+                            : "Breaches policy"}
                       </span>{" "}
                       {finding.note}
+                      {/* Both quotes side by side: what the clause requires,
+                          and what the person actually wrote (§22.1). */}
+                      {finding.citation && (
+                        <div className="breach">
+                          <p className="breach-head">
+                            {finding.citation.clauseId} expects{" "}
+                            <strong>{finding.citation.expected}</strong>
+                          </p>
+                          <blockquote className="breach-quote">
+                            “{finding.citation.clauseText}”
+                          </blockquote>
+                          <p className="help">
+                            {finding.citation.policyRef}. Settling this is a
+                            judgement about the activity, not about the policy —
+                            the clause stands either way.
+                          </p>
+                        </div>
+                      )}
                       {finding.settlement && (
                         <span className="meta"> — {finding.settlement}</span>
                       )}

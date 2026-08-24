@@ -83,6 +83,12 @@ export function postgresSubmissionStore(): SubmissionStore {
               kind: finding.kind,
               note: finding.note,
               raisedBy: person,
+              // Present exactly on a non-compliance; the CHECK in 0024
+              // refuses either half without the other.
+              policyRef: finding.citation?.policyRef ?? null,
+              clauseId: finding.citation?.clauseId ?? null,
+              clauseText: finding.citation?.clauseText ?? null,
+              expected: finding.citation?.expected ?? null,
             })),
           );
         }
@@ -101,6 +107,15 @@ export function postgresSubmissionStore(): SubmissionStore {
         objectiveName: row.objectiveName,
         kind: row.kind as SynthesisedFinding["kind"],
         note: row.note,
+        citation:
+          row.policyRef && row.clauseId && row.clauseText && row.expected
+            ? {
+                policyRef: row.policyRef,
+                clauseId: row.clauseId,
+                clauseText: row.clauseText,
+                expected: row.expected,
+              }
+            : undefined,
         raisedAt: row.raisedAt,
         raisedBy: row.raisedBy,
       }));

@@ -206,3 +206,48 @@
   font-size: 0.92rem;
   line-height: 1.45;
 }
+
+/* Why a question is asked, with the clause that requires it (§22.1).
+   Collapsed by default: an authority is worth having and is not worth
+   pushing the question itself down the page. */
+.why-asked {
+  margin: 0.5rem 0 0.9rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
+}
+.why-asked > summary {
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+}
+.why-asked > summary::-webkit-details-marker {
+  display: none;
+}
+.why-asked-tag {
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  color: var(--link);
+}
+.why-asked-cite {
+  color: var(--neutral-700);
+  font-weight: 600;
+}
+.why-asked-quote {
+  margin: 0.6rem 0 0.4rem;
+  padding: 0.5rem 0.8rem;
+  border-left: 3px solid var(--surface-3);
+  background: var(--neutral-0);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+.why-asked .help {
+  margin: 0.3rem 0 0;
+}

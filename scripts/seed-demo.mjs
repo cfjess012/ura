@@ -461,6 +461,12 @@ if (!sable.skipped) {
       "No recertification process exists today — access is granted and not reviewed again."],
     ["t3.t3_iam_03", "T3-IAM-03", "Privileged Access Management", "Partial",
       "Admin accounts are named and logged, but they are not checked out through a vault."],
+    // Governed by IAM-STD-004 §6.3, so this No arrives as a policy breach
+    // rather than a bare gap — the reviewer sees the clause beside it.
+    // It must be an objective this assessment actually accumulates: a
+    // finding on a control nobody was asked about is invisible in the queue.
+    ["t3.t3_iam_10", "T3-IAM-10", "Remote Access", "No",
+      "Support connects over a shared VPN account with no gateway in front of it."],
   ];
   for (const [questionId, , , answer, note] of CONTROL_ANSWERS)
     await sql`insert into answers ${sql({
@@ -490,17 +496,39 @@ if (!sable.skipped) {
     gaps: JSON.stringify([]),
   })}`;
 
+  // The SAME rule the product applies (src/lib/submission.ts): where a
+  // policy governs the question, the breach IS the finding and carries the
+  // clause. Derived here rather than hand-written, so seeded data can never
+  // claim a finding the product would not raise.
+  const POLICIES = JSON.parse(
+    readFileSync(join(process.cwd(), "src", "data", "reference", "policies.json"), "utf8"),
+  );
+  const clauseFor = (questionId) => {
+    for (const policy of POLICIES.policies)
+      for (const clause of policy.clauses)
+        for (const requirement of clause.requires)
+          if (requirement.questionId === questionId) return { policy, clause, requirement };
+    return null;
+  };
+
   const raised = CONTROL_ANSWERS.filter(([, , , answer]) => answer !== "Yes");
-  for (const [questionId, objective, objectiveName, answer, note] of raised)
+  for (const [questionId, objective, objectiveName, answer, note] of raised) {
+    const governed = clauseFor(questionId);
+    const breaches = governed && answer !== governed.requirement.expect && answer !== "N-A";
     await sql`insert into findings ${sql({
       project_id: sable.id,
       question_id: questionId,
       objective,
       objective_name: objectiveName,
-      kind: answer === "No" ? "gap" : "enhancement",
+      kind: breaches ? "non-compliance" : answer === "No" ? "gap" : "enhancement",
       note,
       raised_by: sable.by,
+      policy_ref: breaches ? governed.policy.reference : null,
+      clause_id: breaches ? governed.clause.id : null,
+      clause_text: breaches ? governed.clause.text : null,
+      expected: breaches ? governed.requirement.expect : null,
     })}`;
+  }
   console.log(
     `submitted Sable claims triage with ${raised.length} findings for a reviewer to settle`,
   );

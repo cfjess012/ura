@@ -18,6 +18,7 @@
  * Pure: no framework, no driver, no environment (§26.1).
  */
 import type { Tier3Answer, Tier3Objective, Tier3Value } from "./tier3";
+import { breachesIn } from "./policy";
 import { childrenAsked } from "./tier3";
 import type { AnswerLookup } from "./conditions";
 import { ALL_FIELDS, type IntakeField } from "./intake";
@@ -30,7 +31,15 @@ export type Gap = { questionId: string; label: string };
 export type Declared = { questionId: string; label: string; value: string };
 
 /** What submission turns a Tier-3 answer into (§4.3). */
-export type FindingKind = "gap" | "enhancement";
+export type FindingKind = "gap" | "enhancement" | "non-compliance";
+
+/** The clause a non-compliance breaches — shown beside the answer. */
+export type FindingCitation = {
+  policyRef: string;
+  clauseId: string;
+  clauseText: string;
+  expected: string;
+};
 
 export type SynthesisedFinding = {
   questionId: string;
@@ -38,6 +47,8 @@ export type SynthesisedFinding = {
   objectiveName: string;
   kind: FindingKind;
   note: string;
+  /** Present exactly when the kind is a non-compliance. */
+  citation?: FindingCitation;
 };
 
 /**
@@ -75,16 +86,36 @@ export function synthesiseFindings(
       if (!value) return;
       const kind = findingKindFor(value.answer);
       if (!kind) return;
+      // Where a policy governs this question, the breach IS the finding —
+      // richer than a bare gap and carrying the authority with it. Raising
+      // both would report one fact twice and make the queue noisier for no
+      // extra information.
+      const breach = breachesIn(
+        { [questionId]: { answer: value.answer, note: value.note } },
+        [questionId],
+      )[0];
       found.push({
         questionId,
         objective: objective.id,
         objectiveName: objective.name,
-        kind,
+        kind: breach ? "non-compliance" : kind,
         note: value.note.trim(),
+        citation: breach
+          ? {
+              policyRef: breach.policyReference,
+              clauseId: breach.clauseId,
+              clauseText: breach.clauseText,
+              expected: breach.expected,
+            }
+          : undefined,
       });
     };
     consider(objective.questionId, parent);
-    for (const child of childrenAsked(objective, parent?.answer ?? null, answers)) {
+    for (const child of childrenAsked(
+      objective,
+      parent?.answer ?? null,
+      answers,
+    )) {
       consider(child.questionId, values[child.questionId]);
     }
   }
@@ -168,7 +199,6 @@ export function editableAfter(submittedAt: Date | null): boolean {
   return submittedAt === null;
 }
 
-
 /**
  * What the submitter is asked to declare accurate (FR-37, G-52).
  *
@@ -215,7 +245,10 @@ export function declarableFrom(values: Record<string, unknown>): Declared[] {
  * declared something they never saw (G-42's rule, at the moment it matters
  * most).
  */
-export function declarationMatches(shown: Declared[], current: Declared[]): boolean {
+export function declarationMatches(
+  shown: Declared[],
+  current: Declared[],
+): boolean {
   if (shown.length !== current.length) return false;
   // Every question exactly once. Length plus per-entry equality let a
   // payload repeat one answer and omit another — nine entries, all
@@ -225,9 +258,10 @@ export function declarationMatches(shown: Declared[], current: Declared[]): bool
   if (seen.size !== shown.length) return false;
   const byId = new Map(current.map((d) => [d.questionId, d.value]));
   if (byId.size !== current.length) return false;
-  return shown.every((d) => byId.has(d.questionId) && byId.get(d.questionId) === d.value);
+  return shown.every(
+    (d) => byId.has(d.questionId) && byId.get(d.questionId) === d.value,
+  );
 }
-
 
 /**
  * What is unanswered before Tier 3 even begins: risk areas never answered,
@@ -236,14 +270,26 @@ export function declarationMatches(shown: Declared[], current: Declared[]): bool
  * a gap they cannot act on (FR-14).
  */
 export function earlierGaps(input: {
-  gates: { category: { key: string; name: string; text: string }; answer: string | null; settled: boolean }[];
-  severity: { questionId: string; name: string; text: string; answered: boolean }[];
+  gates: {
+    category: { key: string; name: string; text: string };
+    answer: string | null;
+    settled: boolean;
+  }[];
+  severity: {
+    questionId: string;
+    name: string;
+    text: string;
+    answered: boolean;
+  }[];
   handedOff: { questionId: string; label: string }[];
 }): Gap[] {
   const gaps: Gap[] = [];
   for (const gate of input.gates) {
     if (gate.settled || gate.answer !== null) continue;
-    gaps.push({ questionId: `gate.${gate.category.key}`, label: gate.category.text });
+    gaps.push({
+      questionId: `gate.${gate.category.key}`,
+      label: gate.category.text,
+    });
   }
   for (const question of input.severity) {
     if (question.answered) continue;

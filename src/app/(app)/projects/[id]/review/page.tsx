@@ -200,6 +200,7 @@ export default async function ReviewPage({
                 })
               : null,
             reopened: reopenedBecause(settled, now),
+            citation: finding.citation ?? null,
           };
         }),
     };

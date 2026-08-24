@@ -335,3 +335,32 @@
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* A policy breach, with the clause beside the answer (§22.1). Warning
+   treatment, never restful — and never colour alone: it is labelled
+   "Breaches policy" and carries the clause in words. */
+.breach {
+  margin: 0.5rem 0 0.2rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning);
+  border-left: 4px solid var(--warning-strong);
+}
+.breach-head {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--neutral-900);
+}
+.breach-quote {
+  margin: 0.4rem 0 0.3rem;
+  padding: 0.45rem 0.7rem;
+  background: var(--neutral-0);
+  border-left: 3px solid var(--warning);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+.breach .help {
+  margin: 0;
+}

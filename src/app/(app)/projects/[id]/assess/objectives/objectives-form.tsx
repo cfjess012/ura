@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { WhyAsked } from "../why-asked";
 import { useRouter } from "next/navigation";
 import { answerObjectives } from "@/app/actions";
 import { isFailure } from "@/lib/errors";
@@ -86,9 +87,11 @@ export function ObjectivesForm({
     const visible = new Set(
       objectives.flatMap((objective) => [
         objective.questionId,
-        ...childrenAsked(objective, current[objective.questionId]?.answer ?? null, lookup).map(
-          (c) => c.questionId,
-        ),
+        ...childrenAsked(
+          objective,
+          current[objective.questionId]?.answer ?? null,
+          lookup,
+        ).map((c) => c.questionId),
       ]),
     );
     const payload = Object.fromEntries(
@@ -103,7 +106,11 @@ export function ObjectivesForm({
   /** Every question on screen right now, parents and revealed children. */
   const onScreen = objectives.flatMap((objective) => [
     { id: objective.questionId, label: objective.name },
-    ...childrenAsked(objective, given[objective.questionId]?.answer ?? null, lookup).map((c) => ({
+    ...childrenAsked(
+      objective,
+      given[objective.questionId]?.answer ?? null,
+      lookup,
+    ).map((c) => ({
       id: c.questionId,
       label: c.text,
     })),
@@ -132,13 +139,24 @@ export function ObjectivesForm({
     >
       {objectives.map((objective) => {
         const value = given[objective.questionId];
-        const children = childrenAsked(objective, value?.answer ?? null, lookup);
+        const children = childrenAsked(
+          objective,
+          value?.answer ?? null,
+          lookup,
+        );
         return (
-          <div className="card q3" key={objective.id} data-focus={objective.questionId}>
+          <div
+            className="card q3"
+            key={objective.id}
+            data-focus={objective.questionId}
+          >
             <p className="q3-name">{objective.name}</p>
             <p className="gate-question">{objective.text}</p>
+            {/* The authority that requires it, in its own words (§22.1). */}
+            <WhyAsked questionId={objective.questionId} />
             <p className="help gate-help">
-              What this control is for: {objective.objective.replace(/^Ensure /, "")}
+              What this control is for:{" "}
+              {objective.objective.replace(/^Ensure /, "")}
             </p>
             {(reasons[objective.id] ?? []).length > 0 && (
               <p className="prefill" role="note">
@@ -257,10 +275,16 @@ function Answers({
             value={value.note}
             onChange={(event) => onNote(event.target.value)}
             aria-invalid={flagged && problem !== null}
-            aria-describedby={flagged && problem ? `note-problem-${questionId}` : undefined}
+            aria-describedby={
+              flagged && problem ? `note-problem-${questionId}` : undefined
+            }
           />
           {flagged && problem && (
-            <p className="field-problem" id={`note-problem-${questionId}`} role="note">
+            <p
+              className="field-problem"
+              id={`note-problem-${questionId}`}
+              role="note"
+            >
               {problem}
             </p>
           )}

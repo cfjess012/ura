@@ -1,0 +1,250 @@
+{
+  "version": "2026-08-23.1",
+  "comment": "Enterprise policies and the control questions each clause bears on. The alignment is DATA, ratified by a human, not something a model decides at request time (SPEC §22.1): a requester asking 'why am I being asked this?' is owed an authority, and an authority a model invented is not one. Clause text is quoted verbatim on screen, so edit it here and nowhere else. `expect` is the answer that satisfies the clause; anything else is a breach the reviewer settles through the four governed dispositions (§4.3). A clause with an empty `requires` is an obligation the pilot does not yet ask about: named rather than deleted, because an obligation with no question is a coverage gap in the instrument.",
+  "policies": [
+    {
+      "id": "POL-IAM",
+      "name": "Identity & Access Management Standard",
+      "reference": "IAM-STD-004",
+      "version": "4.2",
+      "effective": "2026-01-01",
+      "owner": "security-resilience",
+      "clauses": [
+        {
+          "id": "IAM-STD-004 §2.1",
+          "heading": "Authorisation of access",
+          "text": "Access to enterprise systems and data shall be granted only on the basis of a documented business need, approved by the system owner, and shall be limited to the minimum privileges required to perform the role.",
+          "requires": [
+            {
+              "questionId": "t3.t3_iam_01",
+              "expect": "Yes",
+              "because": "the standard requires documented, owner-approved, least-privilege access"
+            }
+          ]
+        },
+        {
+          "id": "IAM-STD-004 §3.4",
+          "heading": "Multi-factor authentication",
+          "text": "Multi-factor authentication shall be enforced for all administrative access to production systems, for all remote access to the enterprise network, and for any access to systems holding Confidential or Restricted data. Single-factor authentication is not permitted for these paths under any circumstances.",
+          "requires": [
+            {
+              "questionId": "t3.t3_iam_02",
+              "expect": "Yes",
+              "because": "the standard permits no single-factor path to production, remote access, or Confidential data"
+            }
+          ]
+        },
+        {
+          "id": "IAM-STD-004 §3.9",
+          "heading": "Privileged access",
+          "text": "Privileged accounts shall be individually attributable, checked out through an approved privileged access management facility, and monitored for the duration of the session. Shared administrative credentials are prohibited.",
+          "requires": [
+            {
+              "questionId": "t3.t3_iam_03",
+              "expect": "Yes",
+              "because": "the standard prohibits shared administrative credentials and requires managed checkout"
+            }
+          ]
+        },
+        {
+          "id": "IAM-STD-004 §4.2",
+          "heading": "Recertification",
+          "text": "Access rights shall be reviewed and recertified by the system owner at least every ninety days for privileged access and at least annually for all other access. Rights not recertified within the period shall be revoked.",
+          "requires": [
+            {
+              "questionId": "t3.t3_iam_05",
+              "expect": "Yes",
+              "because": "the standard requires periodic recertification and revokes what is not recertified"
+            }
+          ]
+        },
+        {
+          "id": "IAM-STD-004 §5.1",
+          "heading": "Joiners, movers and leavers",
+          "text": "Access shall be provisioned on joining, adjusted within five working days of a change of role, and revoked within twenty-four hours of a person leaving the organisation or a contract ending.",
+          "requires": [
+            {
+              "questionId": "t3.t3_iam_06",
+              "expect": "Yes",
+              "because": "the standard sets binding timeframes for provisioning, change and revocation"
+            }
+          ]
+        },
+        {
+          "id": "IAM-STD-004 §6.3",
+          "heading": "Remote access",
+          "text": "Remote access to enterprise environments shall be brokered through an approved gateway, shall enforce multi-factor authentication, and shall not expose administrative interfaces directly to the public internet.",
+          "requires": [
+            {
+              "questionId": "t3.t3_iam_10",
+              "expect": "Yes",
+              "because": "the standard forbids administrative interfaces exposed directly to the internet"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "POL-DP",
+      "name": "Data Protection Policy",
+      "reference": "DP-POL-001",
+      "version": "7.0",
+      "effective": "2026-03-15",
+      "owner": "data-privacy",
+      "clauses": [
+        {
+          "id": "DP-POL-001 §4.1",
+          "heading": "Encryption",
+          "text": "Confidential and Restricted data shall be encrypted in transit using TLS 1.2 or above, and at rest using AES-256 or an approved equivalent. Data classified as Confidential or above shall not traverse an unencrypted channel.",
+          "requires": [
+            {
+              "questionId": "t3.t3_dp_01",
+              "expect": "Yes",
+              "because": "the policy allows no unencrypted channel for Confidential data"
+            }
+          ]
+        },
+        {
+          "id": "DP-POL-001 §5.2",
+          "heading": "Minimisation",
+          "text": "Personal data shall be limited to what is necessary for the stated purpose. Where the purpose can be achieved with de-identified or aggregated data, identifiable data shall not be used.",
+          "requires": [
+            {
+              "questionId": "t3.t3_dp_04",
+              "expect": "Yes",
+              "because": "the policy requires de-identified data wherever the purpose allows it"
+            }
+          ]
+        },
+        {
+          "id": "DP-POL-001 §6.4",
+          "heading": "Retention and disposal",
+          "text": "Every data set shall carry a documented retention period and a defined disposal method. Data shall not be retained beyond its stated period, and disposal shall render the data unrecoverable.",
+          "requires": [
+            {
+              "questionId": "t3.t3_dp_05",
+              "expect": "Yes",
+              "because": "the policy requires a documented retention period and a disposal method for every data set"
+            }
+          ]
+        },
+        {
+          "id": "DP-POL-001 §7.1",
+          "heading": "Secrets",
+          "text": "Credentials, keys and tokens shall be held in an approved secrets management facility. Secrets shall not be committed to source control, embedded in configuration files, or transmitted by email or chat.",
+          "requires": [
+            {
+              "questionId": "t3.t3_dp_06",
+              "expect": "Yes",
+              "because": "the policy prohibits secrets in source control, configuration files, email or chat"
+            }
+          ]
+        },
+        {
+          "id": "DP-POL-001 §8.2",
+          "heading": "Media",
+          "text": "Removable media containing Confidential or Restricted data shall be encrypted, inventoried, and disposed of through the approved destruction service.",
+          "requires": [
+            {
+              "questionId": "t3.t3_dp_07",
+              "expect": "Yes",
+              "because": "the policy requires encryption and controlled disposal for removable media"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "POL-NET",
+      "name": "Network & Boundary Security Standard",
+      "reference": "NET-STD-011",
+      "version": "3.1",
+      "effective": "2025-11-01",
+      "owner": "security-resilience",
+      "clauses": [
+        {
+          "id": "NET-STD-011 §2.2",
+          "heading": "Segmentation",
+          "text": "Production environments shall be segmented from non-production, and systems holding Restricted data shall reside in a separate security zone with default-deny traffic rules between zones.",
+          "requires": [
+            {
+              "questionId": "t3.t3_nb_01",
+              "expect": "Yes",
+              "because": "the standard requires default-deny segmentation between zones"
+            }
+          ]
+        },
+        {
+          "id": "NET-STD-011 §3.1",
+          "heading": "External endpoints",
+          "text": "Any service reachable from the public internet shall sit behind an approved web application firewall with an actively maintained rule set. Endpoints shall not be published without this protection.",
+          "requires": [
+            {
+              "questionId": "t3.t3_nb_02",
+              "expect": "Yes",
+              "because": "the standard forbids publishing an internet-facing endpoint without a maintained WAF"
+            }
+          ]
+        },
+        {
+          "id": "NET-STD-011 §3.6",
+          "heading": "Interfaces",
+          "text": "Application programming interfaces shall authenticate every request, enforce rate limits, and validate input against a defined schema. Unauthenticated write operations are prohibited.",
+          "requires": [
+            {
+              "questionId": "t3.t3_nb_03",
+              "expect": "Yes",
+              "because": "the standard prohibits unauthenticated write operations on any interface"
+            }
+          ]
+        },
+        {
+          "id": "NET-STD-011 §4.4",
+          "heading": "Availability",
+          "text": "Internet-facing services shall be protected against volumetric and application-layer denial of service, and shall have a documented recovery objective agreed with the business owner.",
+          "requires": [
+            {
+              "questionId": "t3.t3_nb_05",
+              "expect": "Yes",
+              "because": "the standard requires denial-of-service protection and an agreed recovery objective"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "POL-TPR",
+      "name": "Third-Party Risk Management Policy",
+      "reference": "TPR-POL-002",
+      "version": "5.3",
+      "effective": "2026-02-01",
+      "owner": "third-party",
+      "clauses": [
+        {
+          "id": "TPR-POL-002 §3.3",
+          "heading": "Governing third-party access",
+          "text": "Where a supplier is granted access to enterprise environments or data, that access shall be governed by contract, limited to the minimum required, time-bound, and reviewed at least quarterly for the duration of the engagement.",
+          "requires": [],
+          "notAskedYet": "The pilot asks no control question against this clause — an obligation with no question is a gap in the instrument, not a clause to quietly drop (§22.1)."
+        }
+      ]
+    },
+    {
+      "id": "POL-LOG",
+      "name": "Logging & Monitoring Standard",
+      "reference": "LOG-STD-007",
+      "version": "2.4",
+      "effective": "2025-09-01",
+      "owner": "security-resilience",
+      "clauses": [
+        {
+          "id": "LOG-STD-007 §2.1",
+          "heading": "Security event logging",
+          "text": "Authentication events, administrative actions and access to Confidential data shall be logged to a tamper-evident store, retained for at least twelve months, and reviewed for anomalies.",
+          "requires": [],
+          "notAskedYet": "The pilot asks no control question against this clause — an obligation with no question is a gap in the instrument, not a clause to quietly drop (§22.1)."
+        }
+      ]
+    }
+  ]
+}

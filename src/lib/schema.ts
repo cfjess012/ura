@@ -188,6 +188,11 @@ export const findings = pgTable(
       .notNull()
       .defaultNow(),
     raisedBy: text("raised_by").notNull(),
+    // Present only on a non-compliance: the clause it breaches (0024).
+    policyRef: text("policy_ref"),
+    clauseId: text("clause_id"),
+    clauseText: text("clause_text"),
+    expected: text("expected"),
   },
   (t) => [index("findings_by_project").on(t.projectId, t.raisedAt)],
 );
