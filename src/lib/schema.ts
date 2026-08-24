@@ -174,6 +174,46 @@ export const findings = pgTable(
   (t) => [index("findings_by_project").on(t.projectId, t.raisedAt)],
 );
 
+/** A reviewer's sign-off on one Tier-3 answer (S8, FR-16/FR-17). */
+export const attestations = pgTable(
+  "attestations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id").notNull(),
+    questionId: text("question_id").notNull(),
+    attestedBy: text("attested_by").notNull(),
+    /** The risk area they signed under — authority is a fact about them. */
+    attestedDomain: text("attested_domain"),
+    attestedAt: timestamp("attested_at", { withTimezone: true }).notNull().defaultNow(),
+    act: text("act").notNull(),
+    correctedAnswer: text("corrected_answer"),
+    note: text("note").notNull().default(""),
+  },
+  (t) => [index("attestations_by_project").on(t.projectId, t.attestedAt)],
+);
+
+/**
+ * How a finding was settled (§4.3). Never an edit of the finding: the
+ * history of how a gap was closed survives intact, and four-eyes is a CHECK
+ * constraint rather than application code (G-59).
+ */
+export const dispositions = pgTable(
+  "dispositions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    findingId: uuid("finding_id").notNull(),
+    kind: text("kind").notNull(),
+    resolvedBy: text("resolved_by").notNull(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }).notNull().defaultNow(),
+    note: text("note").notNull().default(""),
+    remediationOwner: text("remediation_owner"),
+    remediationDue: timestamp("remediation_due", { withTimezone: true }),
+    acceptedBy: text("accepted_by"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (t) => [index("dispositions_by_finding").on(t.findingId, t.resolvedAt)],
+);
+
 /** The conversation that settles a hand-off. Threaded, insert-only. */
 export const handoffReplies = pgTable(
   "handoff_replies",

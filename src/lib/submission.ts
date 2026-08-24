@@ -254,3 +254,22 @@ export function earlierGaps(input: {
   for (const handed of input.handedOff) gaps.push(handed);
   return gaps;
 }
+
+/**
+ * The one rule for "open", everywhere it is asked (§4.3).
+ *
+ * Salvaged from the prior platform, whose `openPolicyFinding()` had exactly
+ * this shape (G-59). A finding is open when nobody has settled it, OR when
+ * the acceptance that settled it has expired — an expired acceptance
+ * reopens automatically, which is what makes a time-boxed risk acceptance
+ * mean anything. Packaging, the queue and the obligation count all ask this
+ * one function, so they can never disagree.
+ */
+export function findingIsOpen(
+  disposition: { kind: string; expiresAt: Date | null } | null,
+  now: Date,
+): boolean {
+  if (disposition === null) return true;
+  if (disposition.kind !== "risk-accepted") return false;
+  return disposition.expiresAt === null || disposition.expiresAt <= now;
+}

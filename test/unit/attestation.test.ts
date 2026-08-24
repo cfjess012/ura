@@ -12,6 +12,7 @@ import {
   mayAttest,
   whyThatDomain,
 } from "@/lib/attestation";
+import { findingIsOpen } from "@/lib/submission";
 import { OBJECTIVES } from "@/lib/tier3";
 import { CATEGORIES } from "@/lib/instrument";
 import type { Person } from "@/lib/people";
@@ -73,5 +74,33 @@ describe("a Risk Assessor attests under their own profile", () => {
   it("a requester never attests — that act is the declaration (G-52)", () => {
     expect(mayAttest(who("requester"), iam.id)).toBe(false);
     expect(attestationRefusal(who("requester"), iam.id)).toMatch(/declared these answers accurate/);
+  });
+});
+
+describe("one rule decides 'open' everywhere (§4.3, G-59)", () => {
+  const now = new Date("2026-08-23T12:00:00Z");
+  const future = new Date("2026-12-01T00:00:00Z");
+  const past = new Date("2026-01-01T00:00:00Z");
+
+  it("undisposed is open", () => {
+    expect(findingIsOpen(null, now)).toBe(true);
+  });
+
+  it("corrected, excused and remediated are closed", () => {
+    for (const kind of ["answer-corrected", "not-applicable", "remediation"]) {
+      expect(findingIsOpen({ kind, expiresAt: null }, now), kind).toBe(false);
+    }
+  });
+
+  it("a live risk acceptance closes it", () => {
+    expect(findingIsOpen({ kind: "risk-accepted", expiresAt: future }, now)).toBe(false);
+  });
+
+  it("an expired acceptance REOPENS it — that is what time-boxing means", () => {
+    expect(findingIsOpen({ kind: "risk-accepted", expiresAt: past }, now)).toBe(true);
+  });
+
+  it("an acceptance with no expiry is not an acceptance", () => {
+    expect(findingIsOpen({ kind: "risk-accepted", expiresAt: null }, now)).toBe(true);
   });
 });
