@@ -4,6 +4,7 @@ import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { askAgent, type AgentTurn } from "@/app/agent-actions";
 import { draftFromFile } from "@/app/document-actions";
+import { blocksOf, type Block, type Span } from "@/lib/reply-format";
 import { isFailure } from "@/lib/errors";
 
 /**
@@ -76,6 +77,64 @@ function Cited({
   clauses: Clause[];
   onRead: (clause: Clause) => void;
 }) {
+  return (
+    <>
+      {blocksOf(said).map((block, at) => (
+        <Rendered key={at} block={block} clauses={clauses} onRead={onRead} />
+      ))}
+    </>
+  );
+}
+
+/** One block, with any clause it names made openable. */
+function Rendered({
+  block,
+  clauses,
+  onRead,
+}: {
+  block: Block;
+  clauses: Clause[];
+  onRead: (clause: Clause) => void;
+}) {
+  const draw = (spans: Span[]) =>
+    spans.map((span, at) =>
+      span.strong ? (
+        <strong key={at}>
+          <Linked text={span.text} clauses={clauses} onRead={onRead} />
+        </strong>
+      ) : (
+        <Linked key={at} text={span.text} clauses={clauses} onRead={onRead} />
+      ),
+    );
+
+  if (block.kind === "heading")
+    return <span className="reply-heading">{draw(block.spans)}</span>;
+  if (block.kind === "quote")
+    return <span className="reply-quote">{draw(block.spans)}</span>;
+  if (block.kind === "bullets")
+    return (
+      <span className="reply-bullets">
+        {block.items.map((item, at) => (
+          <span className="reply-bullet" key={at}>
+            {draw(item)}
+          </span>
+        ))}
+      </span>
+    );
+  return <span className="reply-para">{draw(block.spans)}</span>;
+}
+
+/** A run of text, with clause ids turned into controls. */
+function Linked({
+  text,
+  clauses,
+  onRead,
+}: {
+  text: string;
+  clauses: Clause[];
+  onRead: (clause: Clause) => void;
+}) {
+  const said = text;
   const byId = new Map(clauses.map((c) => [c.clauseId, c]));
   // Longest first, so a full clause id is matched before its policy
   // reference, which is a prefix of it.
@@ -424,7 +483,7 @@ export function Assistant({
             <span className="assistant-who">
               {turn.speaker === "person" ? "You" : "Assistant"}
             </span>
-            {turn.speaker === "agent" && consulted.length > 0 ? (
+            {turn.speaker === "agent" ? (
               <Cited said={turn.said} clauses={consulted} onRead={setReading} />
             ) : (
               turn.said

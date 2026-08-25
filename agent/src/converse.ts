@@ -143,9 +143,26 @@ export async function converse(task: ConverseTask): Promise<ConverseReply> {
       const client = modelClient();
       const message = await client.messages.create({
         model: modelId(),
-        max_tokens: 1500,
+        // A reply now carries structure and sometimes a quoted clause, and
+        // the prompt behind it carries the rubric and any policy found. At
+        // 1500 it was cut mid-JSON, which surfaced as "no JSON object" and
+        // reached the person as "something went wrong on my side". Third
+        // time a token ceiling has done this here; each time it looked like
+        // a different bug.
+        max_tokens: 4000,
         messages: [{ role: "user", content: composeConversePrompt(task) }],
       });
+      if ((message as { stop_reason?: string }).stop_reason === "max_tokens") {
+        span.setAttribute("gate.result", "truncated");
+        console.error("[converse] truncated at max_tokens");
+        return {
+          reply:
+            "I ran out of room part-way through that answer. Ask me again and I will keep it shorter — nothing you have written was affected.",
+          carriesEvidence: false,
+          asking: null,
+          wantsAnswers: false,
+        };
+      }
       const text = textOf(
         message as unknown as {
           content: Array<{ type: string; text?: string }>;

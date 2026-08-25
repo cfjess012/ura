@@ -2118,3 +2118,61 @@
   line-height: 1.6;
   color: var(--neutral-900);
 }
+
+/* A reply with a shape. Spans rather than divs and paragraphs, because a
+   turn is a <p> and block elements inside one are invalid HTML — the
+   browser closes the paragraph early and hydration then disagrees with the
+   DOM it was handed. display:block does the layout. */
+.reply-para,
+.reply-heading,
+.reply-quote,
+.reply-bullets,
+.reply-bullet {
+  display: block;
+}
+.reply-para + .reply-para,
+.reply-para + .reply-heading,
+.reply-quote + .reply-para,
+.reply-bullets + .reply-para {
+  margin-top: 0.55rem;
+}
+.reply-heading {
+  margin: 0.75rem 0 0.35rem;
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+.reply-heading:first-child {
+  margin-top: 0;
+}
+/* A clause, given the room it is owed — this is the part with authority. */
+.reply-quote {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.7rem;
+  border-left: 3px solid var(--brand);
+  border-radius: 0 8px 8px 0;
+  background: var(--surface-1);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--neutral-900);
+}
+.reply-bullets {
+  margin: 0.4rem 0;
+}
+.reply-bullet {
+  position: relative;
+  padding-left: 0.9rem;
+  margin-top: 0.22rem;
+  line-height: 1.5;
+}
+.reply-bullet::before {
+  content: "";
+  position: absolute;
+  left: 0.15rem;
+  top: 0.62em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--brand);
+  opacity: 0.6;
+}
