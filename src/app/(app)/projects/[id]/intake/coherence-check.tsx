@@ -390,7 +390,12 @@ function Thinking({ doing, usually }: { doing: string; usually: number }) {
 
   const over = seconds > usually * 2;
   return (
-    <div className="thinking" role="status" aria-live="polite">
+    // A span, not a div: this sits inside the <p> that carries the rewrite
+    // link, and a div in a paragraph is invalid HTML — the browser closes
+    // the <p> early and React's hydration then disagrees with the DOM it
+    // was handed. Every child here was already a span; only the root was
+    // wrong. `display: flex` does the layout.
+    <span className="thinking" role="status" aria-live="polite">
       <span className="thinking-spark" aria-hidden="true">
         <Sparkle />
       </span>
@@ -407,7 +412,7 @@ function Thinking({ doing, usually }: { doing: string; usually: number }) {
       <span className="thinking-bar" aria-hidden="true">
         <span />
       </span>
-    </div>
+    </span>
   );
 }
 
