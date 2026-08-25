@@ -581,3 +581,37 @@ select.flagged {
       box-shadow 0.25s var(--ease);
   }
 }
+
+/* Asked before the rail takes somebody away from answers not yet written
+   down. Small and centred rather than a full page: the question is small,
+   and the thing they were doing is still behind it. */
+.leaving {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgb(11 31 59 / 40%);
+}
+.leaving-card {
+  width: min(26rem, 100%);
+  padding: 1.1rem 1.25rem 1.2rem;
+  border-radius: 14px;
+  background: var(--neutral-0);
+  box-shadow: 0 20px 50px rgb(11 31 59 / 28%);
+}
+.leaving-title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+.leaving-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}

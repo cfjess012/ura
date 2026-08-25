@@ -77,6 +77,17 @@ export function SectionForm({
   const [values, setValues] = React.useState<IntakeValues>(initial);
   const [saving, setSaving] = React.useState(false);
   const [savedAt, setSavedAt] = React.useState<string | null>(null);
+  /**
+   * What is on the record, so we can tell whether anything has moved.
+   *
+   * The intake writes on Next, on the AI check and on an explicit save —
+   * the rail was a plain link, so stepping to another section through it
+   * threw away everything typed since the last write. It looked like the
+   * section had un-completed itself; it had simply never been saved.
+   */
+  const written = React.useRef<string>(JSON.stringify(initial));
+  const [leaving, setLeaving] = React.useState<string | null>(null);
+  const dirty = JSON.stringify(values) !== written.current;
   const [error, setError] = React.useState<{
     message: string;
     ref?: string;
@@ -241,6 +252,7 @@ export function SectionForm({
         return false;
       }
       setSavedAt(result.savedAt);
+      written.current = JSON.stringify(values);
       return true;
     } catch (cause) {
       console.error("saveIntake transport", cause);
@@ -315,7 +327,57 @@ export function SectionForm({
         projectId={projectId}
         progress={progress}
         currentKey={sectionKey}
+        onLeave={(to) => {
+          if (!dirty) return true;
+          setLeaving(to);
+          return false;
+        }}
       />
+
+      {leaving && (
+        <div className="leaving" role="dialog" aria-modal="true">
+          <div className="leaving-card">
+            <p className="leaving-title">You have answers not saved yet</p>
+            <p className="help">
+              Moving to another section leaves this one as it was last saved.
+            </p>
+            <div className="leaving-actions">
+              <button
+                type="button"
+                className="btn"
+                disabled={saving}
+                onClick={async () => {
+                  const to = leaving;
+                  if (await save()) {
+                    setLeaving(null);
+                    router.push(`/projects/${projectId}/intake/${to}`);
+                  }
+                }}
+              >
+                {saving ? "Saving…" : "Save and go"}
+              </button>
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => {
+                  const to = leaving;
+                  setLeaving(null);
+                  router.push(`/projects/${projectId}/intake/${to}`);
+                }}
+              >
+                Go without saving
+              </button>
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setLeaving(null)}
+              >
+                Stay here
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="intake-main">
         <p className="eyebrow">{stepLine}</p>

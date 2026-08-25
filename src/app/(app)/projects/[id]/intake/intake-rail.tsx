@@ -9,10 +9,16 @@ export function IntakeRail({
   projectId,
   progress,
   currentKey,
+  onLeave,
 }: {
   projectId: string;
   progress: SectionProgress[];
   currentKey: string;
+  /**
+   * Asked before the rail navigates. Return false to stop it — the form
+   * uses this to offer a save when there are answers not yet written down.
+   */
+  onLeave?: (to: string) => boolean;
 }) {
   return (
     <nav className="rail" aria-label="Intake sections">
@@ -32,6 +38,9 @@ export function IntakeRail({
                 href={`/projects/${projectId}/intake/${section.key}`}
                 className={`rail-item ${status}${active ? " current" : ""}`}
                 aria-current={active ? "step" : undefined}
+                onClick={(event) => {
+                  if (onLeave && !onLeave(section.key)) event.preventDefault();
+                }}
               >
                 <span className="rail-num" aria-hidden="true">
                   {complete ? "✓" : index + 1}
