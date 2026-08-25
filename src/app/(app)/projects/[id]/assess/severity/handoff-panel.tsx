@@ -80,10 +80,60 @@ export function HandoffPanel({
   const [asking, setAsking] = React.useState(false);
   const [to, setTo] = React.useState("");
   const [note, setNote] = React.useState("");
+  const noteRef = React.useRef<HTMLTextAreaElement>(null);
+  /** The @ list, or null when nobody is naming anybody. */
+  const [mentions, setMentions] = React.useState<Recipient[] | null>(null);
+  /** Which of them is highlighted, for the keyboard. */
+  const [at, setAt] = React.useState(0);
+  /** Where the @ started, so choosing replaces what was typed after it. */
+  const [from, setFrom] = React.useState(0);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   if (existing) return <Thread projectId={projectId} handoff={existing} />;
+
+  /**
+   * Naming somebody with an @, the way every other tool does it.
+   *
+   * The dropdown above still works and is still the record of who this goes
+   * to — this writes their name into the note AND sets that dropdown, so
+   * the sentence a person types and the routing the platform does cannot
+   * disagree. Typing "@Samuel" and leaving the recipient unset was the
+   * obvious way to send a question nowhere.
+   */
+  function openMentions(field: HTMLTextAreaElement) {
+    const upTo = field.value.slice(0, field.selectionStart ?? 0);
+    // The @ has to start a word, or every email address opens a list.
+    const found = /(?:^|\s)@([\p{L}\p{N}'’ -]{0,40})$/u.exec(upTo);
+    if (!found) {
+      setMentions(null);
+      return;
+    }
+    const typed = (found[1] ?? "").trim().toLowerCase();
+    const matching = recipients.filter((r) =>
+      typed === "" ? true : r.label.toLowerCase().includes(typed),
+    );
+    setFrom(upTo.length - (found[1] ?? "").length - 1);
+    setAt(0);
+    setMentions(matching.slice(0, 6));
+  }
+
+  function pick(option: Recipient) {
+    const field = noteRef.current;
+    if (!field) return;
+    const before = note.slice(0, from);
+    const after = note.slice(field.selectionStart ?? note.length);
+    const written = `${before}@${option.label} ${after}`;
+    setNote(written);
+    // The whole point: naming them routes it to them.
+    setTo(`${option.kind}:${option.id}`);
+    setMentions(null);
+    window.requestAnimationFrame(() => {
+      const caret = before.length + option.label.length + 2;
+      field.focus();
+      field.setSelectionRange(caret, caret);
+    });
+  }
 
   async function hand() {
     const picked = recipients.find((r) => `${r.kind}:${r.id}` === to);
@@ -163,13 +213,67 @@ export function HandoffPanel({
       <label className="field" htmlFor={`${questionId}-note`}>
         Anything you can tell them?
       </label>
-      <textarea
-        id={`${questionId}-note`}
-        rows={2}
-        value={note}
-        placeholder="Optional — whatever you do know helps them start."
-        onChange={(event) => setNote(event.target.value)}
-      />
+      <div className="mention-field">
+        <textarea
+          id={`${questionId}-note`}
+          ref={noteRef}
+          rows={2}
+          value={note}
+          placeholder="Optional — type @ to name someone, or just say what you know."
+          onChange={(event) => {
+            setNote(event.target.value);
+            openMentions(event.target);
+          }}
+          onKeyDown={(event) => {
+            if (mentions === null) return;
+            if (event.key === "ArrowDown") {
+              setAt((n) => Math.min(n + 1, mentions.length - 1));
+            } else if (event.key === "ArrowUp") {
+              setAt((n) => Math.max(n - 1, 0));
+            } else if (event.key === "Enter" || event.key === "Tab") {
+              const picked = mentions[at];
+              if (picked) pick(picked);
+            } else if (event.key === "Escape") {
+              setMentions(null);
+            } else {
+              return;
+            }
+            // Only once we know we handled it: Enter in a note is a
+            // newline every other time, and stealing it would be worse
+            // than not offering the list at all.
+            event.preventDefault();
+          }}
+          onBlur={() => {
+            // A click on the list is a blur first, so let it land.
+            window.setTimeout(() => setMentions(null), 150);
+          }}
+        />
+        {mentions !== null && mentions.length > 0 && (
+          <ul className="mentions" role="listbox">
+            {mentions.map((option, n) => (
+              <li key={`${option.kind}:${option.id}`}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={n === at}
+                  className={n === at ? "mention current" : "mention"}
+                  onMouseDown={(event) => {
+                    // mousedown, not click: the blur above would close the
+                    // list before a click ever landed.
+                    event.preventDefault();
+                    pick(option);
+                  }}
+                >
+                  <span className="mention-name">{option.label}</span>
+                  <span className="mention-kind">
+                    {option.kind === "domain" ? "risk area" : "assessor"}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <div className="handoff-actions">
         <button

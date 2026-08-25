@@ -729,3 +729,58 @@
   line-height: 1.6;
   color: var(--neutral-800);
 }
+
+/* Naming somebody with an @. The list sits over the note rather than
+   pushing it around — a field that jumps while you are typing in it is
+   worse than no list at all. */
+.mention-field {
+  position: relative;
+}
+.mentions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  max-height: 13rem;
+  overflow-y: auto;
+  border-radius: 10px;
+  border: 1px solid var(--neutral-200);
+  background: var(--neutral-0);
+  box-shadow: 0 12px 32px rgb(0 40 85 / 18%);
+}
+.mention {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.4rem 0.55rem;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  text-align: left;
+  font: inherit;
+  font-size: 0.84rem;
+  color: var(--neutral-900);
+  cursor: pointer;
+}
+/* Highlighted, whether by arrow key or by pointer — one state, so the
+   keyboard and the mouse never disagree about what Enter would take. */
+.mention.current,
+.mention:hover {
+  background: var(--surface-2);
+}
+.mention-name {
+  font-weight: 600;
+}
+.mention-kind {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--neutral-500);
+}
