@@ -143,7 +143,7 @@ const person = (id, label) => ({ id, label, version: "people" });
 const PROJECTS = [
   {
     name: "Novara scheduling assistant",
-    by: "p.requester", // Priya Sharma
+    by: "d.withers", // Isabelle Withers
     intake: {
       // One description now: the purpose sentence leads, the activity
       // follows. business_purpose is kept in step so older readers of
@@ -176,7 +176,7 @@ const PROJECTS = [
   },
   {
     name: "Quarterly close checklist",
-    by: "d.grant", // Alison Grant
+    by: "d.withers", // Isabelle Withers
     intake: {
       // One description now: the purpose sentence leads, the activity
       // follows. business_purpose is kept in step so older readers of
@@ -202,7 +202,7 @@ const PROJECTS = [
   },
   {
     name: "Partner data exchange",
-    by: "d.whitfield", // Grace Whitfield
+    by: "d.withers", // Isabelle Withers
     intake: {
       // One description now: the purpose sentence leads, the activity
       // follows. business_purpose is kept in step so older readers of
@@ -232,7 +232,7 @@ const PROJECTS = [
     // this the whole of S7 and S8 is unreachable from seeded data — the
     // screens exist and the demo has nothing to show them with.
     name: "Sable claims triage",
-    by: "d.grant", // Alison Grant
+    by: "d.withers", // Isabelle Withers
     submitted: true,
     intake: {
       // One description now: the purpose sentence leads, the activity
@@ -277,13 +277,21 @@ const projectNamed = (name) => {
   return found;
 };
 
-const OWNERS = [...new Set(PROJECTS.map((p) => p.by))];
 // Everyone who owns seeded work, plus the personas the owner asked to be
 // able to sign in as. A directory entry becomes a persona here rather than
 // in a migration, so the `d.` prefix keeps meaning what it says.
-const SIGN_INS = [...new Set([...OWNERS, "d.withers"])];
+// One requester in the picker (migration 0027). Signing every assessment
+// owner in is what put four requesters in front of somebody choosing a
+// persona; the demo assessments are all hers now.
+// One requester in the picker. Signing every assessment owner in is what
+// put four of them in front of somebody choosing a persona, and the demo
+// assessments are all hers now. The narrowing lives here rather than in a
+// migration: a migrated database has to stay usable by every role, and the
+// shape of a demonstration is not a schema concern.
+const SIGN_INS = ["d.withers"];
+await sql`update people set signs_in = false where role = 'requester'`;
 await sql`update people set signs_in = true where id in ${sql(SIGN_INS)}`;
-console.log(`sign-in enabled for ${OWNERS.length} assessment owners`);
+console.log(`sign-in enabled for ${SIGN_INS.length} requester and the assessors`);
 
 const activeVersion = async (slug) => {
   const [row] = await sql`

@@ -1,0 +1,14 @@
+-- Restore the pilot requester persona, and put the narrowing where it
+-- belongs.
+--
+-- 0027 signed every requester except Isabelle out at the schema level, and
+-- that took the last signable requester with it: a freshly migrated
+-- database had an admin, thirteen assessors and nobody who could describe
+-- an activity. A migration has to leave the database coherent on its own —
+-- "every role can be signed in as" is an invariant with a test, and it
+-- caught this.
+--
+-- Which personas a DEMO offers is the demo's business, so the narrowing to
+-- one requester now lives in scripts/seed-demo.mjs, beside the assessments
+-- it hands her. Same reasoning as 0026 and 0028: one place decides a fact.
+update people set signs_in = true where id = 'p.requester';

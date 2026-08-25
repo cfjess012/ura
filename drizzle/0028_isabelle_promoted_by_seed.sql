@@ -1,0 +1,11 @@
+-- Undo one line of 0027.
+--
+-- It signed Isabelle in at the schema level, which contradicts the standing
+-- invariant that a directory entry (`d.*`) is a name in the employee
+-- directory and not a persona somebody can be. She is both, and 0026
+-- already settled how that works: the row stays a directory row, and the
+-- demo seed promotes her. Two places deciding the same fact is how they
+-- come to disagree.
+--
+-- The rest of 0027 stands: every other requester is out of the picker.
+update people set signs_in = false where id = 'd.withers';
