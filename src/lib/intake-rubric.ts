@@ -42,7 +42,12 @@ export type Criterion = {
 };
 
 /** Two things in the intake that cannot both be true, in the person's words. */
-export type Conflict = { one: string; two: string; why: string };
+export type Conflict = {
+  one: string;
+  two: string;
+  why: string;
+  fix: { field: string; label: string; value: string } | null;
+};
 
 /**
  * The read of the activity a person is shown first: what the platform
@@ -104,6 +109,8 @@ export type Ask = {
   level: Level;
   /** What to do about it, verbatim from the rubric. */
   sentence: string;
+  /** The same thing said about their submission, when the model managed it. */
+  note: string | null;
   /** What full marks would look like here — the grade, made readable. */
   anchor: string;
   /** Why this criterion exists at all. */
@@ -191,6 +198,7 @@ export function coherenceFrom(
       anchor: criterion.anchors["4"],
       why: criterion.why,
       routing: ROUTING_CRITICAL.has(criterion.id),
+      note: found?.because ?? null,
       conflicts: mine,
       conflictHeading:
         mine.length > 0 ? (criterion.conflictHeading ?? null) : null,

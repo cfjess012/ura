@@ -28,12 +28,18 @@ import {
   type AssessmentContext,
 } from "./agent-contract";
 
-export type IntakeConflict = { one: string; two: string; why: string };
+export type IntakeConflict = {
+  one: string;
+  two: string;
+  why: string;
+  /** A correction the person can apply, already checked against the form. */
+  fix: { field: string; label: string; value: string } | null;
+};
 
 export type IntakeSummary = { narrative: string[] };
 
 export type IntakeScoring = {
-  scores: Array<{ id: string; score: 1 | 2 | 3 | 4 }>;
+  scores: Array<{ id: string; score: 1 | 2 | 3 | 4; note?: string }>;
   conflicts: IntakeConflict[];
   summary: IntakeSummary | null;
 };
@@ -75,6 +81,8 @@ export type AgentTransport = {
    */
   scoreIntake(input: {
     description: string;
+    /** The pickable fields and their exact options, so a fix can be checked. */
+    fields: Array<{ id: string; label: string; options: string[] }>;
     dimensions: Array<{
       id: string;
       label: string;

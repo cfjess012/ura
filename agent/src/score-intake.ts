@@ -15,6 +15,12 @@ const tracer = trace.getTracer("ura-agent");
 
 export type ScoreTask = {
   description: string;
+  /**
+   * The pickable fields and what each will accept, so a proposed correction
+   * can be checked against the real instrument rather than trusted. Without
+   * this a fix is a model's opinion about a form it has never seen.
+   */
+  fields?: Array<{ id: string; label: string; options: string[] }>;
   dimensions: Array<{
     id: string;
     label: string;
@@ -22,7 +28,17 @@ export type ScoreTask = {
   }>;
 };
 
-export type DimensionScore = { id: string; score: 1 | 2 | 3 | 4 };
+export type DimensionScore = {
+  id: string;
+  score: 1 | 2 | 3 | 4;
+  /**
+   * Why this one scored where it did, about **their** submission. The
+   * rubric's own sentence is general by construction — it has to fit every
+   * intake — so it can only ever say "worth naming the downstream systems".
+   * This says which downstream system they left out.
+   */
+  note?: string;
+};
 
 /**
  * Two things in the intake that cannot both be true, each quoted from it.
@@ -32,7 +48,18 @@ export type DimensionScore = { id: string; score: 1 | 2 | 3 | 4 };
  * applies, for the same reason: a quote can be checked and a paraphrase
  * cannot.
  */
-export type Conflict = { one: string; two: string; why: string };
+export type Conflict = {
+  one: string;
+  two: string;
+  why: string;
+  /**
+   * The correction to offer, when one half is a picked answer with a
+   * clearly right alternative. Checked against the instrument's own options
+   * before it survives — a fix naming a field or a value that does not
+   * exist is dropped, never coerced.
+   */
+  fix: { field: string; label: string; value: string } | null;
+};
 
 /**
  * The model's read of the activity — what it is, and what a reviewer
@@ -51,6 +78,8 @@ export type Scoring = {
 /** Bounds on a narrative, past which it has stopped being one. */
 const PARAGRAPH_CEILING = 900;
 const PARAGRAPHS_MAX = 5;
+/** A note is one sentence about their text, not a second rubric. */
+const NOTE_CEILING = 300;
 
 /** Keep a read only if there is one. Empty prose is worse than none. */
 export function summaryGate(parsed: unknown): Summary | null {
@@ -77,10 +106,11 @@ export function summaryGate(parsed: unknown): Summary | null {
 export function conflictGate(parsed: unknown, task: ScoreTask): Conflict[] {
   const raw = (parsed as { conflicts?: unknown } | null)?.conflicts;
   if (!Array.isArray(raw)) return [];
+  const fields = new Map((task.fields ?? []).map((f) => [f.id, f] as const));
   const kept: Conflict[] = [];
   for (const entry of raw) {
     if (typeof entry !== "object" || entry === null) continue;
-    const { one, two, why } = entry as Record<string, unknown>;
+    const { one, two, why, fix } = entry as Record<string, unknown>;
     if (typeof one !== "string" || typeof two !== "string") continue;
     if (one.trim() === "" || two.trim() === "") continue;
     // Both halves, or neither. Half a contradiction is not a smaller
@@ -92,9 +122,48 @@ export function conflictGate(parsed: unknown, task: ScoreTask): Conflict[] {
       one: one.trim(),
       two: two.trim(),
       why: typeof why === "string" ? why.trim() : "",
+      fix: fixGate(fix, fields),
     });
   }
   return kept;
+}
+
+/**
+ * A correction survives only if the instrument really has that field and
+ * really offers that value.
+ *
+ * This is the whole safety of writing on somebody's behalf: the model may
+ * choose among answers the form already allows, and may not invent one. A
+ * near-miss is dropped rather than matched loosely — silently turning
+ * "yes" into some other option is how a person ends up attesting to a
+ * sentence nobody wrote.
+ */
+export function fixGate(
+  raw: unknown,
+  fields: Map<string, { id: string; label: string; options: string[] }>,
+): Conflict["fix"] {
+  if (typeof raw !== "object" || raw === null) return null;
+  const { field, value } = raw as Record<string, unknown>;
+  if (typeof field !== "string" || typeof value !== "string") return null;
+  const known = fields.get(field.trim());
+  if (!known) return null;
+  const wanted = normalise(value);
+  const option = known.options.find((o) => normalise(o) === wanted);
+  if (option === undefined) return null;
+  return { field: known.id, label: known.label, value: option };
+}
+
+/** Trim to a length without cutting a word in half. */
+function clip(text: string, ceiling: number): string {
+  if (text.length <= ceiling) return text;
+  const cut = text.slice(0, ceiling);
+  const lastSpace = cut.lastIndexOf(" ");
+  return (
+    (lastSpace > ceiling * 0.6 ? cut.slice(0, lastSpace) : cut).replace(
+      /[,;:\s]+$/,
+      "",
+    ) + "…"
+  );
 }
 
 function normalise(text: string): string {
@@ -111,6 +180,11 @@ export function scoreGate(parsed: unknown, task: ScoreTask): DimensionScore[] {
   if (typeof parsed !== "object" || parsed === null) return [];
   const raw = (parsed as { scores?: unknown }).scores;
   if (typeof raw !== "object" || raw === null) return [];
+  const notesRaw = (parsed as { notes?: unknown }).notes;
+  const notes =
+    typeof notesRaw === "object" && notesRaw !== null
+      ? (notesRaw as Record<string, unknown>)
+      : {};
   const asked = new Set(task.dimensions.map((d) => d.id));
   const scores: DimensionScore[] = [];
   for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
@@ -118,7 +192,14 @@ export function scoreGate(parsed: unknown, task: ScoreTask): DimensionScore[] {
     // 1-4 against the published anchors. Anything else is dropped rather
     // than clamped — clamping turns nonsense into a number somebody acts on.
     if (value !== 1 && value !== 2 && value !== 3 && value !== 4) continue;
-    scores.push({ id, score: value });
+    const note = notes[id];
+    scores.push({
+      id,
+      score: value,
+      ...(typeof note === "string" && note.trim() !== ""
+        ? { note: clip(note.trim(), NOTE_CEILING) }
+        : {}),
+    });
   }
   return scores;
 }

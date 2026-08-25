@@ -200,6 +200,57 @@ Rules that do not bend:
 - Two or three sentences for the read. Two to four observations, one line
   each.
 
+## Saying what is missing, specifically
+
+For every criterion you score below 4, write one sentence about **their
+submission** saying what is actually absent or wrong.
+
+The rubric has a sentence for each level already, and it is general by
+construction — it has to fit every intake ever submitted, so the best it can
+manage is "worth naming the downstream systems, not just the first hop".
+Yours says *which* system they left out. "You name OpenAI as the processor
+but never say where the risk scores are kept afterwards, or who can read
+them" is worth more than the general form, because it can be acted on
+without thinking.
+
+One sentence. Their words where you can. Never repeat the rubric back.
+
+## Correcting an answer
+
+Where one half of a contradiction is an answer they **picked from a list**,
+and their own description makes clear which option was meant, propose the
+correction as `fix` on that conflict.
+
+You are given the fields and the exact options each accepts. **The value
+must be one of the options for that field, copied exactly.** Anything else
+is discarded — you are choosing among answers the form already allows, never
+inventing one.
+
+**If one half of the conflict is a field listed above, carry a fix.** That
+is the ordinary case, not the exceptional one. You quoted the picked answer
+as one half precisely because the description refutes it — so the
+description already told you which option was meant, and withholding the
+correction leaves the person to make a change you have already worked out.
+
+`fix` is null only in these cases:
+
+- Neither half is one of the fields listed above (both are prose).
+- The description shows the picked answer is wrong but not which option is
+  right — a system that *might* use AI settles nothing.
+- The right answer is not among that field's options.
+
+Worked examples, given `usesAi` with options "Yes", "No", "I'm not sure":
+
+- "Does this use AI or machine learning?: No" against "processed via
+  OpenAI's enterprise API" → `{"field": "usesAi", "value": "Yes"}`. The
+  description names an AI API doing the work. Not null.
+- "Does anything about this involve a company outside ours?: No" against a
+  named external supplier → that field, value "Yes". Not null.
+- A sensitivity classified "Public" against named personal or financial
+  data → that field, set to whichever option the data actually warrants.
+
+Never propose a fix for a free text field — those get a rewrite instead.
+
 ## Output
 
 A single JSON object and nothing else. `scores` has one key per criterion id
@@ -210,11 +261,13 @@ when you found none:
 {
   "narrative": ["<paragraph>", "<paragraph>", "<paragraph>"],
   "scores": { "<criterion id>": 3 },
+  "notes": { "<criterion id>": "<one sentence about their submission>" },
   "conflicts": [
     {
       "one": "<the first half, quoted exactly>",
       "two": "<the second half, quoted exactly>",
-      "why": "<one short sentence: why these cannot both be true>"
+      "why": "<one short sentence: why these cannot both be true>",
+      "fix": { "field": "<field id>", "value": "<one of its exact options>" }
     }
   ]
 }

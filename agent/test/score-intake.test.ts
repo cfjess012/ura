@@ -9,6 +9,7 @@
 import { describe, expect, it } from "vitest";
 import {
   conflictGate,
+  fixGate,
   scoreGate,
   summaryGate,
   type ScoreTask,
@@ -200,5 +201,60 @@ describe("the read of the activity", () => {
     });
     expect(read!.narrative).toHaveLength(5);
     expect(read!.narrative[0]!.length).toBeLessThanOrEqual(900);
+  });
+});
+
+/**
+ * Writing an answer on somebody's behalf is only safe because the value is
+ * one the form already offered. The model chooses among the options; it
+ * never invents one, and a near-miss is dropped rather than matched loosely
+ * — silently turning a wrong value into some other option is how a person
+ * ends up attesting to a sentence nobody wrote.
+ */
+describe("correcting a picked answer", () => {
+  const fields = new Map([
+    [
+      "usesAi",
+      {
+        id: "usesAi",
+        label: "Does this use AI or machine learning?",
+        options: ["Yes", "No", "I'm not sure"],
+      },
+    ],
+  ]);
+
+  it("keeps a fix naming a real field and a real option", () => {
+    expect(fixGate({ field: "usesAi", value: "Yes" }, fields)).toEqual({
+      field: "usesAi",
+      label: "Does this use AI or machine learning?",
+      value: "Yes",
+    });
+  });
+
+  it("returns the option in the instrument's own casing", () => {
+    // Matched case-insensitively, but what is written back is the form's
+    // string — never the model's rendering of it.
+    expect(fixGate({ field: "usesAi", value: "yes" }, fields)?.value).toBe(
+      "Yes",
+    );
+  });
+
+  it("drops a value the field does not offer", () => {
+    expect(fixGate({ field: "usesAi", value: "Probably" }, fields)).toBeNull();
+    expect(fixGate({ field: "usesAi", value: "" }, fields)).toBeNull();
+  });
+
+  it("drops a field that does not exist", () => {
+    expect(fixGate({ field: "invented", value: "Yes" }, fields)).toBeNull();
+  });
+
+  it("drops a malformed fix rather than guessing at it", () => {
+    expect(fixGate(null, fields)).toBeNull();
+    expect(fixGate({ field: "usesAi" }, fields)).toBeNull();
+    expect(fixGate("usesAi=Yes", fields)).toBeNull();
+  });
+
+  it("proposes nothing when no fields were sent", () => {
+    expect(fixGate({ field: "usesAi", value: "Yes" }, new Map())).toBeNull();
   });
 });

@@ -227,10 +227,10 @@ describe("what a person is told about conflicts", () => {
 
   it("counts the pairs rather than always saying two", () => {
     const four = coherenceFrom(scored, [
-      { one: "a", two: "b", why: "" },
-      { one: "c", two: "d", why: "" },
-      { one: "e", two: "f", why: "" },
-      { one: "g", two: "h", why: "" },
+      { one: "a", two: "b", why: "", fix: null },
+      { one: "c", two: "d", why: "", fix: null },
+      { one: "e", two: "f", why: "", fix: null },
+      { one: "g", two: "h", why: "", fix: null },
     ]);
     const ask = four.asks.find((a) => a.id === "consistency")!;
     expect(ask.sentence).toContain("4 pairs");
@@ -238,7 +238,9 @@ describe("what a person is told about conflicts", () => {
   });
 
   it("says 'both' when there is exactly one pair", () => {
-    const one = coherenceFrom(scored, [{ one: "a", two: "b", why: "" }]);
+    const one = coherenceFrom(scored, [
+      { one: "a", two: "b", why: "", fix: null },
+    ]);
     expect(one.asks[0]!.sentence).toContain("Both are quoted below");
   });
 

@@ -85,7 +85,11 @@ const server = createServer(async (req, res) => {
   if (req.method === "POST" && req.url === "/score-intake") {
     const body: Buffer[] = [];
     for await (const chunk of req) body.push(chunk as Buffer);
-    let task: { description?: string; dimensions?: ScoreTask["dimensions"] };
+    let task: {
+      description?: string;
+      fields?: ScoreTask["fields"];
+      dimensions?: ScoreTask["dimensions"];
+    };
     try {
       task = JSON.parse(Buffer.concat(body).toString("utf8"));
     } catch {
@@ -95,6 +99,9 @@ const server = createServer(async (req, res) => {
     }
     const scoring = await scoreIntake({
       description: task.description ?? "",
+      // Without these a proposed correction has nothing to be checked
+      // against, so every fix is dropped and the feature is silently absent.
+      fields: task.fields ?? [],
       dimensions: task.dimensions ?? [],
     });
     res.writeHead(200, { "content-type": "application/json" });

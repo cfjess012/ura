@@ -298,6 +298,10 @@ export function SectionForm({
             // grading judges whatever they finally submit, not what was
             // offered (FR-22).
             onRewrite={(fieldId, text) => set(fieldId, text)}
+            // A correction writes to the record, and the field it corrects
+            // usually lives on an earlier section — so pull the saved value
+            // back onto this screen rather than leaving it stale.
+            onFixed={() => router.refresh()}
           />
         )}
 

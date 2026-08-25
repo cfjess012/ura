@@ -13,6 +13,7 @@ import { currentPerson, PERSON_COOKIE } from "@/lib/current-person";
 import { failure, isFailure, type Failure, type Result } from "@/lib/errors";
 import { attestationProblem, attestationRefusal } from "@/lib/attestation";
 import { type DispositionKind, dispositionProblem } from "@/lib/disposition";
+import { ALL_FIELDS } from "@/lib/intake";
 import {
   canAnswer,
   canAttest,
@@ -156,6 +157,38 @@ export async function saveIntake(
       "Couldn't save just now — your answers are still on screen, so nothing was lost. Try again in a moment.",
     );
   }
+}
+
+/**
+ * Apply one correction the check proposed (FR-43).
+ *
+ * **The person clicks; the platform does not decide.** A proposed fix sits
+ * on screen beside both halves of the contradiction it settles, and nothing
+ * moves until somebody chooses it — which is what keeps this a correction
+ * they made rather than an answer written for them. They can change it back
+ * on the section it lives on like any other answer.
+ *
+ * The value is checked here as well as in the agent, because a server
+ * action is reachable without going through either. The instrument is the
+ * authority on what a field will accept, and this asks it again.
+ */
+export async function applyIntakeFix(
+  projectId: string,
+  fieldId: string,
+  value: string,
+): Promise<Result<{ savedAt: string }>> {
+  const field = ALL_FIELDS.find((f) => f.id === fieldId);
+  if (!field || !field.options?.includes(value)) {
+    return failure(
+      "applyIntakeFix",
+      new Error(`no option ${value} on field ${fieldId}`),
+      "That correction no longer matches the form, so nothing was changed.",
+      { retryable: false },
+    );
+  }
+  const form = new FormData();
+  form.set(fieldId, value);
+  return saveIntake(projectId, form);
 }
 
 /**

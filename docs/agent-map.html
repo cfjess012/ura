@@ -1440,7 +1440,54 @@ The order is the point, and it was wrong twice before it was right:
    Four cards of anchors competing with the narrative is what made the first
    version read as a scorecard with no context.
 
+## Saying it about their submission
+
+Every rubric sentence is general by construction — it has to fit every
+intake ever submitted, so the best it can manage is &quot;worth naming the
+downstream systems, not just the first hop&quot;. The model now writes one
+sentence per shortfall about **their** text: which system they left out.
+That is `notes` in the response and `ask.note` on screen, shown in place of
+the rubric's sentence when present, with the anchor still beneath it.
+
+The rubric line remains the fallback and remains the definition. The note
+never replaces the anchor, because the anchor is what makes a grade
+readable rather than authoritative.
+
+## Correcting an answer on their behalf
+
+Where one half of a contradiction is a picked answer and the description
+settles which option was meant, the check offers to change it. **The person
+clicks; the platform never decides.** The offer sits beside both halves of
+the contradiction it settles, and it writes through `saveIntake` like any
+other answer — same authority check, same change history, changeable back
+on its own section.
+
+What makes this safe is that the model is choosing among answers the form
+already allows, not writing one:
+
+- The instrument's fields and their exact options are sent with the scoring
+  request. `fixGate` keeps a fix only if the field exists and the value is
+  one of its options; matching is case-insensitive but **what gets written
+  is the instrument's own string**, never the model's rendering of it.
+- A near-miss is dropped, never coerced. Silently turning &quot;Probably&quot; into
+  some other option is how somebody ends up attesting to a sentence nobody
+  wrote.
+- Checked again in `applyIntakeFix`, because a server action is reachable
+  without going through the agent at all.
+- Free text fields are excluded by construction — they only offer options
+  when they have them, and prose gets a rewrite instead.
+
+Only fields with a fixed option set are offered. That is not a limitation
+to route around: a wrong sentence needs a person reading it, a wrong pick
+has exactly one right alternative.
+
 ## The rewrite
+
+The length ceiling counts **prose only**. Placeholders are the one thing a
+rewrite may add, so measuring the whole string rejected good rewrites for
+doing exactly what they were asked to do — a description with three
+bracketed questions in it is not a longer description, it is an honest one.
+Bracketed spans are stripped before the words are counted.
 
 Offered only where a long-form field scores below 4, and bound by one rule:
 **it uses only facts the person already wrote.** Anything missing becomes a

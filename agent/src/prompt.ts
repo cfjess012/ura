@@ -138,11 +138,23 @@ export function composeScorePrompt(task: ScoreTask): string {
       ].join("\n"),
     )
     .join("\n\n");
+  // The fields a correction may name, with the exact options each accepts.
+  // Without these the prompt asks for a fix against a form it has not seen,
+  // and the model correctly declines every time.
+  const fields = (task.fields ?? [])
+    .map(
+      (f) =>
+        `- \`${f.id}\` — ${f.label}\n  options: ${f.options.map((o) => `"${o}"`).join(", ")}`,
+    )
+    .join("\n");
   return [
     SCORE,
     "---",
     "## The dimensions",
     dimensions,
+    "",
+    "## The fields a correction may set",
+    fields === "" ? "(none — do not propose any fix)" : fields,
     "",
     "## The description",
     task.description,

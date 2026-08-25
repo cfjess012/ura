@@ -61,8 +61,16 @@ export function rewriteGate(
     };
   }
 
+  // Placeholders are the one thing a rewrite is allowed to add, so they do
+  // not count towards having added. Measuring the whole string rejected
+  // good rewrites for doing exactly what they were asked to do — the
+  // question is whether *prose* grew, not whether text did.
   const words = (text: string) =>
-    text.trim().split(/\s+/).filter(Boolean).length;
+    text
+      .replace(/\[[^\]]*\]/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length;
   if (words(rewrite) > words(task.original) * LENGTH_CEILING + 20) {
     // Grew substantially. The only thing it may add is a placeholder, and
     // this much growth is prose that came from somewhere else.

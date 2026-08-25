@@ -461,6 +461,28 @@
 /* The grades are a reference list under the narrative, not four more
    cards competing with it. One row each, the anchor only where it earns
    its line. */
+/* A correction, offered beside the two halves it settles. It is a real
+   button rather than a link because it writes to the record — and nothing
+   moves until somebody presses it. */
+.coherence-fix {
+  margin: 0.15rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.btn-small {
+  padding: 0.28rem 0.6rem;
+  font-size: 0.75rem;
+  border-radius: 6px;
+}
+.coherence-fixed {
+  margin: 0.15rem 0 0;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--success);
+}
+
 .coherence-conflicts-count {
   display: inline-flex;
   align-items: center;

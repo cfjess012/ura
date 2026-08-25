@@ -548,6 +548,35 @@ export async function acceptDraft(
  * a partial answer, a thrown error: all pass. A quality assistant that
  * blocks submission has become a gate (G-69).
  */
+/**
+ * The fields a contradiction may be corrected on: those that offer a fixed
+ * set of answers.
+ *
+ * Free text is deliberately excluded. A wrong sentence is rewritten with
+ * the person watching; a wrong pick has exactly one right alternative and
+ * can be checked against the instrument, which is what makes writing it on
+ * their behalf safe at all.
+ */
+function correctableFields(): Array<{
+  id: string;
+  label: string;
+  options: string[];
+}> {
+  const fields: Array<{ id: string; label: string; options: string[] }> = [];
+  for (const section of INTAKE_SECTIONS) {
+    for (const field of section.fields) {
+      if (field.options && field.options.length > 0) {
+        fields.push({
+          id: field.id,
+          label: field.label,
+          options: field.options,
+        });
+      }
+    }
+  }
+  return fields;
+}
+
 export async function checkIntake(
   projectId: string,
 ): Promise<Result<{ coherence: Coherence; rewritable: string[] }>> {
@@ -622,6 +651,7 @@ export async function checkIntake(
               anchor: "",
               why: "Everything downstream routes on what you write here.",
               routing: true,
+              note: null,
               conflicts: [],
               conflictHeading: null,
               unquoted: null,
@@ -642,6 +672,7 @@ export async function checkIntake(
     }
     const scoring = await transport.scoreIntake({
       description: document.join("\n"),
+      fields: correctableFields(),
       dimensions: scoringBrief(),
     });
     return {
@@ -650,6 +681,7 @@ export async function checkIntake(
         scoring.scores.map((s) => ({
           id: s.id,
           level: Math.min(4, Math.max(1, s.score)) as Level,
+          ...(s.note ? { because: s.note } : {}),
         })),
         scoring.conflicts,
         scoring.summary,

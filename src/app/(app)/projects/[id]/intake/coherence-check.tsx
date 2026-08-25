@@ -6,6 +6,7 @@ import {
   suggestRewrite,
   type Suggestion,
 } from "@/app/agent-actions";
+import { applyIntakeFix } from "@/app/actions";
 import { isFailure } from "@/lib/errors";
 import type { Coherence } from "@/lib/intake-rubric";
 
@@ -24,10 +25,13 @@ export function CoherenceCheck({
   projectId,
   save,
   onRewrite,
+  onFixed,
 }: {
   projectId: string;
   /** Puts a suggestion into the field, for them to edit. Never saves it. */
   onRewrite?: (fieldId: string, text: string) => void;
+  /** Called after a correction lands, so the screen can catch up. */
+  onFixed?: () => void;
   /**
    * Saves what is on screen. The button says "Save & run AI check" and it
    * has to do both: the check reads the RECORD, so without saving first it
@@ -100,6 +104,7 @@ export function CoherenceCheck({
             projectId={projectId}
             rewritable={rewritable}
             onRewrite={onRewrite}
+            onFixed={onFixed}
           />
         )}
       </div>
@@ -112,11 +117,13 @@ function Result({
   projectId,
   rewritable,
   onRewrite,
+  onFixed,
 }: {
   result: Coherence;
   projectId: string;
   rewritable: string[];
   onRewrite?: (fieldId: string, text: string) => void;
+  onFixed?: () => void;
 }) {
   if (result.score === null && result.asks.length === 0) {
     return (
@@ -187,6 +194,13 @@ function Result({
               {clash.why && (
                 <p className="coherence-conflict-why">{clash.why}</p>
               )}
+              {clash.fix && onFixed && (
+                <FixButton
+                  projectId={projectId}
+                  fix={clash.fix}
+                  onDone={onFixed}
+                />
+              )}
             </div>
           ))}
         </div>
@@ -221,7 +235,7 @@ function Result({
                     <span className="coherence-routing">decides routing</span>
                   )}
                 </p>
-                <p className="coherence-ask-body">{ask.sentence}</p>
+                <p className="coherence-ask-body">{ask.note ?? ask.sentence}</p>
                 {ask.unquoted && (
                   <p className="coherence-ask-body">{ask.unquoted}</p>
                 )}
@@ -279,6 +293,79 @@ function LevelDots({ level }: { level: number }) {
       </span>
       <span className="coherence-level-text">{level} of 4</span>
     </span>
+  );
+}
+
+/**
+ * One proposed correction, applied only when somebody chooses it.
+ *
+ * The value was checked against the instrument's own options twice — in the
+ * agent and again in the action — so what this writes is an answer the form
+ * already allowed. It is still theirs: it sits beside both halves of the
+ * contradiction, and it changes nothing until clicked.
+ */
+function FixButton({
+  projectId,
+  fix,
+  onDone,
+}: {
+  projectId: string;
+  fix: { field: string; label: string; value: string };
+  onDone: () => void;
+}) {
+  const [state, setState] = React.useState<
+    "idle" | "saving" | "done" | "failed"
+  >("idle");
+
+  if (state === "done") {
+    return (
+      <p className="coherence-fixed">
+        <span aria-hidden="true">✓</span> Set to &ldquo;{fix.value}&rdquo;. You
+        can change it back on {fix.label.replace(/\?$/, "")}.
+      </p>
+    );
+  }
+
+  return (
+    <p className="coherence-fix">
+      <button
+        type="button"
+        className="btn btn-small"
+        disabled={state === "saving"}
+        onClick={async () => {
+          setState("saving");
+          try {
+            const outcome = await applyIntakeFix(
+              projectId,
+              fix.field,
+              fix.value,
+            );
+            if (isFailure(outcome)) {
+              setState("failed");
+              return;
+            }
+            setState("done");
+            onDone();
+          } catch (cause) {
+            console.error("applyIntakeFix", cause);
+            setState("failed");
+          }
+        }}
+      >
+        {state === "saving"
+          ? "Changing…"
+          : // Naming the field, because this writes to the record and two
+            // corrections sitting together both reading "change to Yes"
+            // would leave a person guessing which answer they just moved.
+            `Change “${fix.label.replace(/\?$/, "")}” to “${fix.value}”`}
+      </button>
+      {state === "failed" && (
+        <span className="help">
+          That didn&rsquo;t save — the answer is unchanged, and you can set it
+          on its own section.
+        </span>
+      )}
+    </p>
   );
 }
 
