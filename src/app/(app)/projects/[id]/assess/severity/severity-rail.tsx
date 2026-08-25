@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CurrentAnswer } from "@/lib/repo";
-import type { SeverityQuestion } from "@/lib/severity";
+import { severityGroupKey, type SeverityQuestion } from "@/lib/severity";
 
 export type SeverityGroup = {
   key: string;
@@ -8,11 +8,7 @@ export type SeverityGroup = {
   questions: SeverityQuestion[];
 };
 
-export const groupKey = (name: string) =>
-  name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+export { severityGroupKey as groupKey };
 
 /** Severity questions grouped by the area they belong to, in instrument order. */
 export function groupsFor(questions: SeverityQuestion[]): SeverityGroup[] {
@@ -26,7 +22,7 @@ export function groupsFor(questions: SeverityQuestion[]): SeverityGroup[] {
     byName.get(q.category)!.push(q);
   }
   return order.map((name) => ({
-    key: groupKey(name),
+    key: severityGroupKey(name),
     name,
     questions: byName.get(name)!,
   }));

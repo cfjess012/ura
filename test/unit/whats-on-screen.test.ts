@@ -12,6 +12,7 @@
 import { describe, expect, it } from "vitest";
 import { gatesAnswerableAt, whatsOnScreen } from "@/lib/whats-on-screen";
 import { CATEGORIES } from "@/lib/instrument";
+import { SEVERITY, severityGroupKey } from "@/lib/severity";
 
 const at = (rest: string) => `/projects/9f1c-abcd/${rest}`;
 
@@ -129,5 +130,44 @@ describe("what may be proposed here", () => {
     ).toEqual([]);
     expect(gatesAnswerableAt("")).toEqual([]);
     expect(gatesAnswerableAt("/elsewhere/entirely")).toEqual([]);
+  });
+});
+
+/**
+ * §22.1 · the severity screens.
+ *
+ * These grouped by `category` in the rail and by `path` here — two
+ * different fields — so the assistant matched nothing and told somebody it
+ * could not see the question in front of them, on a screen showing five.
+ */
+describe("what is on a severity screen", () => {
+  const groups = [
+    ...new Set(SEVERITY.questions.map((q) => severityGroupKey(q.category))),
+  ];
+
+  it("finds the questions for every area the rail can send you to", () => {
+    expect(groups.length).toBeGreaterThan(1);
+    for (const group of groups) {
+      const screen = whatsOnScreen(`/projects/p1/assess/severity/${group}`);
+      expect(screen?.questions.length, group).toBeGreaterThan(0);
+    }
+  });
+
+  it("names the area rather than saying 'the severity questions'", () => {
+    const screen = whatsOnScreen(`/projects/p1/assess/severity/${groups[0]}`);
+    expect(screen?.screen).not.toBe("the severity questions");
+  });
+
+  it("carries the band descriptions, because they are the question", () => {
+    // "Pick the description that fits" is the whole instruction on this
+    // screen — without the descriptions there is nothing to pick between.
+    const screen = whatsOnScreen(`/projects/p1/assess/severity/${groups[0]}`);
+    expect(screen?.questions[0]).toMatch(/Low:|Medium:|High:/);
+  });
+
+  it("gives nothing for an area that does not exist", () => {
+    expect(
+      whatsOnScreen("/projects/p1/assess/severity/not-an-area")?.questions,
+    ).toEqual([]);
   });
 });

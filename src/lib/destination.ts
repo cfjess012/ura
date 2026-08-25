@@ -10,7 +10,7 @@
  * Pure: no framework, no driver, no environment (§26.1).
  */
 import { CATEGORIES } from "./instrument";
-import { SEVERITY_QUESTIONS } from "./severity";
+import { SEVERITY_QUESTIONS, severityGroupKey } from "./severity";
 import { ALL_FIELDS, INTAKE_SECTIONS, sectionKey } from "./intake";
 
 /** The anchor every surface reads. One word, the same everywhere. */
@@ -22,19 +22,16 @@ export type Destination = {
   label: string;
 };
 
-const groupKey = (name: string) =>
-  name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-
 /**
  * The screen a question lives on, with the question as the anchor.
  *
  * Returns null when the subject has no screen of its own — the caller then
  * says so rather than guessing at the nearest page.
  */
-export function destinationFor(projectId: string, questionId: string): Destination | null {
+export function destinationFor(
+  projectId: string,
+  questionId: string,
+): Destination | null {
   const base = `/projects/${projectId}`;
   const anchor = `?${FOCUS}=${encodeURIComponent(questionId)}`;
 
@@ -43,21 +40,33 @@ export function destinationFor(projectId: string, questionId: string): Destinati
   );
   if (severity)
     return {
-      href: `${base}/assess/severity/${groupKey(severity.category)}${anchor}`,
+      href: `${base}/assess/severity/${severityGroupKey(severity.category)}${anchor}`,
       label: severity.name,
     };
 
-  const path = CATEGORIES.find((c) => c.pathQuestion?.questionId === questionId);
-  if (path) return { href: `${base}/assess/paths${anchor}`, label: path.pathQuestion!.text };
+  const path = CATEGORIES.find(
+    (c) => c.pathQuestion?.questionId === questionId,
+  );
+  if (path)
+    return {
+      href: `${base}/assess/paths${anchor}`,
+      label: path.pathQuestion!.text,
+    };
 
   const gate = CATEGORIES.find((c) => c.questionId === questionId);
-  if (gate) return { href: `${base}/assess/${gate.key}${anchor}`, label: gate.name };
+  if (gate)
+    return { href: `${base}/assess/${gate.key}${anchor}`, label: gate.name };
 
   const field = ALL_FIELDS.find((f) => f.id === questionId);
   if (field) {
-    const section = INTAKE_SECTIONS.find((s) => s.fields.some((f) => f.id === field.id));
+    const section = INTAKE_SECTIONS.find((s) =>
+      s.fields.some((f) => f.id === field.id),
+    );
     if (section)
-      return { href: `${base}/intake/${sectionKey(section.name)}${anchor}`, label: field.label };
+      return {
+        href: `${base}/intake/${sectionKey(section.name)}${anchor}`,
+        label: field.label,
+      };
   }
   return null;
 }

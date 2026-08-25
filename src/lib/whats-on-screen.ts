@@ -16,7 +16,7 @@
 import { CATEGORIES, type Category } from "./instrument";
 import { INTAKE_SECTIONS, sectionKey } from "./intake";
 import { OBJECTIVES } from "./tier3";
-import { SEVERITY } from "./severity";
+import { SEVERITY, severityGroupKey } from "./severity";
 
 export type OnScreen = { screen: string; questions: string[] };
 
@@ -60,16 +60,29 @@ export function whatsOnScreen(pathname: string): OnScreen | null {
     }
     if (parts[1] === "severity") {
       const group = parts[2];
-      const questions = (SEVERITY.questions ?? [])
-        .filter(
-          (q) =>
-            !group ||
-            q.path?.toLowerCase().startsWith(group.replace(/-/g, "_")),
-        )
-        .map((q) => q.text);
+      // Grouped by CATEGORY, the same way the rail and the page group them.
+      // This filtered on `path` instead — a different field entirely — so on
+      // a severity screen it matched nothing and the assistant told somebody
+      // it could not see the question in front of them and asked them to
+      // paste it in.
+      const here = (SEVERITY.questions ?? []).filter(
+        (q) => !group || severityGroupKey(q.category) === group,
+      );
+      const named = here[0]?.category;
       return {
-        screen: "the severity questions",
-        questions: questions.slice(0, 12),
+        screen: named
+          ? `the severity questions for ${named}`
+          : "the severity questions",
+        // The bands too. "Pick the description that fits" is the whole
+        // instruction on this screen, so the descriptions ARE the question —
+        // without them the assistant can say what severity means in general
+        // and nothing about the choice actually in front of them.
+        questions: here.slice(0, 8).map((q) => {
+          const bands = Object.entries(q.bands)
+            .map(([band, anchor]) => `${band}: ${anchor}`)
+            .join(" · ");
+          return `${q.name} — ${q.text} (${bands})`;
+        }),
       };
     }
     if (parts[1] === "objectives") {

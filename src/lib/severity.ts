@@ -44,6 +44,22 @@ export type SeverityDetail = {
   optionRequires: Record<string, string[]>;
 };
 
+/**
+ * The URL slug for a severity area.
+ *
+ * **One definition.** There were three — the rail's, the destination
+ * builder's, and an inline one in `whats-on-screen` that filtered on the
+ * wrong field entirely, so the assistant could not see the questions on a
+ * severity screen and said so out loud. Grouping is by `category`; anything
+ * that groups by something else disagrees with the rail a person is looking
+ * at.
+ */
+export const severityGroupKey = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
 export type SeverityQuestion = {
   id: string;
   questionId: string;
@@ -72,7 +88,10 @@ export type SeverityDoc = {
   slug: string;
   version: string;
   /** The owner's control catalogue, keyed by their code. */
-  controls: Record<string, { name: string; family: string; objective?: string }>;
+  controls: Record<
+    string,
+    { name: string; family: string; objective?: string }
+  >;
 };
 
 /** Exported so its reference checks are reachable from the suite. */
@@ -80,7 +99,8 @@ export function validate(doc: SeverityDoc) {
   const problems: string[] = [];
   const ids = new Set<string>();
   for (const q of doc.questions ?? []) {
-    if (ids.has(q.questionId)) problems.push(`duplicate question id ${q.questionId}`);
+    if (ids.has(q.questionId))
+      problems.push(`duplicate question id ${q.questionId}`);
     ids.add(q.questionId);
     for (const band of BANDS) {
       // A rubric anchor is the answer option (FR-6). A band with no anchor
@@ -90,13 +110,19 @@ export function validate(doc: SeverityDoc) {
     }
     for (const requirement of q.requires ?? []) {
       if (!BANDS.includes(requirement.atLeast))
-        problems.push(`${q.id}: requirement ${requirement.objective} has no valid threshold`);
+        problems.push(
+          `${q.id}: requirement ${requirement.objective} has no valid threshold`,
+        );
       if (!requirement.why?.trim())
-        problems.push(`${q.id}: requirement ${requirement.objective} has no reason`);
+        problems.push(
+          `${q.id}: requirement ${requirement.objective} has no reason`,
+        );
     }
     if (q.detail) {
-      if (!q.detail.firesAt?.length) problems.push(`${q.id}: detail never fires`);
-      if (!q.detail.options?.length) problems.push(`${q.id}: detail asks nothing`);
+      if (!q.detail.firesAt?.length)
+        problems.push(`${q.id}: detail never fires`);
+      if (!q.detail.options?.length)
+        problems.push(`${q.id}: detail asks nothing`);
     }
     for (const [value, band] of Object.entries(q.derivedFrom?.map ?? {})) {
       if (!BANDS.includes(band))
@@ -116,10 +142,14 @@ export function validate(doc: SeverityDoc) {
   );
   for (const q of doc.questions ?? []) {
     if (q.path !== null && !pathIds.has(q.path))
-      problems.push(`${q.id}: lit by path "${q.path}", which no risk area offers — it can never be asked`);
+      problems.push(
+        `${q.id}: lit by path "${q.path}", which no risk area offers — it can never be asked`,
+      );
     const from = q.derivedFrom?.from;
     if (from && !INTAKE_FIELD_IDS.has(from))
-      problems.push(`${q.id}: derived from "${from}", which is not an intake field — it can never fire`);
+      problems.push(
+        `${q.id}: derived from "${from}", which is not an intake field — it can never fire`,
+      );
   }
 
   // Every control objective a question can pull in must have a human name
@@ -129,7 +159,8 @@ export function validate(doc: SeverityDoc) {
   const named = new Set(Object.keys(doc.controls ?? {}));
   const cited = new Set<string>();
   for (const q of doc.questions ?? []) {
-    for (const requirement of q.requires ?? []) cited.add(requirement.objective);
+    for (const requirement of q.requires ?? [])
+      cited.add(requirement.objective);
     for (const objectives of Object.values(q.detail?.optionRequires ?? {}))
       for (const objective of objectives) cited.add(objective);
   }
@@ -140,9 +171,14 @@ export function validate(doc: SeverityDoc) {
   // rots: the names are the owner's, but the set of them is ours to keep
   // honest.
   for (const code of named)
-    if (!cited.has(code)) problems.push(`control ${code} is in the catalogue but nothing requires it`);
+    if (!cited.has(code))
+      problems.push(
+        `control ${code} is in the catalogue but nothing requires it`,
+      );
   if (problems.length > 0)
-    throw new Error(`Severity instrument is invalid:\n- ${problems.join("\n- ")}`);
+    throw new Error(
+      `Severity instrument is invalid:\n- ${problems.join("\n- ")}`,
+    );
   return doc;
 }
 
@@ -169,7 +205,10 @@ export function askedWhen(question: SeverityQuestion): Condition | null {
 /** The bands at which a question's detail is on screen (FR-8). */
 export function detailWhen(question: SeverityQuestion): Condition | null {
   return question.detail
-    ? { field: SEVERITY_OF(question.questionId), equalsAny: question.detail.firesAt }
+    ? {
+        field: SEVERITY_OF(question.questionId),
+        equalsAny: question.detail.firesAt,
+      }
     : null;
 }
 
@@ -219,7 +258,10 @@ export function deriveBand(
 }
 
 /** Whether a question's detail is showing, given the answers so far (FR-8). */
-export function detailFires(question: SeverityQuestion, answers: AnswerLookup): boolean {
+export function detailFires(
+  question: SeverityQuestion,
+  answers: AnswerLookup,
+): boolean {
   const when = detailWhen(question);
   return when !== null && matches(when, answers);
 }
@@ -292,7 +334,8 @@ function reasonFor(
   const plain = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, "");
   const name = controlName(requirement.objective);
   const why = plain(requirement.why);
-  const echoes = why.length > 0 && (plain(name).includes(why) || why.includes(plain(name)));
+  const echoes =
+    why.length > 0 && (plain(name).includes(why) || why.includes(plain(name)));
   return echoes
     ? `${questionName} is ${band}`
     : `${questionName} is ${band} — ${requirement.why}`;
@@ -325,10 +368,16 @@ export function accumulateControls(
       }
     }
   }
-  return [...owed.entries()]
-    .map(([objective, because]) => ({ objective, name: controlName(objective), because }))
-    // Sorted by what a person reads, not by the internal code.
-    .sort((a, b) => a.name.localeCompare(b.name));
+  return (
+    [...owed.entries()]
+      .map(([objective, because]) => ({
+        objective,
+        name: controlName(objective),
+        because,
+      }))
+      // Sorted by what a person reads, not by the internal code.
+      .sort((a, b) => a.name.localeCompare(b.name))
+  );
 }
 
 /**
@@ -341,13 +390,18 @@ export function severitySubmissionProblems(
   const problems: string[] = [];
   const byQuestion = new Map(SEVERITY_QUESTIONS.map((q) => [q.questionId, q]));
   const byDetail = new Map(
-    SEVERITY_QUESTIONS.filter((q) => q.detail).map((q) => [q.detail!.questionId, q]),
+    SEVERITY_QUESTIONS.filter((q) => q.detail).map((q) => [
+      q.detail!.questionId,
+      q,
+    ]),
   );
   for (const [questionId, value] of Object.entries(answers)) {
     const question = byQuestion.get(questionId);
     if (question) {
       if (Array.isArray(value) || !BANDS.includes(value as Band))
-        problems.push(`${questionId}: "${String(value)}" is not one of Low, Medium or High`);
+        problems.push(
+          `${questionId}: "${String(value)}" is not one of Low, Medium or High`,
+        );
       continue;
     }
     const parent = byDetail.get(questionId);
@@ -356,9 +410,13 @@ export function severitySubmissionProblems(
       continue;
     }
     const known = new Set(parent.detail!.options);
-    const unknown = (Array.isArray(value) ? value : [value]).filter((v) => !known.has(v));
+    const unknown = (Array.isArray(value) ? value : [value]).filter(
+      (v) => !known.has(v),
+    );
     if (unknown.length > 0)
-      problems.push(`${questionId}: unknown option${unknown.length > 1 ? "s" : ""} ${unknown.join(", ")}`);
+      problems.push(
+        `${questionId}: unknown option${unknown.length > 1 ? "s" : ""} ${unknown.join(", ")}`,
+      );
   }
   return problems;
 }
@@ -406,7 +464,11 @@ export function writableSeverityAnswers(
   };
   for (const question of questions) {
     const band = bands[question.questionId] ?? null;
-    if (covered.has(question.questionId) && band && !unchanged(question.questionId, band))
+    if (
+      covered.has(question.questionId) &&
+      band &&
+      !unchanged(question.questionId, band)
+    )
       payload[question.questionId] = band;
     if (
       question.detail &&
@@ -474,14 +536,14 @@ export function gateStateLabel(state: GateState): string {
   if (state.answer === "No") return "Not applicable";
   if (state.answer !== "Yes") return "";
   if (state.fromIntake) {
-    const source = state.origin === "answers" ? "from your answers" : "from intake";
+    const source =
+      state.origin === "answers" ? "from your answers" : "from intake";
     // Both facts, because both are true: where the answer came from, and
     // that nothing further is asked here.
     return quiet ? `Yes · ${source} · recorded for review` : `Yes · ${source}`;
   }
   return quiet ? STOPS_HERE_SHORT : "Applies";
 }
-
 
 /**
  * Every control this assessment requires, derived from what is recorded.
@@ -495,7 +557,10 @@ export function gateStateLabel(state: GateState): string {
  * Pure: the caller fetches, this decides (§26.1).
  */
 export function accumulatedFor(
-  stored: Record<string, { value: unknown; source: string; confirmed: boolean }>,
+  stored: Record<
+    string,
+    { value: unknown; source: string; confirmed: boolean }
+  >,
   intake: AnswerLookup,
 ): AccumulatedControl[] {
   const gates = gateStates(stored, intake);
@@ -506,7 +571,9 @@ export function accumulatedFor(
       : undefined;
     if (Array.isArray(value)) selections[category.key] = value as string[];
   }
-  const questions = severityQuestionsFor(litPaths(CATEGORIES, gates, selections, intake).map((p) => p.id));
+  const questions = severityQuestionsFor(
+    litPaths(CATEGORIES, gates, selections, intake).map((p) => p.id),
+  );
   const bands: Record<string, Band | undefined> = {};
   const details: Record<string, string[] | undefined> = {};
   for (const question of questions) {
@@ -514,7 +581,8 @@ export function accumulatedFor(
     if (typeof value === "string") bands[question.questionId] = value as Band;
     if (question.detail) {
       const detail = stored[question.detail.questionId]?.value;
-      if (Array.isArray(detail)) details[question.detail.questionId] = detail as string[];
+      if (Array.isArray(detail))
+        details[question.detail.questionId] = detail as string[];
     }
   }
   return accumulateControls(questions, bands, details);
