@@ -54,8 +54,14 @@ import { isFailure } from "@/lib/errors";
 const NARROWEST = 320;
 /** And how wide before it stops being a panel and becomes the page. */
 const WIDEST = 900;
-/** The gap the panel keeps from the right edge, in the stylesheet too. */
+/** The gaps the panel keeps from the edges, matching the stylesheet. */
 const RIGHT_GAP = 24;
+const BOTTOM_GAP = 24;
+/** Height bounds. Below the first it cannot show a turn; above, it is the page. */
+const SHORTEST = 260;
+const TALLEST = 900;
+/** What it is before anybody has dragged it — matches the stylesheet. */
+const DEFAULT_HEIGHT = 544;
 /** What it is before anybody has dragged it — matches the stylesheet. */
 const DEFAULT_WIDTH = 384;
 /** One arrow press. Big enough to be worth pressing, small enough to aim. */
@@ -558,7 +564,8 @@ export function Assistant({
   const [consulted, setConsulted] = React.useState<Clause[]>([]);
   /** The clause being read in full, if any. */
   const [reading, setReading] = React.useState<Clause | null>(null);
-  const [dragging, setDragging] = React.useState(false);
+  /** Which way the pointer is currently dragging, if it is. */
+  const [dragging, setDragging] = React.useState<null | "x" | "y" | "xy">(null);
   /**
    * Whether the panel is opened out.
    *
@@ -568,10 +575,13 @@ export function Assistant({
    * widened it once wants it wide.
    */
   const [width, setWidth] = React.useState<number | null>(null);
+  const [height, setHeight] = React.useState<number | null>(null);
   React.useEffect(() => {
     try {
-      const kept = Number(sessionStorage.getItem("ura.assistant-width"));
-      if (Number.isFinite(kept) && kept >= NARROWEST) setWidth(kept);
+      const w = Number(sessionStorage.getItem("ura.assistant-width"));
+      if (Number.isFinite(w) && w >= NARROWEST) setWidth(w);
+      const h = Number(sessionStorage.getItem("ura.assistant-height"));
+      if (Number.isFinite(h) && h >= SHORTEST) setHeight(h);
     } catch {
       // Storage disabled. It opens at the usual size, which is fine.
     }
@@ -602,11 +612,29 @@ export function Assistant({
     }
   }, []);
 
+  /** The same, upwards: the panel sits on the bottom, so it grows up. */
+  const restack = React.useCallback((to: number) => {
+    const capped = Math.max(
+      SHORTEST,
+      Math.min(to, window.innerHeight - 48, TALLEST),
+    );
+    setHeight(capped);
+    try {
+      sessionStorage.setItem("ura.assistant-height", String(capped));
+    } catch {
+      // It still resizes for this visit.
+    }
+  }, []);
+
   React.useEffect(() => {
     if (!dragging) return;
-    const move = (event: PointerEvent) =>
-      resize(window.innerWidth - event.clientX - RIGHT_GAP);
-    const stop = () => setDragging(false);
+    const move = (event: PointerEvent) => {
+      if (dragging !== "y")
+        resize(window.innerWidth - event.clientX - RIGHT_GAP);
+      if (dragging !== "x")
+        restack(window.innerHeight - event.clientY - BOTTOM_GAP);
+    };
+    const stop = () => setDragging(null);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", stop);
     // Without this, dragging over the page selects text all the way down.
@@ -616,7 +644,7 @@ export function Assistant({
       window.removeEventListener("pointerup", stop);
       document.body.style.userSelect = "";
     };
-  }, [dragging, resize]);
+  }, [dragging, resize, restack]);
   /** A description drafted from a document, waiting to be looked at. */
   const [draft, setDraft] = React.useState<Drafted | null>(null);
   const [said, setSaid] = React.useState("");
@@ -794,7 +822,12 @@ export function Assistant({
   return (
     <section
       className={dragging ? "assistant dragging" : "assistant"}
-      style={width ? { width: `${width}px` } : undefined}
+      style={{
+        ...(width ? { width: `${width}px` } : {}),
+        // maxHeight, not height: the panel should still shrink to its
+        // content when there is little in it.
+        ...(height ? { maxHeight: `${height}px` } : {}),
+      }}
       aria-label="Assistant"
       role="dialog"
       aria-modal="false"
@@ -807,7 +840,7 @@ export function Assistant({
         tabIndex={0}
         onPointerDown={(event) => {
           event.preventDefault();
-          setDragging(true);
+          setDragging("x");
         }}
         onKeyDown={(event) => {
           const now = width ?? DEFAULT_WIDTH;
@@ -815,6 +848,48 @@ export function Assistant({
           else if (event.key === "ArrowRight") resize(now - STEP);
           else if (event.key === "Home") resize(WIDEST);
           else if (event.key === "End") resize(NARROWEST);
+          else return;
+          event.preventDefault();
+        }}
+      />
+      <div
+        className="assistant-grip-top"
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Change the assistant's height"
+        tabIndex={0}
+        onPointerDown={(event) => {
+          event.preventDefault();
+          setDragging("y");
+        }}
+        onKeyDown={(event) => {
+          const now = height ?? DEFAULT_HEIGHT;
+          if (event.key === "ArrowUp") restack(now + STEP);
+          else if (event.key === "ArrowDown") restack(now - STEP);
+          else if (event.key === "Home") restack(TALLEST);
+          else if (event.key === "End") restack(SHORTEST);
+          else return;
+          event.preventDefault();
+        }}
+      />
+      {/* The corner does both at once, which is what somebody reaches for
+          first when a panel is the wrong shape rather than the wrong size. */}
+      <div
+        className="assistant-grip-corner"
+        role="separator"
+        aria-label="Resize the assistant"
+        tabIndex={0}
+        onPointerDown={(event) => {
+          event.preventDefault();
+          setDragging("xy");
+        }}
+        onKeyDown={(event) => {
+          const w = width ?? DEFAULT_WIDTH;
+          const h = height ?? DEFAULT_HEIGHT;
+          if (event.key === "ArrowLeft") resize(w + STEP);
+          else if (event.key === "ArrowRight") resize(w - STEP);
+          else if (event.key === "ArrowUp") restack(h + STEP);
+          else if (event.key === "ArrowDown") restack(h - STEP);
           else return;
           event.preventDefault();
         }}

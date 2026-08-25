@@ -4522,37 +4522,52 @@
 
 /* Drag the left edge. The panel is anchored right, so dragging left widens
    it. A real separator rather than a bare strip: it takes focus and answers
-   arrow keys, because a resize only a mouse can reach excludes people. */
+   arrow keys, because a resize only a mouse can reach excludes people.
+
+   **Visible at rest.** The first version appeared on hover, which is a
+   control only somebody already looking for it will ever find — and the
+   whole point was that the two fixed sizes were not enough. A handle that
+   has to be discovered by accident is not a handle. */
 .assistant-grip {
   position: absolute;
-  left: -3px;
-  top: 12%;
-  bottom: 12%;
-  width: 10px;
+  left: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+  /* Short and centred reads as a handle; full-height reads as a border. */
+  height: 3.2rem;
+  width: 14px;
   cursor: ew-resize;
-  border-radius: 999px;
   touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-/* The visible part is a slim bar inside a wider hit area — easy to grab,
-   quiet when nobody is trying to. */
+/* The visible part: a pill carrying grip dots, inside a wider hit area so
+   it is easy to grab and quiet when nobody is trying to. */
 .assistant-grip::after {
   content: "";
-  position: absolute;
-  inset: 0 3px;
+  width: 6px;
+  height: 100%;
   border-radius: 999px;
-  background: var(--neutral-300);
-  opacity: 0;
-  transition: opacity 0.15s var(--ease);
+  /* Solid. The layered gradient shorthand was invalid, so the pill had
+     NO background at all — invisible for the reason a computed style will
+     tell you and a screenshot will not. */
+  background: var(--neutral-500);
+  box-shadow: 0 1px 4px rgb(0 40 85 / 18%);
+  transition:
+    background-color 0.15s var(--ease),
+    width 0.15s var(--ease);
 }
 .assistant-grip:hover::after,
 .assistant-grip:focus-visible::after,
 .assistant.dragging .assistant-grip::after {
-  opacity: 1;
+  width: 8px;
   background: var(--brand);
 }
 .assistant-grip:focus-visible {
   outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
+  outline-offset: 3px;
+  border-radius: 999px;
 }
 /* While dragging, the pointer owns the page — no text selection anywhere,
    and no transition fighting the drag. */
@@ -4564,4 +4579,73 @@
 /* The document mark: page in brand blue, spark in the accent green. */
 .docspark-spark {
   fill: var(--success);
+}
+
+/* The other two handles. Same idea as the left edge, turned: the panel sits
+   in the bottom-right corner, so the top edge changes its height and the
+   top-left corner changes both — which is what somebody reaches for first
+   when a panel is the wrong SHAPE rather than the wrong size. */
+.assistant-grip-top {
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 14px;
+  width: 3.2rem;
+  cursor: ns-resize;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.assistant-grip-top::after {
+  content: "";
+  height: 6px;
+  width: 100%;
+  border-radius: 999px;
+  background: var(--neutral-500);
+  box-shadow: 0 1px 4px rgb(0 40 85 / 18%);
+  transition:
+    background-color 0.15s var(--ease),
+    height 0.15s var(--ease);
+}
+.assistant-grip-top:hover::after,
+.assistant-grip-top:focus-visible::after {
+  height: 8px;
+  background: var(--brand);
+}
+
+.assistant-grip-corner {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  width: 22px;
+  height: 22px;
+  cursor: nwse-resize;
+  touch-action: none;
+  border-radius: 999px;
+  background: var(--neutral-500);
+  box-shadow: 0 1px 5px rgb(0 40 85 / 26%);
+  transition:
+    background-color 0.15s var(--ease),
+    transform 0.15s var(--ease);
+}
+/* Two short strokes, the corner-grab mark people already know. */
+.assistant-grip-corner::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-top: 2px solid var(--neutral-0);
+  border-left: 2px solid var(--neutral-0);
+  border-radius: 3px 0 0 0;
+}
+.assistant-grip-corner:hover,
+.assistant-grip-corner:focus-visible {
+  background: var(--brand);
+  transform: scale(1.08);
+}
+.assistant-grip-top:focus-visible,
+.assistant-grip-corner:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
 }
