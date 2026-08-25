@@ -612,15 +612,52 @@ export function Assistant({
    */
   const [width, setWidth] = React.useState<number | null>(null);
   const [height, setHeight] = React.useState<number | null>(null);
+  /**
+   * A remembered size has to fit the window it is being restored into.
+   *
+   * `resize` clamps against the viewport, so a drag can never overflow —
+   * but the stored number outlives the window it was set in. Widen the
+   * panel on an external monitor, reopen the laptop lid, and a 1800px width
+   * was applied to a 1100px window: the panel is positioned from the right
+   * edge, so it went off the left of the screen entirely and never appeared.
+   * Clicking "Talk it through" did nothing visible, which reads as the AI
+   * being broken rather than as a panel two feet to the left.
+   */
+  const fits = React.useCallback(
+    (stored: number, floor: number, room: number) => {
+      if (!Number.isFinite(stored) || stored < floor) return null;
+      return Math.min(stored, room - 48);
+    },
+    [],
+  );
   React.useEffect(() => {
     try {
-      const w = Number(sessionStorage.getItem("ura.assistant-width"));
-      if (Number.isFinite(w) && w >= NARROWEST) setWidth(w);
-      const h = Number(sessionStorage.getItem("ura.assistant-height"));
-      if (Number.isFinite(h) && h >= SHORTEST) setHeight(h);
+      const w = fits(
+        Number(sessionStorage.getItem("ura.assistant-width")),
+        NARROWEST,
+        window.innerWidth,
+      );
+      if (w !== null) setWidth(w);
+      const h = fits(
+        Number(sessionStorage.getItem("ura.assistant-height")),
+        SHORTEST,
+        window.innerHeight,
+      );
+      if (h !== null) setHeight(h);
     } catch {
       // Storage disabled. It opens at the usual size, which is fine.
     }
+  }, [fits]);
+
+  // And again whenever the window changes: the same panel that fitted a
+  // moment ago does not fit a window somebody just made smaller.
+  React.useEffect(() => {
+    const onResize = () => {
+      setWidth((w) => (w === null ? w : Math.min(w, window.innerWidth - 48)));
+      setHeight((h) => (h === null ? h : Math.min(h, window.innerHeight - 48)));
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   /**
