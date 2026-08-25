@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import {
   conflictGate,
   scoreGate,
+  summaryGate,
   type ScoreTask,
 } from "../src/score-intake.ts";
 
@@ -160,5 +161,44 @@ describe("naming a contradiction", () => {
   it("survives a model that returns no conflicts key at all", () => {
     expect(conflictGate({ scores: {} }, intake)).toEqual([]);
     expect(conflictGate(null, intake)).toEqual([]);
+  });
+});
+
+/**
+ * The read is the part a person can check, and a wrong one tells them the
+ * platform misunderstood them — which is worth more than any score. It is
+ * prose, so it cannot be gated the way a quote can; what it can be is
+ * bounded, and absent rather than empty.
+ */
+describe("the read of the activity", () => {
+  it("keeps a read and its observations", () => {
+    const read = summaryGate({
+      readsAs: "A triage tool for insurance claims.",
+      standsOut: ["PII leaves the organisation.", "A person reviews output."],
+    });
+    expect(read?.readsAs).toBe("A triage tool for insurance claims.");
+    expect(read?.standsOut).toHaveLength(2);
+  });
+
+  it("returns nothing rather than an empty read", () => {
+    expect(summaryGate({ readsAs: "   ", standsOut: [] })).toBeNull();
+    expect(summaryGate({})).toBeNull();
+    expect(summaryGate(null)).toBeNull();
+  });
+
+  it("survives a model answering in the wrong shape", () => {
+    const read = summaryGate({ readsAs: 42, standsOut: ["real", 7, null] });
+    expect(read?.readsAs).toBe("");
+    expect(read?.standsOut).toEqual(["real"]);
+  });
+
+  it("bounds a read that stopped being a summary", () => {
+    const read = summaryGate({
+      readsAs: "x".repeat(5000),
+      standsOut: Array.from({ length: 20 }, () => "y".repeat(900)),
+    });
+    expect(read!.readsAs.length).toBeLessThanOrEqual(700);
+    expect(read!.standsOut).toHaveLength(4);
+    expect(read!.standsOut[0]!.length).toBeLessThanOrEqual(240);
   });
 });

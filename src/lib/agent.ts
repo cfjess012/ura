@@ -30,9 +30,12 @@ import {
 
 export type IntakeConflict = { one: string; two: string; why: string };
 
+export type IntakeSummary = { readsAs: string; standsOut: string[] };
+
 export type IntakeScoring = {
   scores: Array<{ id: string; score: 1 | 2 | 3 | 4 }>;
   conflicts: IntakeConflict[];
+  summary: IntakeSummary | null;
 };
 
 export type AgentTransport = {
@@ -116,7 +119,7 @@ function notConfigured(): AgentTransport {
       return null;
     },
     async scoreIntake() {
-      return { scores: [], conflicts: [] };
+      return { scores: [], conflicts: [], summary: null };
     },
     async rewriteIntake() {
       return null;
@@ -165,19 +168,21 @@ function localTransport(baseUrl: string): AgentTransport {
           },
           body: JSON.stringify(input),
         });
-        if (!response.ok) return { scores: [], conflicts: [] };
+        if (!response.ok) return { scores: [], conflicts: [], summary: null };
         const body = (await response.json()) as {
           scores?: unknown;
           conflicts?: unknown;
+          summary?: unknown;
         };
         return {
           scores: Array.isArray(body.scores) ? body.scores : [],
           conflicts: Array.isArray(body.conflicts) ? body.conflicts : [],
+          summary: (body.summary as IntakeSummary | null) ?? null,
         };
       } catch (cause) {
         // Fails open, deliberately and visibly.
         console.error("[agent] score-intake unreachable", cause);
-        return { scores: [], conflicts: [] };
+        return { scores: [], conflicts: [], summary: null };
       }
     },
     async rewriteIntake(input) {

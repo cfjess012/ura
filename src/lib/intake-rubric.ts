@@ -44,6 +44,17 @@ export type Criterion = {
 /** Two things in the intake that cannot both be true, in the person's words. */
 export type Conflict = { one: string; two: string; why: string };
 
+/**
+ * The read of the activity a person is shown first: what the platform
+ * understood this to be, and what a reviewer notices about it.
+ *
+ * It sits above the grades because it is the part they can check. A wrong
+ * read tells them the platform misunderstood them, which is worth more than
+ * any score — and it is the difference between a scorecard and being
+ * actually read.
+ */
+export type Summary = { readsAs: string; standsOut: string[] };
+
 type RubricDoc = {
   version: string;
   floor: {
@@ -117,6 +128,8 @@ export type Coherence = {
   asks: Ask[];
   /** Whether a model actually read it, as opposed to failing open. */
   checkedByModel: boolean;
+  /** What the platform understood this to be. Null when none was written. */
+  summary: Summary | null;
 };
 
 /** The band a total falls in. Bands are data; this only looks it up. */
@@ -134,6 +147,7 @@ export function bandFor(score: number): { label: string; meaning: string } {
 export function coherenceFrom(
   scored: Scored[],
   conflicts: Conflict[] = [],
+  summary: Summary | null = null,
 ): Coherence {
   const outOf = CRITERIA.length * 4;
   if (scored.length === 0) {
@@ -145,6 +159,7 @@ export function coherenceFrom(
       opening: null,
       asks: [],
       checkedByModel: false,
+      summary: null,
     };
   }
 
@@ -203,6 +218,7 @@ export function coherenceFrom(
     opening: asks.length === 0 ? null : RUBRIC.engine.opening,
     asks,
     checkedByModel: true,
+    summary,
   };
 }
 
@@ -255,6 +271,7 @@ export function coherenceWhenUnavailable(): Coherence {
     opening: null,
     asks: [],
     checkedByModel: false,
+    summary: null,
   };
 }
 

@@ -157,6 +157,29 @@ function Result({
 
       {result.opening && <p className="coherence-opening">{result.opening}</p>}
 
+      {/* The read comes before the grades: it is the part they can check,
+          and a wrong one tells them more than any score. */}
+      {result.summary && (
+        <div className="coherence-read">
+          {result.summary.readsAs && (
+            <>
+              <p className="coherence-read-label">What this reads as</p>
+              <p className="coherence-read-body">{result.summary.readsAs}</p>
+            </>
+          )}
+          {result.summary.standsOut.length > 0 && (
+            <>
+              <p className="coherence-read-label">What a reviewer notices</p>
+              <ul className="coherence-notices">
+                {result.summary.standsOut.map((note, at) => (
+                  <li key={at}>{note}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+
       {result.asks.length === 0 ? (
         <p className="coherence-clear">
           <span aria-hidden="true">✓</span> Nothing outstanding — a reviewer can

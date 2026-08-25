@@ -611,6 +611,7 @@ export async function checkIntake(
           meaning: null,
           opening: null,
           checkedByModel: true,
+          summary: null,
           asks: [
             {
               id: "floor",
@@ -650,6 +651,7 @@ export async function checkIntake(
           level: Math.min(4, Math.max(1, s.score)) as Level,
         })),
         scoring.conflicts,
+        scoring.summary,
       ),
       rewritable: longForm,
     };

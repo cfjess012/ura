@@ -34,7 +34,42 @@ export type DimensionScore = { id: string; score: 1 | 2 | 3 | 4 };
  */
 export type Conflict = { one: string; two: string; why: string };
 
-export type Scoring = { scores: DimensionScore[]; conflicts: Conflict[] };
+/**
+ * The model's read of the activity — what it is, and what a reviewer
+ * notices. Unlike the levels this is prose, so it cannot be checked the way
+ * a quote can; it is shown as a reading rather than as fact, and the prompt
+ * forbids inferring anything the person did not write.
+ */
+export type Summary = { readsAs: string; standsOut: string[] };
+
+export type Scoring = {
+  scores: DimensionScore[];
+  conflicts: Conflict[];
+  summary: Summary | null;
+};
+
+/** How long a read may run before it has stopped being a summary. */
+const READ_CEILING = 700;
+const OBSERVATION_CEILING = 240;
+
+/** Keep a read only if there is one. Empty prose is worse than none. */
+export function summaryGate(parsed: unknown): Summary | null {
+  if (typeof parsed !== "object" || parsed === null) return null;
+  const raw = parsed as Record<string, unknown>;
+  const readsAs =
+    typeof raw.readsAs === "string"
+      ? raw.readsAs.trim().slice(0, READ_CEILING)
+      : "";
+  const standsOut = Array.isArray(raw.standsOut)
+    ? raw.standsOut
+        .filter((o): o is string => typeof o === "string")
+        .map((o) => o.trim().slice(0, OBSERVATION_CEILING))
+        .filter((o) => o !== "")
+        .slice(0, 4)
+    : [];
+  if (readsAs === "" && standsOut.length === 0) return null;
+  return { readsAs, standsOut };
+}
 
 /**
  * Keep only conflicts whose **both** halves appear verbatim in the intake.
@@ -120,13 +155,15 @@ export async function scoreIntake(task: ScoreTask): Promise<Scoring> {
       const parsed = JSON.parse(extractJson(text));
       const scores = scoreGate(parsed, task);
       const conflicts = conflictGate(parsed, task);
+      const summary = summaryGate(parsed);
       span.setAttribute("scored", scores.length);
       span.setAttribute("conflicts", conflicts.length);
-      return { scores, conflicts };
+      span.setAttribute("summarised", summary !== null);
+      return { scores, conflicts, summary };
     } catch (cause) {
       span.setAttribute("gate.result", "threw");
       console.error("[score-intake]", cause);
-      return { scores: [], conflicts: [] };
+      return { scores: [], conflicts: [], summary: null };
     } finally {
       span.end();
     }
