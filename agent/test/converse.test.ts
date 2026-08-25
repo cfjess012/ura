@@ -159,3 +159,42 @@ describe("the contextual guardrails fire inside the gate, not only in isolation"
     ).toBe(true);
   });
 });
+
+/**
+ * Asking to have the question in front of them answered.
+ *
+ * The flag opens a write path, so it is normalised the paranoid way: only
+ * a literal `true` counts. A string "true" from a model that got the shape
+ * slightly wrong must not start a drafting pass.
+ */
+describe("wantsAnswers", () => {
+  const ask = (extra: Record<string, unknown>) =>
+    conversationGate({ reply: "Sure.", ...extra }, assessment);
+
+  it("is true only for a literal true", () => {
+    const yes = ask({ wantsAnswers: true });
+    expect(yes.ok && yes.reply.wantsAnswers).toBe(true);
+  });
+
+  it("is false for anything else a model might send", () => {
+    for (const value of ["true", 1, "yes", {}, [], null]) {
+      const got = ask({ wantsAnswers: value });
+      expect(got.ok && got.reply.wantsAnswers, JSON.stringify(value)).toBe(
+        false,
+      );
+    }
+  });
+
+  it("is false when the model does not send it at all", () => {
+    const got = ask({});
+    expect(got.ok && got.reply.wantsAnswers).toBe(false);
+  });
+
+  it("is independent of carriesEvidence", () => {
+    // They fire on different sentences: describing your system carries
+    // evidence and asks for nothing; asking for help carries nothing.
+    const got = ask({ carriesEvidence: true, wantsAnswers: false });
+    expect(got.ok && got.reply.carriesEvidence).toBe(true);
+    expect(got.ok && got.reply.wantsAnswers).toBe(false);
+  });
+});

@@ -450,3 +450,49 @@ export function sectionKeyOwning(fieldId: string): string | null {
   }
   return null;
 }
+
+/**
+ * The intake as one readable document.
+ *
+ * Two modes, and the difference is not cosmetic.
+ *
+ * `"named"` prints `(not answered)` for a blank. **Grading needs that**: an
+ * intake that answered everything thinly reads differently from one that
+ * left half of it empty, and "nothing here says who touches the data" is a
+ * different finding from "they were never asked".
+ *
+ * `"omitted"` leaves blanks out entirely, and **drafting needs that**: a
+ * proposal quotes its source verbatim back to the person, so every sentence
+ * in the source has to be one they wrote. `(not answered)` is our text, and
+ * a proposal grounded in our own placeholder would be the platform quoting
+ * itself as evidence.
+ *
+ * Only visible fields are rendered either way, so a quote can never come
+ * from a question they were never asked.
+ */
+export function intakeAsDocument(
+  values: IntakeValues,
+  options?: { blanks?: "named" | "omitted" },
+): string {
+  const blanks = options?.blanks ?? "named";
+  const lines: string[] = [];
+  for (const section of INTAKE_SECTIONS) {
+    for (const field of section.fields) {
+      if (field.type === "note") continue;
+      if (!isFieldVisible(field, values)) continue;
+      const value = values[field.id];
+      const text =
+        value === undefined || value === null || value === ""
+          ? ""
+          : Array.isArray(value)
+            ? value.join(", ")
+            : String(value);
+      if (text === "") {
+        if (blanks === "named") lines.push(`${field.label}: (not answered)`);
+        continue;
+      }
+      lines.push(`${field.label}: ${text}`);
+    }
+  }
+  return lines.join("\n");
+}

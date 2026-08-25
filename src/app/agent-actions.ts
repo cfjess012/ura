@@ -18,7 +18,7 @@ import { intakeValuesFrom } from "@/lib/intake-values";
 import { editableProject, openProject } from "@/lib/project-access";
 import { answerStore } from "@/lib/repo";
 import { sessionStore } from "@/lib/session";
-import { ALL_FIELDS, INTAKE_SECTIONS } from "@/lib/intake";
+import { ALL_FIELDS, INTAKE_SECTIONS, intakeAsDocument } from "@/lib/intake";
 import { documentStore } from "@/lib/documents";
 import { quoteAppearsVerbatim } from "@/lib/agent-contract";
 import {
@@ -31,6 +31,8 @@ import {
 } from "@/lib/intake-rubric";
 import { gateStates } from "@/lib/instrument";
 import { whatsOnScreen } from "@/lib/whats-on-screen";
+import { proposalSentence } from "@/lib/drafts";
+import { proposeFromIntake } from "./proposal-actions";
 
 /**
  * What the agent may see of this assessment.
@@ -152,15 +154,29 @@ export async function askAgent(
       history,
     });
 
+    // Asked to answer what is in front of them: look, once, scoped to this
+    // screen. The sentence is composed here and stored as part of the
+    // agent's turn, so somebody who reloads reads the conversation they
+    // actually had rather than one the client assembled locally.
+    const outcome = answer.wantsAnswers
+      ? await proposeFromIntake({ projectId, pathname, assessment })
+      : null;
+    const reply =
+      outcome === null
+        ? answer.reply
+        : `${answer.reply} ${proposalSentence(outcome)}`.trim();
+
     await sessionStore().append({
       conversationId,
       projectId,
       speaker: "agent",
-      said: answer.reply,
+      said: reply,
     });
 
-    revalidatePath(`/projects/${projectId}`);
-    return { ok: true as const, reply: answer.reply, asking: answer.asking };
+    // "layout", because a proposal lands on the risk-area page rather than
+    // this one.
+    revalidatePath(`/projects/${projectId}`, "layout");
+    return { ok: true as const, reply, asking: answer.asking };
   } catch (error) {
     return failure(
       "askAgent",
@@ -596,34 +612,18 @@ export async function checkIntake(
 
     // The whole intake, read as one document. Coherence is a property of
     // the set — "internal tool" and a list of external recipients are only
-    // in conflict when you read both.
-    const document: string[] = [];
-    const longForm: string[] = [];
-    for (const section of INTAKE_SECTIONS) {
-      document.push(`\n## ${section.name}`);
-      for (const field of section.fields) {
-        const value = values[field.id];
-        const text =
-          value === undefined || value === null || value === ""
-            ? ""
-            : Array.isArray(value)
-              ? value.join(", ")
-              : String(value);
-        // Every question, answered or not. Omitting the blanks meant the
-        // model could not tell an intake that answered everything thinly
-        // from one that left half of it empty — and "nothing here says who
-        // touches the data" is a different grade from "they were never
-        // asked".
-        document.push(
-          text === ""
-            ? `${field.label}: (not answered)`
-            : `${field.label}: ${text}`,
-        );
-        if (field.type === "textarea" && text.trim().split(/\s+/).length > 8) {
-          longForm.push(field.id);
-        }
-      }
-    }
+    // in conflict when you read both. Blanks are NAMED here: an intake that
+    // answered everything thinly grades differently from one that left half
+    // of it empty.
+    const document = [intakeAsDocument(values, { blanks: "named" })];
+    const longForm = ALL_FIELDS.filter(
+      (field) =>
+        field.type === "textarea" &&
+        String(values[field.id] ?? "")
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean).length > 8,
+    ).map((field) => field.id);
 
     const description =
       typeof values.projectDescription === "string"

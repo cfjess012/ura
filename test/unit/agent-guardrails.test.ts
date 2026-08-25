@@ -283,3 +283,69 @@ describe("the second verification pass: what still walked through", () => {
     ).toBeNull();
   });
 });
+
+/**
+ * Quoting the person's own description back to them.
+ *
+ * The check compares a claim against recorded VALUES. A description is one
+ * value of several hundred words, so quoting one true sentence of it can
+ * never contain the whole thing — and the check read that as fabrication,
+ * which made the most useful sentence the assistant has unsayable.
+ */
+describe("a fragment of what they wrote is still what they wrote", () => {
+  const quoted: AssessmentContext = {
+    projectId: "p1",
+    activity: "A triage tool.",
+    onRecord: [
+      {
+        label: "Project Description",
+        value:
+          "FraudClaim AI is an internal triage application. Claim narratives are processed via OpenAI's enterprise API to flag fraud indicators.",
+      },
+      { label: "Does this use AI or machine learning?", value: "Yes" },
+    ],
+    openQuestions: [],
+  };
+
+  it("allows a true quotation from a long recorded answer", () => {
+    expect(
+      claimsUnrecordedAnswer(
+        "You wrote that claim narratives are processed via OpenAI's enterprise API.",
+        quoted,
+      ),
+    ).toBeNull();
+  });
+
+  it("still catches a sentence they never wrote", () => {
+    expect(
+      claimsUnrecordedAnswer(
+        "You said the data is hosted entirely in our own datacentre.",
+        quoted,
+      ),
+    ).not.toBeNull();
+  });
+
+  it("still catches a false clause sitting beside a true one", () => {
+    // The named failure: one true clause laundering the rest.
+    expect(
+      claimsUnrecordedAnswer(
+        "You said this is an internal triage application, and you said it holds no personal data at all.",
+        quoted,
+      ),
+    ).not.toBeNull();
+  });
+
+  it("does not let a short fragment launder a claim", () => {
+    // "that it is" appears inside almost any paragraph; finding it there
+    // must not stand as evidence they said anything.
+    expect(
+      claimsUnrecordedAnswer("You said that it is.", quoted),
+    ).not.toBeNull();
+  });
+
+  it("still matches a short recorded value as a whole word", () => {
+    expect(
+      claimsUnrecordedAnswer("You answered Yes to the AI question.", quoted),
+    ).toBeNull();
+  });
+});

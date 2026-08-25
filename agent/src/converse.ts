@@ -46,6 +46,20 @@ export type ConverseReply = {
   reply: string;
   carriesEvidence: boolean;
   asking: string | null;
+  /**
+   * They are asking to have the question in front of them answered.
+   *
+   * Deliberately **not** `carriesEvidence`, which means something else:
+   * that their message held something quotable. Those fire on different
+   * sentences — "we use Snowflake and it holds wage bands" carries evidence
+   * and asks for nothing; "can you answer this from what I told you?" asks
+   * and carries nothing. Reading the first as the second would propose
+   * whenever somebody described their system, which is the proactive
+   * drafting this was designed not to do.
+   *
+   * It decides whether to look, never what the answer is.
+   */
+  wantsAnswers: boolean;
 };
 
 /**
@@ -108,6 +122,9 @@ export function conversationGate(
     reply: {
       reply,
       carriesEvidence: raw.carriesEvidence === true,
+      // Same defensive shape: anything that is not literally true is false.
+      // A string "true" or a 1 must not open a write path.
+      wantsAnswers: raw.wantsAnswers === true,
       asking:
         typeof raw.asking === "string" && raw.asking.trim() !== ""
           ? raw.asking.trim()
@@ -146,10 +163,12 @@ export async function converse(task: ConverseTask): Promise<ConverseReply> {
             "Something went wrong on my side, so I have not replied properly. Nothing you have written was affected — carry on answering, and everything still saves as you go.",
           carriesEvidence: false,
           asking: null,
+          wantsAnswers: false,
         };
       }
       span.setAttribute("gate.result", "passed");
       span.setAttribute("carries.evidence", verdict.reply.carriesEvidence);
+      span.setAttribute("wants.answers", verdict.reply.wantsAnswers);
       return verdict.reply;
     } catch (cause) {
       span.setAttribute("gate.result", "threw");
@@ -159,6 +178,7 @@ export async function converse(task: ConverseTask): Promise<ConverseReply> {
           "I could not reach the model just now, so I have nothing useful to add. Everything you have written is saved and the questions still work as normal.",
         carriesEvidence: false,
         asking: null,
+        wantsAnswers: false,
       };
     } finally {
       span.end();

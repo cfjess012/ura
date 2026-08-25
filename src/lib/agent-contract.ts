@@ -302,9 +302,51 @@ export function claimsUnrecordedAnswer(
     .map((entry) => normaliseWhitespace(entry.value.toLowerCase()))
     .filter((value) => value !== "");
 
+  /**
+   * Long enough that finding it inside a recorded value means something.
+   * Below this a fragment like "that" or "it is" appears in almost any
+   * paragraph, which would launder a false claim on the strength of a
+   * preposition.
+   */
+  const ENOUGH_TO_QUOTE = 16;
+
   const saysValue = (clause: string, value: string): boolean => {
     const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(`(?:^|\\W)${escaped}(?:\\W|$)`, "i").test(clause);
+    // The recorded value appears in what was said. Whole words, never a
+    // substring: a containment test over "No" — on record in every
+    // assessment — passed any clause containing "nothing", "not", "none"
+    // or "know", which made the check ornamental for short values.
+    if (new RegExp(`(?:^|\\W)${escaped}(?:\\W|$)`, "i").test(clause)) {
+      return true;
+    }
+    // Or what was said appears in the recorded value — the other
+    // direction, and the one that matters for anything long. A description
+    // is a single recorded value of several hundred words, so quoting one
+    // true sentence of it back can never contain the whole thing. Without
+    // this the assistant cannot say "you wrote X" about the person's own
+    // description, which is the most useful and most checkable sentence it
+    // has. Bounded by length so a fragment cannot launder a claim.
+    // "You wrote THAT claim narratives are…" — the conjunction and any
+    // wrapping quote marks belong to the sentence about the quote, not to
+    // the quote itself.
+    const whole = clause
+      .replace(/^(?:that|how|it|this|the)\s+/i, "")
+      .replace(/^["'\u201c\u2018]+|["'\u201d\u2019]+$/g, "")
+      .trim();
+    if (whole.length >= ENOUGH_TO_QUOTE && value.includes(whole)) return true;
+
+    // Or a span it put in quote marks appears in the value. This is the
+    // ordinary shape of a grounded sentence — "the workflow is 'processed
+    // via OpenAI's API'" — where the frame around the quotation is the
+    // model's paraphrase and only the quoted part claims to be theirs.
+    // Judging the paraphrase would reject every true citation.
+    for (const found of clause.matchAll(
+      /["\u201c]([^"\u201d]+)["\u201d]|['\u2018]([^'\u2019]+)['\u2019]/g,
+    )) {
+      const span = (found[1] ?? found[2] ?? "").trim();
+      if (span.length >= ENOUGH_TO_QUOTE && value.includes(span)) return true;
+    }
+    return false;
   };
 
   // Split on every conjunction and separator a model joins clauses with.

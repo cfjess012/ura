@@ -114,6 +114,8 @@ export type AgentTransport = {
     reply: string;
     carriesEvidence: boolean;
     asking: string | null;
+    /** They are asking to have the question in front of them answered. */
+    wantsAnswers: boolean;
   }>;
 };
 
@@ -146,6 +148,7 @@ function notConfigured(): AgentTransport {
           "No agent is connected, so there is nobody here to talk to. Everything on these screens is worked out by rules rather than by a model, and it all works without me.",
         carriesEvidence: false,
         asking: null,
+        wantsAnswers: false,
       };
     },
   };
@@ -248,12 +251,14 @@ function localTransport(baseUrl: string): AgentTransport {
             reply:
               "I could not reach the assistant just then, so I have nothing useful to add. Everything you have written is saved and the questions work as normal.",
             carriesEvidence: false,
+            wantsAnswers: false,
             asking: null,
           };
         }
         const body = (await response.json()) as {
           reply?: unknown;
           carriesEvidence?: unknown;
+          wantsAnswers?: unknown;
           asking?: unknown;
         };
         return {
@@ -262,6 +267,7 @@ function localTransport(baseUrl: string): AgentTransport {
               ? body.reply
               : "I did not have anything useful to say to that.",
           carriesEvidence: body.carriesEvidence === true,
+          wantsAnswers: body.wantsAnswers === true,
           asking: typeof body.asking === "string" ? body.asking : null,
         };
       } catch (cause) {
@@ -270,6 +276,7 @@ function localTransport(baseUrl: string): AgentTransport {
           reply:
             "I could not reach the assistant just then, so I have nothing useful to add. Everything you have written is saved and the questions work as normal.",
           carriesEvidence: false,
+          wantsAnswers: false,
           asking: null,
         };
       }

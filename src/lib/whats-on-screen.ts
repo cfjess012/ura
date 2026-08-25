@@ -13,7 +13,7 @@
  *
  * Pure: no framework, no driver, no environment (§26.1).
  */
-import { CATEGORIES } from "./instrument";
+import { CATEGORIES, type Category } from "./instrument";
 import { INTAKE_SECTIONS, sectionKey } from "./intake";
 import { OBJECTIVES } from "./tier3";
 import { SEVERITY } from "./severity";
@@ -106,4 +106,35 @@ export function whatsOnScreen(pathname: string): OnScreen | null {
     return { screen: "the handoff summary", questions: [] };
   }
   return null;
+}
+
+/**
+ * The gate questions a person can actually answer on this screen.
+ *
+ * `whatsOnScreen` returns question TEXT, because that is what a model
+ * should say back to somebody. This returns the instrument's own
+ * categories, because a proposal has to be written against an id — and it
+ * reuses the same path parser, so there is one statement of which screen is
+ * which.
+ *
+ * **The screen is a ceiling, not a target.** It says what may be proposed
+ * here; whether a question is still open is the record's business, and the
+ * caller intersects the two.
+ *
+ * Empty everywhere a proposal could not be shown or accepted, which is
+ * everywhere except an askable risk area. Paths, severity and objectives
+ * are answered in shapes `ProposedAnswer` cannot render — and worse,
+ * `acceptDraft` looks the question up in `gateStates`, so a draft written
+ * for one of them would be permanently un-acceptable: a card with a button
+ * that always refuses.
+ */
+export function gatesAnswerableAt(pathname: string): Category[] {
+  const parts = tail(pathname);
+  if (parts[0] !== "assess" || parts.length < 2) return [];
+  const category = CATEGORIES.find((c) => c.key === parts[1]);
+  if (!category) return [];
+  // Nobody is asked an always-applies gate, so there is no question on
+  // screen for a proposal to sit under.
+  if (category.alwaysApplies) return [];
+  return [category];
 }
