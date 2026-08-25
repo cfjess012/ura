@@ -168,10 +168,21 @@ export async function converse(task: ConverseTask): Promise<ConverseReply> {
           content: Array<{ type: string; text?: string }>;
         },
       );
-      const verdict = conversationGate(
-        JSON.parse(extractJson(text)),
-        task.assessment,
-      );
+      // A reply that came back as prose rather than JSON is still a reply.
+      // The formatting section in the prompt shows a worked example, and a
+      // model following it literally writes the answer and forgets the
+      // envelope — throwing that away costs the person their answer over a
+      // pair of braces. Everything after this is unchanged: the same gate
+      // runs, and a reply that should be refused still is.
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(extractJson(text));
+      } catch {
+        const bare = text.trim();
+        if (bare === "") throw new Error("the model returned nothing");
+        parsed = { reply: bare, carriesEvidence: false, asking: null };
+      }
+      const verdict = conversationGate(parsed, task.assessment);
       if (!verdict.ok) {
         span.setAttribute("gate.result", "refused");
         span.setAttribute("gate.why", verdict.why);

@@ -92,17 +92,28 @@ export type Drafted = {
 function Tracker({
   projectId,
   draft,
+  settled,
+  setSettled,
   onDone,
   onTakeDescription,
 }: {
   projectId: string;
   draft: Drafted;
+  /**
+   * Which of them have been dealt with.
+   *
+   * Held by the panel's owner rather than here, because closing the chat
+   * unmounts this component — and a tracker that forgets what you already
+   * took, the moment you collapse it to look at the field it just filled,
+   * is a tracker that undoes its own work.
+   */
+  settled: Record<string, "done" | "failed">;
+  setSettled: React.Dispatch<
+    React.SetStateAction<Record<string, "done" | "failed">>
+  >;
   onDone: () => void;
   onTakeDescription: () => void;
 }) {
-  const [settled, setSettled] = React.useState<
-    Record<string, "done" | "failed">
-  >({});
   const [saving, setSaving] = React.useState<string | null>(null);
   const router = useRouter();
 
@@ -653,6 +664,10 @@ export function Assistant({
   }, [dragging, resize, restack]);
   /** A description drafted from a document, waiting to be looked at. */
   const [draft, setDraft] = React.useState<Drafted | null>(null);
+  /** What has been taken from the draft. Outlives the panel being closed. */
+  const [settled, setSettled] = React.useState<
+    Record<string, "done" | "failed">
+  >({});
   const [said, setSaid] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   // Closed on arrival, always. A window that opens itself over somebody's
@@ -757,6 +772,7 @@ export function Assistant({
             { speaker: "agent", said: drafted.message },
           ]);
         } else {
+          setSettled({});
           setDraft(drafted);
           setTurns((was) => [
             ...was,
@@ -953,6 +969,8 @@ export function Assistant({
           <Tracker
             projectId={projectId}
             draft={draft}
+            settled={settled}
+            setSettled={setSettled}
             onDone={() => setDraft(null)}
             onTakeDescription={() => {
               // Carried, not saved. A description is theirs to sign, so it

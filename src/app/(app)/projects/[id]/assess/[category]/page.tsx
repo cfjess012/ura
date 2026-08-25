@@ -13,7 +13,13 @@ import { asksNothingFurther, STOPS_HERE } from "@/lib/severity";
 import { openProject } from "@/lib/project-access";
 import { ProposedAnswer } from "../proposed-answer";
 import { NotYourAssessment } from "../../not-yours";
-import { answerStore } from "@/lib/repo";
+import { answerStore, handoffStore, peopleStore } from "@/lib/repo";
+import { mayResolve, recipientLabel } from "@/lib/handoff";
+import {
+  HandoffPanel,
+  type HandoffView,
+  type Recipient,
+} from "../severity/handoff-panel";
 import { stageOf } from "@/lib/submission";
 import { ProjectHeader } from "../../project-header";
 import { GateForm } from "../gate-form";
@@ -45,6 +51,53 @@ export default async function GatePage({
   const incomplete = firstIncompleteSection(intake);
   if (incomplete) redirect(`/projects/${id}/intake/${incomplete}?needed=1`);
   const stored = await answerStore().current(id);
+
+  // Who this gate could be handed to, and whether it already has been.
+  const [allHandoffs, everyone] = await Promise.all([
+    handoffStore().forProject(id),
+    peopleStore().list(),
+  ]);
+  const nameOf = (personId: string) =>
+    everyone.find((person) => person.id === personId)?.name ?? "someone";
+  const recipients: Recipient[] = [
+    ...CATEGORIES.map((c) => ({
+      id: c.key,
+      label: c.name,
+      kind: "domain" as const,
+    })),
+    ...everyone
+      .filter((person) => person.role === "assessor")
+      .map((person) => ({
+        id: person.id,
+        label: person.title ? `${person.name} — ${person.title}` : person.name,
+        kind: "person" as const,
+      })),
+  ];
+  const found = allHandoffs.find((h) => h.questionId === category.questionId);
+  const replies = found ? await handoffStore().repliesFor([found.id]) : [];
+  const handoff: HandoffView | null = found
+    ? {
+        id: found.id,
+        toLabel: recipientLabel(
+          found,
+          nameOf,
+          (areaKey) =>
+            CATEGORIES.find((c) => c.key === areaKey)?.name ?? "a risk area",
+        ),
+        note: found.note,
+        askedByName: found.askedByName,
+        askedByRole: found.askedByRole,
+        createdAt: found.createdAt.toISOString(),
+        resolvedAt: found.resolvedAt?.toISOString() ?? null,
+        answered: stored[found.questionId] !== undefined,
+        resolvedByName: found.resolvedBy ? nameOf(found.resolvedBy) : null,
+        mayResolve: mayResolve(found, access.person),
+        replies: replies.map((r) => ({
+          ...r,
+          createdAt: r.createdAt.toISOString(),
+        })),
+      }
+    : null;
   const states = gateStates(stored, intake);
   const state = states.find((s) => s.category.key === key)!;
   // A proposal is only a proposal while nobody has answered: the moment a
@@ -152,6 +205,21 @@ export default async function GatePage({
                   because={state.because}
                   nextHref={nextHref}
                   asksNothingFurther={asksNothingFurther(key)}
+                />
+                {/*
+                  The way out for a gate somebody genuinely cannot answer.
+                  This existed on the severity questions and not here, which
+                  is backwards: the gates come first, they are where an
+                  unfamiliar area is met cold, and "does Legal & Regulatory
+                  apply" is exactly the question a requester is least placed
+                  to answer alone. Not an answer, and never recorded as one
+                  — the record says the question moved to someone else.
+                */}
+                <HandoffPanel
+                  projectId={id}
+                  questionId={category.questionId}
+                  recipients={recipients}
+                  existing={handoff}
                 />
               </>
             )}

@@ -470,7 +470,10 @@ export function claimsUnrecordedAnswer(
     const claim = clause.match(CLAIM);
     if (!claim) continue;
     const claimed = normaliseWhitespace((claim[1] ?? "").trim().toLowerCase());
-    if (claimed === "") continue;
+    // A clause with no actual words in it asserts nothing. "You said:" with
+    // the quote on the next line captured ":" and was refused as a false
+    // claim — punctuation cannot attribute anything to anybody.
+    if (claimed.replace(/[^a-z0-9]/g, "") === "") continue;
     if (values.some((value) => saysValue(claimed, value))) continue;
     if (mostlyTheirWords(claimed)) continue;
     return claimed;
