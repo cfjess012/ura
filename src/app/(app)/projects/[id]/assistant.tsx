@@ -473,17 +473,20 @@ function Working() {
 }
 
 /**
- * A page with a spark on it.
+ * An upload arrow with the product's spark on it.
  *
- * The control was an emoji paperclip and the words "Read a document", which
- * QA read as a document being opened FOR them. Both halves are fixed here:
- * the mark says document AND model in one glance, and it is drawn in
- * currentColor so it takes the brand blue the label already uses rather
- * than introducing a colour of its own.
+ * Two jobs in one mark, because the control does two things and neither
+ * alone explains it. A page said "document" and not "you are giving us
+ * one"; an arrow says the handing over. The spark is what says a model
+ * reads it — the same four-point mark the rest of the product uses, so
+ * somebody who has met one has met all of them.
  *
- * An emoji renders differently on every platform and cannot be recoloured;
- * this is the same four-point spark the rest of the product uses for the
- * model, set against a page outline.
+ * Two colours: the arrow in brand blue, the spark in the accent green. The
+ * spark is a named colour rather than currentColor so it cannot quietly
+ * inherit the blue and collapse the pair back into one.
+ *
+ * An SVG rather than an emoji — an emoji renders differently on every
+ * platform and cannot be recoloured at all.
  */
 function DocSpark() {
   return (
@@ -494,31 +497,37 @@ function DocSpark() {
       aria-hidden="true"
       focusable="false"
     >
-      {/* The page: a folded corner says document without needing a label. */}
+      {/* The tray it goes into. */}
       <path
-        d="M6 2.75h6.5L18 8.25v9.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4.75a2 2 0 0 1 2-2z"
+        d="M3.2 14.6v3.2a2.2 2.2 0 0 0 2.2 2.2h8.4a2.2 2.2 0 0 0 2.2-2.2v-3.2"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
+        strokeWidth="1.7"
+        strokeLinecap="round"
       />
+      {/* And the arrow out of it — upload, not download: the stem rises. */}
       <path
-        d="M12.25 3v5h5"
+        d="M9.6 15.4V4.6"
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.6"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+      <path
+        d="M5.9 8.3 9.6 4.6l3.7 3.7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {/* And the spark, sitting on the page rather than beside it. */}
-      {/* And the spark, in the accent green rather than the page's blue.
-          Two colours because the two halves say different things — this is
-          a document, and a model is going to read it — and because the pair
-          is the one the product already uses where it wants to be noticed.
-          Named rather than currentColor: it must not inherit the page. */}
-      <path
-        className="docspark-spark"
-        d="M10.4 10.2l1.05 2.75 2.75 1.05-2.75 1.05-1.05 2.75-1.05-2.75-2.75-1.05 2.75-1.05 1.05-2.75z"
-      />
+      {/* The spark, set clear of the arrowhead so neither reads as noise. */}
+      <g transform="translate(12.9 0.7) scale(0.52)">
+        <path
+          className="docspark-spark"
+          d="M12 2.5l1.7 4.6 4.6 1.7-4.6 1.7-1.7 4.6-1.7-4.6L5.7 8.8l4.6-1.7L12 2.5z"
+        />
+      </g>
     </svg>
   );
 }
