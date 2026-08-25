@@ -3,8 +3,10 @@
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { askAgent, type AgentTurn } from "@/app/agent-actions";
-import { draftFromFile } from "@/app/document-actions";
+import { describeFromFile, draftFromFile } from "@/app/document-actions";
 import { blocksOf, type Block, type Span } from "@/lib/reply-format";
+import { holdRewrite } from "@/lib/pending-rewrite";
+import { Marked } from "./marked";
 import { isFailure } from "@/lib/errors";
 
 /**
@@ -46,6 +48,13 @@ import { isFailure } from "@/lib/errors";
  * than finished. The elapsed count is real. The receipt underneath the
  * reply, once it lands, is the part that is actually checkable.
  */
+export type Drafted = {
+  description: string;
+  placeholders: string[];
+  from: string;
+  documentName: string;
+};
+
 export type Clause = {
   policy: string;
   reference: string;
@@ -303,6 +312,8 @@ export function Assistant({
   const [consulted, setConsulted] = React.useState<Clause[]>([]);
   /** The clause being read in full, if any. */
   const [reading, setReading] = React.useState<Clause | null>(null);
+  /** A description drafted from a document, waiting to be looked at. */
+  const [draft, setDraft] = React.useState<Drafted | null>(null);
   const [said, setSaid] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   // Closed on arrival, always. A window that opens itself over somebody's
@@ -392,6 +403,37 @@ export function Assistant({
       // read a PDF or a .docx, and vendor paperwork is one or the other.
       const form = new FormData();
       form.set("file", file);
+
+      // On the intake, a document is for writing the description — the
+      // field the whole assessment routes on, and the one somebody was
+      // otherwise retyping out of the document. On the risk areas it is for
+      // proposing answers. Same button, and the screen decides which,
+      // because a person carrying a vendor overview means a different thing
+      // in each place.
+      if (pathname.includes("/intake/")) {
+        const drafted = await describeFromFile(projectId, form);
+        if (isFailure(drafted)) {
+          setTurns((was) => [
+            ...was,
+            { speaker: "agent", said: drafted.message },
+          ]);
+        } else {
+          setDraft(drafted);
+          setTurns((was) => [
+            ...was,
+            {
+              speaker: "agent",
+              said: `I read ${drafted.documentName} and drafted a description from it. ${
+                drafted.placeholders.length === 0
+                  ? "Have a look before you take it — it is yours to sign."
+                  : `${drafted.placeholders.length} ${drafted.placeholders.length === 1 ? "part is" : "parts are"} marked in brackets: the document did not say, and I will not invent it.`
+              }`,
+            },
+          ]);
+        }
+        return;
+      }
+
       const result = await draftFromFile(projectId, form);
       // Only claim what actually happened. "Every question was already
       // answered" was said when the service was simply unreachable.
@@ -500,6 +542,52 @@ export function Assistant({
               )}
           </p>
         ))}
+        {draft && (
+          <div className="drafted">
+            <p className="drafted-title">
+              A description drawn from your document
+            </p>
+            <p className="drafted-body">
+              <Marked text={draft.description} />
+            </p>
+            {draft.placeholders.length > 0 && (
+              <p className="help">
+                The parts in brackets are things {draft.documentName} did not
+                say. Fill them in and they disappear.
+              </p>
+            )}
+            {draft.from && <p className="help">{draft.from}</p>}
+            <div className="drafted-actions">
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  // Carried, not saved. A description is theirs to sign, so
+                  // it lands in the field for them to edit and attest to —
+                  // the same road a suggested rewrite travels.
+                  holdRewrite({
+                    projectId,
+                    fieldId: "projectDescription",
+                    text: draft.description,
+                    placeholders: draft.placeholders,
+                  });
+                  setDraft(null);
+                  setOpen(false);
+                  router.push(`/projects/${projectId}/intake/description`);
+                }}
+              >
+                Use this — take me to it
+              </button>
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setDraft(null)}
+              >
+                No thanks
+              </button>
+            </div>
+          </div>
+        )}
         {busy && <Working />}
         <div ref={endRef} />
         {reading && (

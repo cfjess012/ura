@@ -93,6 +93,124 @@ export async function draftFromFile(
   return draftFromDocument(projectId, { name: file.name, body: read.text });
 }
 
+/**
+ * Draft the activity description from a file they gave us (FR-46).
+ *
+ * The other upload path proposes Yes/No answers to risk-area questions. This
+ * one writes the field the whole assessment routes on, which is the thing
+ * somebody with a vendor overview open in another window was retyping by
+ * hand.
+ *
+ * It does **not** save. The draft comes back to the screen, they read it,
+ * and taking it puts the text in the field for them to edit and attest to —
+ * the same road a suggested rewrite travels, and for the same reason: a
+ * description is theirs to sign, so it cannot arrive already written in
+ * their name.
+ */
+export async function describeFromFile(
+  projectId: string,
+  form: FormData,
+): Promise<
+  Result<{
+    description: string;
+    placeholders: string[];
+    from: string;
+    documentName: string;
+  }>
+> {
+  try {
+    const file = form.get("file");
+    if (!(file instanceof File)) {
+      return failure(
+        "describeFromFile",
+        new Error("no file"),
+        "Nothing arrived to read. Try attaching it again.",
+        { retryable: true, expected: true },
+      );
+    }
+    const person = await currentPerson();
+    const allowed = await editableProject(projectId, "describeFromFile");
+    if (isFailure(allowed)) return allowed;
+    const access = await openProject(projectId);
+    if (!access.ok || access.project.createdBy !== person.id) {
+      return failure(
+        "describeFromFile",
+        new NotPermitted("draft a description", person.role),
+        "A description is signed by the person whose assessment it is, so drafting one is theirs to ask for.",
+        { retryable: false, expected: true },
+      );
+    }
+    if (!canAnswer(person.role)) {
+      return failure(
+        "describeFromFile",
+        new NotPermitted("draft a description", person.role),
+        "This role does not answer assessment questions, so there is nothing to draft.",
+        { retryable: false, expected: true },
+      );
+    }
+
+    const read = await extractText(
+      file.name,
+      file.type,
+      await file.arrayBuffer(),
+    );
+    if (!read.ok) {
+      return failure("describeFromFile", new Error("unreadable"), read.why, {
+        retryable: false,
+        expected: true,
+      });
+    }
+
+    const transport = agentTransport();
+    if (!transport.available) {
+      return failure(
+        "describeFromFile",
+        new Error("no agent"),
+        "No assistant is connected, so nothing was drafted. You can still write it yourself.",
+        { retryable: false, expected: true },
+      );
+    }
+
+    const values = intakeValuesFrom(
+      access.project as unknown as Record<string, unknown>,
+    );
+    const drafted = await transport.describeIntake({
+      label: "Project Description",
+      existing:
+        typeof values.projectDescription === "string"
+          ? values.projectDescription
+          : "",
+      document: read.text.slice(0, MAX_DOCUMENT_CHARS),
+      documentName: file.name,
+    });
+
+    if (!("description" in drafted)) {
+      return failure(
+        "describeFromFile",
+        new Error(drafted.why),
+        drafted.why === "refused"
+          ? `I read ${file.name}, but I could not turn it into a description worth showing you. It may not say much about the activity itself.`
+          : `I could not draft one just then — that is about me, not your document. Worth trying again.`,
+        { retryable: drafted.why === "unavailable", expected: true },
+      );
+    }
+
+    return {
+      ok: true as const,
+      description: drafted.description,
+      placeholders: drafted.placeholders,
+      from: drafted.from,
+      documentName: file.name,
+    };
+  } catch (error) {
+    return failure(
+      "describeFromFile",
+      error,
+      "I couldn't read that just then. Nothing was changed.",
+    );
+  }
+}
+
 export async function draftFromDocument(
   projectId: string,
   document: { name: string; body: string },

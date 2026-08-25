@@ -21,9 +21,21 @@ export type PendingRewrite = {
   placeholders: string[];
 };
 
+/**
+ * Announced as well as stored, because the field may already be on screen.
+ *
+ * The cross-screen case works by itself: the form reads storage when it
+ * mounts. But taking a suggestion while standing on the very section that
+ * owns the field pushes to the URL already showing, so nothing remounts,
+ * nothing reads, and the text silently does not arrive — which is exactly
+ * how it failed the first time it was tried on the description screen.
+ */
+export const HELD = "ura:rewrite-held";
+
 export function holdRewrite(pending: PendingRewrite): void {
   try {
     sessionStorage.setItem(KEY, JSON.stringify(pending));
+    window.dispatchEvent(new CustomEvent(HELD));
   } catch {
     // Private mode, storage disabled, quota. The navigation still happens
     // and the field is simply not pre-filled — worse, never broken.

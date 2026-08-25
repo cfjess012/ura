@@ -38,6 +38,10 @@ export type IntakeConflict = {
 
 export type IntakeSummary = { narrative: string[] };
 
+export type IntakeDescription =
+  | { description: string; placeholders: string[]; from: string }
+  | { why: "refused" | "unavailable" };
+
 export type IntakeRewrite =
   | { rewrite: string; placeholders: string[]; kept: string }
   | { why: "refused" | "unavailable" };
@@ -101,6 +105,18 @@ export type AgentTransport = {
    * failure as the former tells somebody their text is fine when nobody
    * read it.
    */
+  /**
+   * Draft the activity description from a document they gave us. The upload
+   * channel could propose gate answers and nothing else, leaving somebody
+   * to type the field the whole assessment routes on while the document sat
+   * open in another window.
+   */
+  describeIntake(input: {
+    label: string;
+    existing: string;
+    document: string;
+    documentName: string;
+  }): Promise<IntakeDescription>;
   rewriteIntake(input: {
     label: string;
     original: string;
@@ -138,6 +154,9 @@ function notConfigured(): AgentTransport {
     },
     async scoreIntake() {
       return { scores: [], conflicts: [], summary: null };
+    },
+    async describeIntake() {
+      return { why: "unavailable" as const };
     },
     async rewriteIntake() {
       return { why: "unavailable" as const };
@@ -202,6 +221,30 @@ function localTransport(baseUrl: string): AgentTransport {
         // Fails open, deliberately and visibly.
         console.error("[agent] score-intake unreachable", cause);
         return { scores: [], conflicts: [], summary: null };
+      }
+    },
+    async describeIntake(input) {
+      try {
+        const response = await fetch(`${url}/describe-intake`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-agent-contract": AGENT_CONTRACT_VERSION,
+          },
+          body: JSON.stringify(input),
+        });
+        if (!response.ok) return { why: "unavailable" as const };
+        const body = await response.json();
+        if (body && typeof body.description === "string") return body;
+        return {
+          why:
+            body?.why === "refused"
+              ? ("refused" as const)
+              : ("unavailable" as const),
+        };
+      } catch (cause) {
+        console.error("[agent] describe unreachable", cause);
+        return { why: "unavailable" as const };
       }
     },
     async rewriteIntake(input) {
@@ -356,6 +399,11 @@ function agentCoreTransport(): AgentTransport {
   return {
     kind: "agentcore",
     available: false,
+    async describeIntake(): Promise<never> {
+      throw new Error(
+        "AGENT_TRANSPORT=agentcore, but the AgentCore Runtime adapter is not implemented. It belongs in this file and nowhere else (SPEC §6.1).",
+      );
+    },
     async rewriteIntake(): Promise<never> {
       throw new Error(
         "AGENT_TRANSPORT=agentcore, but the AgentCore Runtime adapter is not implemented. It belongs in this file and nowhere else (SPEC §6.1).",

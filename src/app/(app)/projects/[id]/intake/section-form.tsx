@@ -24,6 +24,7 @@ import {
 import { IntakeRail } from "./intake-rail";
 import {
   bracketSpans,
+  HELD,
   holdRewrite,
   takeRewrite,
   type PendingRewrite,
@@ -91,12 +92,20 @@ export function SectionForm({
   const [pending, setPending] = React.useState<PendingRewrite | null>(null);
 
   React.useEffect(() => {
-    const waiting = takeRewrite(
-      projectId,
-      section.fields.map((f) => f.id),
-    );
-    if (waiting) setPending(waiting);
-    // Once, on arrival. Re-running would re-apply it over their edits.
+    const look = () => {
+      const waiting = takeRewrite(
+        projectId,
+        section.fields.map((f) => f.id),
+      );
+      if (waiting) setPending(waiting);
+    };
+    look();
+    // And again when one is held while this form is already on screen —
+    // taking a suggestion from the assistant on the section that owns the
+    // field navigates to the URL already showing, so nothing remounts and
+    // the text would silently never arrive.
+    window.addEventListener(HELD, look);
+    return () => window.removeEventListener(HELD, look);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, sectionKey]);
 
@@ -118,12 +127,14 @@ export function SectionForm({
   const placed = React.useRef<string | null>(null);
   React.useEffect(() => {
     if (!pending) return;
-    if (placed.current === pending.fieldId) return;
+    // Keyed on the text, not the field: a second suggestion for the same
+    // field is a different suggestion and must be allowed to land.
+    if (placed.current === pending.text) return;
     if (values[pending.fieldId] !== pending.text) return;
     const el = document.getElementById(pending.fieldId) as
       HTMLTextAreaElement | HTMLInputElement | null;
     if (!el || el.value !== pending.text) return;
-    placed.current = pending.fieldId;
+    placed.current = pending.text;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
     el.focus({ preventScroll: true });
     const spans = bracketSpans(pending.text);

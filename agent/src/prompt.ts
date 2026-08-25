@@ -15,6 +15,7 @@ import type { ConverseTask } from "./converse.ts";
 import type { ReportTask } from "./report.ts";
 import type { ScoreTask } from "./score-intake.ts";
 import type { RewriteTask } from "./rewrite-intake.ts";
+import type { DescribeTask } from "./describe-intake.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const CORE = readFileSync(join(here, "..", "prompts", "core.md"), "utf8");
@@ -31,6 +32,10 @@ const REWRITE = readFileSync(
   join(here, "..", "prompts", "rewrite-intake.md"),
   "utf8",
 );
+const DESCRIBE = readFileSync(
+  join(here, "..", "prompts", "describe-intake.md"),
+  "utf8",
+);
 
 /**
  * A short hash of the locked core, recorded on every span. If a run's
@@ -43,6 +48,7 @@ export function promptVersion(): string {
     .update(REPORT)
     .update(SCORE)
     .update(REWRITE)
+    .update(DESCRIBE)
     .digest("hex")
     .slice(0, 12);
 }
@@ -217,5 +223,21 @@ export function composeRewritePrompt(task: RewriteTask): string {
     shortfalls === ""
       ? "(nothing specific — tighten it without adding)"
       : shortfalls,
+  ].join("\n\n");
+}
+
+export function composeDescribePrompt(task: DescribeTask): string {
+  return [
+    DESCRIBE,
+    "---",
+    `## The field: ${task.label}`,
+    "",
+    "## What they have written so far",
+    task.existing.trim() === ""
+      ? "(nothing yet — this is a blank field)"
+      : task.existing,
+    "",
+    `## The document they gave us: ${task.documentName}`,
+    task.document,
   ].join("\n\n");
 }
