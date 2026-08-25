@@ -126,120 +126,23 @@ export default async function GatesCompletePage({
               : `Answer the remaining ${remaining} in the list, and we'll know which areas to ask about.`}
           </p>
 
-          {lit.length === 0 && !pathsPending && (
-            <div className="card">
-              <h2>What we&rsquo;ll ask about</h2>
-              <p className="help">
-                {/* Two different facts, and the earlier version stated the
-                    wrong one: "you told us none apply" was printed to people
-                    who had never been asked anything. */}
-                {answeredPaths
-                  ? "Nothing further. You told us none of the specific threads apply in the areas that are open, so the detailed questions have nothing to ask — that is a complete answer, not a gap."
-                  : "Nothing further. None of the areas that apply here ask a follow-up question, so there was nothing to narrow down."}
-              </p>
-            </div>
-          )}
+          {/*
+            One card per thing a person has to decide about, in the order
+            they meet them: what the assessment covers, what it still wants
+            from them, what that will require, what happens afterwards, and
+            only then the one-way door.
 
-          {lit.length > 0 && (
-            <div className="card">
-              <h2>What we&rsquo;ll ask about</h2>
-              <ul className="summary-list">
-                {lit.map((path) => (
-                  <li key={`${path.categoryKey}.${path.id}`}>
-                    <strong>{path.name}</strong>
-                    {path.source === "derived" && path.because.length > 0 && (
-                      <span className="meta">
-                        {" "}
-                        — added because {path.because.join("; and ")}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              <p className="help" style={{ marginTop: ".6rem" }}>
-                {lit.filter((p) => p.source === "derived").length} of these were
-                worked out from answers you already gave.
-              </p>
-            </div>
-          )}
+            This was nine cards. "Applies" and "Closed" were two lists of the
+            same thing; "What we'll ask about" previewed the very questions
+            that "Still to answer" linked to; "What this assessment requires"
+            and "Do these controls exist?" were a list and its own call to
+            action, split apart. Each split made somebody scroll to assemble
+            a thought the page could have held together.
+          */}
 
-          {owed.length > 0 && (
-            <div className="card card-upcoming">
-              <h2>Do these controls exist?</h2>
-              <p>
-                {owed.length} control{owed.length === 1 ? "" : "s"}{" "}
-                {owed.length === 1 ? "is" : "are"} required by the answers so
-                far. The next stage asks whether{" "}
-                {owed.length === 1 ? "it is" : "they are"} already in place —
-                and a gap named there becomes a finding a reviewer can act on.
-              </p>
-              <Link className="btn" href={`/projects/${id}/assess/objectives`}>
-                Answer the control questions &rarr;
-              </Link>
-            </div>
-          )}
-
-          {owed.length > 0 && (
-            <div className="card owed">
-              <h2>What this assessment requires</h2>
-              <p className="help">
-                Assembled from your severity answers — each control names the
-                answer that pulled it in. The detailed questions inside each
-                control come later; this is the workplan they will follow.
-              </p>
-              <ul className="summary-list">
-                {owed.map((control) => (
-                  <li key={control.objective}>
-                    <strong>{control.name}</strong>
-                    <span className="meta">
-                      {" "}
-                      — {control.because.join("; and ")}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {severityQuestions.length > 0 &&
-            severityAnswered < severityQuestions.length && (
-              <div className="card card-upcoming">
-                <h2>Still to answer</h2>
-                <p>
-                  {severityQuestions.length - severityAnswered} severity
-                  question
-                  {severityQuestions.length - severityAnswered === 1
-                    ? ""
-                    : "s"}{" "}
-                  have no answer yet
-                  {owed.length > 0
-                    ? ", so the list above is incomplete."
-                    : ", so we can't yet say what this activity will require."}
-                </p>
-                <Link
-                  className="btn"
-                  href={`/projects/${id}/assess/severity/${severityGroupKey}`}
-                >
-                  Answer the severity questions &rarr;
-                </Link>
-              </div>
-            )}
-
-          {pathsPending && (
-            <div className="card card-upcoming">
-              <h2>Still to narrow down</h2>
-              <p>
-                Some open areas haven&rsquo;t been narrowed yet, so we
-                don&rsquo;t know which parts of them to ask about.
-              </p>
-              <Link className="btn" href={`/projects/${id}/assess/paths`}>
-                Narrow them down →
-              </Link>
-            </div>
-          )}
-
+          {/* The map itself — what applies, and what will never be asked. */}
           <div className="card">
-            <h2>Applies to this activity</h2>
+            <h2>The risk areas</h2>
             {applies.length === 0 ? (
               <p className="help">Nothing yet.</p>
             ) : (
@@ -270,28 +173,164 @@ export default async function GatesCompletePage({
                 ))}
               </ul>
             )}
+            {closed.length > 0 && (
+              <>
+                <p className="card-part">Closed — not applicable</p>
+                <ul className="summary-list closed">
+                  {closed.map((s) => (
+                    <li key={s.category.key}>{s.category.name}</li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
 
-          {closed.length > 0 && (
+          {/* Severity: the preview of what gets asked lives with the ask
+              itself, rather than as a card somebody reads and then has to
+              find the button for. */}
+          {severityQuestions.length > 0 &&
+            severityAnswered < severityQuestions.length && (
+              <div className="card card-upcoming">
+                <h2>How severe — still to answer</h2>
+                <p>
+                  {severityQuestions.length - severityAnswered} severity
+                  question
+                  {severityQuestions.length - severityAnswered === 1
+                    ? ""
+                    : "s"}{" "}
+                  have no answer yet
+                  {owed.length > 0
+                    ? ", so the list of controls below is incomplete."
+                    : ", so we can't yet say what this activity will require."}
+                </p>
+                {lit.length > 0 && (
+                  <>
+                    <p className="card-part">What they cover</p>
+                    <ul className="summary-list">
+                      {lit.map((path) => (
+                        <li key={`${path.categoryKey}.${path.id}`}>
+                          <strong>{path.name}</strong>
+                          {path.source === "derived" &&
+                            path.because.length > 0 && (
+                              <span className="meta">
+                                {" "}
+                                — added because {path.because.join("; and ")}
+                              </span>
+                            )}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="help">
+                      {lit.filter((p) => p.source === "derived").length} of
+                      these were worked out from answers you already gave.
+                    </p>
+                  </>
+                )}
+                {/* Asked often enough to belong on the screen: they are not
+                    a locked door (FR-14), and somebody who does not know
+                    that answers them defensively or stalls. */}
+                <p className="help">
+                  You can submit without these — a reviewer sees exactly what
+                  was left unanswered. Answering them is what lets us work out
+                  which controls this activity needs.
+                </p>
+                <Link
+                  className="btn"
+                  href={`/projects/${id}/assess/severity/${severityGroupKey}`}
+                >
+                  Answer the severity questions &rarr;
+                </Link>
+              </div>
+            )}
+
+          {lit.length === 0 && !pathsPending && (
             <div className="card">
-              <h2>Closed — not applicable</h2>
-              <ul className="summary-list closed">
-                {closed.map((s) => (
-                  <li key={s.category.key}>{s.category.name}</li>
-                ))}
-              </ul>
+              <h2>What we&rsquo;ll ask about</h2>
+              <p className="help">
+                {/* Two different facts, and the earlier version stated the
+                    wrong one: "you told us none apply" was printed to people
+                    who had never been asked anything. */}
+                {answeredPaths
+                  ? "Nothing further. You told us none of the specific threads apply in the areas that are open, so the detailed questions have nothing to ask — that is a complete answer, not a gap."
+                  : "Nothing further. None of the areas that apply here ask a follow-up question, so there was nothing to narrow down."}
+              </p>
             </div>
           )}
 
-          {/*
-            Honest about what does not exist yet (§24.8) — and honest in the
-            other direction too. This card used to say the severity screens
-            "are still being built" to a person who had just finished them,
-            which is the same defect as claiming an unbuilt stage is ready
-            (S4 verification, F3).
-          */}
+          {pathsPending && (
+            <div className="card card-upcoming">
+              <h2>Still to narrow down</h2>
+              <p>
+                Some open areas haven&rsquo;t been narrowed yet, so we
+                don&rsquo;t know which parts of them to ask about.
+              </p>
+              <Link className="btn" href={`/projects/${id}/assess/paths`}>
+                Narrow them down →
+              </Link>
+            </div>
+          )}
+
+          {/* The controls, and the offer to answer them, as one thing. */}
+          {owed.length > 0 && (
+            <div className="card owed">
+              <h2>What this assessment requires</h2>
+              <p className="help">
+                Assembled from your severity answers — each control names the
+                answer that pulled it in.
+              </p>
+              <ul className="summary-list">
+                {owed.map((control) => (
+                  <li key={control.objective}>
+                    <strong>{control.name}</strong>
+                    <span className="meta">
+                      {" "}
+                      — {control.because.join("; and ")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="card-part">Do these controls exist?</p>
+              <p>
+                The next stage asks whether{" "}
+                {owed.length === 1 ? "it is" : "they are"} already in place —
+                and a gap named there becomes a finding a reviewer can act on. A
+                Risk Assessor attests every answer either way.
+              </p>
+              {/* The choice is real, so it is stated as one. Somebody who
+                  does not know they may stop here either answers defensively
+                  or abandons the assessment. */}
+              <p className="help">
+                Answering them here is the faster route. If you would rather
+                not, that is no problem — the assessment goes to the risk
+                domains that apply and they work through the controls with you,
+                which takes longer.
+              </p>
+              <Link className="btn" href={`/projects/${id}/assess/objectives`}>
+                Answer the control questions &rarr;
+              </Link>
+            </div>
+          )}
+
+          {/* What happens after — before the door, not after it. */}
+          <div className="card card-upcoming">
+            <h2>What happens after you submit</h2>
+            <p>
+              A Risk Assessor attests every answer and settles the findings this
+              raises — one of four ways, each of which says what it commits to.
+              They then produce the report, and a structured extract of this
+              assessment for each risk domain that applies, to carry into their
+              own system.
+            </p>
+            {/* §24.8: an unbuilt write says so rather than being mimicked. */}
+            <p className="help">
+              The extract is assembled and downloadable here. Sending it into a
+              downstream system isn&rsquo;t connected yet.
+            </p>
+          </div>
+
           {/* Submission is reachable whenever intake is done: gaps are
-              allowed and named, not a locked door (FR-14). */}
+              allowed and named, not a locked door (FR-14). Last on the page
+              because it is the one thing that cannot be undone. */}
           <div className="card">
             <h2>Hand this to a reviewer</h2>
             <p className="help">
@@ -301,18 +340,9 @@ export default async function GatesCompletePage({
             <Link className="btn" href={`/projects/${id}/submit`}>
               Read them and submit &rarr;
             </Link>
-          </div>
-
-          <div className="card card-upcoming">
-            <h2>Coming next</h2>
-            <p>
-              A Risk Assessor signs every control answer and settles the
-              findings this raises — one of four ways, each of which says what
-              it commits to. Everything you have answered is saved.
+            <p className="help">
+              <Link href={`/projects/${id}`}>Back to the assessment</Link>
             </p>
-            <Link className="btn ghost" href={`/projects/${id}`}>
-              Back to the assessment
-            </Link>
           </div>
         </section>
       </div>

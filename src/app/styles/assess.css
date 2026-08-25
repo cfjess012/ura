@@ -878,3 +878,19 @@
   outline-offset: 2px;
   border-radius: 8px;
 }
+
+/* A labelled part inside a card. Sections that belong to one decision were
+   split into separate cards so each could have its own heading; this gives
+   them a heading without the split.
+
+   Scoped to `.card` deliberately: `.card-upcoming p` is a class plus an
+   element and outranks a lone class, so the bare selector lost its size and
+   colour inside exactly the cards that use it most. */
+.card .card-part {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--neutral-600);
+}
