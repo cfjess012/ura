@@ -2,9 +2,22 @@
 .appbar {
   background: var(--navy);
   color: var(--neutral-0);
-  padding: 0.85rem 1.5rem;
+  padding: 0 1.5rem;
+  /* Sticky, so a docked assistant can sit under it and stay under it. A
+     panel pinned below a banner that scrolls away opens a strip of moving
+     page above it, which reads as broken. */
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: var(--appbar-h);
+  display: flex;
+  align-items: center;
+  /* The body shortens itself to make room for a docked panel; the banner
+     opts out, spanning the full width with the panel tucked beneath it. */
+  margin-right: calc(-1 * var(--assistant-dock, 0px));
 }
 .appbar-inner {
+  width: 100%;
   max-width: 1180px;
   margin: 0 auto;
   display: flex;

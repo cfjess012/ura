@@ -12,6 +12,10 @@
   --font-sans:
     var(--font-figtree), -apple-system, "Segoe UI", Roboto, sans-serif;
 
+  /* The banner's height. Read twice — the banner sets it, and a docked
+     assistant starts exactly there — so the two can never drift apart. */
+  --appbar-h: 63px;
+
   /* Brand + interactive */
   --brand: #0091da;
   --primary: #0076cf;

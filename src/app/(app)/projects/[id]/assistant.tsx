@@ -888,8 +888,10 @@ export function Assistant({
       style={{
         ...(width ? { width: `${width}px` } : {}),
         // maxHeight, not height: the panel should still shrink to its
-        // content when there is little in it.
-        ...(height ? { maxHeight: `${height}px` } : {}),
+        // content when there is little in it. Docked, height is not the
+        // panel's to choose — it runs banner to floor — and a leftover
+        // float height would cut the column short.
+        ...(height && !docked ? { maxHeight: `${height}px` } : {}),
       }}
       aria-label="Assistant"
       role="dialog"
@@ -900,6 +902,8 @@ export function Assistant({
         and two of them were furniture: the corner already does both axes
         with the pointer and all four arrow keys, so the other two added
         chrome around a panel whose whole problem was taking up room.
+        Docked, the same handle drags width alone; the other axis is spoken
+        for by the banner above and the floor below.
       */}
       <div
         className="assistant-grip-corner"
@@ -908,15 +912,15 @@ export function Assistant({
         tabIndex={0}
         onPointerDown={(event) => {
           event.preventDefault();
-          setDragging("xy");
+          setDragging(docked ? "x" : "xy");
         }}
         onKeyDown={(event) => {
           const w = width ?? DEFAULT_WIDTH;
           const h = height ?? DEFAULT_HEIGHT;
           if (event.key === "ArrowLeft") resize(w + STEP);
           else if (event.key === "ArrowRight") resize(w - STEP);
-          else if (event.key === "ArrowUp") restack(h + STEP);
-          else if (event.key === "ArrowDown") restack(h - STEP);
+          else if (event.key === "ArrowUp" && !docked) restack(h + STEP);
+          else if (event.key === "ArrowDown" && !docked) restack(h - STEP);
           else return;
           event.preventDefault();
         }}

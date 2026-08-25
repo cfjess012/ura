@@ -4710,30 +4710,39 @@
 .assistant.docked {
   right: 0;
   bottom: 0;
-  top: 0;
+  /* Under the banner, not over it, and down to the floor — the panel is a
+     column of the page rather than a sheet laid across it. */
+  top: var(--appbar-h);
   max-height: none;
-  height: 100vh;
+  height: auto;
   border-radius: 0;
   border-right: 0;
   border-top: 0;
   border-bottom: 0;
   box-shadow: -8px 0 28px rgb(0 40 85 / 12%);
 }
-/* The corner and top handles belong to a floating panel; docked, only the
-   left edge can move. */
-.assistant.docked .assistant-grip-top,
+/* Docked, the same handle moves one axis: top and bottom are pinned to the
+   banner and the floor, so only width is left to drag. It moves to the
+   middle of the left edge — a corner mark poking up into the banner reads
+   as something slipping out of place. */
 .assistant.docked .assistant-grip-corner {
-  display: none;
+  cursor: ew-resize;
+  top: 50%;
+  left: -8px;
+  width: 16px;
+  height: 44px;
+  border-radius: 999px;
+  transform: translateY(-50%);
 }
-.assistant.docked .assistant-grip {
-  top: 0;
-  bottom: 0;
-  height: auto;
-  transform: none;
+.assistant.docked .assistant-grip-corner::after {
+  inset: 14px 6px;
+  border: 0;
+  border-left: 2px solid var(--neutral-0);
+  border-right: 2px solid var(--neutral-0);
   border-radius: 0;
 }
-.assistant.docked .assistant-grip::after {
-  border-radius: 0;
+.assistant.docked .assistant-grip-corner:hover {
+  background: var(--brand);
 }
 .assistant-dock {
   border: 1px solid var(--neutral-200);
