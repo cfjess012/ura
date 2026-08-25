@@ -7,6 +7,7 @@
  * produces when it is confidently wrong.
  */
 import { describe, expect, it } from "vitest";
+import { extractJson } from "../src/model.ts";
 import { gate, type DraftTask } from "../src/draft.ts";
 
 const SOURCE = {
@@ -165,5 +166,47 @@ describe("the contextual guardrail runs on the reason a person reads", () => {
         task,
       ).ok,
     ).toBe(true);
+  });
+});
+
+/**
+ * Reading JSON back out of a model's reply.
+ *
+ * Every capability funnels through this, and every capability has failed
+ * here today with the same unhelpful sentence. The break that matters is
+ * a long prose field: a model writing several paragraphs puts real
+ * newlines inside the string rather than \n, which is not JSON however
+ * well-formed the rest is.
+ */
+describe("finding the JSON", () => {
+  it("repairs raw newlines inside a string", () => {
+    const broken =
+      '{"description":"First para.\n\nSecond para.","placeholders":[]}';
+    const parsed = JSON.parse(extractJson(broken)) as {
+      description: string;
+    };
+    // Repaired, not reformatted: the characters are kept exactly, only
+    // spelled the way the format requires.
+    expect(parsed.description.split("\n\n")).toHaveLength(2);
+  });
+
+  it("keeps an escaped quote escaped while repairing", () => {
+    const broken = '{"a":"he said \\"yes\\"\nand left"}';
+    const parsed = JSON.parse(extractJson(broken)) as { a: string };
+    expect(parsed.a).toContain('"yes"');
+    expect(parsed.a).toContain("\nand left");
+  });
+
+  it("reads a fenced block", () => {
+    expect(JSON.parse(extractJson('```json\n{"a":1}\n```'))).toEqual({ a: 1 });
+  });
+
+  it("takes the block that parses, not the first one", () => {
+    const text = '```\nnot json\n```\nthen\n```json\n{"a":2}\n```';
+    expect(JSON.parse(extractJson(text))).toEqual({ a: 2 });
+  });
+
+  it("throws when there is genuinely nothing", () => {
+    expect(() => extractJson("no object here at all")).toThrow();
   });
 });

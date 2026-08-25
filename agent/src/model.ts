@@ -84,6 +84,42 @@ export function textOf(message: {
  * fence however firmly you ask them not to; that is a formatting quirk to
  * absorb here, not a provenance failure to reject.
  */
+/**
+ * Spell raw control characters inside string literals the way JSON needs.
+ *
+ * Outside a string they are whitespace and mean nothing; inside one they
+ * are illegal, and a model writing a paragraph produces them constantly.
+ * Tracks escapes so a backslash before a quote does not end the string.
+ */
+function escapeInsideStrings(json: string): string {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+  for (const char of json) {
+    if (escaped) {
+      out += char;
+      escaped = false;
+      continue;
+    }
+    if (char === "\\") {
+      out += char;
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      out += char;
+      continue;
+    }
+    if (inString && (char === "\n" || char === "\r" || char === "\t")) {
+      out += char === "\n" ? "\\n" : char === "\r" ? "\\r" : "\\t";
+      continue;
+    }
+    out += char;
+  }
+  return out;
+}
+
 export function extractJson(text: string): string {
   // Try the first fenced block, then every other fenced block, then the raw
   // text. A model that opens with an unrelated fence, or writes prose and
@@ -103,8 +139,29 @@ export function extractJson(text: string): string {
       JSON.parse(slice);
       return slice;
     } catch {
+      // A long prose field is where this breaks: a model writing several
+      // paragraphs puts real newlines inside the string rather than \n, and
+      // that is not JSON however well-formed the rest of it is. Escaping
+      // them is a repair, not a guess — the characters are kept exactly,
+      // only spelled the way the format requires.
+      const repaired = escapeInsideStrings(slice);
+      if (repaired !== slice) {
+        try {
+          JSON.parse(repaired);
+          return repaired;
+        } catch {
+          // Still not it; fall through to the next candidate.
+        }
+      }
       // Not this one — a fence holding an example, or a truncated tail.
     }
   }
+  // Say what could not be parsed. Every capability funnels its failures
+  // through this one sentence, and "no JSON object" has now sent me looking
+  // in the wrong place three times.
+  console.error(
+    "[extractJson] nothing parseable in:",
+    JSON.stringify(text.slice(0, 300)),
+  );
   throw new Error("the model returned no JSON object");
 }
