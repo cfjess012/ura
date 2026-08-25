@@ -53,6 +53,22 @@ the rest:
 - Never write in the first person as them about intentions the document
   does not record. "We plan to roll this out" is theirs to say.
 
+## The other fields
+
+You are also given the intake's pickable fields and the exact options each
+accepts. Where the document settles one, propose it.
+
+- The value must be **one of that field's options, copied exactly**.
+  Anything else is discarded — you are choosing among answers the form
+  already allows, never inventing one.
+- Carry a **verbatim quote from the document** for each. A sentence you
+  cannot point at is a proposal nobody can check, and it will be dropped.
+- Propose only what the document settles. A document that mentions a
+  supplier in passing does not settle whether this activity involves one;
+  a document naming the supplier that processes the data does.
+- Leave the rest alone. Abstaining is the right answer far more often than
+  not, and every proposal you make is one somebody has to check.
+
 ## Output
 
 A single JSON object and nothing else:
@@ -61,6 +77,13 @@ A single JSON object and nothing else:
 {
   "description": "<the draft, in plain paragraphs>",
   "placeholders": ["<what each bracket is asking for>"],
-  "from": "<one sentence: what in the document you drew on>"
+  "from": "<one sentence: what in the document you drew on>",
+  "fields": [
+    {
+      "field": "<field id>",
+      "value": "<one of its exact options>",
+      "quote": "<the sentence from the document, word for word>"
+    }
+  ]
 }
 ```

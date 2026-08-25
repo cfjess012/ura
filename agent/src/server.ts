@@ -78,6 +78,7 @@ const server = createServer(async (req, res) => {
       existing: task.existing ?? "",
       document: task.document ?? "",
       documentName: task.documentName ?? "the document",
+      fields: task.fields ?? [],
     });
     res.writeHead(200, { "content-type": "application/json" });
     res.end(JSON.stringify(drafted));

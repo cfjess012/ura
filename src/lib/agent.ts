@@ -39,7 +39,17 @@ export type IntakeConflict = {
 export type IntakeSummary = { narrative: string[] };
 
 export type IntakeDescription =
-  | { description: string; placeholders: string[]; from: string }
+  | {
+      description: string;
+      placeholders: string[];
+      from: string;
+      fields: Array<{
+        field: string;
+        label: string;
+        value: string;
+        quote: string;
+      }>;
+    }
   | { why: "refused" | "unavailable" };
 
 export type IntakeRewrite =
@@ -116,6 +126,7 @@ export type AgentTransport = {
     existing: string;
     document: string;
     documentName: string;
+    fields: Array<{ id: string; label: string; options: string[] }>;
   }): Promise<IntakeDescription>;
   rewriteIntake(input: {
     label: string;

@@ -237,6 +237,16 @@ export function composeDescribePrompt(task: DescribeTask): string {
       ? "(nothing yet — this is a blank field)"
       : task.existing,
     "",
+    "## The fields a proposal may set",
+    (task.fields ?? []).length === 0
+      ? "(none — propose no fields)"
+      : (task.fields ?? [])
+          .map(
+            (f) =>
+              `- \`${f.id}\` — ${f.label}\n  options: ${f.options.map((o) => `"${o}"`).join(", ")}`,
+          )
+          .join("\n"),
+    "",
     `## The document they gave us: ${task.documentName}`,
     task.document,
   ].join("\n\n");

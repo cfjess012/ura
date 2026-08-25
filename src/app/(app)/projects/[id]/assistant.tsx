@@ -4,6 +4,7 @@ import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { askAgent, type AgentTurn } from "@/app/agent-actions";
 import { describeFromFile, draftFromFile } from "@/app/document-actions";
+import { applyIntakeFix } from "@/app/actions";
 import { blocksOf, type Block, type Span } from "@/lib/reply-format";
 import { holdRewrite } from "@/lib/pending-rewrite";
 import { Marked } from "./marked";
@@ -52,8 +53,161 @@ export type Drafted = {
   description: string;
   placeholders: string[];
   from: string;
+  fields: Array<{ field: string; label: string; value: string; quote: string }>;
   documentName: string;
 };
+
+/**
+ * Everything the document turned up, and where each of it goes.
+ *
+ * The first version drafted the description, said so in a sentence, and
+ * stopped — so a document that settled four things produced one, and
+ * whatever else it had found was invisible. Somebody who has just handed
+ * over a spec wants to see what came of it, all of it, and be walked to
+ * each piece.
+ *
+ * **Nothing here is applied until it is chosen, and each is chosen
+ * separately.** The count at the top is what is left, so the panel empties
+ * as they work rather than looking the same when they are done. A tick is
+ * the receipt for the one they just did.
+ */
+function Tracker({
+  projectId,
+  draft,
+  onDone,
+  onTakeDescription,
+}: {
+  projectId: string;
+  draft: Drafted;
+  onDone: () => void;
+  onTakeDescription: () => void;
+}) {
+  const [settled, setSettled] = React.useState<
+    Record<string, "done" | "failed">
+  >({});
+  const [saving, setSaving] = React.useState<string | null>(null);
+  const left =
+    (settled.description ? 0 : 1) +
+    draft.fields.filter((f) => !settled[f.field]).length;
+
+  return (
+    <div className="tracker">
+      <p className="tracker-head">
+        <span className="tracker-count">{left}</span>
+        {left === 1 ? "thing" : "things"} I found in {draft.documentName}
+      </p>
+
+      <div
+        className={settled.description ? "tracker-item done" : "tracker-item"}
+      >
+        <p className="tracker-what">Project Description</p>
+        {settled.description ? (
+          <p className="tracker-state">
+            <span aria-hidden="true">✓</span> Taken — it is in the field for you
+            to finish and sign.
+          </p>
+        ) : (
+          <>
+            <p className="tracker-body">
+              <Marked text={draft.description} />
+            </p>
+            {draft.placeholders.length > 0 && (
+              <p className="help">
+                {draft.placeholders.length}{" "}
+                {draft.placeholders.length === 1 ? "part" : "parts"} in brackets
+                — {draft.documentName} did not say, and I will not invent it.
+              </p>
+            )}
+            <button
+              type="button"
+              className="btn btn-small"
+              onClick={() => {
+                setSettled((was) => ({ ...was, description: "done" }));
+                onTakeDescription();
+              }}
+            >
+              Use this — take me to it
+            </button>
+          </>
+        )}
+      </div>
+
+      {draft.fields.map((proposal) => {
+        const state = settled[proposal.field];
+        return (
+          <div
+            className={state === "done" ? "tracker-item done" : "tracker-item"}
+            key={proposal.field}
+          >
+            <p className="tracker-what">{proposal.label.replace(/\?$/, "")}</p>
+            {state === "done" ? (
+              <p className="tracker-state">
+                <span aria-hidden="true">✓</span> Set to “{proposal.value}”. You
+                can change it on its own section.
+              </p>
+            ) : (
+              <>
+                <p className="tracker-body">
+                  It proposes <strong>{proposal.value}</strong>, from this:
+                </p>
+                <blockquote className="tracker-quote">
+                  {proposal.quote}
+                </blockquote>
+                <button
+                  type="button"
+                  className="btn btn-small"
+                  disabled={saving === proposal.field}
+                  onClick={async () => {
+                    setSaving(proposal.field);
+                    try {
+                      const outcome = await applyIntakeFix(
+                        projectId,
+                        proposal.field,
+                        proposal.value,
+                      );
+                      setSettled((was) => ({
+                        ...was,
+                        [proposal.field]: isFailure(outcome)
+                          ? "failed"
+                          : "done",
+                      }));
+                    } catch (cause) {
+                      console.error("applyIntakeFix", cause);
+                      setSettled((was) => ({
+                        ...was,
+                        [proposal.field]: "failed",
+                      }));
+                    } finally {
+                      setSaving(null);
+                    }
+                  }}
+                >
+                  {saving === proposal.field
+                    ? "Setting…"
+                    : `Set it to “${proposal.value}”`}
+                </button>
+                {state === "failed" && (
+                  <p className="help">
+                    That didn’t save — the answer is unchanged, and you can set
+                    it on its own section.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })}
+
+      <button
+        type="button"
+        className="link-button tracker-dismiss"
+        onClick={onDone}
+      >
+        {left === 0 ? "Close this" : "Not now"}
+      </button>
+    </div>
+  );
+}
 
 export type Clause = {
   policy: string;
@@ -543,50 +697,23 @@ export function Assistant({
           </p>
         ))}
         {draft && (
-          <div className="drafted">
-            <p className="drafted-title">
-              A description drawn from your document
-            </p>
-            <p className="drafted-body">
-              <Marked text={draft.description} />
-            </p>
-            {draft.placeholders.length > 0 && (
-              <p className="help">
-                The parts in brackets are things {draft.documentName} did not
-                say. Fill them in and they disappear.
-              </p>
-            )}
-            {draft.from && <p className="help">{draft.from}</p>}
-            <div className="drafted-actions">
-              <button
-                type="button"
-                className="btn"
-                onClick={() => {
-                  // Carried, not saved. A description is theirs to sign, so
-                  // it lands in the field for them to edit and attest to —
-                  // the same road a suggested rewrite travels.
-                  holdRewrite({
-                    projectId,
-                    fieldId: "projectDescription",
-                    text: draft.description,
-                    placeholders: draft.placeholders,
-                  });
-                  setDraft(null);
-                  setOpen(false);
-                  router.push(`/projects/${projectId}/intake/description`);
-                }}
-              >
-                Use this — take me to it
-              </button>
-              <button
-                type="button"
-                className="link-button"
-                onClick={() => setDraft(null)}
-              >
-                No thanks
-              </button>
-            </div>
-          </div>
+          <Tracker
+            projectId={projectId}
+            draft={draft}
+            onDone={() => setDraft(null)}
+            onTakeDescription={() => {
+              // Carried, not saved. A description is theirs to sign, so it
+              // lands in the field for them to edit and attest to.
+              holdRewrite({
+                projectId,
+                fieldId: "projectDescription",
+                text: draft.description,
+                placeholders: draft.placeholders,
+              });
+              setOpen(false);
+              router.push(`/projects/${projectId}/intake/description`);
+            }}
+          />
         )}
         {busy && <Working />}
         <div ref={endRef} />

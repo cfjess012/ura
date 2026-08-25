@@ -12,6 +12,7 @@
  * nobody can point at is a fact nobody should be signing for.
  */
 import { trace } from "@opentelemetry/api";
+import { quoteAppearsVerbatim } from "../../src/lib/agent-contract.ts";
 import { extractJson, modelClient, modelId, textOf } from "./model.ts";
 import { composeDescribePrompt, promptVersion } from "./prompt.ts";
 
@@ -26,12 +27,23 @@ export type DescribeTask = {
   document: string;
   /** What it was called, for the sentence that reports back. */
   documentName: string;
+  /** The pickable fields and what each will accept, so a proposal is checkable. */
+  fields?: Array<{ id: string; label: string; options: string[] }>;
+};
+
+/** One field the document settles, with the sentence that settles it. */
+export type FieldProposal = {
+  field: string;
+  label: string;
+  value: string;
+  quote: string;
 };
 
 export type Description = {
   description: string;
   placeholders: string[];
   from: string;
+  fields: FieldProposal[];
 };
 
 export type NoDescription = { why: "refused" | "unavailable" };
@@ -46,6 +58,41 @@ const CEILING = 4000;
  * is the shape: that there is something, that it is not the document handed
  * back, and that it is not so long it has become the document.
  */
+/**
+ * Keep only field proposals the instrument really offers, quoted from the
+ * document really given.
+ *
+ * Two checks, and both matter. **The value must be an option the form
+ * already allows** — the model is choosing among answers, never inventing
+ * one, and a near-miss is dropped rather than matched loosely. **The quote
+ * must appear in the document** — a proposal nobody can point at is one
+ * nobody can check, and it would arrive under somebody's name.
+ */
+export function fieldGate(raw: unknown, task: DescribeTask): FieldProposal[] {
+  if (!Array.isArray(raw)) return [];
+  const known = new Map((task.fields ?? []).map((f) => [f.id, f]));
+  const kept: FieldProposal[] = [];
+  for (const entry of raw) {
+    if (typeof entry !== "object" || entry === null) continue;
+    const { field, value, quote } = entry as Record<string, unknown>;
+    if (typeof field !== "string" || typeof value !== "string") continue;
+    if (typeof quote !== "string" || quote.trim() === "") continue;
+    const option = known.get(field.trim());
+    if (!option) continue;
+    const wanted = value.trim().toLowerCase();
+    const real = option.options.find((o) => o.toLowerCase() === wanted);
+    if (real === undefined) continue;
+    if (!quoteAppearsVerbatim(quote, task.document)) continue;
+    kept.push({
+      field: option.id,
+      label: option.label,
+      value: real,
+      quote: quote.trim(),
+    });
+  }
+  return kept;
+}
+
 export function describeGate(
   parsed: unknown,
   task: DescribeTask,
@@ -73,6 +120,7 @@ export function describeGate(
       why: "the draft is a slice of the document rather than a description",
     };
   }
+  const fields = fieldGate(raw.fields, task);
   const brackets = [...description.matchAll(/\[([^\]]{3,600})\]/g)].map((m) =>
     m[1]!.trim(),
   );
@@ -82,6 +130,7 @@ export function describeGate(
       description,
       placeholders: brackets,
       from: typeof raw.from === "string" ? raw.from.trim() : "",
+      fields,
     },
   };
 }

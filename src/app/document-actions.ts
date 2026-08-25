@@ -21,6 +21,7 @@ import { failure, isFailure, type Result } from "@/lib/errors";
 import { extractText } from "@/lib/extract";
 import { gateStates } from "@/lib/instrument";
 import { intakeValuesFrom } from "@/lib/intake-values";
+import { INTAKE_SECTIONS } from "@/lib/intake";
 import { canAnswer, NotPermitted } from "@/lib/people";
 import { editableProject, openProject } from "@/lib/project-access";
 import { answerStore } from "@/lib/repo";
@@ -115,6 +116,12 @@ export async function describeFromFile(
     description: string;
     placeholders: string[];
     from: string;
+    fields: Array<{
+      field: string;
+      label: string;
+      value: string;
+      quote: string;
+    }>;
     documentName: string;
   }>
 > {
@@ -182,6 +189,7 @@ export async function describeFromFile(
           : "",
       document: read.text.slice(0, MAX_DOCUMENT_CHARS),
       documentName: file.name,
+      fields: intakeFieldsWithOptions(),
     });
 
     if (!("description" in drafted)) {
@@ -200,6 +208,7 @@ export async function describeFromFile(
       description: drafted.description,
       placeholders: drafted.placeholders,
       from: drafted.from,
+      fields: drafted.fields,
       documentName: file.name,
     };
   } catch (error) {
@@ -425,4 +434,32 @@ export async function draftFromDocument(
       "That document could not be read just then. Nothing was proposed and nothing was changed.",
     );
   }
+}
+
+/**
+ * The intake fields a document may settle: those offering a fixed set of
+ * answers.
+ *
+ * Free text is excluded on purpose. A wrong sentence needs a person reading
+ * it; a wrong pick has exactly one right alternative and can be checked
+ * against the instrument, which is what makes proposing it safe at all.
+ */
+function intakeFieldsWithOptions(): Array<{
+  id: string;
+  label: string;
+  options: string[];
+}> {
+  const fields: Array<{ id: string; label: string; options: string[] }> = [];
+  for (const section of INTAKE_SECTIONS) {
+    for (const field of section.fields) {
+      if (field.options && field.options.length > 0) {
+        fields.push({
+          id: field.id,
+          label: field.label,
+          options: field.options,
+        });
+      }
+    }
+  }
+  return fields;
 }
