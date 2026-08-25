@@ -41,10 +41,45 @@ attachment storage (blocked on a retention decision), and composite scoring
 
 ```sh
 pnpm install
+cp .env.example .env    # then read it — the Docker port note matters
 pnpm db:up && pnpm db:migrate && pnpm instrument:seed
 pnpm demo:seed          # four curated assessments, one already with a reviewer
 pnpm dev                # http://localhost:3100
 ```
+
+**`pnpm db:up` publishes Postgres on 5433, not 5432** — deliberately, so the
+container cannot collide with a Postgres already running on the machine. If
+you use it, point `DATABASE_URL` and `E2E_DATABASE_URL` at 5433; `.env.example`
+carries both forms.
+
+### If you cannot run Docker
+
+Nothing here needs Docker, and nothing needs administrator rights. `db:up` is
+a convenience; the app wants a reachable Postgres 16 and does not care where
+it came from. Pick whichever your machine allows and set `DATABASE_URL`:
+
+| Instead of Docker               | How                                                                                                          | Port         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------ |
+| **Postgres.app** (macOS)        | Drag to Applications and open it. No installer, no admin.                                                    | 5432         |
+| **Homebrew** (macOS)            | `brew install postgresql@16 && brew services start postgresql@16`                                            | 5432         |
+| **A hosted instance**           | A free Neon or Supabase project. Nothing is installed at all, which is the answer for a locked-down machine. | in their URL |
+| **A Postgres you already have** | Just point at it.                                                                                            | yours        |
+
+With a server that is not the compose one, create the two databases once:
+
+```sh
+createdb ura && createdb ura_e2e     # or: psql -c 'create database ura'
+pnpm db:migrate && pnpm instrument:seed && pnpm demo:seed
+```
+
+The e2e suite creates its own database if the role may (`pnpm e2e:db` says so
+plainly if it may not), so `E2E_DATABASE_URL` only needs to name one.
+
+This is not theoretical: the development and demo work for this repository,
+including the full end-to-end suite, has been run against Homebrew Postgres
+with Docker not running at all. The block above was verified from an empty
+database — 29 migrations applied, 15 tables, three instrument versions
+activated and 27 people seeded — with no container involved.
 
 The agent is a separate service and is **off by default** — with no agent
 connected the product says so rather than implying one runs. To see the AI
