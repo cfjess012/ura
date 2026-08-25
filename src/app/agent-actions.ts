@@ -719,7 +719,13 @@ export async function suggestRewrite(
   projectId: string,
   fieldId: string,
   shortfalls: Array<{ label: string; ask: string; anchor: string }>,
-): Promise<Result<{ suggestion: Suggestion | null }>> {
+): Promise<
+  Result<{
+    suggestion: Suggestion | null;
+    /** Why there is none, when there is none. Null when there is one. */
+    why: "refused" | "unavailable" | null;
+  }>
+> {
   try {
     const access = await openProject(projectId);
     if (!access.ok) {
@@ -757,15 +763,23 @@ export async function suggestRewrite(
 
     const transport = agentTransport();
     if (!transport.available) {
-      // Nothing to offer is a real answer, not a failure to handle.
-      return { ok: true as const, suggestion: null };
+      return {
+        ok: true as const,
+        suggestion: null,
+        why: "unavailable" as const,
+      };
     }
-    const suggestion = await transport.rewriteIntake({
+    const outcome = await transport.rewriteIntake({
       label: field.label,
       original,
       shortfalls,
     });
-    return { ok: true as const, suggestion };
+    // "We looked and your text stands" and "we could not look" are
+    // different things to be told, and only one of them is about them.
+    if ("rewrite" in outcome) {
+      return { ok: true as const, suggestion: outcome, why: null };
+    }
+    return { ok: true as const, suggestion: null, why: outcome.why };
   } catch (error) {
     return failure(
       "suggestRewrite",

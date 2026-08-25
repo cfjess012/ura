@@ -85,12 +85,26 @@ export function textOf(message: {
  * absorb here, not a provenance failure to reject.
  */
 export function extractJson(text: string): string {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const body = fenced?.[1] ?? text;
-  const start = body.indexOf("{");
-  const end = body.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) {
-    throw new Error("the model returned no JSON object");
+  // Try the first fenced block, then every other fenced block, then the raw
+  // text. A model that opens with an unrelated fence, or writes prose and
+  // never fences at all, used to fail here as though it had said nothing —
+  // and the caller reported that to a person as "nothing worth suggesting".
+  const candidates: string[] = [];
+  for (const match of text.matchAll(/```(?:json)?\s*([\s\S]*?)```/g)) {
+    if (match[1]) candidates.push(match[1]);
   }
-  return body.slice(start, end + 1);
+  candidates.push(text);
+  for (const body of candidates) {
+    const start = body.indexOf("{");
+    const end = body.lastIndexOf("}");
+    if (start === -1 || end === -1 || end <= start) continue;
+    const slice = body.slice(start, end + 1);
+    try {
+      JSON.parse(slice);
+      return slice;
+    } catch {
+      // Not this one — a fence holding an example, or a truncated tail.
+    }
+  }
+  throw new Error("the model returned no JSON object");
 }

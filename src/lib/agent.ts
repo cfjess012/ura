@@ -38,6 +38,10 @@ export type IntakeConflict = {
 
 export type IntakeSummary = { narrative: string[] };
 
+export type IntakeRewrite =
+  | { rewrite: string; placeholders: string[]; kept: string }
+  | { why: "refused" | "unavailable" };
+
 export type IntakeScoring = {
   scores: Array<{ id: string; score: 1 | 2 | 3 | 4; note?: string }>;
   conflicts: IntakeConflict[];
@@ -90,14 +94,18 @@ export type AgentTransport = {
     }>;
   }): Promise<IntakeScoring>;
   /**
-   * Suggest a rewrite of one long-form field. Null means none to offer —
-   * a real answer, not a failure to handle.
+   * Suggest a rewrite of one long-form field, or say why there is none.
+   *
+   * "Refused" and "unavailable" are different things to be told: one says
+   * their writing stands, the other says we could not look. Reporting a
+   * failure as the former tells somebody their text is fine when nobody
+   * read it.
    */
   rewriteIntake(input: {
     label: string;
     original: string;
     shortfalls: Array<{ label: string; ask: string; anchor: string }>;
-  }): Promise<{ rewrite: string; placeholders: string[]; kept: string } | null>;
+  }): Promise<IntakeRewrite>;
   converse(input: {
     said: string;
     assessment: AssessmentContext;
@@ -130,7 +138,7 @@ function notConfigured(): AgentTransport {
       return { scores: [], conflicts: [], summary: null };
     },
     async rewriteIntake() {
-      return null;
+      return { why: "unavailable" as const };
     },
     async converse() {
       return {
@@ -203,12 +211,18 @@ function localTransport(baseUrl: string): AgentTransport {
           },
           body: JSON.stringify(input),
         });
-        if (!response.ok) return null;
+        if (!response.ok) return { why: "unavailable" as const };
         const body = await response.json();
-        return body && typeof body.rewrite === "string" ? body : null;
+        if (body && typeof body.rewrite === "string") return body;
+        return {
+          why:
+            body?.why === "refused"
+              ? ("refused" as const)
+              : ("unavailable" as const),
+        };
       } catch (cause) {
         console.error("[agent] rewrite unreachable", cause);
-        return null;
+        return { why: "unavailable" as const };
       }
     },
     async converse(input) {

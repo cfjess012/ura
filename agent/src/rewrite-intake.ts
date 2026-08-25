@@ -31,6 +31,16 @@ export type Rewrite = {
   kept: string;
 };
 
+/**
+ * Why there is no suggestion, when there is none.
+ *
+ * `refused` means the gate looked at one and said no — their text stands.
+ * `unavailable` means we never got one. Telling somebody their writing
+ * needs no work when in fact the model fell over is the same lie as
+ * promising quotes that are not there.
+ */
+export type NoRewrite = { why: "refused" | "unavailable" };
+
 /** How much longer than the original a rewrite may be before it has added. */
 const LENGTH_CEILING = 1.6;
 
@@ -97,10 +107,10 @@ export function rewriteGate(
   };
 }
 
-/** Suggest a rewrite. Null means there is none to offer — a real answer. */
+/** Suggest a rewrite, or say why there is none. */
 export async function rewriteIntake(
   task: RewriteTask,
-): Promise<Rewrite | null> {
+): Promise<Rewrite | NoRewrite> {
   return tracer.startActiveSpan("rewrite-intake", async (span) => {
     span.setAttribute("prompt.version", promptVersion());
     span.setAttribute("model.id", modelId());
@@ -120,7 +130,7 @@ export async function rewriteIntake(
       if (!verdict.ok) {
         span.setAttribute("gate.result", "refused");
         span.setAttribute("gate.why", verdict.why);
-        return null;
+        return { why: "refused" as const };
       }
       span.setAttribute("gate.result", "passed");
       span.setAttribute("placeholders", verdict.rewrite.placeholders.length);
@@ -128,7 +138,7 @@ export async function rewriteIntake(
     } catch (cause) {
       span.setAttribute("gate.result", "threw");
       console.error("[rewrite-intake]", cause);
-      return null;
+      return { why: "unavailable" as const };
     } finally {
       span.end();
     }

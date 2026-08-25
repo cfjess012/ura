@@ -416,20 +416,26 @@ function RewriteOffer({
 }) {
   const [suggestion, setSuggestion] = React.useState<Suggestion | null>(null);
   const [asking, setAsking] = React.useState(false);
-  const [nothing, setNothing] = React.useState(false);
+  const [nothing, setNothing] = React.useState<
+    null | "refused" | "unavailable"
+  >(null);
 
   async function ask() {
     if (asking) return;
     setAsking(true);
-    setNothing(false);
+    setNothing(null);
     try {
       const outcome = await suggestRewrite(projectId, fieldId, shortfalls);
-      const offered = isFailure(outcome) ? null : outcome.suggestion;
-      setSuggestion(offered);
-      setNothing(offered === null);
+      if (isFailure(outcome)) {
+        setNothing("unavailable");
+        return;
+      }
+      setSuggestion(outcome.suggestion);
+      // Only say their writing stands when something actually read it.
+      setNothing(outcome.suggestion ? null : (outcome.why ?? "unavailable"));
     } catch (cause) {
       console.error("suggestRewrite transport", cause);
-      setNothing(true);
+      setNothing("unavailable");
     } finally {
       setAsking(false);
     }
@@ -480,10 +486,17 @@ function RewriteOffer({
       >
         {asking ? "Writing one…" : "Suggest a rewrite →"}
       </button>
-      {nothing && (
+      {nothing === "refused" && (
         <span className="help">
           {" "}
-          Nothing worth suggesting just now — what you wrote stands.
+          Nothing worth suggesting — what you wrote stands.
+        </span>
+      )}
+      {nothing === "unavailable" && (
+        <span className="help">
+          {" "}
+          I couldn&rsquo;t write one just then — that is about me, not your
+          writing. Worth trying again.
         </span>
       )}
     </p>
