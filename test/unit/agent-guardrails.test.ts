@@ -356,6 +356,44 @@ describe("a fragment of what they wrote is still what they wrote", () => {
     ).toBeNull();
   });
 
+  it("allows a fair recap built from their own words", () => {
+    // G-65: the conversational gate is narrower than the drafting gate,
+    // because holding a thought partner to the verbatim standard makes a
+    // thought partner impossible. This is the sentence that proved it —
+    // it invents nothing and was destroying whole replies.
+    expect(
+      claimsUnrecordedAnswer(
+        "You described a triage workflow — handlers enter claim descriptions and analysts review them.",
+        {
+          ...quoted,
+          onRecord: [
+            {
+              label: "Project Description",
+              value:
+                "Front-line claims handlers enter unstructured descriptions of suspicious claims, and senior fraud analysts review the automated risk evaluations.",
+            },
+          ],
+        },
+      ),
+    ).toBeNull();
+  });
+
+  it("still catches the sentence it was built for", () => {
+    // The named failure: a value they never picked, read as confirmation
+    // by somebody busy who then stops checking.
+    expect(
+      claimsUnrecordedAnswer("You said the data is Confidential.", {
+        ...quoted,
+        onRecord: [
+          {
+            label: "Project Description",
+            value: "A triage tool that reads incoming claims.",
+          },
+        ],
+      }),
+    ).not.toBeNull();
+  });
+
   it("does not let a short fragment launder a claim", () => {
     // "that it is" appears inside almost any paragraph; finding it there
     // must not stand as evidence they said anything.

@@ -310,6 +310,36 @@ export function utteredInternalIdentifier(text: string): string | null {
  * they said no such thing, which a busy person will read as confirmation
  * and stop checking.
  */
+/** Words too ordinary to count as evidence a claim came from their text. */
+const CLAIM_NOISE = new Set([
+  "that",
+  "this",
+  "they",
+  "them",
+  "there",
+  "here",
+  "with",
+  "from",
+  "have",
+  "been",
+  "were",
+  "your",
+  "will",
+  "would",
+  "which",
+  "when",
+  "what",
+  "into",
+  "also",
+  "some",
+  "such",
+  "than",
+  "then",
+  "only",
+  "just",
+  "about",
+]);
+
 export function claimsUnrecordedAnswer(
   text: string,
   context: AssessmentContext,
@@ -386,6 +416,39 @@ export function claimsUnrecordedAnswer(
     return false;
   };
 
+  /**
+   * Or the claim is built out of words they actually wrote.
+   *
+   * The check exists to stop one sentence: "you said the data is
+   * Confidential" when they said no such thing, read as confirmation by
+   * somebody busy. That is a claim about an ANSWER. What it kept refusing
+   * instead was a fair recap of their own description — "you described
+   * handlers entering claim descriptions" — which shares nearly every word
+   * with what they wrote and invents nothing.
+   *
+   * G-65 warned about exactly this: the conversational gate is deliberately
+   * narrower than the drafting gate, because holding a thought partner to
+   * the verbatim standard makes a thought partner impossible. It was not
+   * narrow enough — three replies in a row were destroyed by it in one
+   * sitting, and the person saw "something went wrong on my side" each
+   * time.
+   *
+   * So: most of a claim's content words being theirs is enough. An
+   * invention fails it — "hosted entirely in our own datacentre" shares
+   * almost nothing with a record that never mentions hosting — while a
+   * paraphrase passes, which is the correct outcome for conversation.
+   */
+  const SHARED_ENOUGH = 0.6;
+  const everything = values.join(" ");
+  const mostlyTheirWords = (clause: string): boolean => {
+    const words = clause
+      .split(/[^a-z0-9]+/)
+      .filter((word) => word.length > 3 && !CLAIM_NOISE.has(word));
+    if (words.length < 2) return false;
+    const theirs = words.filter((word) => everything.includes(word)).length;
+    return theirs / words.length >= SHARED_ENOUGH;
+  };
+
   // Split on every conjunction and separator a model joins clauses with.
   // Fixing only "and" left the named failure — one true clause laundering
   // a false one — alive behind "but", a comma and a semicolon.
@@ -399,7 +462,9 @@ export function claimsUnrecordedAnswer(
     if (!claim) continue;
     const claimed = normaliseWhitespace((claim[1] ?? "").trim().toLowerCase());
     if (claimed === "") continue;
-    if (!values.some((value) => saysValue(claimed, value))) return claimed;
+    if (values.some((value) => saysValue(claimed, value))) continue;
+    if (mostlyTheirWords(claimed)) continue;
+    return claimed;
   }
   return null;
 }
