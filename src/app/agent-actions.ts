@@ -612,6 +612,7 @@ export async function checkIntake(
           opening: null,
           checkedByModel: true,
           summary: null,
+          conflicts: [],
           asks: [
             {
               id: "floor",

@@ -171,34 +171,34 @@ describe("naming a contradiction", () => {
  * bounded, and absent rather than empty.
  */
 describe("the read of the activity", () => {
-  it("keeps a read and its observations", () => {
-    const read = summaryGate({
-      readsAs: "A triage tool for insurance claims.",
-      standsOut: ["PII leaves the organisation.", "A person reviews output."],
-    });
-    expect(read?.readsAs).toBe("A triage tool for insurance claims.");
-    expect(read?.standsOut).toHaveLength(2);
+  it("keeps a narrative", () => {
+    const read = summaryGate({ narrative: ["First para.", "Second para."] });
+    expect(read?.narrative).toEqual(["First para.", "Second para."]);
+  });
+
+  it("accepts a single paragraph sent as a bare string", () => {
+    expect(summaryGate({ narrative: "One para." })?.narrative).toEqual([
+      "One para.",
+    ]);
   });
 
   it("returns nothing rather than an empty read", () => {
-    expect(summaryGate({ readsAs: "   ", standsOut: [] })).toBeNull();
+    expect(summaryGate({ narrative: ["  ", ""] })).toBeNull();
     expect(summaryGate({})).toBeNull();
     expect(summaryGate(null)).toBeNull();
   });
 
-  it("survives a model answering in the wrong shape", () => {
-    const read = summaryGate({ readsAs: 42, standsOut: ["real", 7, null] });
-    expect(read?.readsAs).toBe("");
-    expect(read?.standsOut).toEqual(["real"]);
+  it("drops paragraphs that are not strings", () => {
+    expect(summaryGate({ narrative: ["real", 7, null] })?.narrative).toEqual([
+      "real",
+    ]);
   });
 
-  it("bounds a read that stopped being a summary", () => {
+  it("bounds a narrative that stopped being one", () => {
     const read = summaryGate({
-      readsAs: "x".repeat(5000),
-      standsOut: Array.from({ length: 20 }, () => "y".repeat(900)),
+      narrative: Array.from({ length: 20 }, () => "y".repeat(2000)),
     });
-    expect(read!.readsAs.length).toBeLessThanOrEqual(700);
-    expect(read!.standsOut).toHaveLength(4);
-    expect(read!.standsOut[0]!.length).toBeLessThanOrEqual(240);
+    expect(read!.narrative).toHaveLength(5);
+    expect(read!.narrative[0]!.length).toBeLessThanOrEqual(900);
   });
 });

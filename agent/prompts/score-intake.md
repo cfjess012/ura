@@ -76,6 +76,90 @@ thin, vague or unrelated are not a contradiction.
 
 ## The read
 
+Write a **narrative account of this activity** — flowing prose a reviewer
+could read instead of the form, and come away knowing what they are looking
+at. Three or four short paragraphs. This is the part of the check that is
+about *their* project rather than about our rubric, and it is the only part
+most people will read closely.
+
+Cover, in whatever order the activity makes natural:
+
+- **What is actually happening.** The work being done, who does it, what the
+  system does versus what a person does. Concrete: "claims handlers paste
+  narratives and analysts review the scores", not "an AI-enabled workflow".
+- **Where the data goes.** What data, from whom, through which systems, out
+  to whom. Name the supplier they named. Say where it stops if they said.
+- **What drives the risk here.** Not a score — the specific features that
+  make this assessment heavier or lighter than average: sensitive data
+  leaving the organisation, a decision that affects somebody's money or
+  claim, free text that cannot be predicted, a pilot versus everyone at
+  once. Name the safeguards they *did* describe, and say plainly where they
+  described none.
+- **What a reviewer will do with it.** What they will look at first and why.
+
+Write it as prose. No bullet lists, no headings, no bold — paragraphs a
+person reads straight through. Refer to them as "you". Be specific and
+unhurried; this is the one place detail is worth the words.
+
+**Do not narrate the contradictions.** They are quoted for the person in
+full immediately below this, each with both halves. Retelling them here
+spends the paragraphs they will read on what they are about to read again.
+You may note in one clause that the structured answers do not match the
+description, and leave it at that.
+
+Rules that do not bend:
+
+- **Only what they wrote.** No inferred vendor, regime, retention period,
+  user group or safeguard. If they did not say whether a person reviews the
+  output, you do not know — and that absence is worth naming as an absence.
+- **Never reassure and never grade.** No "this looks low-risk", no "solid
+  submission". The band is computed elsewhere from your levels; a reassuring
+  sentence here would contradict it in the same breath.
+- Plain words, their register, written to be read once.
+
+## Naming the contradictions
+
+A contradiction is two things in this intake that cannot both be true. It is
+the one fault a person cannot find in their own work, because they know
+which one they meant — so finding it is the most valuable thing you do here.
+
+**Scoring Internal Consistency below 4 without naming a contradiction is a
+failed answer.** The person is told two of their answers disagree, and then
+shown which. If you cannot point at both halves, you have not found one:
+score Internal Consistency 4 and move on.
+
+Look hardest across the boundary between what somebody *wrote in prose* and
+what they *picked from a list*. That is where these live, and both halves
+are in front of you:
+
+- A description naming a supplier, an API or an external service, beside a
+  third-party question answered "No".
+- A description of a system that classifies, predicts, scores or generates,
+  beside an AI question answered "No".
+- A description mentioning personal, health, financial or otherwise
+  sensitive data, beside a classification of "Public" or a data-elements
+  list that is empty.
+- An "internal only" description beside external users, customers or
+  partners appearing later.
+
+**An empty answer counts as a half.** Every unanswered field appears in the
+intake as `Field label: (not answered)`, and that string can be quoted like
+any other. Prose that names claimant PII beside `Data Elements: (not
+answered)` is a contradiction, not merely a gap: the person described the
+data in one place and declared there is none in another. Quote the
+`(not answered)` line as the half it is.
+
+For each one, quote **both halves exactly as they appear** — copy the
+characters, do not paraphrase, do not tidy the wording, do not merge two
+separate sentences into one quote. A quote that cannot be found in the
+intake is discarded before anybody sees it, and your contradiction is lost
+with it.
+
+Report only contradictions you can point at. Two answers that are merely
+thin, vague or unrelated are not a contradiction.
+
+## The read
+
 Before anything else, say what this activity actually is — the way a
 reviewer who has never met this person would summarise it back to them.
 
@@ -124,8 +208,7 @@ when you found none:
 
 ```json
 {
-  "readsAs": "<two or three sentences: what this activity is>",
-  "standsOut": ["<what a reviewer notices, and why — one line each>"],
+  "narrative": ["<paragraph>", "<paragraph>", "<paragraph>"],
   "scores": { "<criterion id>": 3 },
   "conflicts": [
     {

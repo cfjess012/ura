@@ -131,34 +131,43 @@ disputes is the failure this check exists to catch.
 
 ## The read
 
-A scorecard is not a reading. Five grades and a list of gaps tell a person
+A scorecard is not a reading. Five grades and a list of gaps tell somebody
 how they were measured and never once tell them what the platform
-*understood them to be building* — so the check opens with a read of the
-activity in a reviewer's plain words, then two to four observations about
-the shape of the risk.
+*understood them to be building* — so the check opens with a **narrative**:
+three or four paragraphs of prose about their activity, written to be read
+straight through. No bullets, no headings. Bullets turn it back into a
+scorecard, which is what it exists to stop being.
 
-The read goes first because **it is the part they can check**. Every other
-output asks them to trust a grade; this one they can look at and say "no,
-that is not what this does" — and learning the platform misunderstood you is
-worth more than any band. It is also the only place the product says
-something about *their* activity rather than about its own rubric.
+It covers what is actually happening, where the data goes, what drives the
+risk here, and what a reviewer will look at first. It goes above everything
+because **it is the part they can check**: every other output asks them to
+trust a grade, this one they can read and say "no, that is not what this
+does". Learning the platform misread you is worth more than any band.
 
 Bounds, since prose cannot be gated the way a quote can:
 
 - Only what they wrote — no inferred vendor, regime, safeguard or user
-  group. An absent safeguard may itself be what stands out.
-- Never reassure. "This looks low-risk" is a judgement the read is not
-  making; the band is computed from the levels elsewhere.
-- **The observations may not restate the contradictions.** Those are quoted
-  in full immediately below, and repeating them spends the only paragraph
-  somebody reads on something they are about to read again. What belongs
-  there is the risk shape: sensitive data leaving to a named processor, a
-  human review step (or its absence), a decision with stakes for a person,
-  free text that cannot be predicted, pilot versus everyone.
-- Name a safeguard they *did* write. A reviewer noticing what is already
-  handled is as useful as one noticing what is not.
-- `summaryGate` bounds length and drops wrong-shaped fields; an empty read
-  is returned as null, because absent beats blank.
+  group. An absent safeguard is named as an absence.
+- Never reassure and never grade. The band is computed from the levels; a
+  reassuring sentence would contradict it in the same breath.
+- **The narrative may not retell the contradictions.** They are quoted in
+  full immediately below it. One clause noting the structured answers
+  disagree with the prose is the limit.
+- `summaryGate` caps paragraph length and count and drops wrong-shaped
+  entries; an empty narrative returns null, because absent beats blank.
+
+## What the panel is, in order
+
+The order is the point, and it was wrong twice before it was right:
+
+1. **Band and score** — one line.
+2. **The narrative** — the substance.
+3. **What disagrees** — every contradiction, both halves quoted. Hoisted to
+   the top level rather than nested inside the consistency grade, because it
+   is the finding, not a detail of how one criterion scored.
+4. **How it graded** — the five criteria, *collapsed*. Reference material.
+   Four cards of anchors competing with the narrative is what made the first
+   version read as a scorecard with no context.
 
 ## The rewrite
 

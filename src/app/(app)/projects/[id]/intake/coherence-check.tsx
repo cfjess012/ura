@@ -157,26 +157,38 @@ function Result({
 
       {result.opening && <p className="coherence-opening">{result.opening}</p>}
 
-      {/* The read comes before the grades: it is the part they can check,
-          and a wrong one tells them more than any score. */}
+      {/* The narrative comes before the grades: it is the part they can
+          check, and a wrong one tells them more than any score. */}
       {result.summary && (
         <div className="coherence-read">
-          {result.summary.readsAs && (
-            <>
-              <p className="coherence-read-label">What this reads as</p>
-              <p className="coherence-read-body">{result.summary.readsAs}</p>
-            </>
-          )}
-          {result.summary.standsOut.length > 0 && (
-            <>
-              <p className="coherence-read-label">What a reviewer notices</p>
-              <ul className="coherence-notices">
-                {result.summary.standsOut.map((note, at) => (
-                  <li key={at}>{note}</li>
-                ))}
-              </ul>
-            </>
-          )}
+          {result.summary.narrative.map((para, at) => (
+            <p key={at}>{para}</p>
+          ))}
+        </div>
+      )}
+
+      {result.conflicts.length > 0 && (
+        <div className="coherence-conflicts">
+          <p className="coherence-conflicts-heading">
+            What disagrees
+            <span className="coherence-conflicts-count">
+              {result.conflicts.length}
+            </span>
+          </p>
+          {result.conflicts.map((clash, at) => (
+            <div className="coherence-conflict" key={at}>
+              <div className="coherence-halves">
+                <blockquote className="coherence-quote">{clash.one}</blockquote>
+                <p className="coherence-versus">
+                  <span>against</span>
+                </p>
+                <blockquote className="coherence-quote">{clash.two}</blockquote>
+              </div>
+              {clash.why && (
+                <p className="coherence-conflict-why">{clash.why}</p>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
@@ -186,61 +198,43 @@ function Result({
           work from this as written.
         </p>
       ) : (
-        <ul className="coherence-asks">
-          {result.asks.map((ask) => (
-            <li
-              key={ask.id}
-              className={
-                ask.routing ? "coherence-ask routing" : "coherence-ask"
-              }
-            >
-              <p className="coherence-ask-head">
-                {ask.label}
-                <LevelDots level={ask.level} />
-                {ask.routing && (
-                  <span className="coherence-routing">decides routing</span>
-                )}
-              </p>
-              <p className="coherence-ask-body">{ask.sentence}</p>
-              {ask.conflicts.length > 0 && (
-                <div className="coherence-conflicts">
-                  {ask.conflictHeading && (
-                    <p className="coherence-conflicts-heading">
-                      {ask.conflictHeading}
-                    </p>
+        <details className="coherence-grades">
+          <summary>
+            How it graded
+            <span className="coherence-grades-hint">
+              {result.asks.length} of {result.outOf / 4} criteria below full
+              marks
+            </span>
+          </summary>
+          <ul className="coherence-asks">
+            {result.asks.map((ask) => (
+              <li
+                key={ask.id}
+                className={
+                  ask.routing ? "coherence-ask routing" : "coherence-ask"
+                }
+              >
+                <p className="coherence-ask-head">
+                  {ask.label}
+                  <LevelDots level={ask.level} />
+                  {ask.routing && (
+                    <span className="coherence-routing">decides routing</span>
                   )}
-                  {ask.conflicts.map((clash, at) => (
-                    <div className="coherence-conflict" key={at}>
-                      <div className="coherence-halves">
-                        <blockquote className="coherence-quote">
-                          {clash.one}
-                        </blockquote>
-                        <p className="coherence-versus">
-                          <span>against</span>
-                        </p>
-                        <blockquote className="coherence-quote">
-                          {clash.two}
-                        </blockquote>
-                      </div>
-                      {clash.why && (
-                        <p className="coherence-conflict-why">{clash.why}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {ask.unquoted && (
-                <p className="coherence-ask-body">{ask.unquoted}</p>
-              )}
-              {ask.anchor && (
-                <p className="coherence-anchor">
-                  <span className="coherence-anchor-label">Full marks</span>
-                  {ask.anchor}
                 </p>
-              )}
-            </li>
-          ))}
-        </ul>
+                <p className="coherence-ask-body">{ask.sentence}</p>
+                {ask.unquoted && (
+                  <p className="coherence-ask-body">{ask.unquoted}</p>
+                )}
+                {ask.anchor && (
+                  <p className="coherence-anchor">
+                    <span className="coherence-anchor-label">Full marks</span>
+                    {ask.anchor}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </details>
       )}
 
       {/* Offered only where there is long-form text to work with and

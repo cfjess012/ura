@@ -40,7 +40,7 @@ export type Conflict = { one: string; two: string; why: string };
  * a quote can; it is shown as a reading rather than as fact, and the prompt
  * forbids inferring anything the person did not write.
  */
-export type Summary = { readsAs: string; standsOut: string[] };
+export type Summary = { narrative: string[] };
 
 export type Scoring = {
   scores: DimensionScore[];
@@ -48,27 +48,23 @@ export type Scoring = {
   summary: Summary | null;
 };
 
-/** How long a read may run before it has stopped being a summary. */
-const READ_CEILING = 700;
-const OBSERVATION_CEILING = 240;
+/** Bounds on a narrative, past which it has stopped being one. */
+const PARAGRAPH_CEILING = 900;
+const PARAGRAPHS_MAX = 5;
 
 /** Keep a read only if there is one. Empty prose is worse than none. */
 export function summaryGate(parsed: unknown): Summary | null {
   if (typeof parsed !== "object" || parsed === null) return null;
-  const raw = parsed as Record<string, unknown>;
-  const readsAs =
-    typeof raw.readsAs === "string"
-      ? raw.readsAs.trim().slice(0, READ_CEILING)
-      : "";
-  const standsOut = Array.isArray(raw.standsOut)
-    ? raw.standsOut
-        .filter((o): o is string => typeof o === "string")
-        .map((o) => o.trim().slice(0, OBSERVATION_CEILING))
-        .filter((o) => o !== "")
-        .slice(0, 4)
-    : [];
-  if (readsAs === "" && standsOut.length === 0) return null;
-  return { readsAs, standsOut };
+  const raw = (parsed as Record<string, unknown>).narrative;
+  const paragraphs = (
+    Array.isArray(raw) ? raw : typeof raw === "string" ? [raw] : []
+  )
+    .filter((p): p is string => typeof p === "string")
+    .map((p) => p.trim().slice(0, PARAGRAPH_CEILING))
+    .filter((p) => p !== "")
+    .slice(0, PARAGRAPHS_MAX);
+  if (paragraphs.length === 0) return null;
+  return { narrative: paragraphs };
 }
 
 /**

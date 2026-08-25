@@ -53,7 +53,7 @@ export type Conflict = { one: string; two: string; why: string };
  * any score — and it is the difference between a scorecard and being
  * actually read.
  */
-export type Summary = { readsAs: string; standsOut: string[] };
+export type Summary = { narrative: string[] };
 
 type RubricDoc = {
   version: string;
@@ -130,6 +130,8 @@ export type Coherence = {
   checkedByModel: boolean;
   /** What the platform understood this to be. Null when none was written. */
   summary: Summary | null;
+  /** Every contradiction, hoisted: it is the finding, not a grade detail. */
+  conflicts: Conflict[];
 };
 
 /** The band a total falls in. Bands are data; this only looks it up. */
@@ -160,6 +162,7 @@ export function coherenceFrom(
       asks: [],
       checkedByModel: false,
       summary: null,
+      conflicts: [],
     };
   }
 
@@ -219,6 +222,7 @@ export function coherenceFrom(
     asks,
     checkedByModel: true,
     summary,
+    conflicts,
   };
 }
 
@@ -272,6 +276,7 @@ export function coherenceWhenUnavailable(): Coherence {
     asks: [],
     checkedByModel: false,
     summary: null,
+    conflicts: [],
   };
 }
 

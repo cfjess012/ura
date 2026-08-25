@@ -30,7 +30,7 @@ import {
 
 export type IntakeConflict = { one: string; two: string; why: string };
 
-export type IntakeSummary = { readsAs: string; standsOut: string[] };
+export type IntakeSummary = { narrative: string[] };
 
 export type IntakeScoring = {
   scores: Array<{ id: string; score: 1 | 2 | 3 | 4 }>;

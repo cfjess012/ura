@@ -361,13 +361,13 @@
 }
 
 .coherence-result {
-  padding: 0.9rem 1.05rem;
+  padding: 0.85rem 1rem;
   border-radius: var(--radius);
   background: var(--surface-1);
   border: 1px solid var(--surface-3);
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.55rem;
 }
 
 /* The band, with its meaning beside it. Never a bare number — a number a
@@ -426,69 +426,27 @@
 }
 
 .coherence-opening {
-  font-size: 0.88rem;
-  line-height: 1.5;
-  color: var(--neutral-800);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--neutral-600);
 }
-/* What the platform understood this to be. Set apart from the grades
-   because it is a reading, not a measurement — and reading it is how a
-   person finds out they were misunderstood. */
+/* The narrative. It is the only part written about their activity rather
+   than about our rubric, so it gets the room and the reading size — and no
+   border, because a box around prose makes it look like another widget. */
 .coherence-read {
-  padding: 0.75rem 0.9rem;
-  border-radius: 10px;
-  background: var(--neutral-0);
-  border: 1px solid var(--neutral-200);
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.55rem;
+  padding: 0 0 0.2rem;
 }
-.coherence-read-label {
+.coherence-read p {
   margin: 0;
-  font-size: 0.64rem;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--neutral-500);
-}
-.coherence-read-label + .coherence-read-body,
-.coherence-read-label + .coherence-notices {
-  margin-top: 0.05rem;
-}
-.coherence-read-body + .coherence-read-label {
-  margin-top: 0.7rem;
-  padding-top: 0.6rem;
-  border-top: 1px dashed var(--neutral-200);
-}
-.coherence-read-body {
-  margin: 0;
-  font-size: 0.88rem;
-  line-height: 1.55;
-  color: var(--neutral-900);
-}
-.coherence-notices {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-.coherence-notices li {
-  position: relative;
-  padding-left: 0.85rem;
-  font-size: 0.84rem;
-  line-height: 1.5;
+  font-size: 0.9rem;
+  line-height: 1.6;
   color: var(--neutral-800);
 }
-.coherence-notices li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.55em;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--neutral-400);
+.coherence-read p:first-child {
+  color: var(--neutral-900);
 }
 
 .coherence-clear {
@@ -500,35 +458,89 @@
   margin: 0;
 }
 
+/* The grades are a reference list under the narrative, not four more
+   cards competing with it. One row each, the anchor only where it earns
+   its line. */
+.coherence-conflicts-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--warning-strong);
+  color: var(--neutral-0);
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The grades are reference, not the finding — folded away by default so
+   the narrative and the contradictions are what the panel is. */
+.coherence-grades > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.4rem 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--neutral-700);
+  border-top: 1px solid var(--neutral-200);
+}
+.coherence-grades > summary::-webkit-details-marker {
+  display: none;
+}
+.coherence-grades > summary::before {
+  content: "\203A";
+  display: inline-block;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: var(--neutral-400);
+  transition: transform 120ms ease;
+}
+.coherence-grades[open] > summary::before {
+  transform: rotate(90deg);
+}
+.coherence-grades > summary:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.coherence-grades-hint {
+  font-weight: 500;
+  font-size: 0.72rem;
+  color: var(--neutral-500);
+}
+
 .coherence-asks {
-  display: grid;
-  gap: 0.65rem;
-  /* Cards, not a bulleted list — the markers sat outside them. */
+  display: flex;
+  flex-direction: column;
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0.15rem 0 0;
 }
 .coherence-ask {
-  padding: 0.7rem 0.85rem;
-  border-radius: 10px;
-  background: var(--neutral-0);
-  border: 1px solid var(--neutral-200);
-  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+  padding: 0.5rem 0 0.5rem 0.65rem;
+  border-left: 3px solid transparent;
+}
+.coherence-ask + .coherence-ask {
+  border-top: 1px solid var(--neutral-100);
 }
 /* The two that decide where an assessment goes, marked as such — in words,
    never by colour alone. */
 .coherence-ask.routing {
-  border-left: 4px solid var(--warning);
+  border-left-color: var(--warning);
 }
 .coherence-ask-head {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.5rem;
-  font-size: 0.88rem;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--neutral-900);
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.12rem;
 }
 .coherence-level {
   display: inline-flex;
@@ -569,37 +581,39 @@
   color: var(--warning-strong);
 }
 .coherence-ask-body {
-  font-size: 0.88rem;
-  line-height: 1.5;
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--neutral-700);
 }
 .coherence-anchor {
-  margin-top: 0.45rem;
-  padding-top: 0.4rem;
-  border-top: 1px dashed var(--neutral-200);
-  font-size: 0.76rem;
-  line-height: 1.45;
-  color: var(--neutral-600);
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--neutral-500);
 }
 .coherence-anchor-label {
   display: inline-block;
-  margin-right: 0.4rem;
-  font-size: 0.64rem;
+  margin-right: 0.35rem;
+  font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--neutral-500);
+  color: var(--neutral-400);
 }
 /* A contradiction, in the person's own words. Warning treatment because a
    document that disagrees with itself routes wrongly — and never colour
    alone: the heading names what this is (SPEC §11.1). */
 .coherence-conflicts {
-  margin-top: 0.6rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 .coherence-conflicts-heading {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -609,11 +623,11 @@
 .coherence-conflict {
   border: 1px solid var(--warning);
   background: var(--warning-bg);
-  border-radius: 8px;
-  padding: 0.6rem 0.75rem;
+  border-radius: 7px;
+  padding: 0.45rem 0.6rem;
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.3rem;
 }
 /* The two halves set against each other, with the rule between them doing
    the work the word "against" only labels. */
@@ -623,12 +637,12 @@
 }
 .coherence-quote {
   margin: 0;
-  font-size: 0.82rem;
-  line-height: 1.5;
+  font-size: 0.78rem;
+  line-height: 1.45;
   color: var(--neutral-900);
   background: var(--neutral-0);
-  border-radius: 6px;
-  padding: 0.4rem 0.55rem;
+  border-radius: 5px;
+  padding: 0.3rem 0.45rem;
 }
 .coherence-quote::before {
   content: "\201C";
@@ -641,7 +655,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.3rem 0;
+  padding: 0.2rem 0;
 }
 .coherence-versus::before,
 .coherence-versus::after {
@@ -658,8 +672,8 @@
   color: var(--warning-strong);
 }
 .coherence-conflict-why {
-  margin: 0.1rem 0 0;
-  font-size: 0.78rem;
+  margin: 0;
+  font-size: 0.74rem;
   line-height: 1.45;
   color: var(--neutral-700);
 }
