@@ -75,6 +75,10 @@ body {
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.55;
+  /* Room for a docked assistant. The panel sets this and clears it; with
+     no panel, or a floating one, the variable is absent and this is zero. */
+  padding-right: var(--assistant-dock, 0);
+  transition: padding-right 0.18s var(--ease);
 }
 
 /* Used by app-wide chrome (the persona switcher, live regions), so it

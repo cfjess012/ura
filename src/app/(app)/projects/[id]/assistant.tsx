@@ -584,6 +584,24 @@ export function Assistant({
   /** Which way the pointer is currently dragging, if it is. */
   const [dragging, setDragging] = React.useState<null | "x" | "y" | "xy">(null);
   /**
+   * Docked, or floating over the page.
+   *
+   * Floating is right for a quick question and wrong for everything else:
+   * the panel sat on top of the description somebody was reading it about,
+   * and no amount of resizing fixes overlap — moving it just covers
+   * something else. Docked, it takes a column of its own and the page makes
+   * room, so nothing is ever underneath it.
+   */
+  const [docked, setDocked] = React.useState(false);
+  React.useEffect(() => {
+    try {
+      setDocked(sessionStorage.getItem("ura.assistant-docked") === "yes");
+    } catch {
+      // Storage disabled; it opens floating, which is the old behaviour.
+    }
+  }, []);
+
+  /**
    * Whether the panel is opened out.
    *
    * It is a quarter of the screen wide and a suggested description runs to
@@ -673,6 +691,23 @@ export function Assistant({
   // Closed on arrival, always. A window that opens itself over somebody's
   // work is the thing everyone hates about these.
   const [open, setOpen] = React.useState(false);
+
+  /**
+   * The page makes room by reading one variable. Set from here because the
+   * panel is the only thing that knows whether it is docked and how wide it
+   * is — and cleared on close, or a closed panel would leave a gutter.
+   */
+  React.useEffect(() => {
+    const root = document.documentElement;
+    if (open && docked) {
+      root.style.setProperty("--assistant-dock", `${width ?? DEFAULT_WIDTH}px`);
+    } else {
+      root.style.removeProperty("--assistant-dock");
+    }
+    return () => {
+      root.style.removeProperty("--assistant-dock");
+    };
+  }, [open, docked, width]);
   const endRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
@@ -843,7 +878,13 @@ export function Assistant({
 
   return (
     <section
-      className={dragging ? "assistant dragging" : "assistant"}
+      className={[
+        "assistant",
+        docked ? "docked" : "",
+        dragging ? "dragging" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       style={{
         ...(width ? { width: `${width}px` } : {}),
         // maxHeight, not height: the panel should still shrink to its
@@ -918,6 +959,26 @@ export function Assistant({
       />
       <div className="assistant-head">
         <p className="assistant-title">Talk it through</p>
+        <button
+          type="button"
+          className="assistant-dock"
+          aria-pressed={docked}
+          title={docked ? "Float over the page" : "Dock beside the page"}
+          onClick={() => {
+            const next = !docked;
+            setDocked(next);
+            try {
+              sessionStorage.setItem(
+                "ura.assistant-docked",
+                next ? "yes" : "no",
+              );
+            } catch {
+              // It still docks for this visit.
+            }
+          }}
+        >
+          {docked ? "Float" : "Dock"}
+        </button>
         <button
           type="button"
           className="assistant-close"

@@ -24,6 +24,7 @@ import {
 import { IntakeRail } from "./intake-rail";
 import {
   bracketSpans,
+  clearRewrite,
   HELD,
   holdRewrite,
   takeRewrite,
@@ -123,6 +124,14 @@ export function SectionForm({
   // Put the text in the field.
   React.useEffect(() => {
     if (!pending) return;
+    // Only into an empty field. A remount should restore a suggestion that
+    // was never saved; it should never overwrite something they have since
+    // written themselves.
+    const current = String(values[pending.fieldId] ?? "");
+    if (current.trim() !== "" && current !== pending.text) {
+      setPending(null);
+      return;
+    }
     set(pending.fieldId, pending.text);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending]);
@@ -253,6 +262,8 @@ export function SectionForm({
       }
       setSavedAt(result.savedAt);
       written.current = JSON.stringify(values);
+      // On the record now, so the held suggestion has done its job.
+      clearRewrite();
       return true;
     } catch (cause) {
       console.error("saveIntake transport", cause);

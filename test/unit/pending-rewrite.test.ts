@@ -7,7 +7,12 @@
  * suggestion is not an answer until somebody saves it.
  */
 import { beforeEach, describe, expect, it } from "vitest";
-import { bracketSpans, holdRewrite, takeRewrite } from "@/lib/pending-rewrite";
+import {
+  bracketSpans,
+  clearRewrite,
+  holdRewrite,
+  takeRewrite,
+} from "@/lib/pending-rewrite";
 
 const store = new Map<string, string>();
 beforeEach(() => {
@@ -34,9 +39,19 @@ describe("carrying a suggestion across a navigation", () => {
     );
   });
 
-  it("is taken once — a second read would overwrite their edits", () => {
+  it("survives being read, so a remount does not lose it", () => {
+    // It used to clear on read, and the tracker's own actions navigate —
+    // so applying a field proposal after taking a description wiped the
+    // description. Nothing is written down until they save, so the
+    // suggestion has to outlive a remount.
     holdRewrite(pending);
     expect(takeRewrite("p1", ["businessPurpose"])).not.toBeNull();
+    expect(takeRewrite("p1", ["businessPurpose"])).not.toBeNull();
+  });
+
+  it("is gone once the answer is on the record", () => {
+    holdRewrite(pending);
+    clearRewrite();
     expect(takeRewrite("p1", ["businessPurpose"])).toBeNull();
   });
 

@@ -4690,3 +4690,54 @@
   outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
 }
+
+/* Docked: the panel takes a column and the page makes room for it, rather
+   than floating on top of the thing somebody is reading it about. Resizing
+   never fixed overlap — moving a floating panel only covers something else.
+   Declared last, over the earlier copies of the base rule. */
+.assistant.docked {
+  right: 0;
+  bottom: 0;
+  top: 0;
+  max-height: none;
+  height: 100vh;
+  border-radius: 0;
+  border-right: 0;
+  border-top: 0;
+  border-bottom: 0;
+  box-shadow: -8px 0 28px rgb(0 40 85 / 12%);
+}
+/* The corner and top handles belong to a floating panel; docked, only the
+   left edge can move. */
+.assistant.docked .assistant-grip-top,
+.assistant.docked .assistant-grip-corner {
+  display: none;
+}
+.assistant.docked .assistant-grip {
+  top: 0;
+  bottom: 0;
+  height: auto;
+  transform: none;
+  border-radius: 0;
+}
+.assistant.docked .assistant-grip::after {
+  border-radius: 0;
+}
+.assistant-dock {
+  border: 1px solid var(--neutral-200);
+  background: var(--neutral-0);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--neutral-600);
+  cursor: pointer;
+}
+.assistant-dock:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.assistant-dock:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

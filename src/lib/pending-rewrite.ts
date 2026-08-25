@@ -42,7 +42,19 @@ export function holdRewrite(pending: PendingRewrite): void {
   }
 }
 
-/** Read and clear. Taking it twice would re-apply it over their edits. */
+/**
+ * Read WITHOUT clearing.
+ *
+ * It used to consume on read, which lost the text the moment anything
+ * remounted the form — and the tracker's own actions navigate, so applying
+ * a field proposal after taking a description wiped the description. The
+ * suggestion is not written down anywhere until they save it, so it has to
+ * outlive a remount.
+ *
+ * What stops it re-applying over their edits is the caller: it only lands
+ * in a field that is empty. Cleared for good by `clearRewrite` once the
+ * section it belongs to has actually been saved.
+ */
 export function takeRewrite(
   projectId: string,
   fieldIds: string[],
@@ -53,7 +65,6 @@ export function takeRewrite(
     const pending = JSON.parse(raw) as PendingRewrite;
     if (pending.projectId !== projectId) return null;
     if (!fieldIds.includes(pending.fieldId)) return null;
-    sessionStorage.removeItem(KEY);
     return pending;
   } catch {
     return null;
@@ -74,4 +85,13 @@ export function bracketSpans(
     from: m.index!,
     to: m.index! + m[0].length,
   }));
+}
+
+/** Done with it — the answer is on the record now. */
+export function clearRewrite(): void {
+  try {
+    sessionStorage.removeItem(KEY);
+  } catch {
+    // Nothing to clear, or no storage. Either way there is nothing to do.
+  }
 }
