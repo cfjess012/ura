@@ -395,6 +395,28 @@
   font-size: 0.88rem;
   color: var(--neutral-700);
 }
+/* The score as a length as well as a number, so the band is legible before
+   the number is read. */
+.coherence-meter {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+  margin: 0.15rem 0 0.1rem;
+}
+.coherence-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--neutral-500);
+}
+.coherence-robust .coherence-meter-fill {
+  background: var(--success);
+}
+.coherence-thin .coherence-meter-fill,
+.coherence-not-yet-usable .coherence-meter-fill {
+  background: var(--warning-strong);
+}
 .coherence-robust .coherence-band-label {
   color: var(--success);
 }
@@ -420,12 +442,17 @@
 .coherence-asks {
   display: grid;
   gap: 0.65rem;
+  /* Cards, not a bulleted list — the markers sat outside them. */
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 .coherence-ask {
-  padding: 0.6rem 0.75rem;
+  padding: 0.7rem 0.85rem;
   border-radius: 10px;
   background: var(--neutral-0);
   border: 1px solid var(--neutral-200);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
 }
 /* The two that decide where an assessment goes, marked as such — in words,
    never by colour alone. */
@@ -443,13 +470,35 @@
   margin-bottom: 0.2rem;
 }
 .coherence-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.7rem;
-  font-weight: 800;
-  padding: 0.05rem 0.4rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
   border-radius: 999px;
   background: var(--surface-2);
-  color: var(--navy);
+  color: var(--neutral-700);
   font-variant-numeric: tabular-nums;
+}
+.coherence-dots {
+  display: inline-flex;
+  gap: 2px;
+}
+.coherence-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--neutral-300);
+}
+.coherence-dot.on {
+  background: var(--neutral-700);
+}
+.coherence-ask.routing .coherence-dot.on {
+  background: var(--warning-strong);
+}
+.coherence-level-text {
+  letter-spacing: 0.01em;
 }
 .coherence-routing {
   font-size: 0.66rem;
@@ -463,10 +512,21 @@
   line-height: 1.5;
 }
 .coherence-anchor {
-  margin-top: 0.25rem;
-  font-size: 0.78rem;
+  margin-top: 0.45rem;
+  padding-top: 0.4rem;
+  border-top: 1px dashed var(--neutral-200);
+  font-size: 0.76rem;
   line-height: 1.45;
   color: var(--neutral-600);
+}
+.coherence-anchor-label {
+  display: inline-block;
+  margin-right: 0.4rem;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--neutral-500);
 }
 /* A contradiction, in the person's own words. Warning treatment because a
    document that disagrees with itself routes wrongly — and never colour
@@ -486,19 +546,28 @@
   color: var(--warning-strong);
 }
 .coherence-conflict {
-  border-left: 3px solid var(--warning-strong);
+  border: 1px solid var(--warning);
   background: var(--warning-bg);
-  border-radius: 0 6px 6px 0;
-  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.45rem;
+}
+/* The two halves set against each other, with the rule between them doing
+   the work the word "against" only labels. */
+.coherence-halves {
+  display: flex;
+  flex-direction: column;
 }
 .coherence-quote {
   margin: 0;
   font-size: 0.82rem;
   line-height: 1.5;
-  color: var(--neutral-800);
+  color: var(--neutral-900);
+  background: var(--neutral-0);
+  border-radius: 6px;
+  padding: 0.4rem 0.55rem;
 }
 .coherence-quote::before {
   content: "\201C";
@@ -508,9 +577,22 @@
 }
 .coherence-versus {
   margin: 0;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+}
+.coherence-versus::before,
+.coherence-versus::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--warning);
+}
+.coherence-versus span {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--warning-strong);
 }

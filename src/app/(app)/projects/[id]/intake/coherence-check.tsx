@@ -139,6 +139,18 @@ function Result({
               {result.score}/{result.outOf}
             </span>
           </p>
+          <div
+            className="coherence-meter"
+            role="img"
+            aria-label={`${result.score} out of ${result.outOf}`}
+          >
+            <span
+              className="coherence-meter-fill"
+              style={{
+                width: `${Math.round((result.score / result.outOf) * 100)}%`,
+              }}
+            />
+          </div>
           <p className="coherence-meaning">{result.meaning}</p>
         </div>
       )}
@@ -161,7 +173,7 @@ function Result({
             >
               <p className="coherence-ask-head">
                 {ask.label}
-                <span className="coherence-level">{ask.level} of 4</span>
+                <LevelDots level={ask.level} />
                 {ask.routing && (
                   <span className="coherence-routing">decides routing</span>
                 )}
@@ -176,13 +188,17 @@ function Result({
                   )}
                   {ask.conflicts.map((clash, at) => (
                     <div className="coherence-conflict" key={at}>
-                      <blockquote className="coherence-quote">
-                        {clash.one}
-                      </blockquote>
-                      <p className="coherence-versus">against</p>
-                      <blockquote className="coherence-quote">
-                        {clash.two}
-                      </blockquote>
+                      <div className="coherence-halves">
+                        <blockquote className="coherence-quote">
+                          {clash.one}
+                        </blockquote>
+                        <p className="coherence-versus">
+                          <span>against</span>
+                        </p>
+                        <blockquote className="coherence-quote">
+                          {clash.two}
+                        </blockquote>
+                      </div>
                       {clash.why && (
                         <p className="coherence-conflict-why">{clash.why}</p>
                       )}
@@ -195,7 +211,8 @@ function Result({
               )}
               {ask.anchor && (
                 <p className="coherence-anchor">
-                  Full marks here: {ask.anchor}
+                  <span className="coherence-anchor-label">Full marks</span>
+                  {ask.anchor}
                 </p>
               )}
             </li>
@@ -227,6 +244,27 @@ function Result({
 }
 
 /** The mark on the button. Decorative — the label carries the meaning. */
+/**
+ * A level as four dots, filled to the grade. The same idiom the sensitivity
+ * options use, so a reader who has met one has met both — and never colour
+ * alone: the reading stays in text for anything that speaks the page.
+ */
+function LevelDots({ level }: { level: number }) {
+  return (
+    <span className="coherence-level" title={`${level} of 4`}>
+      <span className="coherence-dots" aria-hidden="true">
+        {[1, 2, 3, 4].map((at) => (
+          <span
+            key={at}
+            className={at <= level ? "coherence-dot on" : "coherence-dot"}
+          />
+        ))}
+      </span>
+      <span className="coherence-level-text">{level} of 4</span>
+    </span>
+  );
+}
+
 function Sparkle() {
   return (
     <svg

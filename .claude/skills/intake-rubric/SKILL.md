@@ -108,9 +108,26 @@ Two rules follow, both in the prompt:
   are in the same document, which is exactly why the check reads the whole
   intake as one document rather than field by field.
 
-When the level claims a contradiction and none survived the gate, the copy
-falls back to `noConflictFound` rather than leaving a person hunting for a
-list that is not there. Never promise a quote the architecture cannot show.
+**Only the copy shown beside real quotes may promise quotes.**
+`conflictSummary` (which counts the pairs — "4 pairs of your answers
+disagree", never "two" over four of them) is used only when conflicts
+survived the gate. The `ask` levels are the fallback for when none did, so
+they say what is wrong without pointing at a list: "Something here
+contradicts something else you wrote." A unit test holds this line, because
+the original bug was exactly this sentence promising a below that did not
+exist.
+
+**An absence is a quotable half.** Every unanswered field reaches the model
+as `Field label: (not answered)`, so prose naming claimant PII beside
+`Data Elements: (not answered)` is a contradiction rather than a gap — the
+person described the data in one place and declared none in another.
+
+**A picked answer its own prose contradicts is not evidence.** Data
+Sensitivity level 3 asks whether sensitive data is *acknowledged*; naming
+PII while classifying it Public has denied it, not acknowledged it, so it
+caps at 2. Same for Data Access against a third-party answer the prose
+refutes. These two decide routing, and routing on a field the document
+disputes is the failure this check exists to catch.
 
 ## The rewrite
 

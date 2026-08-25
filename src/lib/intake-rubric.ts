@@ -35,6 +35,8 @@ export type Criterion = {
   ask: Record<"1" | "2" | "3", string>;
   /** Heading over the quoted halves, where a criterion carries conflicts. */
   conflictHeading?: string;
+  /** Said when conflicts were quotable — replaces `ask`, and counts them. */
+  conflictSummary?: { one: string; many: string };
   /** Said when the level claims a contradiction but none survived the gate. */
   noConflictFound?: string;
 };
@@ -162,7 +164,12 @@ export function coherenceFrom(
       id: criterion.id,
       label: criterion.label,
       level,
-      sentence: criterion.ask[String(level) as "1" | "2" | "3"],
+      // With conflicts in hand the count is known, so say it rather than
+      // saying "two" over four of them. Still deterministic, still from
+      // the rubric — only the number comes from the data.
+      sentence:
+        conflictSentence(criterion, mine) ??
+        criterion.ask[String(level) as "1" | "2" | "3"],
       anchor: criterion.anchors["4"],
       why: criterion.why,
       routing: ROUTING_CRITICAL.has(criterion.id),
@@ -197,6 +204,19 @@ export function coherenceFrom(
     asks,
     checkedByModel: true,
   };
+}
+
+/** The count-aware line, when conflicts were quotable. Null otherwise. */
+function conflictSentence(
+  criterion: Criterion,
+  conflicts: Conflict[],
+): string | null {
+  if (conflicts.length === 0 || !criterion.conflictSummary) return null;
+  if (conflicts.length === 1) return criterion.conflictSummary.one;
+  return criterion.conflictSummary.many.replace(
+    "{n}",
+    String(conflicts.length),
+  );
 }
 
 /**

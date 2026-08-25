@@ -174,3 +174,79 @@ describe("it fails open", () => {
     expect(Object.keys(result)).not.toContain("passes");
   });
 });
+
+/**
+ * A contradiction is not offset by the criteria around it — it undermines
+ * them, because any one of those answers may be the half that is wrong.
+ * Five criteria summed will happily call a self-contradicting intake
+ * "Workable. The gaps below are specific and quick to close."
+ */
+describe("a contradiction caps the band", () => {
+  const strongExcept = (consistency: 1 | 2 | 3 | 4) => [
+    { id: "clarity", level: 4 as const },
+    { id: "consistency", level: consistency },
+    { id: "audience", level: 4 as const },
+    { id: "dataAccess", level: 4 as const },
+    { id: "sensitivity", level: 4 as const },
+  ];
+
+  it("caps at Thin when the intake contradicts itself outright", () => {
+    const result = coherenceFrom(strongExcept(1));
+    expect(result.score).toBe(17); // a Robust sum
+    expect(bandFor(17).label).toBe("Robust");
+    expect(result.band).toBe("Thin"); // ...that the ceiling overrides
+  });
+
+  it("caps at Workable for a minor conflict", () => {
+    expect(coherenceFrom(strongExcept(2)).band).toBe("Workable");
+  });
+
+  it("leaves a consistent intake alone", () => {
+    expect(coherenceFrom(strongExcept(4)).band).toBe("Robust");
+  });
+
+  it("never raises a band the sum already put lower", () => {
+    const thin = coherenceFrom([
+      { id: "clarity", level: 1 },
+      { id: "consistency", level: 2 },
+      { id: "audience", level: 1 },
+      { id: "dataAccess", level: 1 },
+      { id: "sensitivity", level: 1 },
+    ]);
+    expect(thin.band).toBe("Not yet usable");
+  });
+});
+
+/**
+ * The copy used to say "Both are named below" while the model returned
+ * nothing but integers, so there was no below. Never promise a quote the
+ * architecture cannot show.
+ */
+describe("what a person is told about conflicts", () => {
+  const scored = [{ id: "consistency", level: 1 as const }];
+
+  it("counts the pairs rather than always saying two", () => {
+    const four = coherenceFrom(scored, [
+      { one: "a", two: "b", why: "" },
+      { one: "c", two: "d", why: "" },
+      { one: "e", two: "f", why: "" },
+      { one: "g", two: "h", why: "" },
+    ]);
+    const ask = four.asks.find((a) => a.id === "consistency")!;
+    expect(ask.sentence).toContain("4 pairs");
+    expect(ask.conflicts).toHaveLength(4);
+  });
+
+  it("says 'both' when there is exactly one pair", () => {
+    const one = coherenceFrom(scored, [{ one: "a", two: "b", why: "" }]);
+    expect(one.asks[0]!.sentence).toContain("Both are quoted below");
+  });
+
+  it("promises no quotes when none survived the gate", () => {
+    const none = coherenceFrom(scored, []);
+    const ask = none.asks.find((a) => a.id === "consistency")!;
+    expect(ask.conflicts).toEqual([]);
+    expect(ask.sentence).not.toContain("quoted below");
+    expect(ask.unquoted).toBeTruthy();
+  });
+});

@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-24.3",
+  "version": "2026-08-24.5",
   "comment": "The graded rubric behind the intake coherence check (FR-43). Five criteria scored 1-4 over the WHOLE intake read as one document — coherence is a property of the set, not of any one field. A model assigns levels and nothing else; the band, the wording and the order of the asks are all deterministic and all from this file. Anchors and asks are business copy: edit them here, never in code. See .claude/skills/intake-rubric/SKILL.md for why each criterion exists. It never blocks submission (G-69).",
   "floor": {
     "minWords": 15,
@@ -64,12 +64,16 @@
         "4": "Fully consistent. Technical, business, and user details align with no contradictions."
       },
       "ask": {
-        "1": "Two of your answers disagree with each other. Both are quoted below — one of them needs changing.",
-        "2": "Something here reads two ways. The parts are quoted below; a sentence settling which you mean is enough.",
+        "1": "Something here contradicts something else you wrote.",
+        "2": "Something here reads two ways.",
         "3": "Consistent as far as it goes."
       },
       "conflictHeading": "What disagrees",
-      "noConflictFound": "A reviewer will ask which of these is right, so it is worth settling now."
+      "noConflictFound": "A reviewer will ask which of these is right, so it is worth settling now.",
+      "conflictSummary": {
+        "one": "Two of your answers disagree with each other. Both are quoted below — one of them needs changing.",
+        "many": "{n} pairs of your answers disagree. Each pair is quoted below — one of each needs changing."
+      }
     },
     {
       "id": "audience",

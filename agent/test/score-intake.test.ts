@@ -7,7 +7,11 @@
  * to be wrong about.
  */
 import { describe, expect, it } from "vitest";
-import { scoreGate, type ScoreTask } from "../src/score-intake.ts";
+import {
+  conflictGate,
+  scoreGate,
+  type ScoreTask,
+} from "../src/score-intake.ts";
 
 const task: ScoreTask = {
   description: "A claims triage assistant.",
@@ -67,5 +71,94 @@ describe("what it drops", () => {
     expect(scoreGate({ scores: "all good" }, task)).toEqual([]);
     expect(scoreGate(null, task)).toEqual([]);
     expect(scoreGate("3", task)).toEqual([]);
+  });
+});
+
+/**
+ * A conflict is an accusation that somebody contradicted themselves, so it
+ * is only made in their own words. Both halves verbatim or it is discarded:
+ * a person hunting for a disagreement that is not there costs more than the
+ * contradiction we failed to report.
+ */
+describe("naming a contradiction", () => {
+  const intake: ScoreTask = {
+    description: [
+      "Does this use AI or machine learning?: No",
+      "What is it for?: Claims are processed via OpenAI's enterprise API.",
+      "Data Elements: (not answered)",
+    ].join("\n"),
+    dimensions: [],
+  };
+
+  it("keeps a conflict whose halves are both quoted from the intake", () => {
+    const kept = conflictGate(
+      {
+        conflicts: [
+          {
+            one: "Does this use AI or machine learning?: No",
+            two: "processed via OpenAI's enterprise API",
+            why: "One says no AI, the other names an AI API.",
+          },
+        ],
+      },
+      intake,
+    );
+    expect(kept).toHaveLength(1);
+    expect(kept[0]!.why).toContain("names an AI API");
+  });
+
+  it("discards a conflict with a half that was never written", () => {
+    const kept = conflictGate(
+      {
+        conflicts: [
+          {
+            one: "Does this use AI or machine learning?: No",
+            two: "the vendor is Acme Analytics",
+            why: "invented",
+          },
+        ],
+      },
+      intake,
+    );
+    expect(kept).toEqual([]);
+  });
+
+  it("treats an unanswered field as a quotable half", () => {
+    // The absence IS the contradiction: data described in prose, and none
+    // declared in the field that decides routing.
+    const kept = conflictGate(
+      {
+        conflicts: [
+          {
+            one: "Data Elements: (not answered)",
+            two: "Claims are processed via OpenAI's enterprise API",
+            why: "Prose names data the field declares none of.",
+          },
+        ],
+      },
+      intake,
+    );
+    expect(kept).toHaveLength(1);
+  });
+
+  it("ignores a conflict quoting the same thing twice", () => {
+    const kept = conflictGate(
+      {
+        conflicts: [
+          {
+            one: "Data Elements: (not answered)",
+            two: "Data Elements:   (not answered)",
+            why: "same half",
+          },
+        ],
+      },
+      intake,
+    );
+    expect(kept).toEqual([]);
+  });
+
+  it("survives a model that returns no conflicts key at all", () => {
+    expect(conflictGate({ scores: {} }, intake)).toEqual([]);
+    expect(conflictGate(null, intake)).toEqual([]);
   });
 });

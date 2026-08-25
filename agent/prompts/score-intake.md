@@ -20,6 +20,13 @@ rules you are not part of.
   better than a page naming none of them.
 - Grade each criterion **independently**. An intake that is excellent about
   data and silent about audience gets a 4 and a 1, not a 2 and a 2.
+- **A picked answer that its own prose contradicts is not evidence.** Data
+  Sensitivity level 3 asks whether sensitive data is *acknowledged*; a
+  description naming claimant PII beside a classification of "Public" has
+  not acknowledged it, it has denied it, so that is a 2 at best. The same
+  holds for Data Access against a third-party answer the prose refutes.
+  These two decide where the assessment routes, and routing on a field the
+  document itself disputes is the failure this whole check exists to catch.
 - Use the anchors as written. Where it sits between two, **take the lower**
   — the cost of asking for a detail somebody already gave is a moment of
   mild annoyance; the cost of not asking is an assessment routed on a guess.
@@ -50,6 +57,13 @@ are in front of you:
   list that is empty.
 - An "internal only" description beside external users, customers or
   partners appearing later.
+
+**An empty answer counts as a half.** Every unanswered field appears in the
+intake as `Field label: (not answered)`, and that string can be quoted like
+any other. Prose that names claimant PII beside `Data Elements: (not
+answered)` is a contradiction, not merely a gap: the person described the
+data in one place and declared there is none in another. Quote the
+`(not answered)` line as the half it is.
 
 For each one, quote **both halves exactly as they appear** — copy the
 characters, do not paraphrase, do not tidy the wording, do not merge two
