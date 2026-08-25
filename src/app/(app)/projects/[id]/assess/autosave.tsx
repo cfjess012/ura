@@ -125,6 +125,7 @@ export function SaveBar({
   status,
   submitLabel,
   blocked = false,
+  ready = false,
 }: {
   state: Autosave;
   /** What this screen says about itself — counts, reassurance, progress. */
@@ -136,10 +137,19 @@ export function SaveBar({
    * reading the same as "3 of 6 answered" is not a refusal a person sees.
    */
   blocked?: boolean;
+  /**
+   * True when this screen has nothing left outstanding.
+   *
+   * The bar is sticky and reads the same whether there are six answers to
+   * go or none, so the moment somebody finishes looks like every other
+   * moment. This lifts it once — a calm, once-only signal that the way
+   * forward is now the thing to do.
+   */
+  ready?: boolean;
 }) {
   const { saving, saved, error, reload } = state;
   return (
-    <div className="savebar">
+    <div className={ready ? "savebar ready" : "savebar"}>
       <span className={blocked ? "missing blocked" : "missing"}>{status}</span>
       <span style={{ display: "flex", gap: "0.8rem", alignItems: "center" }}>
         <span

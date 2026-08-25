@@ -561,3 +561,23 @@ select.flagged {
   border-radius: 3px;
   box-shadow: 0 0 0 1px var(--gap-highlight-edge);
 }
+
+/* Nothing left on this screen. The bar is sticky and otherwise reads the
+   same whether six answers are outstanding or none, so the moment somebody
+   finishes looks like every other moment. One calm lift, and the way
+   forward becomes the brightest thing on the bar. */
+.savebar.ready {
+  border-top-color: var(--success);
+  box-shadow: 0 -6px 20px rgb(0 135 68 / 10%);
+}
+.savebar.ready .missing {
+  color: var(--success);
+  font-weight: 600;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .savebar.ready {
+    transition:
+      border-color 0.25s var(--ease),
+      box-shadow 0.25s var(--ease);
+  }
+}

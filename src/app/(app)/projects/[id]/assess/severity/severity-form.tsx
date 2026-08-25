@@ -125,10 +125,71 @@ export function SeverityForm({
     return result;
   }
 
+  /**
+   * Move them to the next thing that still needs them.
+   *
+   * Answering the last visible question used to leave somebody looking at
+   * the answer they had just given, with the next one below the fold and no
+   * sign it was there. The page knows what is unanswered; it should carry
+   * them rather than make them hunt.
+   *
+   * Smooth and slightly delayed on purpose: the tick has to land first, or
+   * the screen appears to move before anything happened. Instant scrolling
+   * to somewhere you did not ask to go reads as a page glitch.
+   *
+   * Respects a reduced-motion preference by jumping instead of gliding.
+   */
+  const glideTo = React.useCallback((selector: string) => {
+    window.setTimeout(() => {
+      const target = document.querySelector(selector);
+      if (!target) return;
+      const still = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      target.scrollIntoView({
+        behavior: still ? "auto" : "smooth",
+        block: "center",
+      });
+    }, 260);
+  }, []);
+
+  /**
+   * Arriving on an area, land on the first thing still needing an answer.
+   *
+   * The rail sends somebody to an area because it is not finished, and
+   * dropping them at the top of a screen whose first three questions are
+   * already answered makes them scroll to find the work. Once, on arrival —
+   * re-running would drag them away from something they are mid-way
+   * through.
+   */
+  const landed = React.useRef(false);
+  React.useEffect(() => {
+    if (landed.current) return;
+    landed.current = true;
+    const waiting = items.find(({ question }) => !bands[question.questionId]);
+    // Only when there is something above it to scroll past. Nudging a
+    // screen that is already at the right place is motion for its own sake.
+    if (
+      waiting &&
+      items[0]?.question.questionId !== waiting.question.questionId
+    ) {
+      glideTo(`[data-focus="${waiting.question.questionId}"]`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function choose(question: SeverityQuestion, band: Band) {
     const before = bands;
     const next = { ...bands, [question.questionId]: band };
     setBands(next);
+    // Not when this answer opens a follow-up on the same question — that is
+    // the next thing they have to do, and it is already in front of them.
+    if (!detailFires(question, { ...answers, [question.questionId]: band })) {
+      const waiting = items.find(
+        ({ question: q }) => !next[q.questionId],
+      )?.question;
+      glideTo(waiting ? `[data-focus="${waiting.questionId}"]` : ".savebar");
+    }
     autosave.touched.current.add(question.questionId);
     // Put it back if the server refuses: the controls, the count and the
     // follow-up question all derive from this, and showing them for an
@@ -422,6 +483,7 @@ export function SeverityForm({
       <SaveBar
         state={autosave}
         submitLabel={nextLabel}
+        ready={items.every(({ question }) => bands[question.questionId])}
         status={
           <>
             {answered} of {items.length} answered
