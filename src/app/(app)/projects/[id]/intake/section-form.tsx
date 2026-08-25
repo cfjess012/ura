@@ -478,6 +478,98 @@ export function SectionForm({
 }
 
 /**
+ * A long-form answer that grows to its content and shows its gaps.
+ *
+ * Two problems, one element.
+ *
+ * **It grows.** A suggestion is several paragraphs, and landing on a box
+ * showing four lines of it with a scrollbar hides the very thing somebody
+ * was sent here to edit.
+ *
+ * **It highlights.** A textarea cannot carry markup, so the brackets
+ * cannot be marked where they sit — but a copy of the text can sit behind
+ * it, with the same metrics, painting a marker pen over exactly those
+ * spans. The copy's own text is transparent; what shows through is the
+ * real one, on top, still fully editable. Font, padding, border and
+ * wrapping have to match to the pixel or the paint drifts off the words,
+ * which is why both share one class rather than two similar ones.
+ */
+function GapTextarea({
+  id,
+  value,
+  onChange,
+  validity,
+}: {
+  id: string;
+  value: string;
+  onChange: (next: string) => void;
+  validity: Record<string, unknown>;
+}) {
+  // `validity` carries its own className for the flagged state, and it is
+  // spread last — so it silently overwrote this one with undefined and the
+  // box stayed opaque over its own highlights. Merge rather than let one
+  // win.
+  const { className: flaggedClass, ...rest } = validity as {
+    className?: string;
+  } & Record<string, unknown>;
+  const box = React.useRef<HTMLTextAreaElement>(null);
+  const backdrop = React.useRef<HTMLDivElement>(null);
+  const spans = bracketSpans(value);
+
+  // Fit the content, up to a point. Past that it scrolls, because a box
+  // taller than the window is its own kind of unusable.
+  React.useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 900)}px`;
+  }, [value]);
+
+  const parts: React.ReactNode[] = [];
+  let at = 0;
+  for (const [n, span] of spans.entries()) {
+    if (span.from > at) parts.push(value.slice(at, span.from));
+    parts.push(
+      <mark className="gap-mark" key={n}>
+        {value.slice(span.from, span.to)}
+      </mark>,
+    );
+    at = span.to;
+  }
+  parts.push(value.slice(at));
+
+  return (
+    <div className="gap-field">
+      {spans.length > 0 && (
+        <div className="gap-backdrop" ref={backdrop} aria-hidden="true">
+          {parts}
+        </div>
+      )}
+      <textarea
+        id={id}
+        name={id}
+        ref={box}
+        className={[
+          "gap-input",
+          spans.length > 0 ? "marked" : "",
+          flaggedClass ?? "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onScroll={(e) => {
+          if (backdrop.current) {
+            backdrop.current.scrollTop = e.currentTarget.scrollTop;
+          }
+        }}
+        {...rest}
+      />
+    </div>
+  );
+}
+
+/**
  * The gaps a suggested rewrite left behind, listed under the field.
  *
  * A textarea cannot carry markup, so the brackets cannot be highlighted
@@ -786,15 +878,12 @@ function Control({
   }
   if (field.type === "textarea") {
     return (
-      <>
-        <textarea
-          id={field.id}
-          name={field.id}
-          value={(value as string) ?? ""}
-          onChange={(e) => set(field.id, e.target.value)}
-          {...validity}
-        />
-      </>
+      <GapTextarea
+        id={field.id}
+        value={(value as string) ?? ""}
+        onChange={(next) => set(field.id, next)}
+        validity={validity}
+      />
     );
   }
   if (field.type === "select") {

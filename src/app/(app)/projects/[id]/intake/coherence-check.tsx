@@ -7,6 +7,7 @@ import {
   type Suggestion,
 } from "@/app/agent-actions";
 import { applyIntakeFix } from "@/app/actions";
+import { bracketSpans } from "@/lib/pending-rewrite";
 import { isFailure } from "@/lib/errors";
 import type { Coherence } from "@/lib/intake-rubric";
 
@@ -274,6 +275,31 @@ function Result({
  * options use, so a reader who has met one has met both — and never colour
  * alone: the reading stays in text for anything that speaks the page.
  */
+/**
+ * The same text, with the gaps painted.
+ *
+ * Here it can be real markup, because this is a paragraph rather than a
+ * textarea — so the preview and the field it lands in look alike, and
+ * somebody who saw six yellow patches here finds six yellow patches there.
+ */
+function Marked({ text }: { text: string }) {
+  const spans = bracketSpans(text);
+  if (spans.length === 0) return <>{text}</>;
+  const parts: React.ReactNode[] = [];
+  let at = 0;
+  for (const [n, span] of spans.entries()) {
+    if (span.from > at) parts.push(text.slice(at, span.from));
+    parts.push(
+      <mark className="gap-shown" key={n}>
+        {text.slice(span.from, span.to)}
+      </mark>,
+    );
+    at = span.to;
+  }
+  parts.push(text.slice(at));
+  return <>{parts}</>;
+}
+
 function LevelDots({ level }: { level: number }) {
   return (
     <span className="coherence-level" title={`${level} of 4`}>
@@ -492,7 +518,9 @@ function RewriteOffer({
     return (
       <div className="rewrite">
         <p className="rewrite-title">A suggested rewrite</p>
-        <p className="rewrite-body">{suggestion.rewrite}</p>
+        <p className="rewrite-body">
+          <Marked text={suggestion.rewrite} />
+        </p>
         {suggestion.placeholders.length > 0 && (
           <p className="help">
             The parts in [brackets] are things you have not said yet — it will

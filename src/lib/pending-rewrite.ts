@@ -52,7 +52,13 @@ export function takeRewrite(
 export function bracketSpans(
   text: string,
 ): Array<{ from: number; to: number }> {
-  return [...text.matchAll(/\[[^\]]{3,200}\]/g)].map((m) => ({
+  // The ceiling was 200 and a real placeholder ran past it — a question
+  // that quotes both halves of a contradiction is long by nature, and the
+  // longest gaps are the ones somebody most needs to see. Missing one was
+  // silent twice over: no highlight on it, and no line for it in the list
+  // underneath. Still bounded, so an unclosed bracket cannot swallow the
+  // rest of the document.
+  return [...text.matchAll(/\[[^\]]{3,600}\]/g)].map((m) => ({
     from: m.index!,
     to: m.index! + m[0].length,
   }));

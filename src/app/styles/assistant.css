@@ -1951,3 +1951,16 @@
   background: var(--brand);
   opacity: 0.55;
 }
+
+/* A gap in the preview. Visible text here, unlike the backdrop behind the
+   textarea, because this paragraph IS the text rather than a copy of it —
+   and darker than the body so it reads as a question rather than prose
+   somebody could skim past. */
+.gap-shown {
+  background: var(--gap-highlight);
+  color: var(--neutral-900);
+  font-weight: 600;
+  padding: 0.05em 0.15em;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--gap-highlight-edge);
+}

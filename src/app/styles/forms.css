@@ -503,3 +503,57 @@ select.flagged {
   font-weight: 500;
   color: var(--neutral-600);
 }
+
+/* A long-form answer with its gaps painted behind the text.
+   The backdrop is a copy of the value with the same metrics, its own text
+   invisible; only the marker pen shows through, under the real text. Every
+   property that affects where a character lands has to be identical on
+   both, which is why they are declared together. */
+.gap-field {
+  position: relative;
+}
+.gap-field .gap-backdrop,
+.gap-field .gap-input {
+  width: 100%;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  letter-spacing: normal;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  tab-size: 4;
+}
+.gap-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  color: transparent;
+  pointer-events: none;
+}
+.gap-input {
+  position: relative;
+  z-index: 1;
+  display: block;
+  min-height: 6.5rem;
+  resize: vertical;
+  color: var(--neutral-900);
+  border-color: var(--neutral-300);
+  background: var(--neutral-0);
+}
+/* Transparent so the paint underneath shows. Only when there is paint —
+   otherwise the box would lose its own background for no reason. */
+.gap-input.marked {
+  background: transparent;
+}
+.gap-mark {
+  background: var(--gap-highlight);
+  color: transparent;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--gap-highlight-edge);
+}

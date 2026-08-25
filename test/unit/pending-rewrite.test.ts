@@ -88,3 +88,22 @@ describe("finding the gaps in a suggestion", () => {
     ).toEqual([]);
   });
 });
+
+describe("a long gap is still a gap", () => {
+  it("finds a placeholder that quotes both halves of a contradiction", () => {
+    // These run long by nature, and the longest are the ones somebody most
+    // needs to see. A ceiling of 200 hid this one from the highlight and
+    // from the list underneath, silently.
+    const long =
+      "It reads claims. [" +
+      '"insurance adjusters and investigators" — is this the same group referred to elsewhere as "front-line claims handlers" and "senior fraud analysts," or a different set of users? These two disagree — which is right?' +
+      "] It runs nightly.";
+    expect(bracketSpans(long)).toHaveLength(1);
+  });
+
+  it("does not let an unclosed bracket swallow the document", () => {
+    expect(bracketSpans("A tool. [never closed " + "x".repeat(900))).toEqual(
+      [],
+    );
+  });
+});

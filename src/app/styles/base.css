@@ -45,6 +45,11 @@
   --warning-strong: #d64205;
   --warning-bg: #fff0e5;
   --error: #e40c0c;
+  /* The marker pen over a gap somebody still has to fill. Yellow because
+     that is what a highlighter is, and it has to read as "unfinished"
+     beside the orange the platform already uses for "wrong". */
+  --gap-highlight: #ffe94d;
+  --gap-highlight-edge: #f2cf00;
 
   /* Shape + motion */
   --radius: 12px;
