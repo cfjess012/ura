@@ -2619,6 +2619,74 @@ STANDING GUARDRAILS (inherited by every registered feature)
       <p class="where"><code>SPEC.md §22.1 · S1–S2</code></p>
     </div>
   </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Document-assisted drafting</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Reads a document the requester hands over — a spec, a vendor overview, a contract — and proposes the activity description plus intake answers, each carrying the sentence it came from.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Built and running when an agent is connected (S12). Off by default: with AGENT_TRANSPORT unset it is absent from the product and reads nothing.</p>
+      <p><span class="label">What it can see</span>Reads: one document this requester uploaded to this assessment, held as extracted text and never as a file, plus the intake fields and the values each accepts. Does not read: any other assessment, and no document outside this one.</p>
+      <p><span class="label">In its own words</span><span class="gist">Reads a document the requester hands over — a spec, a vendor overview, a contract — and proposes the activity description plus intake answers, each carrying the sentence it came from. What the document does not say is bracketed and named, never filled in.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+Reads a document the requester hands over — a spec, a vendor overview, a contract — and proposes the activity description plus intake answers, each carrying the sentence it came from. What the document does not say is bracketed and named, never filled in.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+A proposal is not an answer: it is written as `source: drafted, confirmed: false`, the gates treat it as unanswered, and accepting writes a *new* row so the proposal stays underneath. Every quote is re-verified verbatim against the stored document on the web side, not only by the agent — the agent's check protects the wire, this one protects the record. A proposal may only offer a value the field actually accepts.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S12</code></p>
+    </div>
+  </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Risk-area explainer</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Says why a risk area applies to this activity and what its questions are getting at, in the words on screen rather than in the instrument's vocabulary.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Built and running when an agent is connected (S12). Off by default: with AGENT_TRANSPORT unset it is absent from the product and reads nothing.</p>
+      <p><span class="label">What it can see</span>Reads: the risk area on screen, the rules that lit it, and this assessment's own answers. Does not read: the person's other projects, and it never writes anything.</p>
+      <p><span class="label">In its own words</span><span class="gist">Says why a risk area applies to this activity and what its questions are getting at, in the words on screen rather than in the instrument's vocabulary.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+Says why a risk area applies to this activity and what its questions are getting at, in the words on screen rather than in the instrument's vocabulary.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+It explains what is already true; it never proposes an answer, and it cannot change which areas apply. Silence is a valid result — an explanation it cannot ground is not offered.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S12</code></p>
+    </div>
+  </article>
   <article class="node dormant" data-status="dormant">
     <button type="button" class="node-head" aria-expanded="false">
       <span class="node-top">
@@ -2991,6 +3059,40 @@ STANDING GUARDRAILS (inherited by every registered feature)
   was machine-suggested from what a human confirmed.</pre>
       </details>
       <p class="where"><code>SPEC.md §22.1 · S2+</code></p>
+    </div>
+  </article><p class="group-label">Review &amp; handoff</p>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Handoff summary &amp; risk scenarios</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Writes the reviewer's summary of a submitted assessment and proposes risk scenarios worth asking about, inferred across everything the assessment holds — how the activity was described, what data it touches, the controls and their findings.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Built and running when an agent is connected (S12). Off by default: with AGENT_TRANSPORT unset it is absent from the product and reads nothing.</p>
+      <p><span class="label">What it can see</span>Reads: everything recorded on this submitted assessment — the description, the risk areas, the severity bands, the control answers and their findings. Does not read: another assessment, precedent, or anything outside the boundary.</p>
+      <p><span class="label">In its own words</span><span class="gist">Writes the reviewer's summary of a submitted assessment and proposes risk scenarios worth asking about, inferred across everything the assessment holds — how the activity was described, what data it touches, the controls and their findings. Each scenario is filed to the risk domain whose answers it cites.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+Writes the reviewer's summary of a submitted assessment and proposes risk scenarios worth asking about, inferred across everything the assessment holds — how the activity was described, what data it touches, the controls and their findings. Each scenario is filed to the risk domain whose answers it cites.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+A scenario is a **question, never a finding** (§4.4): there is no field in which acceptance could be recorded, and it is dropped rather than shown if it cites anything not in the record. The filing is deterministic — `control-domains.json` is versioned data a human ratified, so which domain sees a scenario is never a model's opinion. The summary sits above facts already derived from answers; it delays nothing.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S12</code></p>
     </div>
   </article><p class="group-label">Destinations</p>
   <article class="node dormant" data-status="dormant">

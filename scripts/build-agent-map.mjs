@@ -213,6 +213,9 @@ const BUILT_RUNTIME = new Set([
   "Compliance checking",
   "Policy-grounded definitions",
   "Instrument-to-obligation traceability",
+  "Document-assisted drafting",
+  "Handoff summary & risk scenarios",
+  "Risk-area explainer",
 ]);
 
 const RUNTIME_ACCESS = {
@@ -238,6 +241,12 @@ const RUNTIME_ACCESS = {
     "Would read: attested answers and the policy version in force when they were attested. A later policy revision never rewrites a historical assessment.",
   "Instrument-to-obligation traceability":
     "Would read: the instrument and the obligation library, plus human-ratified mappings between them.",
+  "Document-assisted drafting":
+    "Reads: one document this requester uploaded to this assessment, held as extracted text and never as a file, plus the intake fields and the values each accepts. Does not read: any other assessment, and no document outside this one.",
+  "Handoff summary & risk scenarios":
+    "Reads: everything recorded on this submitted assessment — the description, the risk areas, the severity bands, the control answers and their findings. Does not read: another assessment, precedent, or anything outside the boundary.",
+  "Risk-area explainer":
+    "Reads: the risk area on screen, the rules that lit it, and this assessment's own answers. Does not read: the person's other projects, and it never writes anything.",
   "Instrument contradiction lint":
     "Would read: the authored instrument only — questions, options, conditions and rubrics. No assessment data, no personal information, and it never edits what it reads.",
   "Plain-language term help on demand":
@@ -262,6 +271,8 @@ const runtimeGroups = {
   "Intake & conversation": [
     "Intake quality assistant",
     "Assessment companion (conversational)",
+    "Document-assisted drafting",
+    "Risk-area explainer",
     "Consistency & contradiction chaining",
   ],
   Knowledge: [
@@ -278,6 +289,7 @@ const runtimeGroups = {
     "Application profiles (our own systems)",
     "Divergence signal (reviewer-side)",
   ],
+  "Review & handoff": ["Handoff summary & risk scenarios"],
   Destinations: [
     "Destination record drafting",
     "Reverse pre-fill from a system of record",

@@ -58,6 +58,27 @@ export default async function AgentsPage() {
     .flatMap((g) => g.nodes)
     .filter((n) => n.status === "live").length;
   const registered = data.groups.flatMap((g) => g.nodes).length - live;
+  // Counted, never written down. Two sentences below said "five built
+  // features" and were true when somebody typed them; a page whose whole
+  // subject is that agents can be enumerated cannot hold a number that goes
+  // stale the next time one ships.
+  const runtimeLive = runtime
+    .flatMap((g) => g.nodes)
+    .filter((n) => n.status === "live").length;
+  const inWords =
+    [
+      "no",
+      "one",
+      "two",
+      "three",
+      "four",
+      "five",
+      "six",
+      "seven",
+      "eight",
+      "nine",
+      "ten",
+    ][runtimeLive] ?? String(runtimeLive);
 
   return (
     <main>
@@ -86,7 +107,7 @@ export default async function AgentsPage() {
         </span>{" "}
         <span className="note-body">
           {transport.available
-            ? "The five built features below can read assessment content when a person uses them."
+            ? `The ${inWords} built feature${runtimeLive === 1 ? "" : "s"} below can read assessment content when a person uses ${runtimeLive === 1 ? "it" : "them"}.`
             : "Nothing below is reading anything. Every feature marked built is unreachable until one is connected."}
         </span>
       </p>
@@ -100,11 +121,12 @@ export default async function AgentsPage() {
           <strong>Build-time</strong> agents help construct and check this
           software; they never see an assessment and never reach production.{" "}
           <strong>Runtime</strong> agents are product features that read
-          assessment content. Five are now built and run{" "}
-          <strong>only when an agent is connected</strong> — with none connected
-          they are absent from the product and read nothing. The rest are
-          registered and deliberately unbuilt. Each row below says which it is,
-          and what it may see.
+          assessment content.{" "}
+          {inWords.charAt(0).toUpperCase() + inWords.slice(1)} are now built and
+          run <strong>only when an agent is connected</strong> — with none
+          connected they are absent from the product and read nothing. The rest
+          are registered and deliberately unbuilt. Each row below says which it
+          is, and what it may see.
         </p>
       </div>
 

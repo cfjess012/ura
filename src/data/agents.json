@@ -203,6 +203,26 @@
           "where": "SPEC.md §22.1 · S1–S2"
         },
         {
+          "name": "Document-assisted drafting",
+          "status": "live",
+          "what": "Reads a document the requester hands over — a spec, a vendor overview, a contract — and proposes the activity description plus intake answers, each carrying the sentence it came from.",
+          "trigger": "Built and running when an agent is connected (S12). Off by default: with AGENT_TRANSPORT unset it is absent from the product and reads nothing.",
+          "access": "Reads: one document this requester uploaded to this assessment, held as extracted text and never as a file, plus the intake fields and the values each accepts. Does not read: any other assessment, and no document outside this one.",
+          "gist": "Reads a document the requester hands over — a spec, a vendor overview, a contract — and proposes the activity description plus intake answers, each carrying the sentence it came from. What the document does not say is bracketed and named, never filled in.",
+          "full": "WHAT IT WOULD DO\n\nReads a document the requester hands over — a spec, a vendor overview, a contract — and proposes the activity description plus intake answers, each carrying the sentence it came from. What the document does not say is bracketed and named, never filled in.\n\nGUARDRAILS BEYOND THE STANDING SET\n\nA proposal is not an answer: it is written as `source: drafted, confirmed: false`, the gates treat it as unanswered, and accepting writes a *new* row so the proposal stays underneath. Every quote is re-verified verbatim against the stored document on the web side, not only by the agent — the agent's check protects the wire, this one protects the record. A proposal may only offer a value the field actually accepts.\n\nSTANDING GUARDRAILS (inherited by every registered feature)\n\n· It reads what the requester provided; it never invents facts.\n· It proposes; a human accepts. Nothing it produces is final on its own.\n· Any rewrite reorganises the requester's own words, never adds to them.\n· It speaks plain language: no internal identifiers, no scores as verdicts.\n· Its judgements are recorded with their basis, so a reviewer can tell what\n  was machine-suggested from what a human confirmed.",
+          "where": "SPEC.md §22.1 · S12"
+        },
+        {
+          "name": "Risk-area explainer",
+          "status": "live",
+          "what": "Says why a risk area applies to this activity and what its questions are getting at, in the words on screen rather than in the instrument's vocabulary.",
+          "trigger": "Built and running when an agent is connected (S12). Off by default: with AGENT_TRANSPORT unset it is absent from the product and reads nothing.",
+          "access": "Reads: the risk area on screen, the rules that lit it, and this assessment's own answers. Does not read: the person's other projects, and it never writes anything.",
+          "gist": "Says why a risk area applies to this activity and what its questions are getting at, in the words on screen rather than in the instrument's vocabulary.",
+          "full": "WHAT IT WOULD DO\n\nSays why a risk area applies to this activity and what its questions are getting at, in the words on screen rather than in the instrument's vocabulary.\n\nGUARDRAILS BEYOND THE STANDING SET\n\nIt explains what is already true; it never proposes an answer, and it cannot change which areas apply. Silence is a valid result — an explanation it cannot ground is not offered.\n\nSTANDING GUARDRAILS (inherited by every registered feature)\n\n· It reads what the requester provided; it never invents facts.\n· It proposes; a human accepts. Nothing it produces is final on its own.\n· Any rewrite reorganises the requester's own words, never adds to them.\n· It speaks plain language: no internal identifiers, no scores as verdicts.\n· Its judgements are recorded with their basis, so a reviewer can tell what\n  was machine-suggested from what a human confirmed.",
+          "where": "SPEC.md §22.1 · S12"
+        },
+        {
           "name": "Consistency & contradiction chaining",
           "status": "dormant",
           "what": "Continuously reads everything captured so far and surfaces disagreements — across intake prose, gate answers, and later tiers.",
@@ -323,6 +343,22 @@
           "gist": "When an assessment answers materially differently from comparable ones, the reviewer's queue says so. \"Answered No to third-party where 14 of 15 comparable assessments answered Yes.\"",
           "full": "WHAT IT WOULD DO\n\nWhen an assessment answers materially differently from comparable ones, the reviewer's queue says so. \"Answered No to third-party where 14 of 15 comparable assessments answered Yes.\"\n\nGUARDRAILS BEYOND THE STANDING SET\n\nA divergence is a **triage signal, not a verdict** — being different is often correct, and the platform must never pressure a requester toward the majority. Shown to reviewers, not as a nag to the person answering. Requires the same aggregation floor as precedent.\n\nSTANDING GUARDRAILS (inherited by every registered feature)\n\n· It reads what the requester provided; it never invents facts.\n· It proposes; a human accepts. Nothing it produces is final on its own.\n· Any rewrite reorganises the requester's own words, never adds to them.\n· It speaks plain language: no internal identifiers, no scores as verdicts.\n· Its judgements are recorded with their basis, so a reviewer can tell what\n  was machine-suggested from what a human confirmed.",
           "where": "SPEC.md §22.1 · S2+"
+        }
+      ],
+      "side": "runtime"
+    },
+    {
+      "group": "Review & handoff",
+      "nodes": [
+        {
+          "name": "Handoff summary & risk scenarios",
+          "status": "live",
+          "what": "Writes the reviewer's summary of a submitted assessment and proposes risk scenarios worth asking about, inferred across everything the assessment holds — how the activity was described, what data it touches, the controls and their findings.",
+          "trigger": "Built and running when an agent is connected (S12). Off by default: with AGENT_TRANSPORT unset it is absent from the product and reads nothing.",
+          "access": "Reads: everything recorded on this submitted assessment — the description, the risk areas, the severity bands, the control answers and their findings. Does not read: another assessment, precedent, or anything outside the boundary.",
+          "gist": "Writes the reviewer's summary of a submitted assessment and proposes risk scenarios worth asking about, inferred across everything the assessment holds — how the activity was described, what data it touches, the controls and their findings. Each scenario is filed to the risk domain whose answers it cites.",
+          "full": "WHAT IT WOULD DO\n\nWrites the reviewer's summary of a submitted assessment and proposes risk scenarios worth asking about, inferred across everything the assessment holds — how the activity was described, what data it touches, the controls and their findings. Each scenario is filed to the risk domain whose answers it cites.\n\nGUARDRAILS BEYOND THE STANDING SET\n\nA scenario is a **question, never a finding** (§4.4): there is no field in which acceptance could be recorded, and it is dropped rather than shown if it cites anything not in the record. The filing is deterministic — `control-domains.json` is versioned data a human ratified, so which domain sees a scenario is never a model's opinion. The summary sits above facts already derived from answers; it delays nothing.\n\nSTANDING GUARDRAILS (inherited by every registered feature)\n\n· It reads what the requester provided; it never invents facts.\n· It proposes; a human accepts. Nothing it produces is final on its own.\n· Any rewrite reorganises the requester's own words, never adds to them.\n· It speaks plain language: no internal identifiers, no scores as verdicts.\n· Its judgements are recorded with their basis, so a reviewer can tell what\n  was machine-suggested from what a human confirmed.",
+          "where": "SPEC.md §22.1 · S12"
         }
       ],
       "side": "runtime"
