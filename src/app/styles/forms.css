@@ -512,6 +512,10 @@ select.flagged {
 .gap-field {
   position: relative;
 }
+/* Shared metrics only. Anything VISIBLE belongs on the rules below, at the
+   same specificity as this one — a border declared here outranked
+   `.gap-input`'s border-color and left the box with no outline at all,
+   which on a near-white background is a box you cannot see. */
 .gap-field .gap-backdrop,
 .gap-field .gap-input {
   width: 100%;
@@ -528,7 +532,7 @@ select.flagged {
   word-break: normal;
   tab-size: 4;
 }
-.gap-backdrop {
+.gap-field .gap-backdrop {
   position: absolute;
   inset: 0;
   z-index: 0;
@@ -536,7 +540,7 @@ select.flagged {
   color: transparent;
   pointer-events: none;
 }
-.gap-input {
+.gap-field .gap-input {
   position: relative;
   z-index: 1;
   display: block;
@@ -548,7 +552,7 @@ select.flagged {
 }
 /* Transparent so the paint underneath shows. Only when there is paint —
    otherwise the box would lose its own background for no reason. */
-.gap-input.marked {
+.gap-field .gap-input.marked {
   background: transparent;
 }
 .gap-mark {
