@@ -103,10 +103,31 @@ export function composeConversePrompt(task: ConverseTask): string {
           "Judge what they have written against it before you call it good. Naming the one thing that would move it up is worth more than encouragement.",
         ].join("\n\n");
 
+  // What our own standards say about the words they used. Verbatim, with
+  // the reference and version, because a citation is only worth something
+  // if the words are the policy's own (§22.5).
+  const clauses = task.assessment.authority ?? [];
+  const authority =
+    clauses.length === 0
+      ? ""
+      : [
+          "## What our own policies say",
+          "**These were found because of the words they just used, and one of them probably answers their question.** They are clauses from this organisation's own standards. Quote word for word or not at all, and always name the reference and version.",
+          clauses
+            .map(
+              (c) =>
+                `### ${c.heading}\n> ${c.text}\n— ${c.policy}, ${c.clauseId}, version ${c.version}`,
+            )
+            .join("\n\n"),
+          '**A policy says what a term means and what is required. It never says anything about THEIR project.** Give them the definition and then ASK whether it fits — do not tell them that it does. "Your two partners would fall under that" is a conclusion about their activity dressed in our standard\'s authority; "does that describe your partners?" is the same help without the overreach, and they are the only one who can answer it.',
+          "Do not treat a question as off-topic when a clause above answers it. Somebody asking how to get a tool, or what a word means, is asking something our standards cover — answer from the clause first, then bring them back to the screen.",
+        ].join("\n\n");
+
   return [
     CONVERSE,
     "---",
     onScreen,
+    authority,
     rubric,
     "## What they have told us so far",
     task.context.trim() === "" ? "(nothing yet)" : task.context,

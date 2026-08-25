@@ -35,7 +35,7 @@ implementation, stop on ambiguity.
 - S11 Phase 2 seams — DONE 2026-08-23 (§6.1: agent transport, conversation
   state shaped for AgentCore Memory, the wire contract. Nothing agentic is
   reachable when no agent is connected — see uat/S11.md)
-- S12 Agent service & capabilities — DONE 2026-08-24 (FR-39..FR-43: the
+- S12 Agent service & capabilities — DONE 2026-08-24 (FR-39..FR-45: the
   companion, document drafting, policy authority and breach findings, the
   handoff report, intake scoring. Two verifier FAILs then fixed — see
   uat/S12.md)

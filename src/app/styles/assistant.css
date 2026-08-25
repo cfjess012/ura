@@ -1937,3 +1937,88 @@
   border-radius: 3px;
   box-shadow: 0 0 0 1px var(--gap-highlight-edge);
 }
+
+/* What it is doing, while it does it. Three steps that genuinely run on
+   every turn, in this order — the display names real work, and marks the
+   current one as under way rather than finished, because the turn is one
+   server call with no way to report back mid-flight. */
+.working {
+  align-self: flex-start;
+  max-width: 88%;
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
+}
+.working-head {
+  margin: 0 0 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--neutral-800);
+}
+.working-spark {
+  display: inline-flex;
+  color: var(--brand);
+  animation: working-pulse 1.4s ease-in-out infinite;
+}
+.working-elapsed {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--neutral-500);
+  font-variant-numeric: tabular-nums;
+}
+.working-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.working-steps li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: var(--neutral-400);
+}
+.working-steps li.done {
+  color: var(--neutral-600);
+}
+.working-steps li.now {
+  color: var(--brand);
+  font-weight: 600;
+}
+@keyframes working-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .working-spark {
+    animation: none;
+  }
+}
+
+/* The receipt: which clauses the reply was actually built with. Computed,
+   never claimed — it lists what the lookup returned and nothing else. */
+.assistant-cited {
+  display: block;
+  margin-top: 0.45rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed var(--neutral-200);
+  font-size: 0.7rem;
+  color: var(--neutral-500);
+  font-variant-numeric: tabular-nums;
+}

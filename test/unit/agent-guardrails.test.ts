@@ -335,6 +335,27 @@ describe("a fragment of what they wrote is still what they wrote", () => {
     ).not.toBeNull();
   });
 
+  it("allows a short phrase that is genuinely theirs", () => {
+    // "managers review" is fifteen characters and verbatim in what they
+    // wrote. Refusing it for being short cost a whole reply, and the
+    // person saw "something went wrong on my side" instead of an answer.
+    expect(
+      claimsUnrecordedAnswer(
+        "You said managers review the automated risk evaluations.",
+        {
+          ...quoted,
+          onRecord: [
+            {
+              label: "Project Description",
+              value:
+                "A rota tool. Managers review the automated risk evaluations before anything is published.",
+            },
+          ],
+        },
+      ),
+    ).toBeNull();
+  });
+
   it("does not let a short fragment launder a claim", () => {
     // "that it is" appears inside almost any paragraph; finding it there
     // must not stand as evidence they said anything.

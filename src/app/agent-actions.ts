@@ -32,6 +32,7 @@ import {
 } from "@/lib/intake-rubric";
 import { gateStates } from "@/lib/instrument";
 import { whatsOnScreen } from "@/lib/whats-on-screen";
+import { findAuthority, termsIn } from "@/lib/policy-source";
 import { proposalSentence } from "@/lib/drafts";
 import { proposeFromIntake } from "./proposal-actions";
 
@@ -48,6 +49,8 @@ async function contextFor(
   project: Record<string, unknown>,
   /** Where they are, so the reply can be about what they can see. */
   pathname?: string,
+  /** What they just said, so policy can be looked up on their own words. */
+  said?: string,
 ): Promise<AssessmentContext> {
   const values = intakeValuesFrom(project);
   const stored = await answerStore().current(projectId);
@@ -75,6 +78,23 @@ async function contextFor(
   // The rubric, but only where it applies. On a risk-area screen it is
   // noise; on an intake screen it is the difference between a thought
   // partner and a stranger agreeing with everything.
+  // What the organisation's own standards say about the words they used.
+  // Retrieval runs every turn and returning nothing is the ordinary case —
+  // no intent detection, because intent is not a pattern match, and a
+  // router that guessed wrong once started a drafting sweep over "what is
+  // today's date".
+  const authority = findAuthority([
+    ...termsIn(said ?? ""),
+    ...termsIn((looking?.questions ?? []).join(" ")),
+  ]).map((clause) => ({
+    policy: clause.policy,
+    reference: clause.reference,
+    version: clause.version,
+    clauseId: clause.clauseId,
+    heading: clause.heading,
+    text: clause.text,
+  }));
+
   const graded = pathname?.includes("/intake/")
     ? CRITERIA.map((c) => ({ criterion: c.label, fullMarks: c.anchors["4"] }))
     : undefined;
@@ -83,6 +103,7 @@ async function contextFor(
     projectId,
     looking: looking ?? undefined,
     graded,
+    authority: authority.length > 0 ? authority : undefined,
     activity:
       typeof values.projectDescription === "string" &&
       values.projectDescription.trim() !== ""
@@ -108,7 +129,14 @@ export async function askAgent(
    * nothing the caller sends becomes a question.
    */
   pathname?: string,
-): Promise<Result<{ reply: string; asking: string | null }>> {
+): Promise<
+  Result<{
+    reply: string;
+    asking: string | null;
+    /** Clause ids the policy lookup actually returned. A receipt, not a claim. */
+    consulted: string[];
+  }>
+> {
   try {
     const trimmed = said.trim();
     if (trimmed === "") {
@@ -139,6 +167,7 @@ export async function askAgent(
       projectId,
       access.project as unknown as Record<string, unknown>,
       pathname,
+      trimmed,
     );
     const history = (await sessionStore().history(conversationId)).map(
       (turn) => ({
@@ -184,7 +213,14 @@ export async function askAgent(
     // "layout", because a proposal lands on the risk-area page rather than
     // this one.
     revalidatePath(`/projects/${projectId}`, "layout");
-    return { ok: true as const, reply, asking: answer.asking };
+    return {
+      ok: true as const,
+      reply,
+      asking: answer.asking,
+      // What the lookup actually turned up, so the panel can show a receipt
+      // rather than a claim. Computed here; nothing about it is guessed.
+      consulted: (assessment.authority ?? []).map((c) => c.clauseId),
+    };
   } catch (error) {
     return failure(
       "askAgent",

@@ -247,3 +247,56 @@ describe("what the description is graded against", () => {
     expect(prompt).not.toContain("graded against");
   });
 });
+
+/**
+ * §22.5 · the organisation's own standards reach the conversation.
+ *
+ * The one legitimate exception to the evidence line: a policy is not world
+ * knowledge and may ground a definition. What it may never do is say
+ * anything about their project, and the prompt has to carry that rule and
+ * not merely the quotes.
+ */
+describe("what our own policies say", () => {
+  const base = {
+    said: "what is business criticality?",
+    history: [],
+    openQuestions: [],
+    context: "Project Description: A claims triage tool.",
+  };
+  const clause = {
+    policy: "Glossary & Classification Standard",
+    reference: "GLO-STD-001",
+    version: "2.0",
+    clauseId: "GLO-STD-001 §1.2",
+    heading: "Business criticality",
+    text: "An activity is business critical where its unavailability would halt a core business process for more than four hours.",
+  };
+
+  it("carries the clause verbatim, with its reference and version", () => {
+    const prompt = composeConversePrompt({
+      ...base,
+      assessment: { ...assessment, authority: [clause] },
+    });
+    expect(prompt).toContain(clause.text);
+    expect(prompt).toContain("GLO-STD-001 §1.2");
+    expect(prompt).toContain("version 2.0");
+  });
+
+  it("carries the rule, not just the words", () => {
+    // Quotes without the limit is how a definition becomes a claim about
+    // somebody's project.
+    const prompt = composeConversePrompt({
+      ...base,
+      assessment: { ...assessment, authority: [clause] },
+    });
+    expect(prompt).toMatch(/never says anything about THEIR project/i);
+    expect(prompt).toMatch(/word for word/i);
+  });
+
+  it("says nothing at all when no clause was found", () => {
+    // Not "no policy applies" — nothing, so the assistant answers as it
+    // always did rather than being told it looked and failed.
+    const prompt = composeConversePrompt({ ...base, assessment });
+    expect(prompt).not.toContain("What our own policies say");
+  });
+});

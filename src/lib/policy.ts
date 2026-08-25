@@ -31,6 +31,18 @@ export type PolicyClause = {
   text: string;
   requires: Array<{ questionId: string; expect: string; because: string }>;
   notAskedYet?: string;
+  /**
+   * What kind of clause this is.
+   *
+   * An **obligation** says something shall be done, so a clause nobody is
+   * asked about is a hole in the instrument. A **definition** says what a
+   * word means; it carries no obligation, and reporting it as uncovered
+   * would fill the coverage report with entries nobody can close.
+   *
+   * Absent means obligation — every clause written before definitions
+   * existed is one.
+   */
+  kind?: "obligation" | "definition";
 };
 
 export type Policy = {
@@ -159,6 +171,8 @@ export function clausesWithNoQuestion(): Array<{
   const gaps: Array<{ policy: Policy; clause: PolicyClause }> = [];
   for (const policy of POLICIES) {
     for (const clause of policy.clauses) {
+      // A definition is not an obligation, so it cannot be uncovered.
+      if (clause.kind === "definition") continue;
       if (clause.requires.length === 0) gaps.push({ policy, clause });
     }
   }

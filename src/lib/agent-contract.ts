@@ -239,6 +239,23 @@ export type AssessmentContext = {
    * the intake screens, because it is the only place it applies.
    */
   graded?: Array<{ criterion: string; fullMarks: string }>;
+  /**
+   * Clauses from the organisation's own policies that bear on what they
+   * asked, quoted verbatim.
+   *
+   * The one legitimate exception to the evidence line (§22.5): a policy is
+   * not world knowledge, and it may ground a definition or a requirement.
+   * It may still never assert a fact about this project — the policy says
+   * what a term means, the requester says whether it is true of theirs.
+   */
+  authority?: Array<{
+    policy: string;
+    reference: string;
+    version: string;
+    clauseId: string;
+    heading: string;
+    text: string;
+  }>;
   looking?: {
     /** The screen, named the way a person would name it. */
     screen: string;
@@ -317,7 +334,15 @@ export function claimsUnrecordedAnswer(
    * paragraph, which would launder a false claim on the strength of a
    * preposition.
    */
-  const ENOUGH_TO_QUOTE = 16;
+  const ENOUGH_TO_QUOTE = 12;
+  /**
+   * And at least two words. Length alone was the wrong measure: "managers
+   * review" is fifteen characters, verbatim in what they wrote, and was
+   * refused for being short — while a long enough run of filler would have
+   * passed. Two words plus twelve characters is a phrase; one word is a
+   * coincidence waiting to happen.
+   */
+  const ENOUGH_WORDS = 2;
 
   const saysValue = (clause: string, value: string): boolean => {
     const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -342,7 +367,10 @@ export function claimsUnrecordedAnswer(
       .replace(/^(?:that|how|it|this|the)\s+/i, "")
       .replace(/^["'\u201c\u2018]+|["'\u201d\u2019]+$/g, "")
       .trim();
-    if (whole.length >= ENOUGH_TO_QUOTE && value.includes(whole)) return true;
+    const substantial = (text: string) =>
+      text.length >= ENOUGH_TO_QUOTE &&
+      text.trim().split(/\s+/).filter(Boolean).length >= ENOUGH_WORDS;
+    if (substantial(whole) && value.includes(whole)) return true;
 
     // Or a span it put in quote marks appears in the value. This is the
     // ordinary shape of a grounded sentence — "the workflow is 'processed
@@ -353,7 +381,7 @@ export function claimsUnrecordedAnswer(
       /["\u201c]([^"\u201d]+)["\u201d]|['\u2018]([^'\u2019]+)['\u2019]/g,
     )) {
       const span = (found[1] ?? found[2] ?? "").trim();
-      if (span.length >= ENOUGH_TO_QUOTE && value.includes(span)) return true;
+      if (substantial(span) && value.includes(span)) return true;
     }
     return false;
   };

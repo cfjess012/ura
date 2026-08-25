@@ -33,6 +33,64 @@ import { isFailure } from "@/lib/errors";
  * Three points rather than one, sized down in sequence, so it reads as a
  * mark rather than a star at any size.
  */
+/**
+ * What it is doing, while it does it.
+ *
+ * Three steps, and each one genuinely runs on every turn in this order:
+ * the assessment is read, the policy lookup runs, the model is asked. So
+ * naming them claims nothing that does not happen — which matters, because
+ * a progress display is exactly the place a product starts describing work
+ * it is not doing.
+ *
+ * What it will not do is pretend to know which step it is on. The turn is
+ * one server call with no way to report back mid-flight, so the steps are
+ * paced by elapsed time and the current one is marked as under way rather
+ * than finished. The elapsed count is real. The receipt underneath the
+ * reply, once it lands, is the part that is actually checkable.
+ */
+const STEPS = [
+  "Reading your assessment",
+  "Checking policies and standards",
+  "Writing a reply",
+];
+
+function Working() {
+  const [seconds, setSeconds] = React.useState(0);
+  React.useEffect(() => {
+    const started = Date.now();
+    const tick = setInterval(
+      () => setSeconds(Math.round((Date.now() - started) / 1000)),
+      500,
+    );
+    return () => clearInterval(tick);
+  }, []);
+  // Roughly: the two local steps are quick, the model call is not.
+  const at = seconds < 1 ? 0 : seconds < 3 ? 1 : 2;
+
+  return (
+    <div className="working" role="status" aria-live="polite">
+      <p className="working-head">
+        <span className="working-spark" aria-hidden="true">
+          <AssistantSpark />
+        </span>
+        {STEPS[at]}
+        <span className="working-elapsed">{seconds}s</span>
+      </p>
+      <ol className="working-steps">
+        {STEPS.map((step, n) => (
+          <li
+            key={step}
+            className={n < at ? "done" : n === at ? "now" : "waiting"}
+          >
+            <span aria-hidden="true">{n < at ? "\u2713" : "\u00b7"}</span>
+            {step}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 function AssistantSpark() {
   return (
     <svg
@@ -70,6 +128,8 @@ export function Assistant({
   // instrument — the path only selects, it never supplies the words.
   const pathname = usePathname();
   const [turns, setTurns] = React.useState<AgentTurn[]>(initial);
+  /** Clause ids the last reply was built with. A receipt, not a claim. */
+  const [consulted, setConsulted] = React.useState<string[]>([]);
   const [said, setSaid] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   // Closed on arrival, always. A window that opens itself over somebody's
@@ -106,11 +166,16 @@ export function Assistant({
     setTurns((was) => [...was, { speaker: "person", said: message }]);
     setSaid("");
     try {
+      setConsulted([]);
       const result = await askAgent(projectId, message, pathname);
       if (isFailure(result)) {
         setTurns((was) => [...was, { speaker: "agent", said: result.message }]);
       } else {
         setTurns((was) => [...was, { speaker: "agent", said: result.reply }]);
+        // A receipt of what the lookup actually returned, kept beside the
+        // turn it belongs to rather than in the transcript — it describes
+        // how the reply was made, not part of what was said.
+        setConsulted(result.consulted);
         router.refresh();
       }
     } catch (cause) {
@@ -244,22 +309,20 @@ export function Assistant({
               {turn.speaker === "person" ? "You" : "Assistant"}
             </span>
             {turn.said}
+            {turn.speaker === "agent" &&
+              i === turns.length - 1 &&
+              consulted.length > 0 && (
+                <span className="assistant-cited">
+                  Checked our standards ·{" "}
+                  {consulted.length === 1
+                    ? "1 clause"
+                    : `${consulted.length} clauses`}
+                  : {consulted.join(", ")}
+                </span>
+              )}
           </p>
         ))}
-        {busy && (
-          <p className="assistant-turn assistant-agent assistant-thinking">
-            <span className="assistant-who">Assistant</span>
-            {/* Three dots rather than the word "Thinking": the shape people
-                already read as "it is working", and it does not claim to
-                know how long. Screen readers get the sentence instead. */}
-            <span className="assistant-dots" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-            </span>
-            <span className="sr-only">The assistant is writing a reply.</span>
-          </p>
-        )}
+        {busy && <Working />}
         <div ref={endRef} />
       </div>
 
