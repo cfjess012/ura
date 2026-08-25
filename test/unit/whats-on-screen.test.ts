@@ -20,7 +20,7 @@ describe("it knows which screen a person is on", () => {
     const screen = whatsOnScreen(at("intake/description"));
     expect(screen?.screen).toMatch(/Description/);
     expect(screen?.questions).toContain("Project Name");
-    expect(screen?.questions).toContain("Business Purpose or Objective");
+    expect(screen?.questions).toContain("Project Description");
   });
 
   it("names a risk area and asks its actual question", () => {

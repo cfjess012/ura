@@ -34,7 +34,6 @@ describe("intake structure (FR-1)", () => {
         "Description",
         [
           "projectName",
-          "businessPurpose",
           "projectDescription",
           "usesAi",
           "aiUseCase",
@@ -201,7 +200,6 @@ describe("completeness meter", () => {
   it("empties when every visible required field is answered", () => {
     const done = missingRequired({
       projectName: "P",
-      businessPurpose: "B",
       projectDescription: "D",
       usesAi: "No",
       businessOwner: "O",
@@ -283,7 +281,6 @@ describe("required means required (FR-28)", () => {
   it("walks forward through the sections as each is satisfied", () => {
     const values: Record<string, string | string[]> = {
       projectName: "P",
-      businessPurpose: "B",
       projectDescription: "D",
       usesAi: "No",
     };

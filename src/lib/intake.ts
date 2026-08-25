@@ -99,29 +99,25 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         type: "text",
         required: true,
       },
-      {
-        id: "businessPurpose",
-        label: "Business Purpose or Objective",
-        help: "Why the organisation wants this — the problem it solves or the outcome it is meant to produce.",
-        helpPoints: [
-          "What is happening today that this is meant to change.",
-          "Who benefits, and what they get that they do not have now.",
-          "Whether this is a pilot, a limited rollout, or everyone at once.",
-        ],
-        type: "textarea",
-        required: true,
-      },
+      // One description, not two. "Business Purpose or Objective" and
+      // "Activity / Use-Case Description" asked for overlapping things in
+      // adjacent boxes, and people answered by pasting the same paragraph
+      // into both — every seeded assessment had them identical. Two boxes
+      // holding one answer is worse than one box: it doubles the work and
+      // then reads as a contradiction to anything comparing them.
       {
         id: "projectDescription",
-        label: "Activity / Use-Case Description",
+        label: "Project Description",
         type: "textarea",
         required: true,
-        help: "What the activity does, who it touches, and how it works — in plain terms. This is the answer the AI check reads most closely, and the four things below are what it looks for.",
+        help: "What this is, why the organisation wants it, and how it works — in plain terms. This is the answer the AI check reads most closely, and the points below are what it looks for.",
         helpPoints: [
+          "What is happening today that this is meant to change, and who benefits.",
           "What the system decides or produces on its own, and what a person decides or reviews instead.",
           "Who uses it, and who is affected by what it produces even if they never touch it.",
           "What data it reads, holds or produces — and say plainly if any of it identifies a person, or is health, financial or otherwise sensitive.",
           "Where that data goes: any supplier, external API, or system outside your team, and where it ends up being stored.",
+          "Whether this is a pilot, a limited rollout, or everyone at once.",
         ],
       },
       {

@@ -145,9 +145,13 @@ const PROJECTS = [
     name: "Novara scheduling assistant",
     by: "p.requester", // Priya Sharma
     intake: {
-      business_purpose:
-        "Cut the time clinic staff spend building weekly rotas, and stop the manual errors that cause understaffed shifts.",
+      // One description now: the purpose sentence leads, the activity
+      // follows. business_purpose is kept in step so older readers of
+      // the column see the same story.
+      business_purpose: "Cut the time clinic staff spend building weekly rotas, and stop the manual errors that cause understaffed shifts.",
       project_description:
+        "Cut the time clinic staff spend building weekly rotas, and stop the manual errors that cause understaffed shifts." +
+        " " +
         "A scheduling product from Novara Health that proposes weekly staff rotas from historical demand, leave and skills data. Managers review and approve every proposed rota before it is published; nothing is rostered automatically.",
       uses_ai: "Yes",
       ai_use_case:
@@ -174,9 +178,13 @@ const PROJECTS = [
     name: "Quarterly close checklist",
     by: "d.grant", // Alison Grant
     intake: {
-      business_purpose:
-        "Replace the emailed spreadsheet the finance team uses to track quarter-end tasks with a shared checklist in the tool they already have.",
+      // One description now: the purpose sentence leads, the activity
+      // follows. business_purpose is kept in step so older readers of
+      // the column see the same story.
+      business_purpose: "Replace the emailed spreadsheet the finance team uses to track quarter-end tasks with a shared checklist in the tool they already have.",
       project_description:
+        "Replace the emailed spreadsheet the finance team uses to track quarter-end tasks with a shared checklist in the tool they already have." +
+        " " +
         "A process change. The same close tasks, the same owners, the same deadlines — moved from an attachment into a shared checklist in our existing collaboration tool. No new system, no new supplier, no personal data.",
       uses_ai: "No",
       initiative_type: "An update or enhancement to something we already run",
@@ -196,9 +204,13 @@ const PROJECTS = [
     name: "Partner data exchange",
     by: "d.whitfield", // Grace Whitfield
     intake: {
-      business_purpose:
-        "Share anonymised claims volumes with two distribution partners so they can forecast their own staffing.",
+      // One description now: the purpose sentence leads, the activity
+      // follows. business_purpose is kept in step so older readers of
+      // the column see the same story.
+      business_purpose: "Share anonymised claims volumes with two distribution partners so they can forecast their own staffing.",
       project_description:
+        "Share anonymised claims volumes with two distribution partners so they can forecast their own staffing." +
+        " " +
         "A nightly export of aggregated claims counts to two partner organisations over an existing secure file transfer. No customer records leave; the file holds counts by product and region only.",
       uses_ai: "No",
       initiative_type: "Brand new",
@@ -223,9 +235,13 @@ const PROJECTS = [
     by: "d.grant", // Alison Grant
     submitted: true,
     intake: {
-      business_purpose:
-        "Cut the time a claims handler spends reading a new claim before deciding where it should go.",
+      // One description now: the purpose sentence leads, the activity
+      // follows. business_purpose is kept in step so older readers of
+      // the column see the same story.
+      business_purpose: "Cut the time a claims handler spends reading a new claim before deciding where it should go.",
       project_description:
+        "Cut the time a claims handler spends reading a new claim before deciding where it should go." +
+        " " +
         "A triage assistant from Sable Analytics that reads an incoming claim and proposes which queue it belongs in, with the sentences it based that on. A handler accepts or overrides every proposal; nothing routes on its own.",
       uses_ai: "Yes",
       ai_use_case:
@@ -484,7 +500,7 @@ if (!sable.skipped) {
     })}`;
 
   const declared = Object.entries({
-    "intake.business_purpose": ["Business Purpose or Objective", sable.intake.business_purpose],
+    "intake.project_description": ["Project Description", sable.intake.project_description],
     "intake.uses_ai": ["Does this use AI or machine learning?", sable.intake.uses_ai],
     "intake.third_party_involved": ["Is a third party involved?", sable.intake.third_party_involved],
     "intake.data_classification": ["Data classification", sable.intake.data_classification],

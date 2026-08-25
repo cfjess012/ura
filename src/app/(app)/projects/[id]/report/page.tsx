@@ -69,8 +69,15 @@ export default async function ReportPage({
       typeof intake.projectDescription === "string"
         ? intake.projectDescription
         : project.projectName,
+    // The purpose is part of the description now. Older assessments answered
+    // a separate box, so read that when it holds something the merged field
+    // does not — a record written under the old instrument is still a record.
     purpose:
-      typeof intake.businessPurpose === "string" ? intake.businessPurpose : "",
+      typeof intake.businessPurpose === "string" &&
+      intake.businessPurpose.trim() !== "" &&
+      intake.businessPurpose !== intake.projectDescription
+        ? intake.businessPurpose
+        : "",
     states,
     severityBands,
     required,
