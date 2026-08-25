@@ -125,16 +125,13 @@ function Tracker({
         {left === 1 ? "thing" : "things"} I found in {draft.documentName}
       </p>
 
-      <div
-        className={settled.description ? "tracker-item done" : "tracker-item"}
-      >
-        <p className="tracker-what">Project Description</p>
-        {settled.description ? (
-          <p className="tracker-state">
-            <span aria-hidden="true">✓</span> Taken — it is in the field for you
-            to finish and sign.
-          </p>
-        ) : (
+      {/* Gone once taken, not turned into a receipt. The count above says
+          how many are left and the field itself now holds the text — a tick
+          sitting where the work used to be is one more thing to read past
+          on the way to what still needs doing. */}
+      {!settled.description && (
+        <div className="tracker-item">
+          <p className="tracker-what">Project Description</p>
           <>
             <p className="tracker-body">
               <Marked text={draft.description} />
@@ -157,75 +154,66 @@ function Tracker({
               Use this — take me to it
             </button>
           </>
-        )}
-      </div>
+        </div>
+      )}
 
       {draft.fields.map((proposal) => {
         const state = settled[proposal.field];
+        if (state === "done") return null;
         return (
-          <div
-            className={state === "done" ? "tracker-item done" : "tracker-item"}
-            key={proposal.field}
-          >
+          <div className="tracker-item" key={proposal.field}>
             <p className="tracker-what">{proposal.label.replace(/\?$/, "")}</p>
-            {state === "done" ? (
-              <p className="tracker-state">
-                <span aria-hidden="true">✓</span> Set to “{proposal.value}”. You
-                can change it on its own section.
+            <>
+              <p className="tracker-body">
+                It proposes <strong>{proposal.value}</strong>, from this:
               </p>
-            ) : (
-              <>
-                <p className="tracker-body">
-                  It proposes <strong>{proposal.value}</strong>, from this:
+              <blockquote className="tracker-quote">
+                {proposal.quote}
+              </blockquote>
+              <button
+                type="button"
+                className="btn btn-small"
+                disabled={saving === proposal.field}
+                onClick={async () => {
+                  setSaving(proposal.field);
+                  try {
+                    const outcome = await applyIntakeFix(
+                      projectId,
+                      proposal.field,
+                      proposal.value,
+                    );
+                    const landed = !isFailure(outcome);
+                    setSettled((was) => ({
+                      ...was,
+                      [proposal.field]: landed ? "done" : "failed",
+                    }));
+                    // And take them to it. Setting an answer somewhere
+                    // they cannot see is the thing this panel exists to
+                    // stop — they are going to attest to it, so they
+                    // should be looking at it.
+                    if (landed) goTo(proposal.field);
+                  } catch (cause) {
+                    console.error("applyIntakeFix", cause);
+                    setSettled((was) => ({
+                      ...was,
+                      [proposal.field]: "failed",
+                    }));
+                  } finally {
+                    setSaving(null);
+                  }
+                }}
+              >
+                {saving === proposal.field
+                  ? "Setting…"
+                  : `Set it to “${proposal.value}”`}
+              </button>
+              {state === "failed" && (
+                <p className="help">
+                  That didn’t save — the answer is unchanged, and you can set it
+                  on its own section.
                 </p>
-                <blockquote className="tracker-quote">
-                  {proposal.quote}
-                </blockquote>
-                <button
-                  type="button"
-                  className="btn btn-small"
-                  disabled={saving === proposal.field}
-                  onClick={async () => {
-                    setSaving(proposal.field);
-                    try {
-                      const outcome = await applyIntakeFix(
-                        projectId,
-                        proposal.field,
-                        proposal.value,
-                      );
-                      const landed = !isFailure(outcome);
-                      setSettled((was) => ({
-                        ...was,
-                        [proposal.field]: landed ? "done" : "failed",
-                      }));
-                      // And take them to it. Setting an answer somewhere
-                      // they cannot see is the thing this panel exists to
-                      // stop — they are going to attest to it, so they
-                      // should be looking at it.
-                      if (landed) goTo(proposal.field);
-                    } catch (cause) {
-                      console.error("applyIntakeFix", cause);
-                      setSettled((was) => ({
-                        ...was,
-                        [proposal.field]: "failed",
-                      }));
-                    } finally {
-                      setSaving(null);
-                    }
-                  }}
-                >
-                  {saving === proposal.field
-                    ? "Setting…"
-                    : `Set it to “${proposal.value}”`}
-                </button>
-                {state === "failed" && (
-                  <p className="help">
-                    That didn’t save — the answer is unchanged, and you can set
-                    it on its own section.
-                  </p>
-                )}
-              </>
-            )}
+              )}
+            </>
           </div>
         );
       })}
@@ -975,7 +963,10 @@ export function Assistant({
                 text: draft.description,
                 placeholders: draft.placeholders,
               });
-              setOpen(false);
+              // Deliberately NOT closing the panel. Taking the
+              // description used to shut it, which took the other things
+              // the document turned up with it — the tracker is the point,
+              // and the field is on the left while this sits on the right.
               router.push(`/projects/${projectId}/intake/description`);
             }}
           />
