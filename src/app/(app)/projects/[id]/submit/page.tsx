@@ -267,6 +267,29 @@ export default async function SubmitPage({
             willRaise={willRaise.length}
             nextHref={`/projects/${id}/submit`}
           />
+
+          {/*
+            A way back, BEFORE it is one-way rather than after. QA reached
+            this screen with eleven questions unanswered and no route to any
+            of them — the only links out live on the submitted view, which
+            is the one moment they are no use. Being shown a list of what
+            you have not done, on a page you cannot leave, is the worst
+            possible time to have no door.
+          */}
+          <p className="rail-back" style={{ marginTop: "1.2rem" }}>
+            <Link
+              className="rail-back-link"
+              href={`/projects/${id}/assess/complete`}
+            >
+              &larr; Go back and answer more
+            </Link>
+            <Link
+              className="rail-back-link"
+              href={`/projects/${id}/intake/description`}
+            >
+              Back to the description
+            </Link>
+          </p>
         </section>
       </div>
     </main>

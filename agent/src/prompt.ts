@@ -129,10 +129,15 @@ export function composeConversePrompt(task: ConverseTask): string {
           "Do not treat a question as off-topic when a clause above answers it. Somebody asking how to get a tool, or what a word means, is asking something our standards cover — answer from the clause first, then bring them back to the screen.",
         ].join("\n\n");
 
+  const standing = task.assessment.standing
+    ? `## Where this assessment stands\n\n${task.assessment.standing}`
+    : "";
+
   return [
     CONVERSE,
     "---",
     onScreen,
+    standing,
     authority,
     rubric,
     "## What they have told us so far",

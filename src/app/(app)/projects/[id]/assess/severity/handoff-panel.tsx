@@ -67,11 +67,14 @@ export function HandoffPanel({
   questionId,
   recipients,
   existing,
+  onHanded,
 }: {
   projectId: string;
   questionId: string;
   recipients: Recipient[];
   existing: HandoffView | null;
+  /** Called once it has moved to somebody else, so the answer can go. */
+  onHanded?: () => void;
 }) {
   const router = useRouter();
   const [asking, setAsking] = React.useState(false);
@@ -98,7 +101,12 @@ export function HandoffPanel({
         note,
       });
       if (isFailure(result)) setError(withRef(result.message, result.ref));
-      else router.refresh();
+      else {
+        // Before the refresh: the answer has to go with it, and a refresh
+        // would remount this panel first.
+        onHanded?.();
+        router.refresh();
+      }
     } catch (cause) {
       setError(transportFailure("handOffQuestion", cause));
     } finally {

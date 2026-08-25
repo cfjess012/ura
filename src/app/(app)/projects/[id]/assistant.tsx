@@ -6,6 +6,7 @@ import { askAgent, type AgentTurn } from "@/app/agent-actions";
 import { describeFromFile, draftFromFile } from "@/app/document-actions";
 import { applyIntakeFix } from "@/app/actions";
 import { blocksOf, type Block, type Span } from "@/lib/reply-format";
+import { sectionKeyOwning } from "@/lib/intake";
 import { holdRewrite } from "@/lib/pending-rewrite";
 import { Marked } from "./marked";
 import { isFailure } from "@/lib/errors";
@@ -86,6 +87,16 @@ function Tracker({
     Record<string, "done" | "failed">
   >({});
   const [saving, setSaving] = React.useState<string | null>(null);
+  const router = useRouter();
+
+  /**
+   * Walk them to the section that owns a field. Which section that is comes
+   * from the instrument, never from a list kept here.
+   */
+  const goTo = (fieldId: string) => {
+    const owner = sectionKeyOwning(fieldId);
+    if (owner) router.push(`/projects/${projectId}/intake/${owner}`);
+  };
   const left =
     (settled.description ? 0 : 1) +
     draft.fields.filter((f) => !settled[f.field]).length;
@@ -165,12 +176,16 @@ function Tracker({
                         proposal.field,
                         proposal.value,
                       );
+                      const landed = !isFailure(outcome);
                       setSettled((was) => ({
                         ...was,
-                        [proposal.field]: isFailure(outcome)
-                          ? "failed"
-                          : "done",
+                        [proposal.field]: landed ? "done" : "failed",
                       }));
+                      // And take them to it. Setting an answer somewhere
+                      // they cannot see is the thing this panel exists to
+                      // stop — they are going to attest to it, so they
+                      // should be looking at it.
+                      if (landed) goTo(proposal.field);
                     } catch (cause) {
                       console.error("applyIntakeFix", cause);
                       setSettled((was) => ({
@@ -198,13 +213,28 @@ function Tracker({
         );
       })}
 
-      <button
-        type="button"
-        className="link-button tracker-dismiss"
-        onClick={onDone}
-      >
-        {left === 0 ? "Close this" : "Not now"}
-      </button>
+      {left === 0 ? (
+        <button
+          type="button"
+          className="btn btn-small"
+          onClick={() => {
+            onDone();
+            // Back to the top of the intake, so they read the whole thing
+            // through with what the document contributed already in place.
+            router.push(`/projects/${projectId}/intake/description`);
+          }}
+        >
+          That is everything &mdash; take me through it
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="link-button tracker-dismiss"
+          onClick={onDone}
+        >
+          Not now
+        </button>
+      )}
     </div>
   );
 }
@@ -735,11 +765,11 @@ export function Assistant({
           }}
         />
         <label htmlFor="assistant-file" className="assistant-attach-label">
-          📄 Read a document
+          <span aria-hidden="true">📎</span> Add a document
         </label>
         <span className="help">
-          It proposes; you accept. Nothing it reads becomes your answer on its
-          own.
+          A spec, a vendor overview, a contract. It proposes; you accept.
+          Nothing it reads becomes your answer on its own.
         </span>
       </div>
 

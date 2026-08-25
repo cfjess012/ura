@@ -847,7 +847,17 @@ function Control({
              one should not have to wonder whether it went anywhere. */
           <div className="reveal">
             <label className="field" htmlFor={typedKey}>
-              {many ? "Which ones? One per line." : "What is it called?"}
+              {/* A person has a name and a vendor has a name; only a list
+                  has a "what is it called". Asking a business owner what
+                  they are CALLED reads as though the form has not noticed
+                  it is asking about a human being. */}
+              {many
+                ? directory
+                  ? "Who? One name per line."
+                  : "Which ones? One per line."
+                : directory
+                  ? "What is their name?"
+                  : "What is it called?"}
             </label>
             {many ? (
               <textarea

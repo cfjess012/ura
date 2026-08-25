@@ -178,13 +178,27 @@ export function SeverityForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function choose(question: SeverityQuestion, band: Band) {
+  /**
+   * Choose a band, or take it back.
+   *
+   * Passing null unpicks it. There was no way to undo a choice: somebody
+   * who clicked Medium before noticing the quieter "leave this to us"
+   * button below was stuck with Medium, and QA reported exactly that. A
+   * choice you cannot withdraw is not really a choice, and this one drives
+   * which controls are required.
+   */
+  function choose(question: SeverityQuestion, band: Band | null) {
     const before = bands;
     const next = { ...bands, [question.questionId]: band };
     setBands(next);
     // Not when this answer opens a follow-up on the same question — that is
     // the next thing they have to do, and it is already in front of them.
-    if (!detailFires(question, { ...answers, [question.questionId]: band })) {
+    // Taking a band back never opens a follow-up, so only look when one
+    // was actually given.
+    const opensDetail =
+      band !== null &&
+      detailFires(question, { ...answers, [question.questionId]: band });
+    if (!opensDetail) {
       const waiting = items.find(
         ({ question: q }) => !next[q.questionId],
       )?.question;
@@ -336,7 +350,7 @@ export function SeverityForm({
                     // first when nothing is chosen yet.
                     tabIndex={(band ? chosen : optionIndex === 0) ? 0 : -1}
                     className={`band${chosen ? " chosen" : ""}${suggested ? " suggested" : ""}`}
-                    onClick={() => choose(question, option)}
+                    onClick={() => choose(question, chosen ? null : option)}
                   >
                     <span className="band-mark" aria-hidden="true">
                       {chosen ? "✓" : ""}
@@ -360,6 +374,13 @@ export function SeverityForm({
               questionId={question.questionId}
               recipients={recipients}
               existing={handoffs[question.questionId] ?? null}
+              // Handing it on is not an answer, so the answer goes. Leaving
+              // a band ticked underneath said two things at once — that
+              // they had judged it, and that they had said they could not —
+              // and the ticked one drives which controls are required.
+              onHanded={() => {
+                if (bands[question.questionId]) choose(question, null);
+              }}
             />
 
             {showsDetail && (

@@ -9,7 +9,7 @@
  */
 import type { AssessmentContext } from "@/lib/agent-contract";
 import { gateStates } from "@/lib/instrument";
-import { INTAKE_SECTIONS } from "@/lib/intake";
+import { firstIncompleteSection, INTAKE_SECTIONS } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { CRITERIA } from "@/lib/intake-rubric";
 import { findAuthority, termsIn } from "@/lib/policy-source";
@@ -54,6 +54,23 @@ export async function assessmentContext(
     .filter((state) => state.answer === null)
     .map((state) => `Does ${state.category.name} apply to this activity?`);
 
+  // Where this assessment actually stands, so "what should I do next?" can
+  // be answered from the record rather than guessed at from the screen.
+  // Every page computes its own version of this line for its own header and
+  // none of it reached the assistant, which is why it could describe the
+  // question in front of somebody and not the journey around it.
+  const gates = gateStates(stored, values);
+  const askable = gates.filter((state) => !state.settled);
+  const openGates = askable.filter((state) => state.answer === null);
+  const incomplete = firstIncompleteSection(values);
+  const standing = project.submittedAt
+    ? "Submitted. It is with a reviewer now and the answers cannot change."
+    : incomplete
+      ? `Still describing the activity — the "${incomplete}" section is not finished, and the risk areas do not open until it is.`
+      : openGates.length > 0
+        ? `The activity is described. ${openGates.length} of ${askable.length} risk areas still need a yes or no; severity and controls follow from whichever apply.`
+        : `Every risk area is answered. What is left is severity, the control questions that follow from it, and then declaring it and handing it to a reviewer.`;
+
   const looking = pathname ? whatsOnScreen(pathname) : null;
   // The rubric, but only where it applies. On a risk-area screen it is
   // noise; on an intake screen it is the difference between a thought
@@ -82,6 +99,7 @@ export async function assessmentContext(
   return {
     projectId,
     looking: looking ?? undefined,
+    standing,
     graded,
     authority: authority.length > 0 ? authority : undefined,
     activity:

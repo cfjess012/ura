@@ -238,6 +238,15 @@ export type AssessmentContext = {
    * contradicts, from a rubric nobody showed either of them. Sent only on
    * the intake screens, because it is the only place it applies.
    */
+  /**
+   * Where the assessment stands, in one sentence.
+   *
+   * Every page works this out for its own header and none of it reached
+   * the assistant, so asked "what next?" it described the question in front
+   * of somebody and not the journey around it. It is the record's answer,
+   * not the screen's.
+   */
+  standing?: string;
   graded?: Array<{ criterion: string; fullMarks: string }>;
   /**
    * Clauses from the organisation's own policies that bear on what they
