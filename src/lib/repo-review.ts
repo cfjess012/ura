@@ -272,3 +272,78 @@ export function postgresReviewStore(): ReviewStore {
 export function reviewStore(): ReviewStore {
   return postgresReviewStore();
 }
+
+/**
+ * Packages (SPEC §4.5). Insert-only at the table as well as here — the
+ * trigger refuses an update, so a re-export cannot become an edit by
+ * accident or by a later refactor.
+ */
+export interface PackageStore {
+  /** Every package made for this assessment, newest first. */
+  forProject(projectId: string): Promise<PackageRow[]>;
+  /** The most recent one, or null where none has been made. */
+  latest(projectId: string): Promise<PackageRow | null>;
+  record(input: {
+    projectId: string;
+    packagedBy: string;
+    payload: unknown;
+    answerCount: number;
+    findingCount: number;
+  }): Promise<{ id: string; packagedAt: Date }>;
+}
+
+export type PackageRow = {
+  id: string;
+  packagedBy: string;
+  packagedAt: Date;
+  payload: unknown;
+  answerCount: number;
+  findingCount: number;
+};
+
+export function postgresPackageStore(): PackageStore {
+  const db = getDb();
+  const rows = (projectId: string) =>
+    db
+      .select({
+        id: schema.packages.id,
+        packagedBy: schema.packages.packagedBy,
+        packagedAt: schema.packages.packagedAt,
+        payload: schema.packages.payload,
+        answerCount: schema.packages.answerCount,
+        findingCount: schema.packages.findingCount,
+      })
+      .from(schema.packages)
+      .where(eq(schema.packages.projectId, projectId))
+      .orderBy(desc(schema.packages.packagedAt));
+
+  return {
+    async forProject(projectId) {
+      return rows(projectId);
+    },
+    async latest(projectId) {
+      const [found] = await rows(projectId).limit(1);
+      return found ?? null;
+    },
+    async record(input) {
+      const [made] = await db
+        .insert(schema.packages)
+        .values({
+          projectId: input.projectId,
+          packagedBy: input.packagedBy,
+          payload: input.payload,
+          answerCount: input.answerCount,
+          findingCount: input.findingCount,
+        })
+        .returning({
+          id: schema.packages.id,
+          packagedAt: schema.packages.packagedAt,
+        });
+      return made;
+    },
+  };
+}
+
+export function packageStore(): PackageStore {
+  return postgresPackageStore();
+}

@@ -895,3 +895,27 @@
   text-transform: uppercase;
   color: var(--neutral-600);
 }
+
+/* The package payload, shown in full because a person about to hand a file
+   to another team should be able to read what is in it first. */
+.payload {
+  margin: 0.8rem 0 0;
+  padding: 0.9rem 1rem;
+  max-height: 26rem;
+  overflow: auto;
+  background: var(--neutral-100);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  white-space: pre;
+}
+/* Blocked, and saying so — the warning treatment, never a restful state
+   and never colour alone: the heading says what it is (§11.1). */
+.owed-blocked {
+  border-left: 4px solid var(--warning-strong);
+}
+.owed-blocked > h2 {
+  color: var(--warning-strong);
+}

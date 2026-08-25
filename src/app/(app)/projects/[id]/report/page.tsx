@@ -128,6 +128,14 @@ export default async function ReportPage({
         </Suspense>
       )}
 
+      {/* Where this goes next. The stepper promised a fourth stage from
+
+          the beginning; this is the link to it. */}
+
+      <p className="report-next">
+        <Link href={`/projects/${id}/package`}>Package this assessment →</Link>
+      </p>
+
       <section className="report-card">
         <h2>What this is</h2>
         <p>{report.activity}</p>

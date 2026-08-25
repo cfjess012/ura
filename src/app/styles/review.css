@@ -511,3 +511,10 @@
 .attest-confirm .q3-note {
   margin-top: 0.7rem;
 }
+
+/* The way on from the summary. A stage the stepper has promised since the
+   first screen needs a door, or it reads as broken rather than upcoming. */
+.report-next {
+  margin: 0 0 1rem;
+  font-weight: 700;
+}

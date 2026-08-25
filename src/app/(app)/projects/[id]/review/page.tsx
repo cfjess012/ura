@@ -250,6 +250,12 @@ export default async function ReviewPage({
       />
       <p className="review-report-link">
         <Link href={`/projects/${id}/report`}>Read the handoff summary →</Link>
+        {/* Stage 4 was in the stepper from stage one and reachable from
+            nowhere, which reads as broken rather than as upcoming. The page
+            itself says what is outstanding when it is not ready, so linking
+            to it unconditionally is honest. */}
+        {" · "}
+        <Link href={`/projects/${id}/package`}>Package it →</Link>
       </p>
       <ReviewQueue
         projectId={id}

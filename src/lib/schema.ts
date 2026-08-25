@@ -8,6 +8,7 @@ import {
   boolean,
   date,
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -155,6 +156,29 @@ export const handoffs = pgTable(
  * The submitter's declaration (FR-37, G-52) — distinct from the assessor's
  * attestation, which is S8's act against a different authority rule.
  */
+/**
+ * A packaged export (SPEC §4.5) — insert-only, like everything else that
+ * records a claim somebody made. The payload is stored whole rather than
+ * recomputed, because a replayable export answers "what did this say when
+ * it was signed", not "what does it say now".
+ */
+export const packages = pgTable(
+  "packages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id").notNull(),
+    packagedBy: text("packaged_by").notNull(),
+    packagedAt: timestamp("packaged_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    payload: jsonb("payload").notNull(),
+    /** Denormalised at write time so a listing never parses the payload. */
+    answerCount: integer("answer_count").notNull(),
+    findingCount: integer("finding_count").notNull(),
+  },
+  (t) => [index("packages_by_project").on(t.projectId, t.packagedAt)],
+);
+
 export const declarations = pgTable(
   "declarations",
   {
