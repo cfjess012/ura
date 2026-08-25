@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { focusOn } from "@/lib/on-screen-focus";
 import { useRouter } from "next/navigation";
 import { attestAnswer } from "@/app/review-actions";
 import { errorRef, isFailure } from "@/lib/errors";
@@ -85,6 +86,12 @@ export function ReviewQueue({
   >("approve");
   const [corrected, setCorrected] = React.useState<Tier3Answer>("No");
   const [note, setNote] = React.useState("");
+  /**
+   * Approving is a claim in somebody's name, so it is made deliberately.
+   * The tick and the sentence together are the act — one without the other
+   * is either an unexplained signature or an explanation nobody signed.
+   */
+  const [attests, setAttests] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   /** Re-signing an answer that already carries a signature (§4.2). */
   const [reattesting, setReattesting] = React.useState(false);
@@ -93,6 +100,18 @@ export function ReviewQueue({
     ref?: string;
   } | null>(null);
   const current = items[at];
+  // Tell the assistant which control is open. Without it the panel is on a
+  // screen holding nine controls at one URL, and "explain this control"
+  // has no referent — which is how it came back explaining a different one.
+  React.useEffect(() => {
+    focusOn(current?.questionId ?? null);
+    return () => focusOn(null);
+  }, [current?.questionId]);
+  // A tick belongs to the control it was ticked on. Carrying it to the next
+  // one would let somebody sign a control they have not read.
+  React.useEffect(() => {
+    setAttests(false);
+  }, [current?.questionId]);
   // Moving the queue must move focus with it, or a keyboard user hears
   // nothing and tabs from the top of the document to reach the next
   // control. §4.2 names focus management as part of this requirement.
@@ -134,8 +153,11 @@ export function ReviewQueue({
         k: () => move(-1),
         a: () => {
           if (!signable) return;
+          // Used to sign outright. It cannot any more: approving now needs
+          // a tick and a sentence, and a shortcut that skipped them would
+          // be a way to sign without the deliberation the box exists for.
           setAct("approve");
-          void sign("approve");
+          window.setTimeout(() => noteRef.current?.focus(), 0);
         },
         c: () => {
           if (!signable) return;
@@ -175,6 +197,7 @@ export function ReviewQueue({
         return;
       }
       setNote("");
+      setAttests(false);
       setAct("approve");
       setReattesting(false);
       router.refresh();
@@ -473,6 +496,39 @@ export function ReviewQueue({
                   </div>
                 )}
 
+                {act === "approve" && (
+                  <div className="attest-confirm">
+                    <label className="attest-tick">
+                      <input
+                        type="checkbox"
+                        checked={attests}
+                        onChange={(event) => setAttests(event.target.checked)}
+                      />
+                      <span>
+                        <strong>Yes — I attest this answer.</strong> It is
+                        signed under my name and a packaged export relies on it.
+                      </span>
+                    </label>
+                    <div className="q3-note">
+                      <label htmlFor="attest-note">
+                        In a sentence, why are you approving it?
+                      </label>
+                      <textarea
+                        id="attest-note"
+                        ref={noteRef}
+                        rows={2}
+                        value={note}
+                        onChange={(event) => setNote(event.target.value)}
+                      />
+                      <p className="help">
+                        Recorded as your note against this control — a signature
+                        with nothing beside it says somebody clicked, not what
+                        they concluded.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {act !== "approve" && (
                   <div className="q3-note">
                     <label htmlFor="attest-note">
@@ -512,7 +568,9 @@ export function ReviewQueue({
                   <button
                     type="button"
                     className="btn"
-                    disabled={busy}
+                    disabled={
+                      busy || (act === "approve" && (!attests || !note.trim()))
+                    }
                     onClick={() => void sign()}
                   >
                     {busy ? "Signing…" : `${actLabel(act)} and continue →`}

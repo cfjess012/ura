@@ -427,6 +427,7 @@ main {
   color: var(--warning-strong);
 }
 .chip-enhancement,
+.chip-elsewhere,
 .chip-unanswered {
   background: var(--neutral-100);
   border-color: var(--neutral-300);

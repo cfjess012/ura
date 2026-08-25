@@ -1,26 +1,27 @@
 /**
- * Who a submitted assessment lands on.
+ * Who a submitted assessment alerts.
  *
- * Triage is an open decision — by risk domain, by business unit, by
- * round-robin, by workload — and none of those are settled. Rather than
- * guess at a rule and bury it across the codebase, the pilot names one
- * person, in one constant, with the decision written beside it.
+ * Every Risk Assessor, for the part they own — not one triage inbox.
  *
- * The alert itself is not a stand-in: it is derived from the record the
- * same way every other obligation is, so when triage is decided this file
- * changes and nothing else does.
+ * The pilot started by routing everything to one person, and the alert it
+ * produced was a lie: it told an assessor four control answers were waiting
+ * for them when every one belonged to another risk area. They opened the
+ * queue, found each control greyed out, and the honest conclusion was that
+ * the product was broken.
+ *
+ * Authority already answers this. FR-17 says an assessor signs for the risk
+ * area they own, `control-domains.json` says which area owns which control
+ * family, and `mayAttest` is the check. So the alert asks the same question
+ * the screen does, and an assessor is told about an assessment exactly when
+ * there is something on it they can act on. Nobody needs assigning, and no
+ * queue can be routed to somebody who cannot work it.
+ *
+ * A generalist assessor (no risk area) covers everything, which is what
+ * stops an answer sitting in a queue nobody reads.
  */
+import type { Person } from "./people";
 
-/**
- * The Risk Assessor every submission reaches in the pilot.
- *
- * Jesse Blau (a.ai). A real assessor with a real domain, not a fake
- * account — so the demo shows an assessor's own queue rather than an
- * administrative view nobody actually works in.
- */
-export const TRIAGE_ASSESSOR = "a.ai";
-
-/** Does a submitted assessment alert this person? */
-export function triagesSubmissions(personId: string): boolean {
-  return personId === TRIAGE_ASSESSOR;
+/** Does a submitted assessment alert this person at all? */
+export function triagesSubmissions(person: Person): boolean {
+  return person.role === "assessor" || person.role === "admin";
 }

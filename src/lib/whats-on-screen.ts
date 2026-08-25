@@ -36,7 +36,17 @@ function tail(pathname: string): string[] {
  * asked. Returns the questions **verbatim** — the assistant must talk
  * about the question a person can see, in the words they can see.
  */
-export function whatsOnScreen(pathname: string): OnScreen | null {
+export function whatsOnScreen(
+  pathname: string,
+  /**
+   * The control a master-detail screen has open, by question id.
+   *
+   * An id, never text. The rule above still holds — the caller selects, the
+   * instrument supplies the words — and an id is the one thing a client can
+   * send that this file can check against the instrument before believing.
+   */
+  focus?: string,
+): OnScreen | null {
   const parts = tail(pathname);
   if (parts.length === 0) return null;
 
@@ -113,6 +123,17 @@ export function whatsOnScreen(pathname: string): OnScreen | null {
     };
   }
   if (parts[0] === "review") {
+    // The queue is master-detail: one control is open and the rest are a
+    // list. Told only "the reviewer's queue", the assistant answered "explain
+    // this control" about a control that was not on the screen — it had
+    // nothing to be wrong about, so it reached for whatever it knew.
+    const open = OBJECTIVES.find((o) => o.questionId === focus);
+    if (open) {
+      return {
+        screen: `the reviewer's queue, with “${open.name}” open`,
+        questions: [open.text],
+      };
+    }
     return { screen: "the reviewer's queue", questions: [] };
   }
   if (parts[0] === "report") {

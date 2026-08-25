@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { focused } from "@/lib/on-screen-focus";
 import { usePathname, useRouter } from "next/navigation";
 import { askAgent, type AgentTurn } from "@/app/agent-actions";
 import { describeFromFile, draftFromFile } from "@/app/document-actions";
@@ -740,7 +741,13 @@ export function Assistant({
     setSaid("");
     try {
       setConsulted([]);
-      const result = await askAgent(projectId, message, pathname);
+      // One step finer than the path: which control the queue has open.
+      const result = await askAgent(
+        projectId,
+        message,
+        pathname,
+        focused() ?? undefined,
+      );
       if (isFailure(result)) {
         setTurns((was) => [...was, { speaker: "agent", said: result.message }]);
       } else {

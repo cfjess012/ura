@@ -256,25 +256,31 @@ export function postgresProjectStore(): ProjectStore {
           p.business_unit         as "businessUnit",
           pe.name                 as "startedBy",
           p.submitted_at          as "submittedAt",
-          (select count(distinct a.question_id) from answers a
-             where a.project_id = p.id and a.question_id like 't3.%')::int
-                                  as "answered",
-          (select count(distinct at.question_id) from attestations at
-             where at.project_id = p.id)::int
-                                  as "attested",
-          (select count(*) from findings f
+          -- The ids, not a count: which of these a given reviewer may sign
+          -- depends on the risk domain that owns each one, and SQL has no
+          -- idea what a risk domain is. Counting here produced an alert
+          -- that told somebody four answers were waiting for them when
+          -- every one belonged to another area.
+          coalesce((select array_agg(distinct a.question_id) from answers a
+             where a.project_id = p.id and a.question_id like 't3.%'),
+             '{}')                as "answeredIds",
+          coalesce((select array_agg(distinct at.question_id) from attestations at
+             where at.project_id = p.id), '{}')
+                                  as "attestedIds",
+          coalesce((select array_agg(f.objective) from findings f
              left join dispositions d on d.finding_id = f.id
-             where f.project_id = p.id and d.id is null and f.kind = 'gap')::int
+             where f.project_id = p.id and d.id is null
+               and f.kind = 'gap'), '{}')
                                   as "openGaps",
-          (select count(*) from findings f
+          coalesce((select array_agg(f.objective) from findings f
              left join dispositions d on d.finding_id = f.id
              where f.project_id = p.id and d.id is null
-               and f.kind = 'enhancement')::int
+               and f.kind = 'enhancement'), '{}')
                                   as "openEnhancements",
-          (select count(*) from findings f
+          coalesce((select array_agg(f.objective) from findings f
              left join dispositions d on d.finding_id = f.id
              where f.project_id = p.id and d.id is null
-               and f.kind = 'non-compliance')::int
+               and f.kind = 'non-compliance'), '{}')
                                   as "openViolations",
           -- jsonb_typeof guard, not decoration: one legacy row holds the
           -- string "[]" rather than an array, and jsonb_array_length
@@ -303,11 +309,11 @@ export function postgresProjectStore(): ProjectStore {
         startedBy: row.startedBy ? String(row.startedBy) : null,
         submittedAt: new Date(row.submittedAt as string),
         counts: {
-          answered: Number(row.answered ?? 0),
-          attested: Number(row.attested ?? 0),
-          openGaps: Number(row.openGaps ?? 0),
-          openEnhancements: Number(row.openEnhancements ?? 0),
-          openViolations: Number(row.openViolations ?? 0),
+          answeredIds: (row.answeredIds as string[] | null) ?? [],
+          attestedIds: (row.attestedIds as string[] | null) ?? [],
+          openGaps: (row.openGaps as string[] | null) ?? [],
+          openEnhancements: (row.openEnhancements as string[] | null) ?? [],
+          openViolations: (row.openViolations as string[] | null) ?? [],
           declaredGaps: Number(row.declaredGaps ?? 0),
         },
       }));

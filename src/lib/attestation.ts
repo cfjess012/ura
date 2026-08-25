@@ -34,14 +34,18 @@ const MAP: DomainMap = (() => {
   const families = new Set(OBJECTIVES.map((o) => o.family));
   for (const entry of candidate.families) {
     if (!domains.has(entry.domain)) {
-      throw new Error(`control-domains.json: "${entry.domain}" is not a risk area`);
+      throw new Error(
+        `control-domains.json: "${entry.domain}" is not a risk area`,
+      );
     }
   }
   // A family nobody owns is an answer nobody may attest, which would stop
   // packaging with no way forward. Better to fail the build.
   for (const family of families) {
     if (!candidate.families.some((e) => e.family === family)) {
-      throw new Error(`control-domains.json: no risk area owns the "${family}" control family`);
+      throw new Error(
+        `control-domains.json: no risk area owns the "${family}" control family`,
+      );
     }
   }
   return candidate;
@@ -83,13 +87,17 @@ export function mayAttest(person: Person, objectiveId: string): boolean {
 }
 
 /** What to tell someone the server just refused, in their own terms. */
-export function attestationRefusal(person: Person, objectiveId: string): string | null {
+export function attestationRefusal(
+  person: Person,
+  objectiveId: string,
+): string | null {
   if (mayAttest(person, objectiveId)) return null;
   if (person.role === "requester") {
     return "Attesting is the reviewer's act. You declared these answers accurate at submission — that is your part of it.";
   }
   const domain = domainForObjective(objectiveId);
-  const area = CATEGORIES.find((c) => c.key === domain)?.name ?? "another risk area";
+  const area =
+    CATEGORIES.find((c) => c.key === domain)?.name ?? "another risk area";
   const because = whyThatDomain(objectiveId);
   return `This one is ${area}'s to attest${because ? ` — ${because}` : ""}.`;
 }
@@ -99,8 +107,15 @@ export function attestationRefusal(person: Person, objectiveId: string): string 
  *
  * A correction replaces the person's answer, and an N-A excuses it — both
  * are the reviewer overriding somebody, and an override owes its reasoning
- * to whoever reads the record next. Approving as-is needs no note: the
- * answer speaks for itself and the signature is the act.
+ * to whoever reads the record next.
+ *
+ * Approval owes one too (owner's call, 2026-08-25). It used to need no
+ * note, on the reasoning that the answer speaks for itself and the
+ * signature is the act. But an approval is the assessment's load-bearing
+ * claim — it is what a packaged export says a named person checked — and
+ * "approved" with nothing beside it records that somebody clicked, not what
+ * they concluded. One sentence is the smallest thing that distinguishes the
+ * two, and it is what the next reader of the record actually needs.
  */
 export function attestationProblem(
   act: "approve" | "correct" | "not-applicable",
@@ -112,6 +127,9 @@ export function attestationProblem(
     if (note.trim().length === 0) {
       return "Say why you are correcting it — the person who answered will read this.";
     }
+  }
+  if (act === "approve" && note.trim().length === 0) {
+    return "Say in a sentence why you're approving it — your signature is what the export relies on, and it is recorded with your name.";
   }
   if (act === "not-applicable" && note.trim().length === 0) {
     return "Say why this control doesn't apply here — it is exported as your reason, never as a blank.";

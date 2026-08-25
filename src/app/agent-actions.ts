@@ -54,6 +54,14 @@ export async function askAgent(
    * nothing the caller sends becomes a question.
    */
   pathname?: string,
+  /**
+   * Which control a master-detail screen has open, by question id.
+   *
+   * Still only *where they are* — one step finer than the path, because the
+   * reviewer's queue holds nine controls at one URL. An id, so the server
+   * checks it against the instrument; the words still come from there.
+   */
+  focus?: string,
 ): Promise<
   Result<{
     reply: string;
@@ -100,6 +108,7 @@ export async function askAgent(
       access.project as unknown as Record<string, unknown>,
       pathname,
       trimmed,
+      focus,
     );
     const history = (await sessionStore().history(conversationId)).map(
       (turn) => ({

@@ -31,6 +31,8 @@ export async function assessmentContext(
   pathname?: string,
   /** What they just said, so policy can be looked up on their own words. */
   said?: string,
+  /** The control a master-detail screen has open, by question id. */
+  focus?: string,
 ): Promise<AssessmentContext> {
   const values = intakeValuesFrom(project);
   const stored = await answerStore().current(projectId);
@@ -71,7 +73,7 @@ export async function assessmentContext(
         ? `The activity is described. ${openGates.length} of ${askable.length} risk areas still need a yes or no; severity and controls follow from whichever apply.`
         : `Every risk area is answered. What is left is severity, the control questions that follow from it, and then declaring it and handing it to a reviewer.`;
 
-  const looking = pathname ? whatsOnScreen(pathname) : null;
+  const looking = pathname ? whatsOnScreen(pathname, focus) : null;
   // The rubric, but only where it applies. On a risk-area screen it is
   // noise; on an intake screen it is the difference between a thought
   // partner and a stranger agreeing with everything.

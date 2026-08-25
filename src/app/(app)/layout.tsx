@@ -4,6 +4,8 @@ import { canAdminister, ROLE_LABEL } from "@/lib/people";
 import { handoffStore, projectStore } from "@/lib/repo";
 import { triagesSubmissions } from "@/lib/triage";
 import { needsReviewer, reviewStanding } from "@/lib/review-standing";
+import { mayAttest } from "@/lib/attestation";
+import { OBJECTIVES } from "@/lib/tier3";
 import { switchUser } from "@/app/actions";
 import { AlertBell } from "./alert-bell";
 import { agentTransport } from "@/lib/agent";
@@ -26,23 +28,32 @@ export default async function AppLayout({
   const [waiting, news, submitted] = await Promise.all([
     handoffStore().waitingOn(current),
     handoffStore().newsFor(current),
-    // Triage is one named person for the pilot (src/lib/triage.ts), so
-    // nobody else pays for this query.
-    triagesSubmissions(current.id)
+    // Every assessor, for the part they own (src/lib/triage.ts). A
+    // requester pays nothing for this query.
+    triagesSubmissions(current)
       ? projectStore().awaitingReview()
       : Promise.resolve([]),
   ]);
   // Derived like every other obligation: an assessment appears here while
   // it still needs a reviewer and stops appearing when it doesn't. There is
   // no alert row to write on submit and none to mark read afterwards.
+  // Addressed to one person, so it counts what that person may sign.
+  const mine = (questionId: string) => {
+    const objective = OBJECTIVES.find((o) => o.questionId === questionId);
+    return objective ? mayAttest(current, objective.id) : false;
+  };
+  // A finding belongs to whoever owns the control it was raised against —
+  // the same authority that decides who signs it.
+  const minesObjective = (objectiveId: string) =>
+    mayAttest(current, objectiveId);
   const toReview = submitted
-    .filter((p) => needsReviewer(p.counts))
+    .filter((p) => needsReviewer(p.counts, mine, minesObjective))
     .map((p) => ({
       projectId: p.id,
       projectName: p.projectName,
       requesterName: p.startedBy ?? "somebody",
       submittedAt: p.submittedAt.toISOString(),
-      standing: reviewStanding(p.id, p.counts),
+      standing: reviewStanding(p.id, p.counts, mine, minesObjective),
     }));
   const now = new Date();
   return (

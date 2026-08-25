@@ -484,3 +484,30 @@
   font-size: 0.9rem;
   color: var(--neutral-700);
 }
+
+/* Approving is a claim made in somebody's name, so the screen asks for it
+   deliberately: a tick and a sentence, neither of which alone is the act. */
+.attest-confirm {
+  margin-top: 0.6rem;
+}
+.attest-tick {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--surface-3);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  font-size: 0.94rem;
+  cursor: pointer;
+}
+.attest-tick input {
+  margin-top: 0.2rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: none;
+  accent-color: var(--primary);
+}
+.attest-confirm .q3-note {
+  margin-top: 0.7rem;
+}

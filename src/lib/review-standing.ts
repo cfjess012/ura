@@ -17,20 +17,31 @@
 
 /** The raw counts a store can produce for one submitted assessment. */
 export type ReviewCounts = {
-  /** Control answers recorded, and how many carry a current attestation. */
-  answered: number;
-  attested: number;
-  /** Open findings — raised and not yet settled — by kind. */
-  openGaps: number;
-  openEnhancements: number;
-  openViolations: number;
+  /**
+   * Control questions answered, and those already attested — as ids, not
+   * counts. Whether an outstanding one is *this* reviewer's to sign depends
+   * on the risk domain that owns it (FR-17), so the count cannot be taken
+   * before the reader is known.
+   */
+  answeredIds: string[];
+  attestedIds: string[];
+  /**
+   * Open findings — raised and not yet settled — as the objectives they
+   * were raised against, by kind. Objectives rather than counts for the
+   * same reason as above: a finding belongs to the risk domain that owns
+   * its control, and only that domain's assessor can settle it.
+   */
+  openGaps: string[];
+  openEnhancements: string[];
+  openViolations: string[];
   /** Questions the requester left unanswered and declared as gaps. */
   declaredGaps: number;
 };
 
 /** One thing a reviewer can act on, and where to act on it. */
 export type StandingItem = {
-  kind: "attest" | "violation" | "gap" | "enhancement" | "unanswered";
+  kind:
+    "attest" | "elsewhere" | "violation" | "gap" | "enhancement" | "unanswered";
   count: number;
   /** Written for somebody who has not opened the assessment yet. */
   label: string;
@@ -47,6 +58,7 @@ export type StandingItem = {
  */
 const ORDER: StandingItem["kind"][] = [
   "attest",
+  "elsewhere",
   "violation",
   "gap",
   "enhancement",
@@ -64,42 +76,70 @@ function plural(n: number, one: string, many: string): string {
 export function reviewStanding(
   projectId: string,
   counts: ReviewCounts,
+  /**
+   * May this reader sign this control question? Defaults to yes, which is
+   * right for a list that is not addressed to anybody in particular —
+   * never for an alert, which is addressed to exactly one person.
+   */
+  mine: (questionId: string) => boolean = () => true,
+  /** May this reader settle a finding raised against this objective? */
+  minesObjective: (objectiveId: string) => boolean = () => true,
 ): StandingItem[] {
   const review = `/projects/${projectId}/review`;
   const found: StandingItem[] = [];
 
-  const toAttest = Math.max(0, counts.answered - counts.attested);
-  if (toAttest > 0) {
+  const attested = new Set(counts.attestedIds);
+  const outstanding = counts.answeredIds.filter((id) => !attested.has(id));
+  const toAttest = outstanding.filter(mine);
+  // Told apart deliberately. "Waiting for your attestation" over answers
+  // another risk area owns is a false claim, and the person acts on it —
+  // they open the queue, find every control greyed out, and conclude the
+  // product is broken rather than that the alert was wrong.
+  const theirs = outstanding.length - toAttest.length;
+
+  if (toAttest.length > 0) {
     found.push({
       kind: "attest",
-      count: toAttest,
-      label: `${plural(toAttest, "control answer", "control answers")} waiting for your attestation`,
+      count: toAttest.length,
+      label: `${plural(toAttest.length, "control answer", "control answers")} waiting for your attestation`,
       href: review,
     });
   }
-  if (counts.openViolations > 0) {
+  if (theirs > 0) {
+    found.push({
+      kind: "elsewhere",
+      count: theirs,
+      label: `${plural(theirs, "control answer", "control answers")} for other risk domains to sign`,
+      href: review,
+    });
+  }
+  const violations = counts.openViolations.filter(minesObjective);
+  const gaps = counts.openGaps.filter(minesObjective);
+  const enhancements = counts.openEnhancements.filter(minesObjective);
+
+  if (violations.length > 0) {
     found.push({
       kind: "violation",
-      count: counts.openViolations,
+      count: violations.length,
       // Named as what it is: an answer that contradicts a written clause,
       // not a generic "issue".
-      label: `${plural(counts.openViolations, "policy violation", "policy violations")} — an answer contradicts a clause`,
+      label: `${plural(violations.length, "policy violation", "policy violations")} — an answer contradicts a clause`,
       href: `${review}#findings`,
     });
   }
-  if (counts.openGaps > 0) {
+  if (gaps.length > 0) {
     found.push({
       kind: "gap",
-      count: counts.openGaps,
-      label: `${plural(counts.openGaps, "control gap", "control gaps")} — a required control isn't in place`,
+      count: gaps.length,
+      label: `${plural(gaps.length, "control gap", "control gaps")} — a required control isn't in place`,
       href: `${review}#findings`,
     });
   }
-  if (counts.openEnhancements > 0) {
+  if (enhancements.length > 0) {
     found.push({
       kind: "enhancement",
-      count: counts.openEnhancements,
-      label: `${plural(counts.openEnhancements, "enhancement", "enhancements")} — a control is partly in place`,
+      count: enhancements.length,
+      label: `${plural(enhancements.length, "enhancement", "enhancements")} — a control is partly in place`,
       href: `${review}#findings`,
     });
   }
@@ -118,14 +158,22 @@ export function reviewStanding(
 }
 
 /** Does this assessment still need a reviewer? */
-export function needsReviewer(counts: ReviewCounts): boolean {
+export function needsReviewer(
+  counts: ReviewCounts,
+  mine: (questionId: string) => boolean = () => true,
+  minesObjective: (objectiveId: string) => boolean = () => true,
+): boolean {
+  const attested = new Set(counts.attestedIds);
+  const outstandingMine = counts.answeredIds.some(
+    (id) => !attested.has(id) && mine(id),
+  );
   // Declared gaps alone are not work for a reviewer: the requester already
   // said so, a reviewer reads them, and nothing about them can be settled.
   // Treating them as outstanding would leave an alert nobody could clear.
   return (
-    counts.answered > counts.attested ||
-    counts.openViolations > 0 ||
-    counts.openGaps > 0 ||
-    counts.openEnhancements > 0
+    outstandingMine ||
+    counts.openViolations.some(minesObjective) ||
+    counts.openGaps.some(minesObjective) ||
+    counts.openEnhancements.some(minesObjective)
   );
 }
