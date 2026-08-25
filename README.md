@@ -58,6 +58,31 @@ It needs `ollama serve` running, and it says so plainly if that is not the
 case. `pnpm dev` on its own gives you the product with no AI, which is the
 same thing a deployment with `AGENT_TRANSPORT` unset gives you.
 
+To run it against Claude instead, copy `.env.example` to `.env`, put your
+own API key in it, and start the two halves:
+
+```sh
+pnpm agent:claude       # the agent on :8790, reading .env
+pnpm dev                # the web app on :3100, already pointed at it
+```
+
+**No administrator rights are needed for any of this.** `.env` is an
+ordinary file in the project folder — not a system keychain, not a PATH
+change, not a global install — so anyone who can clone the repository can
+supply their own key. The agent prints which source the key came from at
+startup (`[agent] ANTHROPIC_API_KEY from project .env`), because a shell
+profile exporting a stale one silently wins over the file otherwise, and
+the API's reply — "API key is invalid" — names neither.
+
+The key is yours and is billed to you; none is committed, and `.env` is
+ignored by git.
+
+To check the AI is genuinely working rather than merely reachable:
+
+```sh
+pnpm ai:check           # all six capabilities against the real model
+```
+
 **Where the AI actually shows up.** Every feature is scoped to a screen, so
 an assessment that has not reached that screen will not show it:
 
