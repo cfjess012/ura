@@ -30,9 +30,40 @@ describe("intake structure (FR-1)", () => {
     // Changing the instrument is a deliberate act: update this list with it.
     const ids = INTAKE_SECTIONS.map((s) => [s.name, s.fields.map((f) => f.id)]);
     expect(ids).toEqual([
-      ["Description", ["projectName", "businessPurpose", "projectDescription", "usesAi", "aiUseCase", "usesAiUnsure"]],
-      ["Ownership", ["businessOwner", "technicalOwner", "collaborators", "initiativeType", "priorAssessmentRef"]],
-      ["Categorization", ["businessUnit", "otherUnits", "targetGoLive", "thirdPartyInvolved", "thirdPartyUnsure", "vendorNames", "coupaOnboarded", "coupaUnsure"]],
+      [
+        "Description",
+        [
+          "projectName",
+          "businessPurpose",
+          "projectDescription",
+          "usesAi",
+          "aiUseCase",
+          "usesAiUnsure",
+        ],
+      ],
+      [
+        "Ownership",
+        [
+          "businessOwner",
+          "technicalOwner",
+          "collaborators",
+          "initiativeType",
+          "priorAssessmentRef",
+        ],
+      ],
+      [
+        "Categorization",
+        [
+          "businessUnit",
+          "otherUnits",
+          "targetGoLive",
+          "thirdPartyInvolved",
+          "thirdPartyUnsure",
+          "vendorNames",
+          "coupaOnboarded",
+          "coupaUnsure",
+        ],
+      ],
       ["Compliance & Data", ["dataClassification", "dataElements"]],
     ]);
   });
@@ -59,11 +90,17 @@ describe("intake structure (FR-1)", () => {
   };
 
   it("an acronym a person reads is spelled out where it appears (NFR-9)", () => {
-    const surfaces = ALL_FIELDS.flatMap((f) => [f.label, f.help ?? "", f.revealNote ?? ""]);
+    const surfaces = ALL_FIELDS.flatMap((f) => [
+      f.label,
+      f.help ?? "",
+      f.revealNote ?? "",
+    ]);
     for (const text of surfaces) {
       for (const [acronym, expansion] of Object.entries(SPELLED_OUT)) {
         if (new RegExp(`\\b${acronym}\\b`).test(text)) {
-          expect(text, `${acronym} appears without being spelled out`).toMatch(expansion);
+          expect(text, `${acronym} appears without being spelled out`).toMatch(
+            expansion,
+          );
         }
       }
       expect(text).not.toMatch(/[a-z]+\.[a-z_]+/); // dotted identifiers
@@ -80,7 +117,9 @@ describe("intake structure (FR-1)", () => {
   });
 
   it("every conditional field carries a plain-language reveal reason (NFR-9/§9)", () => {
-    for (const f of ALL_FIELDS.filter((f) => f.conditional && f.type !== "note")) {
+    for (const f of ALL_FIELDS.filter(
+      (f) => f.conditional && f.type !== "note",
+    )) {
       expect(f.revealNote, f.id).toBeTruthy();
       expect(f.revealNote).not.toMatch(/C-\d/); // no instrument codes in user-facing text
     }
@@ -95,7 +134,9 @@ describe("conditional visibility (FR-1)", () => {
     expect(isFieldVisible(ai, { usesAi: "Yes" })).toBe(true);
     const prior = byId("priorAssessmentRef");
     expect(isFieldVisible(prior, { initiativeType: "Brand new" })).toBe(false);
-    expect(isFieldVisible(prior, { initiativeType: "A vendor renewal" })).toBe(true);
+    expect(isFieldVisible(prior, { initiativeType: "A vendor renewal" })).toBe(
+      true,
+    );
   });
 
   it("never re-asks what the person just said they don't know (§24.1)", () => {
@@ -109,7 +150,9 @@ describe("conditional visibility (FR-1)", () => {
     expect(reassurance.type).toBe("note");
     expect(reassurance.body).toMatch(/Risk Assessor will confirm/);
     // Same courtesy on procurement.
-    expect(isFieldVisible(byId("coupaUnsure"), { coupaOnboarded: "I'm not sure" })).toBe(true);
+    expect(
+      isFieldVisible(byId("coupaUnsure"), { coupaOnboarded: "I'm not sure" }),
+    ).toBe(true);
   });
 
   it("notes ask nothing: no required notes, and every note has a body (§24.1)", () => {
@@ -139,9 +182,9 @@ describe("conditional visibility (FR-1)", () => {
     expect(
       isFieldVisible(elements, { dataClassification: "Confidential" }),
     ).toBe(true);
-    expect(
-      isFieldVisible(elements, { dataClassification: "Internal" }),
-    ).toBe(true);
+    expect(isFieldVisible(elements, { dataClassification: "Internal" })).toBe(
+      true,
+    );
   });
 });
 
@@ -216,7 +259,12 @@ describe("questions say what to do when they don't apply (§24.1)", () => {
     const silent = ALL_FIELDS.filter(
       (f) => (f.type === "text" || f.type === "textarea") && !f.required,
     )
-      .filter((f) => !/leave blank|if that|if it|if there|if you don't|not applicable|none/i.test(f.help ?? ""))
+      .filter(
+        (f) =>
+          !/leave blank|if that|if it|if there|if you don't|not applicable|none/i.test(
+            f.help ?? "",
+          ),
+      )
       .map((f) => f.label);
     expect(silent).toEqual([]);
   });
@@ -260,9 +308,60 @@ describe("required means required (FR-28)", () => {
   it("every required field can actually be answered — no unanswerable block", () => {
     // A required select with no honest escape traps anyone who does not
     // know (FR-23). Free text always has one; a select must offer it.
-    for (const f of ALL_FIELDS.filter((f) => f.required && f.type === "select")) {
+    for (const f of ALL_FIELDS.filter(
+      (f) => f.required && f.type === "select",
+    )) {
       expect(f.options, f.id).toBeTruthy();
       expect(f.options!.length, f.id).toBeGreaterThan(1);
     }
+  });
+});
+
+/**
+ * §22.1 · the guidance and the grading may not drift apart.
+ *
+ * The check grades this text against a published rubric, so the field has
+ * to say what the rubric looks for. The help here used to read "one or two
+ * sentences is plenty" — advice that actively loses marks on a rubric which
+ * rewards naming the data, the users and the suppliers.
+ */
+describe("long-form fields say how to answer them well", () => {
+  const longForm = ALL_FIELDS.filter(
+    (f) => f.type === "textarea" && f.required,
+  );
+
+  it("has some", () => {
+    expect(longForm.length).toBeGreaterThan(0);
+  });
+
+  it("gives every required long-form field points to hit", () => {
+    for (const field of longForm) {
+      expect(
+        field.helpPoints?.length,
+        `${field.id} has nothing telling a person what to include`,
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it("never caps the length of an answer the rubric grades on detail", () => {
+    for (const field of ALL_FIELDS) {
+      const said = [field.help ?? "", ...(field.helpPoints ?? [])].join(" ");
+      expect(said, `${field.id} tells people to write less`).not.toMatch(
+        /is plenty|keep it (short|brief)|no more than|a sentence or two/i,
+      );
+    }
+  });
+
+  it("points the main description at each thing the check grades", () => {
+    const points = (
+      ALL_FIELDS.find((f) => f.id === "projectDescription")?.helpPoints ?? []
+    )
+      .join(" ")
+      .toLowerCase();
+    // The four the rubric scores beyond plain clarity.
+    expect(points).toMatch(/decides|produces/); // what it does vs a person
+    expect(points).toMatch(/who uses it|affected/); // audience & scope
+    expect(points).toMatch(/identifies a person|sensitive/); // sensitivity
+    expect(points).toMatch(/supplier|external|outside/); // access & flow
   });
 });

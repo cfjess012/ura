@@ -585,6 +585,13 @@ function Field({
         </label>
       )}
       {field.help && <p className="help">{field.help}</p>}
+      {field.helpPoints && field.helpPoints.length > 0 && (
+        <ul className="help-points">
+          {field.helpPoints.map((point, at) => (
+            <li key={at}>{point}</li>
+          ))}
+        </ul>
+      )}
     </>
   );
   const body = (

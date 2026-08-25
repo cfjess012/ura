@@ -210,6 +210,24 @@ Only fields with a fixed option set are offered. That is not a limitation
 to route around: a wrong sentence needs a person reading it, a wrong pick
 has exactly one right alternative.
 
+## Telling people how to hit it
+
+A rubric nobody has seen is a trap, and the intake was setting one: the
+business-purpose field said "one or two sentences is plenty" while the
+rubric marks down an answer that does not name the data, the users and the
+suppliers. The guidance was losing people marks.
+
+Long-form fields now carry `helpPoints` — the things the rubric looks for,
+in plain words, listed under the field. `projectDescription` names all four
+of the graded criteria beyond plain clarity: what the system decides versus
+what a person does, who uses it and who is affected, what data and whether
+any of it identifies a person, and where that data goes.
+
+A unit test holds the pair together: every required long-form field must
+carry points, the description's points must cover each graded criterion, and
+**no field anywhere may tell somebody to write less**. That last one is the
+one that bit — advice to be brief is advice to score badly here.
+
 ## The rewrite
 
 The length ceiling counts **prose only**. Placeholders are the one thing a

@@ -888,3 +888,32 @@
   font-weight: 600;
   color: var(--success);
 }
+
+/* What is worth naming in a long-form answer. These are the rubric's own
+   criteria in plain words — a person cannot hit a standard nobody showed
+   them, and the old help here capped the length instead of saying what to
+   include. */
+.help-points {
+  margin: 0.3rem 0 0;
+  padding: 0 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+  list-style: none;
+}
+.help-points li {
+  position: relative;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--neutral-600);
+}
+.help-points li::before {
+  content: "";
+  position: absolute;
+  left: -0.75rem;
+  top: 0.55em;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--neutral-400);
+}
