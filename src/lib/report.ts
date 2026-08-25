@@ -20,6 +20,8 @@ import type { SynthesisedFinding } from "./submission";
 import { authorityFor } from "./policy";
 
 export type ReportArea = {
+  /** The risk area's key — a tab is a risk area, and a name is not an id. */
+  key: string;
   name: string;
   /** Applies, closed, or recorded for a reviewer without further questions. */
   standing: "applies" | "closed" | "recorded";
@@ -28,6 +30,9 @@ export type ReportArea = {
 };
 
 export type ReportControl = {
+  /** The objective's id — what maps this answer to the risk domain that
+   *  owns it. Carried because a name cannot be looked up. */
+  objective: string;
   name: string;
   question: string;
   answer: string;
@@ -38,6 +43,8 @@ export type ReportControl = {
 
 export type ReportFinding = {
   kind: SynthesisedFinding["kind"];
+  /** The objective it was raised against, for the same reason. */
+  objective: string;
   objectiveName: string;
   note: string;
   clause: string | null;
@@ -87,6 +94,7 @@ export function reportFrom(input: {
     const applies = state.settled || state.answer === "Yes";
     const quiet = applies && input.asksNothingFurther(state.category.key);
     return {
+      key: state.category.key,
       name: state.category.name,
       standing: !applies ? "closed" : quiet ? "recorded" : "applies",
       because:
@@ -105,6 +113,7 @@ export function reportFrom(input: {
     }
     const authority = authorityFor(objective.questionId);
     controls.push({
+      objective: objective.id,
       name: objective.name,
       question: objective.text,
       answer: value.answer,
@@ -115,6 +124,7 @@ export function reportFrom(input: {
 
   const findings: ReportFinding[] = input.findings.map((finding) => ({
     kind: finding.kind,
+    objective: finding.objective,
     objectiveName: finding.objectiveName,
     note: finding.note,
     clause: finding.citation?.clauseId ?? null,

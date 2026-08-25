@@ -886,7 +886,8 @@
    Scoped to `.card` deliberately: `.card-upcoming p` is a class plus an
    element and outranks a lone class, so the bare selector lost its size and
    colour inside exactly the cards that use it most. */
-.card .card-part {
+.card .card-part,
+.report-card .card-part {
   margin: 1.1rem 0 0.5rem;
   font-size: 0.72rem;
   font-weight: 800;

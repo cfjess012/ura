@@ -393,3 +393,94 @@
   color: var(--warning-strong);
   border: 1px solid var(--warning);
 }
+
+/* One tab per risk domain: the slice of the assessment each domain is
+   handed. Which domain owns which control is versioned data, so a tab is
+   never a judgement made in the UI. */
+.report-domains .report-muted {
+  margin-top: 0;
+}
+.domain-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.9rem 0 0;
+  border-bottom: 2px solid var(--neutral-200);
+  padding-bottom: 0.4rem;
+}
+.domain-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--neutral-200);
+  border-radius: 999px;
+  background: var(--neutral-0);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--neutral-700);
+  cursor: pointer;
+}
+.domain-tab:hover {
+  border-color: var(--primary);
+  color: var(--link);
+}
+.domain-tab.on {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: var(--neutral-0);
+}
+.domain-tab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.domain-tab-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+}
+.domain-tab-count.breach {
+  background: var(--warning-bg);
+  color: var(--error);
+}
+.domain-tab-count.finding {
+  background: var(--warning-bg);
+  color: var(--warning-strong);
+}
+.domain-tab.on .domain-tab-count.breach,
+.domain-tab.on .domain-tab-count.finding {
+  background: var(--neutral-0);
+}
+.domain-panel {
+  padding-top: 1rem;
+}
+.domain-why {
+  margin: 0 0 0.8rem;
+  font-size: 0.94rem;
+  color: var(--neutral-700);
+}
+.domain-block {
+  margin-bottom: 1.2rem;
+}
+.domain-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.94rem;
+}
+.domain-list li {
+  margin: 0.4rem 0;
+}
+.domain-note {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+  color: var(--neutral-700);
+}
+.domain-clause {
+  margin: 0.3rem 0 0;
+  padding-left: 0.7rem;
+  border-left: 3px solid var(--warning-strong);
+  font-size: 0.9rem;
+  color: var(--neutral-700);
+}

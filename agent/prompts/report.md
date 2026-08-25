@@ -18,7 +18,14 @@ customer-facing, you do not know.
 
 ## 2. Risk scenarios worth asking about
 
-Between two and four. Each one is:
+**One or two for each risk domain the record names, up to twelve.** The
+summary is handed to several risk domains at once and each opens only its
+own part, so a domain with nothing written about it arrives empty — and a
+reviewer who opens two empty domains stops opening them. Spread the
+scenarios across the domains rather than writing four about the most
+obvious one.
+
+Each one is:
 
 - a **scenario** — one sentence, something that could plausibly go wrong
   *in this activity specifically*, in its own terms, not a generic risk;
@@ -35,7 +42,12 @@ there. A scenario citing something that is not in the record is dropped
 entirely — it is not a weaker scenario, it is one built on nothing.
 
 Prefer the specific over the complete. Two scenarios that could only be
-written about *this* activity beat four that would fit any assessment.
+written about *this* activity beat four that would fit any assessment. If a
+domain gives you nothing specific to say, write nothing for it — an empty
+domain is honest, and a generic scenario filed under it is not.
+
+`from` is also what files a scenario: it reaches the reviewer who owns the
+controls it cites. Cite the names you actually read, and the filing follows.
 
 ## Never
 

@@ -1,5 +1,7 @@
 import { agentTransport } from "@/lib/agent";
 import { groundedScenarios, type Report } from "@/lib/report";
+import { domainSlices, unfiledScenarios } from "@/lib/report-domains";
+import { DomainTabs } from "./domain-tabs";
 
 /**
  * The assistant's reading of the report, streamed in after the derived
@@ -14,10 +16,14 @@ export async function ReportSummary({
   projectId,
   report,
   record,
+  severityDomain,
 }: {
   projectId: string;
   report: Report;
   record: string;
+  /** Which risk area a severity question belongs to. Passed in rather than
+   *  worked out here: the instrument owns that, not the summary. */
+  severityDomain?: (name: string) => string | null;
 }) {
   const transport = agentTransport();
   if (!transport.available) return null;
@@ -37,6 +43,12 @@ export async function ReportSummary({
   if (!writing) return null;
 
   const scenarios = groundedScenarios(writing.scenarios, report);
+  // Filed by what each scenario cites, so a tab holds the reading of its own
+  // answers. One that cites nothing a domain owns is still shown — dropping
+  // it would lose a question because the filing failed, not because the
+  // question was weak.
+  const slices = domainSlices(report, scenarios, severityDomain);
+  const unfiled = unfiledScenarios(report, scenarios);
 
   return (
     <>
@@ -49,14 +61,16 @@ export async function ReportSummary({
         </p>
       </section>
 
-      {scenarios.length > 0 && (
+      {slices.length > 0 && <DomainTabs slices={slices} />}
+
+      {unfiled.length > 0 && (
         <section className="report-card report-scenarios">
-          <h2>Worth asking about</h2>
+          <h2>Worth asking about — across domains</h2>
           <p className="report-muted report-scenarios-note">
             Proposed by the assistant from the answers named beneath each one.
             These are questions, not findings — nothing here has been decided.
           </p>
-          {scenarios.map((scenario, i) => (
+          {unfiled.map((scenario, i) => (
             <div key={i} className="report-scenario">
               <p className="report-scenario-what">{scenario.scenario}</p>
               <p className="report-scenario-ask">{scenario.ask}</p>

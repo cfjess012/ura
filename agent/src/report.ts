@@ -90,7 +90,9 @@ export async function writeReport(
       const client = modelClient();
       const message = await client.messages.create({
         model: modelId(),
-        max_tokens: 2000,
+        // Twelve scenarios with citations, not four: truncation here
+        // surfaces as "no JSON object" and reads as the model failing.
+        max_tokens: 6000,
         messages: [{ role: "user", content: composeReportPrompt(task) }],
       });
       const text = textOf(

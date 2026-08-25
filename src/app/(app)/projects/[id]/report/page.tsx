@@ -87,7 +87,7 @@ export default async function ReportPage({
   });
 
   const transport = agentTransport();
-  const record = asPlainText(report);
+  const record = asPlainText(report, intake);
 
   const nameOf = (personId: string | null) =>
     everyone.find((someone) => someone.id === personId)?.name ?? "—";
@@ -254,11 +254,50 @@ export default async function ReportPage({
   );
 }
 
-/** The record as prose, for the agent to read. Names only, never ids. */
-function asPlainText(report: ReturnType<typeof reportFrom>): string {
+/** A reference answer renders as its label; anything else as itself. */
+function labelish(value: unknown): string {
+  if (value && typeof value === "object" && "label" in value) {
+    return String((value as { label: unknown }).label);
+  }
+  return String(value);
+}
+
+/**
+ * The record as prose, for the agent to read. Names only, never ids.
+ *
+ * Everything the assessment holds, not only what the report renders: the
+ * scenarios are an inference across the whole thing, and a model asked to
+ * reason about an activity from its control answers alone will write
+ * scenarios about controls. What the activity *is* — how it was described,
+ * what data it touches, what it uses AI for — is where a specific scenario
+ * comes from.
+ */
+function asPlainText(
+  report: ReturnType<typeof reportFrom>,
+  context: Record<string, unknown> = {},
+): string {
+  const said = (key: string) => {
+    const value = context[key];
+    if (Array.isArray(value)) return value.map((v) => labelish(v)).join(", ");
+    return typeof value === "string" ? value : value ? labelish(value) : "";
+  };
   const lines = [
     `Activity: ${report.activity}`,
     `Purpose: ${report.purpose}`,
+    ...(said("projectDescription")
+      ? ["", `How it was described: ${said("projectDescription")}`]
+      : []),
+    ...(said("aiUseCase") ? [`What the AI does: ${said("aiUseCase")}`] : []),
+    ...(said("dataElements") ? [`Data involved: ${said("dataElements")}`] : []),
+    ...(said("dataClassification")
+      ? [`Classification: ${said("dataClassification")}`]
+      : []),
+    ...(said("thirdPartyInvolved")
+      ? [`Third party involved: ${said("thirdPartyInvolved")}`]
+      : []),
+    ...(said("initiativeType")
+      ? [`Initiative type: ${said("initiativeType")}`]
+      : []),
     "",
     "Risk areas:",
     ...report.areasThatApply.map(

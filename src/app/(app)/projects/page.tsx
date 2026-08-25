@@ -108,7 +108,11 @@ export default async function Projects({
               return (
                 <div className="review-row" key={p.id}>
                   <div className="review-row-head">
-                    <Link href={`/projects/${p.id}/review`}>
+                    {/* The handoff summary, not the raw queue: it is the
+                        page written for somebody arriving at this
+                        assessment for the first time. The chips below go
+                        straight to the work. */}
+                    <Link href={`/projects/${p.id}/report`}>
                       {p.projectName}
                     </Link>
                     <span className="meta">

@@ -128,7 +128,7 @@ export function AlertBell({
                   <button
                     type="button"
                     className="bell-row bell-row-obligation"
-                    onClick={() => go(`/projects/${item.projectId}/review`)}
+                    onClick={() => go(`/projects/${item.projectId}/report`)}
                   >
                     <span className="bell-icon warn" aria-hidden="true">
                       !
