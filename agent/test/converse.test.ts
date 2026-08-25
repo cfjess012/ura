@@ -9,6 +9,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { conversationGate } from "../src/converse.ts";
+import { composeConversePrompt } from "../src/prompt.ts";
 import type { AssessmentContext } from "../../src/lib/agent-contract.ts";
 
 /**
@@ -196,5 +197,53 @@ describe("wantsAnswers", () => {
     const got = ask({ carriesEvidence: true, wantsAnswers: false });
     expect(got.ok && got.reply.carriesEvidence).toBe(true);
     expect(got.ok && got.reply.wantsAnswers).toBe(false);
+  });
+});
+
+/**
+ * The standard reaches the conversation.
+ *
+ * Without it the assistant called "I want ChatGPT for summarizing emails" a
+ * solid project description, and the check graded the same sentence Thin
+ * about ninety seconds later — two of our own voices disagreeing in front
+ * of the person, from a rubric neither had shown them.
+ */
+describe("what the description is graded against", () => {
+  const base = {
+    said: "how does this look?",
+    history: [],
+    openQuestions: [],
+    context: "Project Description: I want ChatGPT for summarizing emails",
+  };
+
+  it("puts the rubric in the prompt when they are writing the intake", () => {
+    const prompt = composeConversePrompt({
+      ...base,
+      assessment: {
+        ...assessment,
+        graded: [
+          {
+            criterion: "Data Sensitivity",
+            fullMarks: "Explicitly lists the data types.",
+          },
+          {
+            criterion: "User Audience & Scope",
+            fullMarks: "Names exact user roles.",
+          },
+        ],
+      },
+    });
+    expect(prompt).toContain("graded against");
+    expect(prompt).toContain("Data Sensitivity");
+    expect(prompt).toContain("Explicitly lists the data types.");
+    // And what to do with it, not just what it is.
+    expect(prompt).toMatch(/before you call it good/i);
+  });
+
+  it("leaves it out where it does not apply", () => {
+    // On a risk-area screen the intake rubric is noise, and every token of
+    // noise is one the screen's own questions do not get.
+    const prompt = composeConversePrompt({ ...base, assessment });
+    expect(prompt).not.toContain("graded against");
   });
 });

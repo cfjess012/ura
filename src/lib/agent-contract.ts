@@ -230,6 +230,15 @@ export type AssessmentContext = {
    * answers about the assessment in general. That is the difference
    * between a thought partner and a search box.
    */
+  /**
+   * The standard the intake is graded against, when they are writing it.
+   *
+   * Without this the assistant does not know the description is graded at
+   * all, and calls a one-line answer a solid start — praise the check then
+   * contradicts, from a rubric nobody showed either of them. Sent only on
+   * the intake screens, because it is the only place it applies.
+   */
+  graded?: Array<{ criterion: string; fullMarks: string }>;
   looking?: {
     /** The screen, named the way a person would name it. */
     screen: string;

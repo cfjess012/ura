@@ -88,10 +88,26 @@ export function composeConversePrompt(task: ConverseTask): string {
       ].join("\n\n")
     : "";
 
+  // The standard their writing is measured against, where it applies.
+  // Without it the assistant called a one-line description a solid start
+  // and the check then graded it Thin — two of our own voices disagreeing
+  // in front of the person, from a rubric neither had shown them.
+  const graded = task.assessment.graded ?? [];
+  const rubric =
+    graded.length === 0
+      ? ""
+      : [
+          "## What their description is graded against",
+          "This intake is scored on these, and full marks on each looks like this:",
+          graded.map((g) => `- **${g.criterion}** — ${g.fullMarks}`).join("\n"),
+          "Judge what they have written against it before you call it good. Naming the one thing that would move it up is worth more than encouragement.",
+        ].join("\n\n");
+
   return [
     CONVERSE,
     "---",
     onScreen,
+    rubric,
     "## What they have told us so far",
     task.context.trim() === "" ? "(nothing yet)" : task.context,
     "",

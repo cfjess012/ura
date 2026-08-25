@@ -23,6 +23,7 @@ import { documentStore } from "@/lib/documents";
 import { quoteAppearsVerbatim } from "@/lib/agent-contract";
 import {
   belowFloor,
+  CRITERIA,
   coherenceFrom,
   coherenceWhenUnavailable,
   scoringBrief,
@@ -71,10 +72,17 @@ async function contextFor(
     .map((state) => `Does ${state.category.name} apply to this activity?`);
 
   const looking = pathname ? whatsOnScreen(pathname) : null;
+  // The rubric, but only where it applies. On a risk-area screen it is
+  // noise; on an intake screen it is the difference between a thought
+  // partner and a stranger agreeing with everything.
+  const graded = pathname?.includes("/intake/")
+    ? CRITERIA.map((c) => ({ criterion: c.label, fullMarks: c.anchors["4"] }))
+    : undefined;
 
   return {
     projectId,
     looking: looking ?? undefined,
+    graded,
     activity:
       typeof values.projectDescription === "string" &&
       values.projectDescription.trim() !== ""
