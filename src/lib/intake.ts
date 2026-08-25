@@ -110,7 +110,7 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         label: "Project Description",
         type: "textarea",
         required: true,
-        help: "What this is, why the organisation wants it, and how it works — in plain terms. This is the answer the AI check reads most closely, and the points below are what it looks for.",
+        help: "What this is, why the organisation wants it, and how it works — in plain terms. This is the answer the AI check reads most closely.",
         helpPoints: [
           "What is happening today that this is meant to change, and who benefits.",
           "What the system decides or produces on its own, and what a person decides or reviews instead.",

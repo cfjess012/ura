@@ -889,31 +889,1065 @@
   color: var(--success);
 }
 
-/* What is worth naming in a long-form answer. These are the rubric's own
-   criteria in plain words — a person cannot hit a standard nobody showed
-   them, and the old help here capped the length instead of saying what to
-   include. */
-.help-points {
-  margin: 0.3rem 0 0;
-  padding: 0 0 0 1rem;
+/* What is worth naming in a long-form answer — the rubric's own criteria in
+   plain words, one click away. A person cannot hit a standard nobody showed
+   them, but showing it as six bullets above an empty box put a wall of
+   instruction where the answer goes. */
+.guide {
+  margin-top: 0.4rem;
+}
+.guide > summary {
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.5rem 0.2rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--neutral-200);
+  background: var(--neutral-0);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--neutral-600);
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
+}
+.guide > summary::-webkit-details-marker {
+  display: none;
+}
+.guide > summary:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.guide > summary:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.guide-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--brand);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+.guide-count {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--neutral-400);
+}
+.guide[open] > summary {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.guide-points {
+  margin: 0.45rem 0 0;
+  padding: 0.55rem 0.7rem 0.6rem 1.55rem;
+  border-radius: 8px;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
   display: flex;
   flex-direction: column;
-  gap: 0.18rem;
+  gap: 0.3rem;
   list-style: none;
 }
-.help-points li {
+.guide-points li {
   position: relative;
+  font-size: 0.79rem;
+  line-height: 1.5;
+  color: var(--neutral-700);
+}
+.guide-points li::before {
+  content: "";
+  position: absolute;
+  left: -0.75rem;
+  top: 0.6em;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--brand);
+  opacity: 0.55;
+}
+
+/* The assistant — a dialogue window in the corner (SPEC §22.1). Its own
+   sheet because it is its own surface, and because review.css had reached
+   the line NFR-6 draws. Tokens only (§23). */
+
+/* Fixed, so it travels with the person across every screen of one
+   assessment. The shape people already know from every support chat. */
+.assistant-launch {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.15rem;
+  border-radius: 999px;
+  border: none;
+  background: var(--navy);
+  color: var(--neutral-0);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgb(0 40 85 / 28%);
+}
+.assistant-launch:hover {
+  background: var(--navy-2);
+}
+.assistant-launch:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+.assistant-launch-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--navy);
+  font-weight: 900;
+  font-size: 0.85rem;
+}
+.assistant-launch-count {
+  min-width: 1.2rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: rgb(252 252 252 / 22%);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.assistant {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 40;
+  width: min(24rem, calc(100vw - 3rem));
+  max-height: min(34rem, calc(100vh - 6rem));
+  padding: 0.9rem 1rem 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--neutral-0);
+  border: 1px solid var(--surface-3);
+  box-shadow: 0 12px 40px rgb(0 40 85 / 22%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+.assistant-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.assistant-title {
+  font-weight: 800;
+  font-size: 0.98rem;
+  color: var(--navy);
+}
+.assistant-close {
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--neutral-600);
+  cursor: pointer;
+  padding: 0 0.2rem;
+}
+.assistant-close:hover {
+  color: var(--neutral-900);
+}
+.assistant-close:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.assistant-promise {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+.assistant-turns {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-y: auto;
+  padding: 0.3rem 0;
+  flex: 1;
+  min-height: 6rem;
+}
+.assistant-turn {
+  font-size: 0.88rem;
+  line-height: 1.5;
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  max-width: 92%;
+}
+.assistant-person {
+  background: var(--surface-2);
+  align-self: flex-end;
+}
+.assistant-agent {
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
+  align-self: flex-start;
+}
+.assistant-who {
+  display: block;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--neutral-600);
+  margin-bottom: 0.1rem;
+}
+.assistant-thinking {
+  color: var(--neutral-600);
+  font-style: italic;
+}
+.assistant-compose {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+.assistant-compose textarea {
+  flex: 1;
+  font-size: 0.88rem;
+}
+.assistant-send {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .assistant {
+    right: 0.75rem;
+    left: 0.75rem;
+    bottom: 0.75rem;
+    width: auto;
+  }
+  .assistant-launch {
+    right: 0.75rem;
+    bottom: 0.75rem;
+  }
+}
+
+/* Reading a document in. The promise sits beside the control, not in a
+   dialog after it — a person deciding whether to hand over a document is
+   deciding before they click, not after (§24.11). */
+.assistant-attach {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--surface-3);
+}
+.assistant-attach-label {
+  align-self: flex-start;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--surface-3);
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--link);
+  cursor: pointer;
+}
+.assistant-attach-label:hover {
+  border-color: var(--navy);
+}
+.assistant-attach .help {
+  font-size: 0.74rem;
+  margin: 0;
+}
+
+/* An answer the assistant proposed. Marked as its work, never as yours —
+   and never restful: a proposal waiting on a person is not a settled
+   state, and the treatment says so without relying on colour (§23). */
+.proposed {
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
+  border-left: 4px solid var(--navy);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.proposed-mark {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+.proposed-value {
+  font-size: 0.95rem;
+}
+.proposed-quote {
+  margin: 0;
+  padding: 0.5rem 0.8rem;
+  border-left: 3px solid var(--surface-3);
+  background: var(--neutral-0);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--neutral-800);
+}
+.proposed-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-top: 0.2rem;
+}
+.proposed .help {
+  margin: 0;
+}
+
+/* Working, without claiming to know how long. */
+.assistant-dots {
+  display: inline-flex;
+  gap: 0.22rem;
+  align-items: center;
+  height: 1.1rem;
+}
+.assistant-dots i {
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 50%;
+  background: var(--neutral-500);
+  animation: assistant-dot 1.2s ease-in-out infinite;
+}
+.assistant-dots i:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.assistant-dots i:nth-child(3) {
+  animation-delay: 0.32s;
+}
+@keyframes assistant-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.28;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .assistant-dots i {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+/* The intake coherence check (FR-43). Beside the way forward, never in
+   front of it — a person who wants to write two lines and move on can. */
+.coherence {
+  margin: 1.2rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+/* The one button in the product that starts a model. It reads as an AI
+   action because it is one — but it says what it does, not what it is. */
+.ai-check {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.72rem 1.35rem;
+  border-radius: 999px;
+  border: none;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--neutral-0);
+  background: linear-gradient(
+    100deg,
+    var(--primary) 0%,
+    #6f7ee8 55%,
+    #8b7de0 100%
+  );
+  box-shadow: 0 4px 14px rgb(0 118 207 / 26%);
+  cursor: pointer;
+}
+.ai-check:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+.ai-check:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+.ai-check:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+.ai-check-spark {
+  flex-shrink: 0;
+}
+
+.coherence-pending {
+  display: flex;
+  gap: 0.3rem;
+  align-self: flex-end;
+  padding: 0.2rem 0;
+}
+.coherence-pending span {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--primary);
+  animation: coherence-dot 1.2s ease-in-out infinite;
+}
+.coherence-pending span:nth-child(2) {
+  animation-delay: 0.16s;
+}
+.coherence-pending span:nth-child(3) {
+  animation-delay: 0.32s;
+}
+@keyframes coherence-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coherence-pending span {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+.coherence-result {
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+/* The band, with its meaning beside it. Never a bare number — a number a
+   person cannot check is a number that replaces their judgement. */
+.coherence-band {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.coherence-band-label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+.coherence-score {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--neutral-600);
+}
+.coherence-meaning {
+  font-size: 0.88rem;
+  color: var(--neutral-700);
+}
+/* The score as a length as well as a number, so the band is legible before
+   the number is read. */
+.coherence-meter {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+  margin: 0.15rem 0 0.1rem;
+}
+.coherence-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--neutral-500);
+}
+.coherence-robust .coherence-meter-fill {
+  background: var(--success);
+}
+.coherence-thin .coherence-meter-fill,
+.coherence-not-yet-usable .coherence-meter-fill {
+  background: var(--warning-strong);
+}
+.coherence-robust .coherence-band-label {
+  color: var(--success);
+}
+.coherence-thin .coherence-band-label,
+.coherence-not-yet-usable .coherence-band-label {
+  color: var(--warning-strong);
+}
+
+.coherence-opening {
   font-size: 0.78rem;
   line-height: 1.45;
   color: var(--neutral-600);
 }
-.help-points li::before {
+/* The narrative. It is the only part written about their activity rather
+   than about our rubric, so it gets the room and the reading size — and no
+   border, because a box around prose makes it look like another widget. */
+.coherence-read {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0 0 0.2rem;
+}
+.coherence-read p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--neutral-800);
+}
+.coherence-read p:first-child {
+  color: var(--neutral-900);
+}
+
+.coherence-clear {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--success);
+}
+.coherence-nocheck {
+  margin: 0;
+}
+
+/* The grades are a reference list under the narrative, not four more
+   cards competing with it. One row each, the anchor only where it earns
+   its line. */
+/* A correction, offered beside the two halves it settles. It is a real
+   button rather than a link because it writes to the record — and nothing
+   moves until somebody presses it. */
+/* Work in progress, obviously alive. The bar is indeterminate on purpose:
+   there is no phase to report, and a bar that pretended to know how far
+   along it was would be inventing a number. */
+.thinking {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
+}
+.thinking-spark {
+  display: inline-flex;
+  color: var(--brand);
+  animation: thinking-pulse 1.6s ease-in-out infinite;
+}
+.thinking-spark svg {
+  width: 1rem;
+  height: 1rem;
+}
+.thinking-words {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.thinking-doing {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--neutral-800);
+}
+.thinking-meta {
+  font-size: 0.72rem;
+  color: var(--neutral-500);
+  font-variant-numeric: tabular-nums;
+}
+.thinking-bar {
+  flex: 1;
+  height: 3px;
+  min-width: 3rem;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.thinking-bar > span {
+  display: block;
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: var(--brand);
+  animation: thinking-slide 1.5s ease-in-out infinite;
+}
+@keyframes thinking-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+@keyframes thinking-slide {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(260%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking-spark,
+  .thinking-bar > span {
+    animation: none;
+  }
+  .thinking-bar > span {
+    width: 100%;
+    opacity: 0.5;
+  }
+}
+
+.coherence-fix {
+  margin: 0.15rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.btn-small {
+  padding: 0.28rem 0.6rem;
+  font-size: 0.75rem;
+  border-radius: 6px;
+}
+.coherence-fixed {
+  margin: 0.15rem 0 0;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.coherence-conflicts-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.05rem;
+  height: 1.05rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--warning-strong);
+  color: var(--neutral-0);
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The grades are reference, not the finding — folded away by default so
+   the narrative and the contradictions are what the panel is. */
+.coherence-grades > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding: 0.4rem 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--neutral-700);
+  border-top: 1px solid var(--neutral-200);
+}
+.coherence-grades > summary::-webkit-details-marker {
+  display: none;
+}
+.coherence-grades > summary::before {
+  content: "\203A";
+  display: inline-block;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: var(--neutral-400);
+  transition: transform 120ms ease;
+}
+.coherence-grades[open] > summary::before {
+  transform: rotate(90deg);
+}
+.coherence-grades > summary:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.coherence-grades-hint {
+  font-weight: 500;
+  font-size: 0.72rem;
+  color: var(--neutral-500);
+}
+
+.coherence-asks {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0.15rem 0 0;
+}
+.coherence-ask {
+  padding: 0.5rem 0 0.5rem 0.65rem;
+  border-left: 3px solid transparent;
+}
+.coherence-ask + .coherence-ask {
+  border-top: 1px solid var(--neutral-100);
+}
+/* The two that decide where an assessment goes, marked as such — in words,
+   never by colour alone. */
+.coherence-ask.routing {
+  border-left-color: var(--warning);
+}
+.coherence-ask-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--neutral-900);
+  margin-bottom: 0.12rem;
+}
+.coherence-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--neutral-700);
+  font-variant-numeric: tabular-nums;
+}
+.coherence-dots {
+  display: inline-flex;
+  gap: 2px;
+}
+.coherence-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--neutral-300);
+}
+.coherence-dot.on {
+  background: var(--neutral-700);
+}
+.coherence-ask.routing .coherence-dot.on {
+  background: var(--warning-strong);
+}
+.coherence-level-text {
+  letter-spacing: 0.01em;
+}
+.coherence-routing {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--warning-strong);
+}
+.coherence-ask-body {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--neutral-700);
+}
+.coherence-anchor {
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--neutral-500);
+}
+.coherence-anchor-label {
+  display: inline-block;
+  margin-right: 0.35rem;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--neutral-400);
+}
+/* A contradiction, in the person's own words. Warning treatment because a
+   document that disagrees with itself routes wrongly — and never colour
+   alone: the heading names what this is (SPEC §11.1). */
+.coherence-conflicts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.coherence-conflicts-heading {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--warning-strong);
+}
+.coherence-conflict {
+  border: 1px solid var(--warning);
+  background: var(--warning-bg);
+  border-radius: 7px;
+  padding: 0.45rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+/* The two halves set against each other, with the rule between them doing
+   the work the word "against" only labels. */
+.coherence-halves {
+  display: flex;
+  flex-direction: column;
+}
+.coherence-quote {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--neutral-900);
+  background: var(--neutral-0);
+  border-radius: 5px;
+  padding: 0.3rem 0.45rem;
+}
+.coherence-quote::before {
+  content: "\201C";
+}
+.coherence-quote::after {
+  content: "\201D";
+}
+.coherence-versus {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+}
+.coherence-versus::before,
+.coherence-versus::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--warning);
+}
+.coherence-versus span {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--warning-strong);
+}
+.coherence-conflict-why {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--neutral-700);
+}
+.coherence .help {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+/* A suggested rewrite. Offered, never applied — and when used it goes into
+   the field for the person to edit, not into the record (FR-22). */
+.rewrite-ask {
+  margin: 0;
+  font-size: 0.88rem;
+}
+.rewrite {
+  margin-top: 0.3rem;
+  padding: 0.8rem 0.95rem;
+  border-radius: 10px;
+  background: var(--neutral-0);
+  border: 1px solid var(--surface-3);
+  border-left: 4px solid var(--primary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.rewrite-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--link);
+}
+.rewrite-body {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--neutral-900);
+  white-space: pre-wrap;
+}
+.rewrite-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-top: 0.2rem;
+}
+.rewrite .help {
+  margin: 0;
+}
+
+/* The gaps a suggestion left. Warning treatment, because an unanswered
+   bracket in a description is a hole somebody is about to sign for — and
+   never colour alone: the count and the heading say what this is. */
+.gaps {
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--warning);
+  background: var(--warning-bg);
+  border-radius: 8px;
+}
+.gaps-head {
+  margin: 0 0 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--neutral-700);
+}
+.gaps-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--warning-strong);
+  color: var(--neutral-0);
+  font-size: 0.66rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.gaps-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.gaps-list li {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--neutral-800);
+}
+.gaps-list .link-button {
+  text-align: left;
+  font-size: 0.8rem;
+}
+.gaps-dismiss {
+  margin-top: 0.45rem;
+  font-size: 0.74rem;
+}
+.gaps-clear {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--success);
+}
+
+/* What is worth naming in a long-form answer — the rubric's own criteria in
+   plain words, one click away. A person cannot hit a standard nobody showed
+   them, but showing it as six bullets above an empty box put a wall of
+   instruction where the answer goes. */
+.guide {
+  margin-top: 0.4rem;
+}
+.guide > summary {
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.5rem 0.2rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--neutral-200);
+  background: var(--neutral-0);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--neutral-600);
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
+}
+.guide > summary::-webkit-details-marker {
+  display: none;
+}
+.guide > summary:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.guide > summary:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.guide-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--brand);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+.guide-count {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--neutral-400);
+}
+.guide[open] > summary {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.guide-points {
+  margin: 0.45rem 0 0;
+  padding: 0.55rem 0.7rem 0.6rem 1.55rem;
+  border-radius: 8px;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  list-style: none;
+}
+.guide-points li {
+  position: relative;
+  font-size: 0.79rem;
+  line-height: 1.5;
+  color: var(--neutral-700);
+}
+.guide-points li::before {
   content: "";
   position: absolute;
   left: -0.75rem;
-  top: 0.55em;
-  width: 3px;
-  height: 3px;
+  top: 0.6em;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: var(--neutral-400);
+  background: var(--brand);
+  opacity: 0.55;
 }

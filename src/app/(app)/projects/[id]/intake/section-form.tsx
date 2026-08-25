@@ -586,11 +586,25 @@ function Field({
       )}
       {field.help && <p className="help">{field.help}</p>}
       {field.helpPoints && field.helpPoints.length > 0 && (
-        <ul className="help-points">
-          {field.helpPoints.map((point, at) => (
-            <li key={at}>{point}</li>
-          ))}
-        </ul>
+        /* Folded away by default. Six bullets standing between the label
+           and an empty box is a wall of instruction to read before you can
+           start — and the people who most need it are the ones least
+           likely to read it there. One click, and it stays open while
+           they write. */
+        <details className="guide">
+          <summary>
+            <span className="guide-icon" aria-hidden="true">
+              ?
+            </span>
+            What to include
+            <span className="guide-count">{field.helpPoints.length}</span>
+          </summary>
+          <ul className="guide-points">
+            {field.helpPoints.map((point, at) => (
+              <li key={at}>{point}</li>
+            ))}
+          </ul>
+        </details>
       )}
     </>
   );
