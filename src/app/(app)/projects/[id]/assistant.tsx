@@ -528,6 +528,15 @@ function DocSpark() {
           d="M12 2.5l1.7 4.6 4.6 1.7-4.6 1.7-1.7 4.6-1.7-4.6L5.7 8.8l4.6-1.7L12 2.5z"
         />
       </g>
+      {/* A second, smaller one, off-beat. One spark pulsing reads as a
+          loading state; two catching the light at different moments reads
+          as something thinking. */}
+      <g transform="translate(15.6 6.4) scale(0.26)">
+        <path
+          className="docspark-spark docspark-spark-two"
+          d="M12 2.5l1.7 4.6 4.6 1.7-4.6 1.7-1.7 4.6-1.7-4.6L5.7 8.8l4.6-1.7L12 2.5z"
+        />
+      </g>
     </svg>
   );
 }

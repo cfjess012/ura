@@ -4576,9 +4576,50 @@
   transition: none;
 }
 
-/* The document mark: page in brand blue, spark in the accent green. */
+/* The mark: upload arrow in brand blue, sparks in the accent green.
+
+   They twinkle rather than pulse. A single shape breathing in and out is
+   what a loading spinner does and it reads as "wait"; two catching the
+   light a beat apart reads as something thinking, which is the thing this
+   control actually offers. Slow — a mark that flickers at somebody all day
+   is one they learn to look past, and this sits on every screen. */
 .docspark-spark {
   fill: var(--success);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .docspark-spark {
+    animation: docspark 3.4s ease-in-out infinite;
+  }
+  /* Off-beat, and never in step: two shapes pulsing together are one
+     shape pulsing. */
+  .docspark-spark-two {
+    animation-duration: 2.6s;
+    animation-delay: 0.9s;
+  }
+  /* Livelier when they are about to use it, and the arrow lifts — the
+     gesture the control is asking for. */
+  .assistant-attach-label:hover .docspark-spark {
+    animation-duration: 1.1s;
+  }
+  .assistant-attach-label svg {
+    transition: transform 0.18s var(--ease);
+  }
+  .assistant-attach-label:hover svg {
+    transform: translateY(-1.5px);
+  }
+}
+@keyframes docspark {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.82) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12) rotate(22deg);
+  }
 }
 
 /* The other two handles. Same idea as the left edge, turned: the panel sits
