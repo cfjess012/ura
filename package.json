@@ -34,7 +34,9 @@
   },
   "dependencies": {
     "drizzle-orm": "^0.44.0",
+    "mammoth": "^1.12.1",
     "next": "^15.3.9",
+    "pdf-parse": "^2.4.5",
     "postgres": "^3.4.5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

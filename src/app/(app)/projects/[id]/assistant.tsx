@@ -2,11 +2,8 @@
 
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  askAgent,
-  draftFromDocument,
-  type AgentTurn,
-} from "@/app/agent-actions";
+import { askAgent, type AgentTurn } from "@/app/agent-actions";
+import { draftFromFile } from "@/app/document-actions";
 import { isFailure } from "@/lib/errors";
 
 /**
@@ -48,6 +45,121 @@ import { isFailure } from "@/lib/errors";
  * than finished. The elapsed count is real. The receipt underneath the
  * reply, once it lands, is the part that is actually checkable.
  */
+export type Clause = {
+  policy: string;
+  reference: string;
+  version: string;
+  clauseId: string;
+  heading: string;
+  text: string;
+};
+
+/**
+ * A reply with its citations made openable.
+ *
+ * The assistant names a clause in its own sentence, and until now that was
+ * a string somebody had to take on trust. It is the one part of a reply
+ * carrying real authority, so it is the part that most needs to be
+ * checkable: the citation becomes a control, and opening it shows the
+ * clause in the standard's own words.
+ *
+ * **Only clauses the lookup actually returned are made openable.** An id
+ * the model produced from nowhere stays plain text, because turning that
+ * into a link would dress an invention up as a source.
+ */
+function Cited({
+  said,
+  clauses,
+  onRead,
+}: {
+  said: string;
+  clauses: Clause[];
+  onRead: (clause: Clause) => void;
+}) {
+  const byId = new Map(clauses.map((c) => [c.clauseId, c]));
+  // Longest first, so a full clause id is matched before its policy
+  // reference, which is a prefix of it.
+  const ids = [...byId.keys()].sort((a, b) => b.length - a.length);
+  if (ids.length === 0) return <>{said}</>;
+  const escaped = ids.map((id) => id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const parts = said.split(new RegExp(`(${escaped.join("|")})`, "g"));
+  return (
+    <>
+      {parts.map((part, at) => {
+        const clause = byId.get(part);
+        if (!clause) return <React.Fragment key={at}>{part}</React.Fragment>;
+        return (
+          <button
+            key={at}
+            type="button"
+            className="cite"
+            onClick={() => onRead(clause)}
+          >
+            {part}
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
+/**
+ * One clause, in full, in the standard's own words.
+ *
+ * A quick look rather than a page: somebody mid-conversation wants to check
+ * what was quoted, not to leave and come back. Everything a citation needs
+ * to be verifiable is here — the policy, its reference, the version in
+ * force, and the clause unabridged.
+ */
+function ClauseDialog({
+  clause,
+  onClose,
+}: {
+  clause: Clause;
+  onClose: () => void;
+}) {
+  React.useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="clause-back"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${clause.policy}, ${clause.clauseId}`}
+      onClick={onClose}
+    >
+      <div className="clause" onClick={(event) => event.stopPropagation()}>
+        <div className="clause-top">
+          <p className="clause-eyebrow">{clause.policy}</p>
+          <button
+            type="button"
+            className="clause-close"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            &times;
+          </button>
+        </div>
+        <p className="clause-id">
+          {clause.clauseId} &middot; version {clause.version}
+        </p>
+        <h3 className="clause-heading">{clause.heading}</h3>
+        <blockquote className="clause-text">{clause.text}</blockquote>
+        <p className="help">
+          Quoted from {clause.reference} as it stands today. It says what the
+          term means &mdash; whether it describes your activity is yours to say.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 const STEPS = [
   "Reading your assessment",
   "Checking policies and standards",
@@ -128,8 +240,10 @@ export function Assistant({
   // instrument — the path only selects, it never supplies the words.
   const pathname = usePathname();
   const [turns, setTurns] = React.useState<AgentTurn[]>(initial);
-  /** Clause ids the last reply was built with. A receipt, not a claim. */
-  const [consulted, setConsulted] = React.useState<string[]>([]);
+  /** Clauses the last reply was built with. A receipt, not a claim. */
+  const [consulted, setConsulted] = React.useState<Clause[]>([]);
+  /** The clause being read in full, if any. */
+  const [reading, setReading] = React.useState<Clause | null>(null);
   const [said, setSaid] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   // Closed on arrival, always. A window that opens itself over somebody's
@@ -194,7 +308,9 @@ export function Assistant({
   }
 
   /** Roughly the server's own ceiling, so the refusal arrives instantly. */
-  const MAX_FILE_BYTES = 400_000;
+  // Bigger than the old text-only limit, because a PDF carries layout as
+  // well as words and a 400 KB ceiling refused ordinary vendor paperwork.
+  const MAX_FILE_BYTES = 8_000_000;
 
   async function readDocument(file: File) {
     if (busy) return;
@@ -213,11 +329,11 @@ export function Assistant({
     setBusy(true);
     setTurns((was) => [...was, { speaker: "person", said: `📄 ${file.name}` }]);
     try {
-      const body = await file.text();
-      const result = await draftFromDocument(projectId, {
-        name: file.name,
-        body,
-      });
+      // The bytes go to the server, not text read here: a browser cannot
+      // read a PDF or a .docx, and vendor paperwork is one or the other.
+      const form = new FormData();
+      form.set("file", file);
+      const result = await draftFromFile(projectId, form);
       // Only claim what actually happened. "Every question was already
       // answered" was said when the service was simply unreachable.
       const partly =
@@ -308,7 +424,11 @@ export function Assistant({
             <span className="assistant-who">
               {turn.speaker === "person" ? "You" : "Assistant"}
             </span>
-            {turn.said}
+            {turn.speaker === "agent" && consulted.length > 0 ? (
+              <Cited said={turn.said} clauses={consulted} onRead={setReading} />
+            ) : (
+              turn.said
+            )}
             {turn.speaker === "agent" &&
               i === turns.length - 1 &&
               consulted.length > 0 && (
@@ -317,13 +437,15 @@ export function Assistant({
                   {consulted.length === 1
                     ? "1 clause"
                     : `${consulted.length} clauses`}
-                  : {consulted.join(", ")}
                 </span>
               )}
           </p>
         ))}
         {busy && <Working />}
         <div ref={endRef} />
+        {reading && (
+          <ClauseDialog clause={reading} onClose={() => setReading(null)} />
+        )}
       </div>
 
       <div className="assistant-attach">
@@ -331,7 +453,7 @@ export function Assistant({
           ref={fileRef}
           id="assistant-file"
           type="file"
-          accept=".txt,.md,.markdown,text/plain,text/markdown"
+          accept=".txt,.md,.markdown,.pdf,.docx,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           className="sr-only"
           onChange={(event) => {
             const file = event.target.files?.[0];
