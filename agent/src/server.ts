@@ -93,12 +93,12 @@ const server = createServer(async (req, res) => {
       res.end(JSON.stringify({ error: "the request was not valid JSON" }));
       return;
     }
-    const scores = await scoreIntake({
+    const scoring = await scoreIntake({
       description: task.description ?? "",
       dimensions: task.dimensions ?? [],
     });
     res.writeHead(200, { "content-type": "application/json" });
-    res.end(JSON.stringify({ scores }));
+    res.end(JSON.stringify(scoring));
     return;
   }
 

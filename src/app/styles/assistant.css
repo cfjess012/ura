@@ -468,6 +468,58 @@
   line-height: 1.45;
   color: var(--neutral-600);
 }
+/* A contradiction, in the person's own words. Warning treatment because a
+   document that disagrees with itself routes wrongly — and never colour
+   alone: the heading names what this is (SPEC §11.1). */
+.coherence-conflicts {
+  margin-top: 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.coherence-conflicts-heading {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--warning-strong);
+}
+.coherence-conflict {
+  border-left: 3px solid var(--warning-strong);
+  background: var(--warning-bg);
+  border-radius: 0 6px 6px 0;
+  padding: 0.55rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.coherence-quote {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--neutral-800);
+}
+.coherence-quote::before {
+  content: "\201C";
+}
+.coherence-quote::after {
+  content: "\201D";
+}
+.coherence-versus {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--warning-strong);
+}
+.coherence-conflict-why {
+  margin: 0.1rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--neutral-700);
+}
 .coherence .help {
   margin: 0;
   font-size: 0.78rem;

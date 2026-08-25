@@ -124,9 +124,18 @@ export function composeReportPrompt(task: ReportTask): string {
 
 export function composeScorePrompt(task: ScoreTask): string {
   const dimensions = task.dimensions
-    .map(
-      (d) =>
-        `### ${d.id} — ${d.label}\n\n0: ${d.anchors["0"]}\n1: ${d.anchors["1"]}\n2: ${d.anchors["2"]}`,
+    .map((d) =>
+      // All four levels, because a grader shown only the bottom two
+      // cannot place anything above them. This rendered "0: undefined"
+      // and hid levels 3 and 4 for as long as the rubric has had four.
+      [
+        `### ${d.id} — ${d.label}`,
+        "",
+        `1: ${d.anchors["1"]}`,
+        `2: ${d.anchors["2"]}`,
+        `3: ${d.anchors["3"]}`,
+        `4: ${d.anchors["4"]}`,
+      ].join("\n"),
     )
     .join("\n\n");
   return [

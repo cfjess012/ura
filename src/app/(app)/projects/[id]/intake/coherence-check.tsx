@@ -167,6 +167,32 @@ function Result({
                 )}
               </p>
               <p className="coherence-ask-body">{ask.sentence}</p>
+              {ask.conflicts.length > 0 && (
+                <div className="coherence-conflicts">
+                  {ask.conflictHeading && (
+                    <p className="coherence-conflicts-heading">
+                      {ask.conflictHeading}
+                    </p>
+                  )}
+                  {ask.conflicts.map((clash, at) => (
+                    <div className="coherence-conflict" key={at}>
+                      <blockquote className="coherence-quote">
+                        {clash.one}
+                      </blockquote>
+                      <p className="coherence-versus">against</p>
+                      <blockquote className="coherence-quote">
+                        {clash.two}
+                      </blockquote>
+                      {clash.why && (
+                        <p className="coherence-conflict-why">{clash.why}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {ask.unquoted && (
+                <p className="coherence-ask-body">{ask.unquoted}</p>
+              )}
               {ask.anchor && (
                 <p className="coherence-anchor">
                   Full marks here: {ask.anchor}

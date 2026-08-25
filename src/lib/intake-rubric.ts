@@ -33,7 +33,14 @@ export type Criterion = {
   why: string;
   anchors: Record<"1" | "2" | "3" | "4", string>;
   ask: Record<"1" | "2" | "3", string>;
+  /** Heading over the quoted halves, where a criterion carries conflicts. */
+  conflictHeading?: string;
+  /** Said when the level claims a contradiction but none survived the gate. */
+  noConflictFound?: string;
 };
+
+/** Two things in the intake that cannot both be true, in the person's words. */
+export type Conflict = { one: string; two: string; why: string };
 
 type RubricDoc = {
   version: string;
@@ -45,6 +52,7 @@ type RubricDoc = {
   engine: { failOpenOnAgentError: boolean; opening: string };
   messages: { tooShort: string; notProse: string };
   bands: Array<{ from: number; label: string; meaning: string }>;
+  ceilings: { byCriterion: Record<string, Record<string, string>> };
   criteria: Criterion[];
 };
 
@@ -89,6 +97,12 @@ export type Ask = {
   why: string;
   /** True for the two that decide routing. */
   routing: boolean;
+  /** The contradictions behind this ask, each quoted from their own answers. */
+  conflicts: Conflict[];
+  /** Heading over those quotes. */
+  conflictHeading: string | null;
+  /** Shown when the level claims a contradiction and none was quotable. */
+  unquoted: string | null;
 };
 
 export type Coherence = {
@@ -115,7 +129,10 @@ export function bandFor(score: number): { label: string; meaning: string } {
  * Turn levels into what a person reads. Deterministic: the same levels
  * always produce the same words, and those words live in the rubric file.
  */
-export function coherenceFrom(scored: Scored[]): Coherence {
+export function coherenceFrom(
+  scored: Scored[],
+  conflicts: Conflict[] = [],
+): Coherence {
   const outOf = CRITERIA.length * 4;
   if (scored.length === 0) {
     return {
@@ -138,6 +155,9 @@ export function coherenceFrom(scored: Scored[]): Coherence {
     const level = found?.level ?? 4;
     total += level;
     if (level >= 4) continue;
+    // Conflicts belong to the criterion that is about contradiction. They
+    // are already verbatim — the agent discarded any it could not quote.
+    const mine = criterion.id === "consistency" ? conflicts : [];
     asks.push({
       id: criterion.id,
       label: criterion.label,
@@ -146,6 +166,16 @@ export function coherenceFrom(scored: Scored[]): Coherence {
       anchor: criterion.anchors["4"],
       why: criterion.why,
       routing: ROUTING_CRITICAL.has(criterion.id),
+      conflicts: mine,
+      conflictHeading:
+        mine.length > 0 ? (criterion.conflictHeading ?? null) : null,
+      // The copy for levels 1 and 2 promises the halves are quoted below.
+      // When none survived the gate, say something true instead of leaving
+      // a person hunting for a list that is not there.
+      unquoted:
+        mine.length === 0 && level <= 2
+          ? (criterion.noConflictFound ?? null)
+          : null,
     });
   }
 
@@ -157,7 +187,7 @@ export function coherenceFrom(scored: Scored[]): Coherence {
     return a.level - b.level;
   });
 
-  const band = bandFor(total);
+  const band = ceilingApplied(bandFor(total), scored);
   return {
     score: total,
     outOf,
@@ -167,6 +197,32 @@ export function coherenceFrom(scored: Scored[]): Coherence {
     asks,
     checkedByModel: true,
   };
+}
+
+/**
+ * Lower a band when a criterion is bad enough that the sum lies.
+ *
+ * Five criteria summed will call a self-contradicting intake "Workable" so
+ * long as the other four are strong — but the contradiction is not offset
+ * by them, it undermines them: every one of those four answers might be the
+ * half that is wrong. The ceiling is per criterion and lives in the rubric.
+ */
+function ceilingApplied(
+  band: { label: string; meaning: string },
+  scored: Scored[],
+): { label: string; meaning: string } {
+  const order = RUBRIC.bands.map((b) => b.label);
+  let capped = band;
+  for (const s of scored) {
+    const ceiling = RUBRIC.ceilings?.byCriterion?.[s.id]?.[String(s.level)];
+    if (!ceiling) continue;
+    // Bands are listed best first, so a later index is a worse band.
+    if (order.indexOf(ceiling) > order.indexOf(capped.label)) {
+      const found = RUBRIC.bands.find((b) => b.label === ceiling);
+      if (found) capped = { label: found.label, meaning: found.meaning };
+    }
+  }
+  return capped;
 }
 
 /** What to say when the model could not be asked. It passes, explicitly. */

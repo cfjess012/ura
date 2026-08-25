@@ -28,6 +28,13 @@ import {
   type AssessmentContext,
 } from "./agent-contract";
 
+export type IntakeConflict = { one: string; two: string; why: string };
+
+export type IntakeScoring = {
+  scores: Array<{ id: string; score: 1 | 2 | 3 | 4 }>;
+  conflicts: IntakeConflict[];
+};
+
 export type AgentTransport = {
   /** Which transport this is, for receipts and diagnostics. */
   readonly kind: "none" | "local" | "agentcore";
@@ -57,9 +64,11 @@ export type AgentTransport = {
     scenarios: Array<{ scenario: string; ask: string; from: string[] }>;
   } | null>;
   /**
-   * Score a description against the rubric. An empty list means the model
-   * could not be asked — and the caller lets the person through, because a
-   * quality assistant that blocks is a gate (§22.1).
+   * Score an intake against the rubric, and name what contradicts itself.
+   * Empty scores mean the model could not be asked — and the caller lets
+   * the person through, because a quality assistant that blocks is a gate
+   * (§22.1). Conflicts carry both halves verbatim so a person is shown
+   * their own words rather than a characterisation of them.
    */
   scoreIntake(input: {
     description: string;
@@ -68,7 +77,7 @@ export type AgentTransport = {
       label: string;
       anchors: Record<string, string>;
     }>;
-  }): Promise<Array<{ id: string; score: 0 | 1 | 2 }>>;
+  }): Promise<IntakeScoring>;
   /**
    * Suggest a rewrite of one long-form field. Null means none to offer —
    * a real answer, not a failure to handle.
@@ -107,7 +116,7 @@ function notConfigured(): AgentTransport {
       return null;
     },
     async scoreIntake() {
-      return [];
+      return { scores: [], conflicts: [] };
     },
     async rewriteIntake() {
       return null;
@@ -156,13 +165,19 @@ function localTransport(baseUrl: string): AgentTransport {
           },
           body: JSON.stringify(input),
         });
-        if (!response.ok) return [];
-        const body = (await response.json()) as { scores?: unknown };
-        return Array.isArray(body.scores) ? body.scores : [];
+        if (!response.ok) return { scores: [], conflicts: [] };
+        const body = (await response.json()) as {
+          scores?: unknown;
+          conflicts?: unknown;
+        };
+        return {
+          scores: Array.isArray(body.scores) ? body.scores : [],
+          conflicts: Array.isArray(body.conflicts) ? body.conflicts : [],
+        };
       } catch (cause) {
         // Fails open, deliberately and visibly.
         console.error("[agent] score-intake unreachable", cause);
-        return [];
+        return { scores: [], conflicts: [] };
       }
     },
     async rewriteIntake(input) {

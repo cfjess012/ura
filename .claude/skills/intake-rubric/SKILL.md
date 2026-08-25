@@ -55,6 +55,20 @@ Data Access and Data Sensitivity below 3 are called out first, because
 those two decide which risk areas open and who has to review it. A thin
 answer there is a wrong routing, not a vague one.
 
+**A contradiction caps the band, and that one *is* arithmetic.** Internal
+Consistency at 1 caps the band at Thin; at 2, at Workable — whatever the
+sum. Summing five criteria lets four strong answers carry a
+self-contradicting intake into "Workable. The gaps below are specific and
+quick to close", which is false comfort: the contradiction does not sit
+beside those four answers, it undermines them, because any one of them may
+be the half that is wrong. Ceilings live in `ceilings.byCriterion` in the
+JSON.
+
+This was found the hard way. An intake described a fraud-triage tool
+"processed via OpenAI's enterprise API" handling "claimant PII, financial
+details" — while answering No to third parties, No to AI, and Public to
+classification. It scored 16/20, "Workable", "quick to close".
+
 ## What may never be done with the score
 
 - **It never blocks submission.** G-69: a quality assistant that blocks has
@@ -64,10 +78,39 @@ answer there is a wrong routing, not a vague one.
 - **It never appears as a bare number.** A number a person cannot check is
   a number that replaces their judgement. Every score shows the anchor it
   was scored against, so the grade is readable rather than authoritative.
-- **A model assigns levels and nothing else.** The band, the wording, the
-  ordering of asks — all deterministic, all from the JSON.
+- **A model assigns levels and names contradictions, and nothing else.** The
+  band, the wording, the ordering of asks — all deterministic, all from the
+  JSON. A contradiction is the one thing a level cannot express: "two of
+  your answers disagree" is only useful attached to *which two*.
 - **It fails open.** No agent, a slow agent, a partial answer: the person
   carries on and a reviewer picks up what is thin.
+
+## Naming a contradiction
+
+Internal Consistency is the criterion a person cannot self-check, so it is
+the one where a bare level is worth least. The model returns
+`conflicts: [{one, two, why}]` alongside the levels, and **both halves must
+appear verbatim in the intake** — checked with `quoteAppearsVerbatim`, the
+same matcher the drafting gate uses. A conflict with an unquotable half is
+discarded before anybody sees it.
+
+Verbatim, because a conflict is an accusation that somebody contradicted
+themselves. Shown in their own words it can be checked in a second; shown as
+a characterisation it cannot be checked at all, and the cost of a wrong one
+is a person hunting for a disagreement that is not there.
+
+Two rules follow, both in the prompt:
+
+- Scoring consistency below 4 **without** a quotable contradiction is a
+  failed answer — the prompt says to score 4 and move on instead.
+- Look hardest **across the prose/picklist boundary**. Free text says
+  "OpenAI's enterprise API" and a dropdown says third-party: No. Both halves
+  are in the same document, which is exactly why the check reads the whole
+  intake as one document rather than field by field.
+
+When the level claims a contradiction and none survived the gate, the copy
+falls back to `noConflictFound` rather than leaving a person hunting for a
+list that is not there. Never promise a quote the architecture cannot show.
 
 ## The rewrite
 

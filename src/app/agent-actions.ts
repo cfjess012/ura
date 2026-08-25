@@ -620,6 +620,9 @@ export async function checkIntake(
               anchor: "",
               why: "Everything downstream routes on what you write here.",
               routing: true,
+              conflicts: [],
+              conflictHeading: null,
+              unquoted: null,
             },
           ],
         },
@@ -635,17 +638,18 @@ export async function checkIntake(
         rewritable: [],
       };
     }
-    const scores = await transport.scoreIntake({
+    const scoring = await transport.scoreIntake({
       description: document.join("\n"),
       dimensions: scoringBrief(),
     });
     return {
       ok: true as const,
       coherence: coherenceFrom(
-        scores.map((s) => ({
+        scoring.scores.map((s) => ({
           id: s.id,
           level: Math.min(4, Math.max(1, s.score)) as Level,
         })),
+        scoring.conflicts,
       ),
       rewritable: longForm,
     };

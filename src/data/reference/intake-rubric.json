@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-24.2",
+  "version": "2026-08-24.3",
   "comment": "The graded rubric behind the intake coherence check (FR-43). Five criteria scored 1-4 over the WHOLE intake read as one document — coherence is a property of the set, not of any one field. A model assigns levels and nothing else; the band, the wording and the order of the asks are all deterministic and all from this file. Anchors and asks are business copy: edit them here, never in code. See .claude/skills/intake-rubric/SKILL.md for why each criterion exists. It never blocks submission (G-69).",
   "floor": {
     "minWords": 15,
@@ -15,10 +15,26 @@
     "notProse": "That does not read as a description yet. The platform routes on what you write, so it needs real sentences about the activity."
   },
   "bands": [
-    { "from": 17, "label": "Robust", "meaning": "A reviewer can work from this as written." },
-    { "from": 13, "label": "Workable", "meaning": "Usable. The gaps below are specific and quick to close." },
-    { "from": 9, "label": "Thin", "meaning": "Routing will be working from guesses in places." },
-    { "from": 5, "label": "Not yet usable", "meaning": "As written, this cannot be assessed without asking you first." }
+    {
+      "from": 17,
+      "label": "Robust",
+      "meaning": "A reviewer can work from this as written."
+    },
+    {
+      "from": 13,
+      "label": "Workable",
+      "meaning": "Usable. The gaps below are specific and quick to close."
+    },
+    {
+      "from": 9,
+      "label": "Thin",
+      "meaning": "Routing will be working from guesses in places."
+    },
+    {
+      "from": 5,
+      "label": "Not yet usable",
+      "meaning": "As written, this cannot be assessed without asking you first."
+    }
   ],
   "criteria": [
     {
@@ -48,10 +64,12 @@
         "4": "Fully consistent. Technical, business, and user details align with no contradictions."
       },
       "ask": {
-        "1": "Two of your answers disagree with each other. Both are named below — one of them needs changing.",
-        "2": "Something here reads two ways. Worth a sentence to settle which you mean.",
+        "1": "Two of your answers disagree with each other. Both are quoted below — one of them needs changing.",
+        "2": "Something here reads two ways. The parts are quoted below; a sentence settling which you mean is enough.",
         "3": "Consistent as far as it goes."
-      }
+      },
+      "conflictHeading": "What disagrees",
+      "noConflictFound": "A reviewer will ask which of these is right, so it is worth settling now."
     },
     {
       "id": "audience",
@@ -101,5 +119,14 @@
         "3": "Worth naming the regime if one applies — the reviewer will ask."
       }
     }
-  ]
+  ],
+  "ceilings": {
+    "comment": "A criterion at this level caps the band, whatever the sum. A document that disagrees with itself is not 'Workable' because the other four criteria scored well — the routing built on it is unsafe either way.",
+    "byCriterion": {
+      "consistency": {
+        "1": "Thin",
+        "2": "Workable"
+      }
+    }
+  }
 }
