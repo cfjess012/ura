@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { currentPerson } from "@/lib/current-person";
 import { canAdminister, ROLE_LABEL } from "@/lib/people";
-import { handoffStore } from "@/lib/repo";
+import { handoffStore, projectStore } from "@/lib/repo";
+import { triagesSubmissions } from "@/lib/triage";
+import { needsReviewer, reviewStanding } from "@/lib/review-standing";
 import { switchUser } from "@/app/actions";
 import { AlertBell } from "./alert-bell";
 import { agentTransport } from "@/lib/agent";
@@ -21,10 +23,27 @@ export default async function AppLayout({
   // Both classes are DERIVED — nothing is stored as a message, so there is
   // nothing to poll, nothing to mark read one by one, and nothing that can
   // disagree with the conversation it describes.
-  const [waiting, news] = await Promise.all([
+  const [waiting, news, submitted] = await Promise.all([
     handoffStore().waitingOn(current),
     handoffStore().newsFor(current),
+    // Triage is one named person for the pilot (src/lib/triage.ts), so
+    // nobody else pays for this query.
+    triagesSubmissions(current.id)
+      ? projectStore().awaitingReview()
+      : Promise.resolve([]),
   ]);
+  // Derived like every other obligation: an assessment appears here while
+  // it still needs a reviewer and stops appearing when it doesn't. There is
+  // no alert row to write on submit and none to mark read afterwards.
+  const toReview = submitted
+    .filter((p) => needsReviewer(p.counts))
+    .map((p) => ({
+      projectId: p.id,
+      projectName: p.projectName,
+      requesterName: p.startedBy ?? "somebody",
+      submittedAt: p.submittedAt.toISOString(),
+      standing: reviewStanding(p.id, p.counts),
+    }));
   const now = new Date();
   return (
     <>
@@ -54,6 +73,7 @@ export default async function AppLayout({
               </Link>
             )}
             <AlertBell
+              toReview={toReview}
               obligations={waiting.map((h) => ({
                 handoffId: h.id,
                 projectId: h.projectId,

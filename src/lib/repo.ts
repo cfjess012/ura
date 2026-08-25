@@ -13,6 +13,7 @@
  * what this guarantees is that only this file and its wiring change.
  */
 import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import type { ReviewCounts } from "./review-standing";
 import { getDb, schema } from "./db";
 import type { IntakeChange, IntakePatch } from "./intake-values";
 import type { Person, Role } from "./people";
@@ -158,6 +159,15 @@ export interface ProjectStore {
    * explanation (N11).
    */
   countUnattributed(): Promise<number>;
+  /**
+   * Every submitted assessment, with what a reviewer still has to do — the
+   * counts `reviewStanding` turns into lines somebody can act on.
+   *
+   * One query rather than a pass per project: the reviewer's list and the
+   * bell both need this on every page load, and N assessments would
+   * otherwise be N round trips before anything renders.
+   */
+  awaitingReview(): Promise<SubmittedForReview[]>;
   get(id: string): Promise<ProjectRecord | null>;
   create(
     projectName: string,
@@ -176,6 +186,16 @@ export interface ProjectStore {
   ): Promise<boolean>;
   lastIntakeChange(projectId: string): Promise<LastIntakeChange | null>;
 }
+
+/** A submitted assessment and the raw counts behind its standing. */
+export type SubmittedForReview = {
+  id: string;
+  projectName: string;
+  businessUnit: string | null;
+  startedBy: string | null;
+  submittedAt: Date;
+  counts: ReviewCounts;
+};
 
 export function postgresProjectStore(): ProjectStore {
   const db = getDb();
@@ -225,6 +245,72 @@ export function postgresProjectStore(): ProjectStore {
             : undefined,
         );
       return row?.total ?? 0;
+    },
+    async awaitingReview() {
+      // Findings carry no "open" column: a finding is open until something
+      // in dispositions settles it, so that is what is asked.
+      const rows = await db.execute(sql`
+        select
+          p.id,
+          p.project_name          as "projectName",
+          p.business_unit         as "businessUnit",
+          pe.name                 as "startedBy",
+          p.submitted_at          as "submittedAt",
+          (select count(distinct a.question_id) from answers a
+             where a.project_id = p.id and a.question_id like 't3.%')::int
+                                  as "answered",
+          (select count(distinct at.question_id) from attestations at
+             where at.project_id = p.id)::int
+                                  as "attested",
+          (select count(*) from findings f
+             left join dispositions d on d.finding_id = f.id
+             where f.project_id = p.id and d.id is null and f.kind = 'gap')::int
+                                  as "openGaps",
+          (select count(*) from findings f
+             left join dispositions d on d.finding_id = f.id
+             where f.project_id = p.id and d.id is null
+               and f.kind = 'enhancement')::int
+                                  as "openEnhancements",
+          (select count(*) from findings f
+             left join dispositions d on d.finding_id = f.id
+             where f.project_id = p.id and d.id is null
+               and f.kind = 'non-compliance')::int
+                                  as "openViolations",
+          -- jsonb_typeof guard, not decoration: one legacy row holds the
+          -- string "[]" rather than an array, and jsonb_array_length
+          -- throws on a scalar rather than returning null.
+          coalesce((select case
+               when jsonb_typeof(dec.gaps) = 'array'
+               then jsonb_array_length(dec.gaps) else 0 end
+             from declarations dec
+             where dec.project_id = p.id
+             order by dec.declared_at desc limit 1), 0)::int
+                                  as "declaredGaps"
+        from projects p
+        left join people pe on pe.id = p.created_by
+        where p.submitted_at is not null
+        order by p.submitted_at desc
+      `);
+      const list = (
+        Array.isArray(rows) ? rows : ((rows as { rows?: unknown[] }).rows ?? [])
+      ) as Array<Record<string, unknown>>;
+      return list.map((row) => ({
+        id: String(row.id),
+        projectName: String(row.projectName),
+        businessUnit: row.businessUnit
+          ? labelOf(row.businessUnit as ReferenceAnswer)
+          : null,
+        startedBy: row.startedBy ? String(row.startedBy) : null,
+        submittedAt: new Date(row.submittedAt as string),
+        counts: {
+          answered: Number(row.answered ?? 0),
+          attested: Number(row.attested ?? 0),
+          openGaps: Number(row.openGaps ?? 0),
+          openEnhancements: Number(row.openEnhancements ?? 0),
+          openViolations: Number(row.openViolations ?? 0),
+          declaredGaps: Number(row.declaredGaps ?? 0),
+        },
+      }));
     },
     async countUnattributed() {
       const [row] = await db

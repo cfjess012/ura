@@ -18,6 +18,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { clearNews } from "@/app/handoff-actions";
 import { timeAgo } from "@/lib/handoff";
+import type { StandingItem } from "@/lib/review-standing";
 
 export type Obligation = {
   handoffId: string;
@@ -41,19 +42,30 @@ export type NewsItem = {
   href: string;
 };
 
+/** A submitted assessment waiting on this reviewer, and what it raised. */
+export type ToReview = {
+  projectId: string;
+  projectName: string;
+  requesterName: string;
+  submittedAt: string;
+  standing: StandingItem[];
+};
+
 export function AlertBell({
   obligations,
   news,
+  toReview = [],
 }: {
   obligations: Obligation[];
   news: NewsItem[];
+  toReview?: ToReview[];
 }) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [cleared, setCleared] = React.useState(false);
   const panelRef = React.useRef<HTMLDivElement>(null);
   const shown = cleared ? [] : news;
-  const count = obligations.length + shown.length;
+  const count = obligations.length + shown.length + toReview.length;
 
   React.useEffect(() => {
     if (!open) return;
@@ -88,7 +100,7 @@ export function AlertBell({
         aria-label={
           count === 0
             ? "Alerts — nothing waiting"
-            : `Alerts — ${obligations.length} needing action, ${shown.length} unread`
+            : `Alerts — ${obligations.length + toReview.length} needing action, ${shown.length} unread`
         }
         onClick={() => setOpen((was) => !was)}
       >
@@ -104,9 +116,46 @@ export function AlertBell({
 
       {open && (
         <div className="bell-panel" role="dialog" aria-label="Alerts">
-          {obligations.length > 0 && (
+          {(obligations.length > 0 || toReview.length > 0) && (
             <div className="bell-obligations">
               <p className="bell-section">Needs you</p>
+              {/* A submission is not a message somebody sent — it is an
+                  assessment that now needs signing off. It says what it
+                  raised, so the reviewer knows what they are opening, and
+                  each line goes to that thing rather than to the project. */}
+              {toReview.map((item) => (
+                <div className="bell-review" key={item.projectId}>
+                  <button
+                    type="button"
+                    className="bell-row bell-row-obligation"
+                    onClick={() => go(`/projects/${item.projectId}/review`)}
+                  >
+                    <span className="bell-icon warn" aria-hidden="true">
+                      !
+                    </span>
+                    <span className="bell-text">
+                      <strong>{item.projectName}</strong>
+                      <span className="bell-meta">
+                        submitted by {item.requesterName} ·{" "}
+                        {timeAgo(new Date(item.submittedAt), new Date())}
+                      </span>
+                    </span>
+                  </button>
+                  <ul className="bell-standing">
+                    {item.standing.map((thing) => (
+                      <li key={thing.kind}>
+                        <button
+                          type="button"
+                          className={`chip chip-${thing.kind}`}
+                          onClick={() => go(thing.href)}
+                        >
+                          {thing.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
               {obligations.map((item) => (
                 <button
                   type="button"
