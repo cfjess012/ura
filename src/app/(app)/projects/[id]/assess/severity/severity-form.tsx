@@ -251,6 +251,12 @@ export function SeverityForm({
   const allDetails = { ...ledger.details, ...details };
   const owed = accumulateControls(everyQuestion, allBands, allDetails);
   const answered = items.filter((i) => bands[i.question.questionId]).length;
+  // What the platform settled without asking. This is the half of the
+  // ledger a person genuinely needs to know about, so it is the half the
+  // folded summary names.
+  const derivedCount = items.filter(
+    (i) => i.derived && !bands[i.question.questionId],
+  ).length;
 
   // FR-11's ledger is live. The server hands over every severity recorded
   // across the assessment; this screen's own answers are then taken from
@@ -426,8 +432,29 @@ export function SeverityForm({
       {/* Severities from the server cover the whole assessment; the ones on
           THIS screen are overridden from live state, or the ledger would sit
           a save behind the answer that changed it — and FR-11 says live. */}
-      <div className="card ledger">
-        <h2>Where this assessment stands</h2>
+      {/*
+        Folded, not removed.
+
+        A requester does not need a running ledger of ten lit paths and
+        fifteen severity rows in the engine's own vocabulary — "Retrieves
+        enterprise data to answer (RAG)" is a reviewer's phrase, and the
+        panel was longer than the questions it sat beside. What they need is
+        how much is left and, on demand, what the platform worked out
+        WITHOUT asking them: that second one is the transparency this
+        product is built on and cannot be dropped, only put one click away.
+      */}
+      <details className="card ledger">
+        <summary className="ledger-summary">
+          <span className="ledger-summary-title">
+            Where this assessment stands
+          </span>
+          <span className="ledger-summary-line">
+            {answered} of {items.length} answered here
+            {derivedCount > 0
+              ? ` · ${derivedCount} worked out from what you told us`
+              : ""}
+          </span>
+        </summary>
         <p className="help">
           Recomputed from your answers every time you give one — nothing here is
           stored, so changing an answer changes this.
@@ -478,7 +505,7 @@ export function SeverityForm({
             )}
           </section>
         </div>
-      </div>
+      </details>
 
       {owed.length > 0 && (
         <div className="card owed">

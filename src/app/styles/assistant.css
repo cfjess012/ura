@@ -4753,3 +4753,11 @@
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
+
+/* Only the corner resizes now. The edge handles are gone rather than
+   hidden — the corner does both axes and all four arrow keys, so they were
+   chrome around a panel whose whole problem was taking up room. */
+.assistant-grip,
+.assistant-grip-top {
+  display: none;
+}

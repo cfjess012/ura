@@ -895,48 +895,12 @@ export function Assistant({
       role="dialog"
       aria-modal="false"
     >
-      <div
-        className="assistant-grip"
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Resize the assistant"
-        tabIndex={0}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          setDragging("x");
-        }}
-        onKeyDown={(event) => {
-          const now = width ?? DEFAULT_WIDTH;
-          if (event.key === "ArrowLeft") resize(now + STEP);
-          else if (event.key === "ArrowRight") resize(now - STEP);
-          else if (event.key === "Home") resize(WIDEST);
-          else if (event.key === "End") resize(NARROWEST);
-          else return;
-          event.preventDefault();
-        }}
-      />
-      <div
-        className="assistant-grip-top"
-        role="separator"
-        aria-orientation="horizontal"
-        aria-label="Change the assistant's height"
-        tabIndex={0}
-        onPointerDown={(event) => {
-          event.preventDefault();
-          setDragging("y");
-        }}
-        onKeyDown={(event) => {
-          const now = height ?? DEFAULT_HEIGHT;
-          if (event.key === "ArrowUp") restack(now + STEP);
-          else if (event.key === "ArrowDown") restack(now - STEP);
-          else if (event.key === "Home") restack(TALLEST);
-          else if (event.key === "End") restack(SHORTEST);
-          else return;
-          event.preventDefault();
-        }}
-      />
-      {/* The corner does both at once, which is what somebody reaches for
-          first when a panel is the wrong shape rather than the wrong size. */}
+      {/*
+        The only handle. There were three — left edge, top edge, corner —
+        and two of them were furniture: the corner already does both axes
+        with the pointer and all four arrow keys, so the other two added
+        chrome around a panel whose whole problem was taking up room.
+      */}
       <div
         className="assistant-grip-corner"
         role="separator"

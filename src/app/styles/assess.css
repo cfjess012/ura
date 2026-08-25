@@ -834,3 +834,47 @@
   color: var(--brand);
   text-decoration: underline;
 }
+
+/* The ledger, folded. It is a reviewer's view of the machinery and it sat
+   longer than the questions beside it; what a requester needs is the count
+   and, on demand, what was worked out without asking them. */
+.ledger > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.ledger > summary::-webkit-details-marker {
+  display: none;
+}
+.ledger-summary-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--navy);
+}
+.ledger-summary-title::before {
+  content: "\203A";
+  display: inline-block;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--neutral-400);
+  transition: transform 120ms ease;
+}
+.ledger[open] > summary .ledger-summary-title::before {
+  transform: rotate(90deg);
+}
+.ledger-summary-line {
+  padding-left: 1.05rem;
+  font-size: 0.8rem;
+  color: var(--neutral-600);
+  font-variant-numeric: tabular-nums;
+}
+.ledger > summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
