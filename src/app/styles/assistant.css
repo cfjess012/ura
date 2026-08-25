@@ -4519,3 +4519,49 @@
 .assistant-attach-label:focus-within svg {
   opacity: 1;
 }
+
+/* Drag the left edge. The panel is anchored right, so dragging left widens
+   it. A real separator rather than a bare strip: it takes focus and answers
+   arrow keys, because a resize only a mouse can reach excludes people. */
+.assistant-grip {
+  position: absolute;
+  left: -3px;
+  top: 12%;
+  bottom: 12%;
+  width: 10px;
+  cursor: ew-resize;
+  border-radius: 999px;
+  touch-action: none;
+}
+/* The visible part is a slim bar inside a wider hit area — easy to grab,
+   quiet when nobody is trying to. */
+.assistant-grip::after {
+  content: "";
+  position: absolute;
+  inset: 0 3px;
+  border-radius: 999px;
+  background: var(--neutral-300);
+  opacity: 0;
+  transition: opacity 0.15s var(--ease);
+}
+.assistant-grip:hover::after,
+.assistant-grip:focus-visible::after,
+.assistant.dragging .assistant-grip::after {
+  opacity: 1;
+  background: var(--brand);
+}
+.assistant-grip:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+/* While dragging, the pointer owns the page — no text selection anywhere,
+   and no transition fighting the drag. */
+.assistant.dragging {
+  user-select: none;
+  transition: none;
+}
+
+/* The document mark: page in brand blue, spark in the accent green. */
+.docspark-spark {
+  fill: var(--success);
+}

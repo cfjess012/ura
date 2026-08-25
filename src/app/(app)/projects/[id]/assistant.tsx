@@ -50,6 +50,17 @@ import { isFailure } from "@/lib/errors";
  * than finished. The elapsed count is real. The receipt underneath the
  * reply, once it lands, is the part that is actually checkable.
  */
+/** How narrow the panel may get before it stops being usable. */
+const NARROWEST = 320;
+/** And how wide before it stops being a panel and becomes the page. */
+const WIDEST = 900;
+/** The gap the panel keeps from the right edge, in the stylesheet too. */
+const RIGHT_GAP = 24;
+/** What it is before anybody has dragged it — matches the stylesheet. */
+const DEFAULT_WIDTH = 384;
+/** One arrow press. Big enough to be worth pressing, small enough to aim. */
+const STEP = 48;
+
 export type Drafted = {
   description: string;
   placeholders: string[];
@@ -472,8 +483,8 @@ function DocSpark() {
   return (
     <svg
       viewBox="0 0 24 24"
-      width="15"
-      height="15"
+      width="17"
+      height="17"
       aria-hidden="true"
       focusable="false"
     >
@@ -493,9 +504,14 @@ function DocSpark() {
         strokeLinejoin="round"
       />
       {/* And the spark, sitting on the page rather than beside it. */}
+      {/* And the spark, in the accent green rather than the page's blue.
+          Two colours because the two halves say different things — this is
+          a document, and a model is going to read it — and because the pair
+          is the one the product already uses where it wants to be noticed.
+          Named rather than currentColor: it must not inherit the page. */}
       <path
-        fill="currentColor"
-        d="M10.4 10.6l.95 2.5 2.5.95-2.5.95-.95 2.5-.95-2.5-2.5-.95 2.5-.95.95-2.5z"
+        className="docspark-spark"
+        d="M10.4 10.2l1.05 2.75 2.75 1.05-2.75 1.05-1.05 2.75-1.05-2.75-2.75-1.05 2.75-1.05 1.05-2.75z"
       />
     </svg>
   );
@@ -542,6 +558,7 @@ export function Assistant({
   const [consulted, setConsulted] = React.useState<Clause[]>([]);
   /** The clause being read in full, if any. */
   const [reading, setReading] = React.useState<Clause | null>(null);
+  const [dragging, setDragging] = React.useState(false);
   /**
    * Whether the panel is opened out.
    *
@@ -550,14 +567,56 @@ export function Assistant({
    * arrived through a letterbox. Kept for the tab, because a person who
    * widened it once wants it wide.
    */
-  const [wide, setWide] = React.useState(false);
+  const [width, setWidth] = React.useState<number | null>(null);
   React.useEffect(() => {
     try {
-      setWide(sessionStorage.getItem("ura.assistant-wide") === "yes");
+      const kept = Number(sessionStorage.getItem("ura.assistant-width"));
+      if (Number.isFinite(kept) && kept >= NARROWEST) setWidth(kept);
     } catch {
       // Storage disabled. It opens at the usual size, which is fine.
     }
   }, []);
+
+  /**
+   * Drag the left edge to resize.
+   *
+   * A toggle offered two sizes and somebody reading a five-paragraph
+   * suggestion beside a form wants their own. The panel is anchored right,
+   * so dragging left makes it wider — width is the distance from the
+   * pointer to the right edge.
+   *
+   * The handle is a real separator with arrow-key support, not a strip that
+   * only responds to a mouse: a resize nobody can reach from the keyboard
+   * is a resize that excludes people, and it is what let the button go.
+   */
+  const resize = React.useCallback((to: number) => {
+    const capped = Math.max(
+      NARROWEST,
+      Math.min(to, window.innerWidth - 48, WIDEST),
+    );
+    setWidth(capped);
+    try {
+      sessionStorage.setItem("ura.assistant-width", String(capped));
+    } catch {
+      // It still resizes for this visit.
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!dragging) return;
+    const move = (event: PointerEvent) =>
+      resize(window.innerWidth - event.clientX - RIGHT_GAP);
+    const stop = () => setDragging(false);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop);
+    // Without this, dragging over the page selects text all the way down.
+    document.body.style.userSelect = "none";
+    return () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+      document.body.style.userSelect = "";
+    };
+  }, [dragging, resize]);
   /** A description drafted from a document, waiting to be looked at. */
   const [draft, setDraft] = React.useState<Drafted | null>(null);
   const [said, setSaid] = React.useState("");
@@ -734,29 +793,34 @@ export function Assistant({
 
   return (
     <section
-      className={wide ? "assistant wide" : "assistant"}
+      className={dragging ? "assistant dragging" : "assistant"}
+      style={width ? { width: `${width}px` } : undefined}
       aria-label="Assistant"
       role="dialog"
       aria-modal="false"
     >
+      <div
+        className="assistant-grip"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize the assistant"
+        tabIndex={0}
+        onPointerDown={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onKeyDown={(event) => {
+          const now = width ?? DEFAULT_WIDTH;
+          if (event.key === "ArrowLeft") resize(now + STEP);
+          else if (event.key === "ArrowRight") resize(now - STEP);
+          else if (event.key === "Home") resize(WIDEST);
+          else if (event.key === "End") resize(NARROWEST);
+          else return;
+          event.preventDefault();
+        }}
+      />
       <div className="assistant-head">
         <p className="assistant-title">Talk it through</p>
-        <button
-          type="button"
-          className="assistant-grow"
-          aria-pressed={wide}
-          onClick={() => {
-            const next = !wide;
-            setWide(next);
-            try {
-              sessionStorage.setItem("ura.assistant-wide", next ? "yes" : "no");
-            } catch {
-              // Nothing to do: the panel still resizes for this visit.
-            }
-          }}
-        >
-          {wide ? "Shrink" : "Expand"}
-        </button>
         <button
           type="button"
           className="assistant-close"
