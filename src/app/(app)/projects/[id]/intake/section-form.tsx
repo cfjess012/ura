@@ -776,8 +776,16 @@ function Field({
             <span className="guide-count">{field.helpPoints.length}</span>
           </summary>
           <ul className="guide-points">
-            {field.helpPoints.map((point, at) => (
-              <li key={at}>{point}</li>
+            {field.helpPoints.map((point) => (
+              <li key={point.ask}>
+                {/* The question first, in the words somebody would use
+                    asking a colleague; the detail after it, quieter. A
+                    person answering a form can answer a question — a
+                    specification of the answer they have to translate
+                    first is where the hesitating starts. */}
+                <span className="guide-ask">{point.ask}</span>
+                <span className="guide-more">{point.more}</span>
+              </li>
             ))}
           </ul>
         </details>

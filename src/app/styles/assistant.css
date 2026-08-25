@@ -978,15 +978,27 @@
 }
 .guide-points li {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
   font-size: 0.79rem;
   line-height: 1.5;
   color: var(--neutral-700);
+}
+/* The question carries the eye down the list; the detail answers it for
+   anybody who needs more than the question. */
+.guide-ask {
+  font-weight: 700;
+  color: var(--navy);
+}
+.guide-more {
+  color: var(--neutral-600);
 }
 .guide-points li::before {
   content: "";
   position: absolute;
   left: -0.75rem;
-  top: 0.6em;
+  top: 0.62em;
   width: 4px;
   height: 4px;
   border-radius: 50%;

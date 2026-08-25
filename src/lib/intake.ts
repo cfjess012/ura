@@ -65,7 +65,7 @@ export type IntakeField = {
    * them. Each point is one of the things the rubric looks for, said in
    * plain words — so the guidance and the grading cannot drift apart.
    */
-  helpPoints?: string[];
+  helpPoints?: Array<{ ask: string; more: string }>;
   /** For type "note": the reassurance shown. Notes ask nothing and store nothing. */
   body?: string;
   conditional?: IntakeCondition;
@@ -111,13 +111,41 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
         type: "textarea",
         required: true,
         help: "What this is, why the organisation wants it, and how it works — in plain terms. This is the answer the AI check reads most closely.",
+        // Written for somebody who does not work in risk. The old version
+        // said "what the system decides or produces on its own" and "any
+        // supplier, external API, or system outside your team" — accurate,
+        // and the vocabulary of the people who wrote the rubric rather than
+        // the people filling in the form. A question they can answer beats
+        // a specification of the answer.
         helpPoints: [
-          "What is happening today that this is meant to change, and who benefits.",
-          "What the system decides or produces on its own, and what a person decides or reviews instead.",
-          "Who uses it, and who is affected by what it produces even if they never touch it.",
-          "What data it reads, holds or produces — and say plainly if any of it identifies a person, or is health, financial or otherwise sensitive.",
-          "Where that data goes: any supplier, external API, or system outside your team, and where it ends up being stored.",
-          "Whether this is a pilot, a limited rollout, or everyone at once.",
+          {
+            ask: "What is it?",
+            more: "What the thing does, in the words you would use telling a colleague about it.",
+          },
+          {
+            ask: "Why now?",
+            more: "What happens today that this changes, and who is better off for it.",
+          },
+          {
+            ask: "Who uses it?",
+            more: "Who works with it day to day — and who is affected by what it produces, even if they never open it.",
+          },
+          {
+            ask: "Who decides?",
+            more: "What it works out by itself, and where a person still looks at it and says yes or no.",
+          },
+          {
+            ask: "What information?",
+            more: "What it reads or creates. Say plainly if any of it is about people, or is money, health or anything you would not email around.",
+          },
+          {
+            ask: "Where does it go?",
+            more: "Anyone outside your team who sees it — a supplier, another system, a tool you signed up for — and where it ends up.",
+          },
+          {
+            ask: "How many people?",
+            more: "A handful to start with, one team, or everybody.",
+          },
         ],
       },
       {
@@ -137,9 +165,18 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
           "Shown because you told us this uses AI or machine learning.",
         help: "What it decides or produces, what data it uses, and how much a person reviews before anything happens. If you don't know the details, say what you do know — a reviewer will follow up.",
         helpPoints: [
-          "Which model or service does the work, and whose it is.",
-          "What it is given, and what it hands back.",
-          "Whether a person checks its output before anything acts on it — and say so if nobody does.",
+          {
+            ask: "Whose AI is it?",
+            more: "The name of the tool or model doing the work, and whether it is yours or somebody else's.",
+          },
+          {
+            ask: "What goes in and out?",
+            more: "What you give it, and what it gives back.",
+          },
+          {
+            ask: "Who checks it?",
+            more: "Whether a person looks at what it produces before anything happens — and say so if nobody does.",
+          },
         ],
       },
       {

@@ -342,7 +342,10 @@ describe("long-form fields say how to answer them well", () => {
 
   it("never caps the length of an answer the rubric grades on detail", () => {
     for (const field of ALL_FIELDS) {
-      const said = [field.help ?? "", ...(field.helpPoints ?? [])].join(" ");
+      const said = [
+        field.help ?? "",
+        ...(field.helpPoints ?? []).map((p) => `${p.ask} ${p.more}`),
+      ].join(" ");
       expect(said, `${field.id} tells people to write less`).not.toMatch(
         /is plenty|keep it (short|brief)|no more than|a sentence or two/i,
       );
@@ -353,12 +356,15 @@ describe("long-form fields say how to answer them well", () => {
     const points = (
       ALL_FIELDS.find((f) => f.id === "projectDescription")?.helpPoints ?? []
     )
+      .map((p) => `${p.ask} ${p.more}`)
       .join(" ")
       .toLowerCase();
     // The four the rubric scores beyond plain clarity.
     expect(points).toMatch(/decides|produces/); // what it does vs a person
     expect(points).toMatch(/who uses it|affected/); // audience & scope
-    expect(points).toMatch(/identifies a person|sensitive/); // sensitivity
-    expect(points).toMatch(/supplier|external|outside/); // access & flow
+    // Plain words on purpose: this is read by people who do not work in
+    // risk, and "personally identifiable" is not how they would say it.
+    expect(points).toMatch(/about people|health|money/); // sensitivity
+    expect(points).toMatch(/supplier|outside|another system/); // access & flow
   });
 });
