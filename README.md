@@ -97,6 +97,12 @@ On a genuinely locked-down machine the shortest path is **hosted Postgres**:
 create a free database, paste its connection string into `DATABASE_URL` and
 `E2E_DATABASE_URL` (two different database names), then:
 
+A hosted connection string carries `?sslmode=require`, which is honoured —
+the driver maps it through, and so do the migrate and reset scripts. What a
+hosted plan usually will _not_ let you do is create a database from SQL, so
+make both in their console rather than relying on `pnpm e2e:db`; that script
+says so plainly instead of failing obscurely.
+
 ```powershell
 pnpm install
 pnpm db:migrate; pnpm instrument:seed; pnpm demo:seed
