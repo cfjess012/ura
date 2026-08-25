@@ -16,6 +16,7 @@ import type { ReportTask } from "./report.ts";
 import type { ScoreTask } from "./score-intake.ts";
 import type { RewriteTask } from "./rewrite-intake.ts";
 import type { DescribeTask } from "./describe-intake.ts";
+import type { InsightTask } from "./insight.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const CORE = readFileSync(join(here, "..", "prompts", "core.md"), "utf8");
@@ -36,6 +37,7 @@ const DESCRIBE = readFileSync(
   join(here, "..", "prompts", "describe-intake.md"),
   "utf8",
 );
+const INSIGHT = readFileSync(join(here, "..", "prompts", "insight.md"), "utf8");
 
 /**
  * A short hash of the locked core, recorded on every span. If a run's
@@ -49,6 +51,7 @@ export function promptVersion(): string {
     .update(SCORE)
     .update(REWRITE)
     .update(DESCRIBE)
+    .update(INSIGHT)
     .digest("hex")
     .slice(0, 12);
 }
@@ -254,5 +257,30 @@ export function composeDescribePrompt(task: DescribeTask): string {
     "",
     `## The document they gave us: ${task.documentName}`,
     task.document,
+  ].join("\n\n");
+}
+
+export function composeInsightPrompt(task: InsightTask): string {
+  return [
+    INSIGHT,
+    "---",
+    `## The area: ${task.area}`,
+    "",
+    "## Its parts",
+    task.parts
+      .map((p) => `- ${p.ticked ? "[ticked]" : "[not ticked]"} ${p.name}`)
+      .join("\n"),
+    "",
+    "## What the platform added, and why",
+    task.added.length === 0
+      ? "(nothing was added here)"
+      : task.added.map((a) => `- **${a.name}** — ${a.because}`).join("\n"),
+    "",
+    "## What they have told us across the whole assessment",
+    task.assessment.onRecord.length === 0
+      ? "(nothing yet)"
+      : task.assessment.onRecord
+          .map((entry) => `- ${entry.label}: ${entry.value}`)
+          .join("\n"),
   ].join("\n\n");
 }

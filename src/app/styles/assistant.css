@@ -4472,3 +4472,31 @@
   align-self: flex-start;
   font-size: 0.76rem;
 }
+
+/* Opened out. The panel is a quarter of the screen wide and a suggested
+   description runs to five paragraphs, so the thing somebody has to read
+   before signing it arrived through a letterbox. Declared last on purpose:
+   this stylesheet holds several copies of the base rule and the last one
+   wins. */
+.assistant.wide {
+  width: min(46rem, calc(100vw - 3rem));
+  max-height: min(46rem, calc(100vh - 4rem));
+}
+.assistant-grow {
+  border: 1px solid var(--neutral-200);
+  background: var(--neutral-0);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--neutral-600);
+  cursor: pointer;
+}
+.assistant-grow:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.assistant-grow:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

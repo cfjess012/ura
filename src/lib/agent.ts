@@ -121,6 +121,17 @@ export type AgentTransport = {
    * to type the field the whole assessment routes on while the document sat
    * open in another window.
    */
+  /**
+   * Explain why a risk area is asking what it is asking. Empty means no
+   * explanation — never load-bearing, and the deterministic reasons stay
+   * on screen either way.
+   */
+  explain(input: {
+    area: string;
+    parts: Array<{ name: string; ticked: boolean }>;
+    added: Array<{ name: string; because: string }>;
+    assessment: AssessmentContext;
+  }): Promise<string[]>;
   describeIntake(input: {
     label: string;
     existing: string;
@@ -165,6 +176,9 @@ function notConfigured(): AgentTransport {
     },
     async scoreIntake() {
       return { scores: [], conflicts: [], summary: null };
+    },
+    async explain() {
+      return [];
     },
     async describeIntake() {
       return { why: "unavailable" as const };
@@ -232,6 +246,26 @@ function localTransport(baseUrl: string): AgentTransport {
         // Fails open, deliberately and visibly.
         console.error("[agent] score-intake unreachable", cause);
         return { scores: [], conflicts: [], summary: null };
+      }
+    },
+    async explain(input) {
+      try {
+        const response = await fetch(`${url}/insight`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-agent-contract": AGENT_CONTRACT_VERSION,
+          },
+          body: JSON.stringify(input),
+        });
+        if (!response.ok) return [];
+        const body = (await response.json()) as { insight?: unknown };
+        return Array.isArray(body.insight)
+          ? body.insight.filter((p): p is string => typeof p === "string")
+          : [];
+      } catch (cause) {
+        console.error("[agent] insight unreachable", cause);
+        return [];
       }
     },
     async describeIntake(input) {
@@ -410,6 +444,11 @@ function agentCoreTransport(): AgentTransport {
   return {
     kind: "agentcore",
     available: false,
+    async explain(): Promise<never> {
+      throw new Error(
+        "AGENT_TRANSPORT=agentcore, but the AgentCore Runtime adapter is not implemented. It belongs in this file and nowhere else (SPEC §6.1).",
+      );
+    },
     async describeIntake(): Promise<never> {
       throw new Error(
         "AGENT_TRANSPORT=agentcore, but the AgentCore Runtime adapter is not implemented. It belongs in this file and nowhere else (SPEC §6.1).",

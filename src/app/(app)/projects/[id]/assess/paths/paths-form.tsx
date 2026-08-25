@@ -11,6 +11,8 @@
 import * as React from "react";
 import { answerPaths } from "@/app/actions";
 import type { Category } from "@/lib/instrument";
+import { explainArea } from "@/app/insight-actions";
+import { isFailure } from "@/lib/errors";
 import type { LitPath } from "@/lib/engine";
 import { SaveBar, useAutosave } from "../autosave";
 
@@ -22,6 +24,95 @@ export type PathArea = {
   /** The gate opened only because the person said they weren't sure. */
   unsure: boolean;
 };
+
+/**
+ * Why this area is asking what it is asking.
+ *
+ * The parts the platform lit already carry the rule that lit them, which is
+ * honest and terse. What it does not do is join those rules to the rest of
+ * what somebody said, and a person looking at parts they did not tick wants
+ * exactly that join.
+ *
+ * **It is never load-bearing.** No agent, a slow one, a refused answer: the
+ * deterministic reasons stay on screen unchanged and this says nothing.
+ * Nobody should lose anything because an explanation did not arrive.
+ */
+function AreaInsight({
+  projectId,
+  area,
+  picked,
+}: {
+  projectId: string;
+  area: PathArea;
+  picked: string[];
+}) {
+  const [open, setOpen] = React.useState(false);
+  const [asking, setAsking] = React.useState(false);
+  const [said, setSaid] = React.useState<string[] | null>(null);
+
+  async function ask() {
+    setOpen(true);
+    if (said || asking) return;
+    setAsking(true);
+    try {
+      const outcome = await explainArea(
+        projectId,
+        area.category.key,
+        (area.category.pathQuestion?.options ?? []).map((option) => ({
+          name: option.label,
+          ticked: picked.includes(option.id),
+        })),
+        area.derived.map((path) => ({
+          name: path.name,
+          // `because` is a list of reasons: a path can be lit by more than
+          // one thing they said, and dropping the others would explain half
+          // of it.
+          because: (path.because ?? []).join(" and "),
+        })),
+      );
+      setSaid(isFailure(outcome) ? [] : outcome.insight);
+    } catch (cause) {
+      console.error("explainArea", cause);
+      setSaid([]);
+    } finally {
+      setAsking(false);
+    }
+  }
+
+  return (
+    <>
+      <button type="button" className="insight-open" onClick={() => void ask()}>
+        <span aria-hidden="true">&#10022;</span> AI insights
+      </button>
+      {open && (
+        <div className="insight" role="note">
+          <p className="insight-title">
+            Why this area is asking what it is asking
+          </p>
+          {asking && <p className="help">Reading your answers&hellip;</p>}
+          {said !== null && said.length === 0 && (
+            <p className="help">
+              I could not work one out just then. The reasons beside each part
+              below are the record&rsquo;s own, and they stand either way.
+            </p>
+          )}
+          {said?.map((para, at) => (
+            <p className="insight-body" key={at}>
+              {para}
+            </p>
+          ))}
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => setOpen(false)}
+          >
+            Hide this
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
 
 export function PathsForm({
   projectId,
@@ -87,7 +178,14 @@ export function PathsForm({
     >
       {areas.map((area) => (
         <section key={area.category.key} className="card patharea">
-          <h3>{area.category.name}</h3>
+          <div className="patharea-top">
+            <h3>{area.category.name}</h3>
+            <AreaInsight
+              projectId={projectId}
+              area={area}
+              picked={picked[area.category.key] ?? []}
+            />
+          </div>
           <p className="gate-question" id={`${area.category.key}-label`}>
             {area.category.pathQuestion!.text}
           </p>

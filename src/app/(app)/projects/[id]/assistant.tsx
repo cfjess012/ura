@@ -496,6 +496,22 @@ export function Assistant({
   const [consulted, setConsulted] = React.useState<Clause[]>([]);
   /** The clause being read in full, if any. */
   const [reading, setReading] = React.useState<Clause | null>(null);
+  /**
+   * Whether the panel is opened out.
+   *
+   * It is a quarter of the screen wide and a suggested description runs to
+   * five paragraphs, so the thing somebody has to read before signing it
+   * arrived through a letterbox. Kept for the tab, because a person who
+   * widened it once wants it wide.
+   */
+  const [wide, setWide] = React.useState(false);
+  React.useEffect(() => {
+    try {
+      setWide(sessionStorage.getItem("ura.assistant-wide") === "yes");
+    } catch {
+      // Storage disabled. It opens at the usual size, which is fine.
+    }
+  }, []);
   /** A description drafted from a document, waiting to be looked at. */
   const [draft, setDraft] = React.useState<Drafted | null>(null);
   const [said, setSaid] = React.useState("");
@@ -672,13 +688,29 @@ export function Assistant({
 
   return (
     <section
-      className="assistant"
+      className={wide ? "assistant wide" : "assistant"}
       aria-label="Assistant"
       role="dialog"
       aria-modal="false"
     >
       <div className="assistant-head">
         <p className="assistant-title">Talk it through</p>
+        <button
+          type="button"
+          className="assistant-grow"
+          aria-pressed={wide}
+          onClick={() => {
+            const next = !wide;
+            setWide(next);
+            try {
+              sessionStorage.setItem("ura.assistant-wide", next ? "yes" : "no");
+            } catch {
+              // Nothing to do: the panel still resizes for this visit.
+            }
+          }}
+        >
+          {wide ? "Shrink" : "Expand"}
+        </button>
         <button
           type="button"
           className="assistant-close"

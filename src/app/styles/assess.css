@@ -673,3 +673,59 @@
 .handoff-resolve {
   margin-top: 0.5rem;
 }
+
+/* Why an area is asking what it is asking. The reasons beside each part are
+   the record's own and stand alone; this is the join between them and the
+   rest of what somebody said, so it sits beside the heading rather than in
+   the flow of the question. */
+.patharea-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.patharea-top h3 {
+  margin: 0;
+}
+.insight-open {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--neutral-200);
+  background: var(--neutral-0);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--brand);
+  cursor: pointer;
+}
+.insight-open:hover {
+  border-color: var(--brand);
+}
+.insight-open:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.insight {
+  margin: 0.6rem 0 0.2rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--surface-3);
+  background: var(--surface-1);
+}
+.insight-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+.insight-body {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--neutral-800);
+}

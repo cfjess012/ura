@@ -21,6 +21,7 @@ import { writeReport } from "./report.ts";
 import { scoreIntake, type ScoreTask } from "./score-intake.ts";
 import { rewriteIntake, type RewriteTask } from "./rewrite-intake.ts";
 import { describeIntake, type DescribeTask } from "./describe-intake.ts";
+import { explain, type InsightTask } from "./insight.ts";
 import { modelId, providerDescription } from "./model.ts";
 import { promptVersion } from "./prompt.ts";
 import { startTelemetry } from "./telemetry.ts";
@@ -59,6 +60,33 @@ const server = createServer(async (req, res) => {
         prompt: promptVersion(),
       }),
     );
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/insight") {
+    const body: Buffer[] = [];
+    for await (const chunk of req) body.push(chunk as Buffer);
+    let task: InsightTask;
+    try {
+      task = JSON.parse(Buffer.concat(body).toString("utf8"));
+    } catch {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "the request was not valid JSON" }));
+      return;
+    }
+    if (typeof task?.assessment?.projectId !== "string") {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error:
+            "no assessment record was supplied, so nothing said back could be checked against it",
+        }),
+      );
+      return;
+    }
+    const found = await explain(task);
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify(found ?? { insight: [] }));
     return;
   }
 
