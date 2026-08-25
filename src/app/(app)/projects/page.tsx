@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { currentPerson } from "@/lib/current-person";
-import { reviewStanding } from "@/lib/review-standing";
+import { requesterQueue, reviewerQueue } from "@/lib/queue-view";
+import { mayAttest } from "@/lib/attestation";
+import { OBJECTIVES } from "@/lib/tier3";
 import {
   canStartAssessment,
   ROLE_LABEL,
@@ -48,20 +50,35 @@ export default async function Projects({
     everyone ? projectStore().awaitingReview() : Promise.resolve([]),
   ]);
   const draftCount = everyone ? total - submitted.length : 0;
+  // Scoped to this reader by the same authority the attest button uses.
+  const mine = (questionId: string) => {
+    const objective = OBJECTIVES.find((o) => o.questionId === questionId);
+    return objective ? mayAttest(person, objective.id) : false;
+  };
+  // The requester's own view of the same idea: what is half-finished, what
+  // is sitting with somebody else, and how old the oldest one is.
+  const own = everyone ? null : requesterQueue(rows, new Date());
+  const queue = reviewerQueue(submitted, new Date(), mine, (objectiveId) =>
+    mayAttest(person, objectiveId),
+  );
 
   return (
     <main>
       <p className="eyebrow">{everyone ? "Review" : "Assessments"}</p>
       <h1 className="display">
-        {everyone ? "Everything in flight." : "One front door."}
+        {everyone ? "Your queue." : "One front door."}
       </h1>
       <p className="lede">
         {everyone
-          ? `You're signed in as ${ROLE_LABEL[person.role]}, so you can see every assessment in the pilot — not only your own. Open one to follow the answers and where they came from.`
+          ? queue.needing === 0
+            ? `Nothing is waiting on you. You can still see every assessment in the pilot — ${total} in all.`
+            : queue.blocking === 0
+              ? `Nothing is blocked on you. ${queue.needing} assessment${queue.needing === 1 ? " is" : "s are"} waiting on their requester — worth a read.`
+              : `${queue.blocking} assessment${queue.blocking === 1 ? "" : "s"} need${queue.blocking === 1 ? "s" : ""} a decision from you. Work top to bottom — the oldest is first.`
           : "Describe the activity once. Every risk area works from the same answers — third-party, security, privacy, AI, legal — so nobody has to ask you again."}
       </p>
 
-      {canStartAssessment(person.role) ? (
+      {canStartAssessment(person.role) && (
         <div className="card">
           <label className="field" htmlFor="new-project">
             Start a new assessment
@@ -71,78 +88,103 @@ export default async function Projects({
           </p>
           <StartForm />
         </div>
-      ) : (
-        <div className="card card-upcoming">
-          <h2>Why there&rsquo;s nothing to start here</h2>
-          <p>
-            Assessments belong to the person who owns the activity. As a Risk
-            Assessor you review what they submit — you don&rsquo;t open one on
-            their behalf.
-          </p>
-        </div>
       )}
-
-      <h2 className="card-heading">
-        {everyone
-          ? showingDrafts
-            ? "All assessments"
-            : "Submitted for review"
-          : "Your assessments"}
-      </h2>
 
       {everyone && !showingDrafts && (
         <>
-          {submitted.length === 0 ? (
+          {queue.groups.length === 0 ? (
             <div className="empty">
               <p>
-                <strong>Nothing has been submitted yet.</strong>
+                <strong>Nothing is waiting on you.</strong>
               </p>
               <p>
-                When a requester submits one, it appears here with what it
-                raised.
+                When a requester submits an assessment with something in your
+                risk area, it appears here.
               </p>
             </div>
           ) : (
-            submitted.map((p) => {
-              const standing = reviewStanding(p.id, p.counts);
-              return (
-                <div className="review-row" key={p.id}>
-                  <div className="review-row-head">
-                    {/* The handoff summary, not the raw queue: it is the
-                        page written for somebody arriving at this
-                        assessment for the first time. The chips below go
-                        straight to the work. */}
-                    <Link href={`/projects/${p.id}/report`}>
-                      {p.projectName}
-                    </Link>
-                    <span className="meta">
-                      {p.businessUnit ? `${p.businessUnit} · ` : ""}
-                      {p.startedBy ? `${p.startedBy} · ` : ""}
-                      submitted {p.submittedAt.toLocaleDateString()}
-                    </span>
-                  </div>
-                  {standing.length === 0 ? (
-                    <p className="review-row-clear">
-                      Nothing outstanding — every answer is attested and no
-                      finding is open.
+            <>
+              {/* Numbers a person can act on, and only those: every one is
+                  already scoped to what this reader may sign. A tile
+                  counting somebody else's work is the same defect as an
+                  alert that did. */}
+              <div className="tiles">
+                {queue.tiles.map((tile) => (
+                  <div key={tile.key} className={`tile tile-${tile.tone}`}>
+                    <p className="tile-label">{tile.label}</p>
+                    <p className="tile-value">
+                      {tile.value}
+                      {tile.unit && (
+                        <span className="tile-unit"> {tile.unit}</span>
+                      )}
                     </p>
-                  ) : (
-                    <ul className="review-row-items">
-                      {standing.map((item) => (
-                        <li key={item.kind}>
+                  </div>
+                ))}
+              </div>
+
+              {queue.groups.map((group) => (
+                <section className="queue-group" key={group.key}>
+                  <h2 className={`queue-title queue-${group.key}`}>
+                    {group.title}
+                  </h2>
+                  <p className="help">{group.because}</p>
+                  {group.entries.map((entry) => (
+                    <div
+                      className={`queue-row queue-row-${group.key}`}
+                      key={entry.id}
+                    >
+                      <div className="queue-row-head">
+                        <Link href={`/projects/${entry.id}/report`}>
+                          {entry.projectName}
+                        </Link>
+                        {/* Age, always. A queue sorted newest-first is how
+                            something quietly waits three weeks. */}
+                        <span
+                          className={`queue-aged${entry.days >= 2 ? " late" : ""}`}
+                        >
+                          {entry.aged}
+                        </span>
+                      </div>
+                      <p className="meta">
+                        {entry.businessUnit ? `${entry.businessUnit} · ` : ""}
+                        {entry.startedBy ? `${entry.startedBy} · ` : ""}
+                        submitted {entry.submittedAt.toLocaleDateString()}
+                      </p>
+                      <p className="queue-says">{entry.says}</p>
+                      <div className="queue-actions">
+                        <Link
+                          className="btn ghost"
+                          href={`/projects/${entry.id}/report`}
+                        >
+                          Read the summary
+                        </Link>
+                        {entry.standing.some((i) => i.kind === "attest") && (
                           <Link
-                            className={`chip chip-${item.kind}`}
-                            href={item.href}
+                            className="btn"
+                            href={`/projects/${entry.id}/review`}
                           >
-                            {item.label}
+                            Attest controls
                           </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              );
-            })
+                        )}
+                        {entry.standing.some(
+                          (i) =>
+                            i.kind === "violation" ||
+                            i.kind === "gap" ||
+                            i.kind === "enhancement",
+                        ) && (
+                          <Link
+                            className="btn ghost"
+                            href={`/projects/${entry.id}/review#findings`}
+                          >
+                            Settle findings
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </section>
+              ))}
+            </>
           )}
           {draftCount > 0 && (
             <p className="list-more">
@@ -153,7 +195,38 @@ export default async function Projects({
               <Link href="/projects?drafts=1">Show them anyway</Link>
             </p>
           )}
+          {/* Below the work, not above it. It answers a question somebody
+              might have — "where do I start one?" — and answering it first
+              put an explanation between a reviewer and their queue. */}
+          <div className="card card-upcoming">
+            <h2>Why there&rsquo;s nothing to start here</h2>
+            <p>
+              Assessments belong to the person who owns the activity. As a Risk
+              Assessor you review what they submit — you don&rsquo;t open one on
+              their behalf.
+            </p>
+          </div>
         </>
+      )}
+
+      {own && own.entries.length > 0 && (
+        <div className="tiles">
+          {own.tiles.map((tile) => (
+            <div key={tile.key} className={`tile tile-${tile.tone}`}>
+              <p className="tile-label">{tile.label}</p>
+              <p className="tile-value">
+                {tile.value}
+                {tile.unit && <span className="tile-unit"> {tile.unit}</span>}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(!everyone || showingDrafts) && (
+        <h2 className="card-heading">
+          {everyone ? "All assessments" : "Your assessments"}
+        </h2>
       )}
 
       {(!everyone || showingDrafts) &&
@@ -180,7 +253,12 @@ export default async function Projects({
                 <span className="meta">
                   {p.businessUnit ? `${p.businessUnit} · ` : ""}
                   {everyone && p.startedBy ? `${p.startedBy} · ` : ""}
-                  updated {p.updatedAt.toLocaleDateString()}
+                  {/* Age, not a date somebody has to subtract from today —
+                      a draft nobody has touched in a fortnight is the thing
+                      this product exists to prevent, and a formatted date
+                      hides it. */}
+                  {own?.entries.find((e) => e.id === p.id)?.aged ??
+                    `updated ${p.updatedAt.toLocaleDateString()}`}
                 </span>
                 {/* A reviewer's list showed no sign of which assessments were
                   waiting on them — the one thing it is for (§24.7). */}

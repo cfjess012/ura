@@ -455,3 +455,135 @@ main {
   font-size: 0.76rem;
   text-align: left;
 }
+
+/* The queue as a day's work. Tiles first — what is loud and how much of it
+   — then the assessments grouped by what is blocking them. */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.7rem;
+  margin: 0 0 1.6rem;
+}
+.tile {
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius);
+  background: var(--neutral-0);
+  padding: 0.8rem 1rem;
+}
+.tile-label {
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--neutral-600);
+}
+.tile-value {
+  margin: 0.2rem 0 0;
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+.tile-unit {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--neutral-600);
+}
+/* Tone is never the only signal — the label above each number says what it
+   counts, so a red tile reads the same to somebody who cannot see red. */
+.tile-alarm {
+  background: var(--warning-bg);
+  border-color: var(--error);
+}
+.tile-alarm .tile-label,
+.tile-alarm .tile-value {
+  color: var(--error);
+}
+.tile-attention {
+  background: var(--surface-1);
+  border-color: var(--primary);
+}
+.tile-attention .tile-label,
+.tile-attention .tile-value {
+  color: var(--link);
+}
+
+.queue-group {
+  margin-bottom: 1.8rem;
+}
+.queue-title {
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 0.2rem;
+  color: var(--neutral-700);
+}
+.queue-title.queue-blocked {
+  color: var(--error);
+}
+.queue-group .help {
+  margin: 0 0 0.7rem;
+}
+.queue-row {
+  border: 1px solid var(--neutral-200);
+  border-left: 4px solid var(--neutral-300);
+  border-radius: var(--radius);
+  background: var(--neutral-0);
+  padding: 0.85rem 1.1rem;
+  margin-bottom: 0.6rem;
+  box-shadow: var(--shadow-card);
+}
+.queue-row-blocked {
+  border-left-color: var(--error);
+}
+.queue-row-waiting {
+  border-left-color: var(--warning-strong);
+}
+.queue-row-elsewhere {
+  border-left-color: var(--neutral-300);
+}
+.queue-row-clear {
+  border-left-color: var(--success);
+}
+.queue-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.queue-row-head a {
+  font-weight: 700;
+  font-size: 1.02rem;
+  color: var(--navy);
+}
+.queue-aged {
+  font-size: 0.84rem;
+  color: var(--neutral-600);
+  font-variant-numeric: tabular-nums;
+}
+.queue-aged.late {
+  color: var(--warning-strong);
+  font-weight: 700;
+}
+.queue-row .meta {
+  display: block;
+  margin: 0.1rem 0 0;
+}
+.queue-says {
+  margin: 0.5rem 0 0.7rem;
+  font-size: 0.96rem;
+  color: var(--neutral-800);
+}
+.queue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.queue-actions .btn {
+  font-size: 0.88rem;
+  padding: 0.35rem 0.9rem;
+}
