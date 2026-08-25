@@ -12,11 +12,8 @@ import { expect, type Page } from "@playwright/test";
 export async function completeIntake(page: Page, base: string): Promise<void> {
   await page.goto(`${base}/intake/description`);
   await page
-    .getByLabel("Business Purpose or Objective")
-    .fill("Shorten scheduling effort.");
-  await page
-    .getByLabel("Activity / Use-Case Description")
-    .fill("Scheduling tool for shifts.");
+    .getByLabel("Project Description")
+    .fill("Scheduling tool for shifts. Shorten scheduling effort.");
   await page
     .getByLabel("Does this use AI or machine learning?")
     .selectOption("No");
@@ -149,11 +146,8 @@ export async function becomePerson(page: Page, name: string): Promise<void> {
 export async function scenarioIntake(page: Page, base: string): Promise<void> {
   await page.goto(`${base}/intake/description`);
   await page
-    .getByLabel("Business Purpose or Objective")
-    .fill("Cut rostering effort.");
-  await page
-    .getByLabel("Activity / Use-Case Description")
-    .fill("AI drafts weekly shift rosters.");
+    .getByLabel("Project Description")
+    .fill("AI drafts weekly shift rosters. Cut rostering effort.");
   await page
     .getByLabel("Does this use AI or machine learning?")
     .selectOption("Yes");

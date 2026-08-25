@@ -31,7 +31,11 @@ async function assessmentAtSeverity(page: Page, name: string): Promise<string> {
   const base = await startAssessment(page, name);
   await scenarioIntake(page, base);
   await answerRemainingGates(page, base);
-  await page.getByRole("checkbox", { name: /Logical access to enterprise environments/ }).check();
+  await page
+    .getByRole("checkbox", {
+      name: /Logical access to enterprise environments/,
+    })
+    .check();
   await page.getByRole("button", { name: /Next: how severe/ }).click();
   await page
     .getByRole("navigation", { name: "Severity areas" })
@@ -44,7 +48,9 @@ async function assessmentAtSeverity(page: Page, name: string): Promise<string> {
 async function handOver(page: Page, domain: RegExp, note: string) {
   const question = page.locator(".q2", { hasText: "Level of Provider Access" });
   await question.getByRole("button", { name: /leave this to us/i }).click();
-  await question.getByRole("combobox").selectOption({ label: (await domainLabel(page, domain)) });
+  await question
+    .getByRole("combobox")
+    .selectOption({ label: await domainLabel(page, domain) });
   await question.getByRole("textbox").fill(note);
   await question.getByRole("button", { name: /Hand it over/ }).click();
   await expect(question.getByText(/WITH .*·/i)).toBeVisible();
@@ -62,13 +68,17 @@ async function domainLabel(page: Page, domain: RegExp): Promise<string> {
   return found!;
 }
 
-test("a requester hands a question over and carries on (FR-36)", async ({ page }) => {
+test("a requester hands a question over and carries on (FR-36)", async ({
+  page,
+}) => {
   await becomePerson(page, "Priya Sharma");
   const name = `Handoff ${Date.now()}`;
   await assessmentAtSeverity(page, name);
 
   const question = page.locator(".q2", { hasText: "Level of Provider Access" });
-  await expect(question.getByRole("button", { name: /leave this to us/i })).toBeVisible();
+  await expect(
+    question.getByRole("button", { name: /leave this to us/i }),
+  ).toBeVisible();
   await handOver(page, /Third-Party/, "I don't know what access they get.");
 
   // The rest of the assessment is still answerable — flagging blocks nothing.
@@ -76,24 +86,34 @@ test("a requester hands a question over and carries on (FR-36)", async ({ page }
   await expect(other.getByRole("radio", { name: /Low/ })).toBeEnabled();
 });
 
-test("the obligation reaches the domain's assessor, and cannot be dismissed", async ({ page }) => {
+test("the obligation reaches the domain's assessor, and cannot be dismissed", async ({
+  page,
+}) => {
   await becomePerson(page, "Priya Sharma");
   const name = `Obligation ${Date.now()}`;
   await assessmentAtSeverity(page, name);
-  await handOver(page, /Third-Party/, "Need someone who knows their access model.");
+  await handOver(
+    page,
+    /Third-Party/,
+    "Need someone who knows their access model.",
+  );
 
   // Samuel owns Third-Party; the bell states the count in words, not colour.
   await becomePerson(page, "Samuel Okonkwo");
   const bell = page.getByRole("button", { name: /^Alerts/ });
   await expect(bell).toHaveAttribute("aria-label", /[1-9]\d* needing action/);
   await bell.click();
-  await expect(page.getByText(/clear themselves when the work is done/i)).toBeVisible();
+  await expect(
+    page.getByText(/clear themselves when the work is done/i),
+  ).toBeVisible();
   // There is nothing to clear, so no control offers to.
   const needsYou = page.locator(".alerts-obligations");
   await expect(needsYou.getByRole("button", { name: /clear/i })).toHaveCount(0);
 });
 
-test("an assessor for another domain is not shown it (scoped, not global)", async ({ page }) => {
+test("an assessor for another domain is not shown it (scoped, not global)", async ({
+  page,
+}) => {
   await becomePerson(page, "Priya Sharma");
   const name = `Scope ${Date.now()}`;
   await assessmentAtSeverity(page, name);
@@ -107,11 +127,17 @@ test("an assessor for another domain is not shown it (scoped, not global)", asyn
   );
 });
 
-test("the alert lands ON the question, and the thread reads in order", async ({ page }) => {
+test("the alert lands ON the question, and the thread reads in order", async ({
+  page,
+}) => {
   await becomePerson(page, "Priya Sharma");
   const name = `Thread ${Date.now()}`;
   await assessmentAtSeverity(page, name);
-  await handOver(page, /Third-Party/, "What level of access do they actually get?");
+  await handOver(
+    page,
+    /Third-Party/,
+    "What level of access do they actually get?",
+  );
 
   await becomePerson(page, "Samuel Okonkwo");
   await page.getByRole("button", { name: /^Alerts/ }).click();
@@ -121,16 +147,24 @@ test("the alert lands ON the question, and the thread reads in order", async ({ 
   await expect(page).toHaveURL(/focus=/);
   const question = page.locator(".q2", { hasText: "Level of Provider Access" });
   await expect(question).toBeVisible();
-  await expect(question.getByText("What level of access do they actually get?")).toBeVisible();
+  await expect(
+    question.getByText("What level of access do they actually get?"),
+  ).toBeVisible();
 
-  await question.getByRole("textbox").fill("Admin access to production, per their contract.");
+  await question
+    .getByRole("textbox")
+    .fill("Admin access to production, per their contract.");
   await question.getByRole("button", { name: "Post this reply" }).click();
-  await expect(question.getByText("Admin access to production, per their contract.")).toBeVisible();
+  await expect(
+    question.getByText("Admin access to production, per their contract."),
+  ).toBeVisible();
   // Attributed, with a role, so a reader knows who is speaking.
   await expect(question.getByText("Samuel Okonkwo").first()).toBeVisible();
 });
 
-test("resolving is refused while the question has no answer", async ({ page }) => {
+test("resolving is refused while the question has no answer", async ({
+  page,
+}) => {
   await becomePerson(page, "Priya Sharma");
   const name = `Refuse ${Date.now()}`;
   await assessmentAtSeverity(page, name);
@@ -142,7 +176,9 @@ test("resolving is refused while the question has no answer", async ({ page }) =
   const question = page.locator(".q2", { hasText: "Level of Provider Access" });
   await question.getByRole("button", { name: /Mark resolved/ }).click();
   await expect(
-    question.getByText("The question still has no answer. Answer it, and then this closes."),
+    question.getByText(
+      "The question still has no answer. Answer it, and then this closes.",
+    ),
   ).toBeVisible();
 });
 

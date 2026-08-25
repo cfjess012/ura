@@ -31,6 +31,18 @@ export default defineConfig({
     env: {
       DATABASE_URL: process.env.E2E_DATABASE_URL ?? "",
       NEXT_DIST_DIR: ".next-e2e",
+      // No agent, deliberately. This file loads .env so the database URL is
+      // there, which also handed the server a live AGENT_URL and a real API
+      // key — so the specs asserting the no-agent path ("the assistant is
+      // absent, not apologetic", "the report is complete with no agent at
+      // all") were run against an agent, and the report page sat waiting on
+      // a model until the navigation timed out.
+      //
+      // The suite is about what the product does without a model. What it
+      // does *with* one is `pnpm ai:check`, against the real API, where a
+      // wrong answer is a real failure rather than a slow one.
+      AGENT_TRANSPORT: "none",
+      AGENT_URL: "",
     },
   },
 });

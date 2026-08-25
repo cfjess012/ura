@@ -199,7 +199,13 @@ main {
   z-index: 60;
   width: 24rem;
   max-width: 90vw;
-  overflow: hidden;
+  /* The panel grew with what it holds and clipped anything past the fold:
+     `overflow: hidden` with no ceiling meant a row near the bottom could
+     not be scrolled to, by a person or by anything else. It became
+     reachable-or-not depending on how many alerts somebody had. */
+  max-height: calc(100vh - var(--appbar-h) - 1.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border-radius: 12px;
   border: 1px solid var(--neutral-200);
   background: var(--neutral-0);

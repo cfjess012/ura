@@ -54,10 +54,8 @@ test("the declaration shows the answers being declared, not a checkbox alone", a
   // Every required intake answer, by label and value as displayed.
   const rows = page.locator(".declared > div");
   await expect(rows.first()).toBeVisible();
-  await expect(rows).toHaveCount(9);
-  await expect(page.locator(".declared")).toContainText(
-    "Business Purpose or Objective",
-  );
+  await expect(rows).toHaveCount(8);
+  await expect(page.locator(".declared")).toContainText("Project Description");
 });
 
 test("gaps are named, and submitting with them takes a second confirmation (FR-14)", async ({

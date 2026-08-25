@@ -97,6 +97,13 @@ test("signing drains the queue, and the signature is named on the item (FR-16)",
   await becomePerson(page, "Diego Marquez");
   await page.goto(`${base}/review`);
   const before = (await page.locator(".nextline").textContent()) ?? "";
+  // Approving is a deliberate act: the tick and the sentence are the act,
+  // and the button stays disabled until both are there. A signature with
+  // nothing beside it records that somebody clicked, not what they decided.
+  await page.getByRole("checkbox", { name: /I attest this answer/ }).check();
+  await page
+    .getByLabel(/why are you approving it/i)
+    .fill("Checked against the vendor's SOC 2 and the answer holds.");
   await page.getByRole("button", { name: /^Approve and continue/ }).click();
   await expect(page.locator(".nextline")).not.toHaveText(before);
 

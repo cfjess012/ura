@@ -12,6 +12,7 @@ import {
   answerRemainingGates,
   scenarioIntake,
   startAssessment,
+  completeIntake,
 } from "./helpers";
 
 async function submitted(page: Page, name: string): Promise<string> {
@@ -103,10 +104,16 @@ test("the intake floor catches a bare name with no model", async ({ page }) => {
   // Deterministic by design: it costs nothing and is never wrong in an
   // interesting way, so it must work with no agent.
   const base = await startAssessment(page, `Floor ${Date.now()}`);
+  // The check reads the WHOLE intake and is offered only on the last
+  // section, once the earlier ones are done — running it over a quarter
+  // filled form grades absence rather than the description.
+  await completeIntake(page, base);
   await page.goto(`${base}/intake/description`);
-  await page.getByLabel("Activity / Use-Case Description").fill("Salesforce");
-  await page.getByRole("button", { name: /How does this read/ }).click();
-  await expect(page.locator(".rubric-ask")).toContainText(/too thin/i);
+  await page.getByLabel("Project Description").fill("Salesforce");
+  await page.getByRole("button", { name: /Next: Ownership/ }).click();
+  await page.goto(`${base}/intake/compliance-data`);
+  await page.getByRole("button", { name: /Save & run AI check/ }).click();
+  await expect(page.locator(".coherence-ask")).toContainText(/too thin/i);
 });
 
 test("the intake assistant fails open — it never blocks the way forward", async ({
@@ -115,17 +122,23 @@ test("the intake assistant fails open — it never blocks the way forward", asyn
   // With no agent there is nothing to score, and the answer is "carry on".
   // A quality assistant that blocks has become a gate.
   const base = await startAssessment(page, `Fail open ${Date.now()}`);
+  await completeIntake(page, base);
   await page.goto(`${base}/intake/description`);
   await page
-    .getByLabel("Activity / Use-Case Description")
+    .getByLabel("Project Description")
     .fill(
       "A claims triage assistant from Sable Analytics that reads an incoming claim and proposes which handling queue it belongs in.",
     );
-  await page.getByRole("button", { name: /How does this read/ }).click();
+  await page.getByRole("button", { name: /Next: Ownership/ }).click();
+  await page.goto(`${base}/intake/compliance-data`);
+  await page.getByRole("button", { name: /Save & run AI check/ }).click();
   // With no agent it must say it could not check — never congratulate them
   // on a description nobody read. Failing open is required; asserting a
   // pass is not.
-  await expect(page.locator(".rubric")).toContainText(/couldn.t check/i);
-  await expect(page.locator(".rubric-good")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Next:/ })).toBeEnabled();
+  await expect(page.locator(".coherence")).toContainText(/couldn.t check/i);
+  // Failing open is the requirement: the way forward stays available. On
+  // the last section that is the button into the risk areas.
+  await expect(
+    page.getByRole("button", { name: /Continue to the risk areas/ }),
+  ).toBeEnabled();
 });
