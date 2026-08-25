@@ -464,6 +464,89 @@
 /* A correction, offered beside the two halves it settles. It is a real
    button rather than a link because it writes to the record — and nothing
    moves until somebody presses it. */
+/* Work in progress, obviously alive. The bar is indeterminate on purpose:
+   there is no phase to report, and a bar that pretended to know how far
+   along it was would be inventing a number. */
+.thinking {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
+}
+.thinking-spark {
+  display: inline-flex;
+  color: var(--brand);
+  animation: thinking-pulse 1.6s ease-in-out infinite;
+}
+.thinking-spark svg {
+  width: 1rem;
+  height: 1rem;
+}
+.thinking-words {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.thinking-doing {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--neutral-800);
+}
+.thinking-meta {
+  font-size: 0.72rem;
+  color: var(--neutral-500);
+  font-variant-numeric: tabular-nums;
+}
+.thinking-bar {
+  flex: 1;
+  height: 3px;
+  min-width: 3rem;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.thinking-bar > span {
+  display: block;
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: var(--brand);
+  animation: thinking-slide 1.5s ease-in-out infinite;
+}
+@keyframes thinking-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+@keyframes thinking-slide {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(260%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thinking-spark,
+  .thinking-bar > span {
+    animation: none;
+  }
+  .thinking-bar > span {
+    width: 100%;
+    opacity: 0.5;
+  }
+}
+
 .coherence-fix {
   margin: 0.15rem 0 0;
   display: flex;

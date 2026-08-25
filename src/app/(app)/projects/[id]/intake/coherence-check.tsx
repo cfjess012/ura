@@ -89,13 +89,7 @@ export function CoherenceCheck({
         {running ? "Reading it…" : "Save & run AI check"}
       </button>
 
-      {running && (
-        <div className="coherence-pending" aria-live="polite">
-          <span />
-          <span />
-          <span />
-        </div>
-      )}
+      {running && <Thinking doing="Reading your whole intake" usually={18} />}
 
       <div ref={resultRef}>
         {result && !running && (
@@ -369,6 +363,54 @@ function FixButton({
   );
 }
 
+/**
+ * What the model is doing, while it does it.
+ *
+ * A long wait behind a text label reads as a frozen screen — the check runs
+ * 12 to 25 seconds and the rewrite about the same, which is far past the
+ * point where somebody assumes it broke. So: a shimmer that is obviously
+ * alive, the elapsed count, and what usually happens.
+ *
+ * **It claims nothing it does not observe.** The seconds are real and the
+ * typical duration is stated as typical. Naming phases it cannot see — "now
+ * checking consistency" — would be the same lie as promising quotes that
+ * are not there, dressed up as a progress bar.
+ */
+function Thinking({ doing, usually }: { doing: string; usually: number }) {
+  const [seconds, setSeconds] = React.useState(0);
+
+  React.useEffect(() => {
+    const started = Date.now();
+    const tick = setInterval(
+      () => setSeconds(Math.round((Date.now() - started) / 1000)),
+      1000,
+    );
+    return () => clearInterval(tick);
+  }, []);
+
+  const over = seconds > usually * 2;
+  return (
+    <div className="thinking" role="status" aria-live="polite">
+      <span className="thinking-spark" aria-hidden="true">
+        <Sparkle />
+      </span>
+      <span className="thinking-words">
+        <span className="thinking-doing">{doing}</span>
+        <span className="thinking-meta">
+          {seconds < 2
+            ? `usually about ${usually} seconds`
+            : over
+              ? `${seconds}s — longer than usual, still going`
+              : `${seconds}s of about ${usually}`}
+        </span>
+      </span>
+      <span className="thinking-bar" aria-hidden="true">
+        <span />
+      </span>
+    </div>
+  );
+}
+
 function Sparkle() {
   return (
     <svg
@@ -486,6 +528,7 @@ function RewriteOffer({
       >
         {asking ? "Writing one…" : "Suggest a rewrite →"}
       </button>
+      {asking && <Thinking doing="Writing a suggestion" usually={16} />}
       {nothing === "refused" && (
         <span className="help">
           {" "}

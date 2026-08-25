@@ -118,9 +118,20 @@ export async function rewriteIntake(
       const client = modelClient();
       const message = await client.messages.create({
         model: modelId(),
-        max_tokens: 3000,
+        // The screen sends every shortfall, so this writes a rewrite plus a
+        // placeholder per gap plus the kept line. At 3000 it was truncated
+        // mid-string and the JSON would not parse — which surfaced as "no
+        // JSON object" and read to a person as a refusal.
+        max_tokens: 8000,
         messages: [{ role: "user", content: composeRewritePrompt(task) }],
       });
+      // Truncation is not the same as a bad answer, and saying so here is
+      // what stops it being reported as one.
+      if ((message as { stop_reason?: string }).stop_reason === "max_tokens") {
+        span.setAttribute("gate.result", "truncated");
+        console.error("[rewrite-intake] truncated at max_tokens");
+        return { why: "unavailable" as const };
+      }
       const text = textOf(
         message as unknown as {
           content: Array<{ type: string; text?: string }>;
