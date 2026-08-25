@@ -21,6 +21,43 @@ import { isFailure } from "@/lib/errors";
  * component is not on the page at all rather than sitting there explaining
  * its own absence (§7, §24.8).
  */
+/**
+ * The mark that says "this is the model".
+ *
+ * The same four-point spark the AI check button carries, because they are
+ * the same claim: a person who has met one of these should recognise the
+ * other without being told. It replaced a question mark, which said
+ * "help" — a different and much older promise, and the one thing this
+ * panel is not.
+ *
+ * Three points rather than one, sized down in sequence, so it reads as a
+ * mark rather than a star at any size.
+ */
+function AssistantSpark() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        fill="currentColor"
+        d="M10 2.6l1.6 4.3 4.3 1.6-4.3 1.6L10 14.4 8.4 10.1 4.1 8.5l4.3-1.6L10 2.6z"
+      />
+      <path
+        fill="currentColor"
+        d="M17.8 12.6l.85 2.25 2.25.85-2.25.85-.85 2.25-.85-2.25-2.25-.85 2.25-.85.85-2.25z"
+      />
+      <path
+        fill="currentColor"
+        d="M5.9 16.1l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6.6-1.6z"
+      />
+    </svg>
+  );
+}
+
 export function Assistant({
   projectId,
   initial,
@@ -155,7 +192,7 @@ export function Assistant({
         aria-expanded={false}
       >
         <span aria-hidden="true" className="assistant-launch-icon">
-          ?
+          <AssistantSpark />
         </span>
         Talk it through
         {turns.length > 0 && (

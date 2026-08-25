@@ -30,17 +30,36 @@
   outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
+/* The lime disc carries the spark. Lime on navy is already the pair the
+   product uses where it wants to be noticed, so the mark pops without
+   introducing a colour. No ring at rest: lime at low opacity over navy
+   goes olive, which reads as grime rather than glow. */
 .assistant-launch-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.35rem;
-  height: 1.35rem;
+  flex-shrink: 0;
+  width: 1.45rem;
+  height: 1.45rem;
   border-radius: 50%;
   background: var(--accent);
   color: var(--navy);
-  font-weight: 900;
-  font-size: 0.85rem;
+  transition:
+    transform 0.18s var(--ease),
+    box-shadow 0.18s var(--ease);
+}
+/* Only on hover. A mark that twinkles at somebody all day is a mark they
+   learn to ignore, and this one sits on every screen of the assessment. */
+.assistant-launch:hover .assistant-launch-icon {
+  transform: scale(1.1) rotate(-8deg);
+  box-shadow: 0 0 0 4px rgb(198 237 8 / 26%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .assistant-launch-icon,
+  .assistant-launch:hover .assistant-launch-icon {
+    transition: none;
+    transform: none;
+  }
 }
 .assistant-launch-count {
   min-width: 1.2rem;
@@ -981,52 +1000,6 @@
 
 /* Fixed, so it travels with the person across every screen of one
    assessment. The shape people already know from every support chat. */
-.assistant-launch {
-  position: fixed;
-  right: 1.5rem;
-  bottom: 1.5rem;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.7rem 1.15rem;
-  border-radius: 999px;
-  border: none;
-  background: var(--navy);
-  color: var(--neutral-0);
-  font: inherit;
-  font-size: 0.92rem;
-  font-weight: 650;
-  cursor: pointer;
-  box-shadow: 0 6px 20px rgb(0 40 85 / 28%);
-}
-.assistant-launch:hover {
-  background: var(--navy-2);
-}
-.assistant-launch:focus-visible {
-  outline: 3px solid var(--focus-ring);
-  outline-offset: 3px;
-}
-.assistant-launch-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.35rem;
-  height: 1.35rem;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--navy);
-  font-weight: 900;
-  font-size: 0.85rem;
-}
-.assistant-launch-count {
-  min-width: 1.2rem;
-  padding: 0 0.35rem;
-  border-radius: 999px;
-  background: rgb(252 252 252 / 22%);
-  font-size: 0.75rem;
-  font-variant-numeric: tabular-nums;
-}
 
 .assistant {
   position: fixed;
