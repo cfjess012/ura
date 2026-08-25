@@ -35,6 +35,7 @@ one browser tab.
 ---
 
 ## Beat 1 · One front door — 20 seconds
+
 **Problem: fragmented ecosystem.**
 
 Front door → **Priya Sharma** → the list.
@@ -46,6 +47,7 @@ Don't linger. The list is context, not the point.
 ---
 
 ## Beat 2 · The answers already did work — 45 seconds
+
 **Problems: high friction, and inconsistent intake.**
 
 Click **Novara scheduling assistant**. It opens straight on where the
@@ -66,7 +68,7 @@ Then the line under the heading:
 > "It closes what doesn't apply, and it tells you where it stops. That is
 > the difference between a form and an instrument."
 
-**The one to read aloud** — scroll to *What we'll ask about*:
+**The one to read aloud** — scroll to _What we'll ask about_:
 
 > **"Subcontractor Reliance (Fourth Parties) — added because you told us
 > this uses AI and involves a company outside ours, so the model provider
@@ -77,11 +79,12 @@ Then the line under the heading:
 ---
 
 ## Beat 3 · One answer, six obligations — 45 seconds
+
 **Problem: inconsistent analyst intake.**
 
 From the summary, click **Answer the severity questions →**, then
 **Third-Party** in the left rail. Answer **Level of Provider Access** =
-*"Privileged / admin access to production…"*
+_"Privileged / admin access to production…"_
 
 Six controls appear under **What these answers require** — live, no reload.
 
@@ -92,6 +95,7 @@ Six controls appear under **What these answers require** — live, no reload.
 ---
 
 ## Beat 4 · Does it actually exist? — 40 seconds
+
 **Problem: inconsistent analyst intake, continued.**
 
 Scroll up and click **Answer the control questions →**.
@@ -110,6 +114,7 @@ Point at **Recorded for a reviewer** below:
 ---
 
 ## Beat 5 · When someone is stuck — 30 seconds
+
 **Problems: friction, and fragmentation.**
 
 Browser back to the severity questions. On any question click
@@ -139,6 +144,7 @@ Switch to **Samuel Okonkwo**. The bell shows it, on the warm band:
 ## If you are asked
 
 **"Where's the AI?"**
+
 > "Everything you just saw is deterministic — rules, not reasoning, which is
 > why it's explainable. The agentic layer is the next epic: it drafts these
 > answers from documents with verbatim citations, and a person still
@@ -146,6 +152,7 @@ Switch to **Samuel Okonkwo**. The bell shows it, on the warm band:
 > today and we don't pretend otherwise."
 
 **"What happens after the assessment?"**
+
 > "The submitter declares the record accurate, and a Risk Assessor signs
 > every control answer under their own risk area — the platform refuses a
 > signature from the wrong area, and refuses one on an assessment that can
@@ -159,6 +166,7 @@ If they want to see it: **Sable claims triage** is already with a reviewer.
 Sign in as **Diego Marquez** and it opens on his queue.
 
 **"How much of the instrument is covered?"**
+
 > "Eleven risk areas, all asked. Detailed questions in four of them, and
 > control questions for 15 of the 51 objectives — the product says so on
 > screen wherever it stops. The rest is content authoring, not engineering."
@@ -171,8 +179,22 @@ Sign in as **Diego Marquez** and it opens on his queue.
   seeded for other purposes; one has an open hand-off mid-thread.
 - **Don't answer more than one severity question.** The list grows and the
   point is made by the first one.
-- **Don't run from `pnpm dev`.** The Next.js badge sits in the corner of
-  every screen. `pnpm demo:prod` is the demo's mode and is verified.
+- **Don't run from `pnpm dev`** _on macOS or Linux_. The Next.js badge sits
+  in the corner of every screen. `pnpm demo:prod` is the demo's mode and is
+  verified.
+
+  **On Windows `demo:prod` cannot run at all** — it is four POSIX-only
+  constructs (`VAR=value`, `cp -r`, `/dev/null`, `;`) and pnpm hands scripts
+  to cmd.exe, which dies on the first token. Either demo from `pnpm dev` and
+  accept the badge, or run the equivalent by hand:
+
+  ```powershell
+  $env:NEXT_DIST_DIR = ".next-prod"
+  pnpm exec next build
+  Copy-Item -Recurse -Force .next-prod\static .next-prod\standalone\.next-prod\
+  $env:PORT = "3100"; node .next-prod\standalone\server.js
+  ```
+
 - **Don't skip `pnpm demo:reset`.** It is the difference between Beat 3
   landing and Beat 3 looking broken.
 - **Don't promise a date for the agentic layer.** The Bedrock access request

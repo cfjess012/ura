@@ -2,6 +2,9 @@
   "name": "ura",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.9"
+  },
   "packageManager": "pnpm@10.15.0",
   "scripts": {
     "dev": "next dev -p 3100",
@@ -14,6 +17,7 @@
     "db:reset": "node scripts/reset-dev-db.mjs",
     "test": "vitest run",
     "e2e": "pnpm e2e:db && playwright test",
+    "e2e:browsers": "playwright install chromium",
     "test:unit": "vitest run test/unit",
     "test:integration": "vitest run test/integration",
     "test:e2e": "pnpm e2e",
@@ -26,6 +30,7 @@
     "demo:prod": "NEXT_DIST_DIR=.next-prod next build && cp -r public .next-prod/standalone/ 2>/dev/null; cp -r .next-prod/static .next-prod/standalone/.next-prod/ 2>/dev/null; PORT=3100 NEXT_DIST_DIR=.next-prod node .next-prod/standalone/server.js",
     "walk:demo": "node scripts/walk-demo.mjs",
     "dev:ai": "node scripts/dev-ai.mjs",
+    "agent:install": "pnpm --dir agent install",
     "agent:dev": "node scripts/agent.mjs",
     "agent:claude": "node scripts/agent.mjs claude",
     "dev:claude": "node scripts/dev-ai.mjs --claude",

@@ -33,8 +33,17 @@ if (!process.argv.includes("--yes")) {
 
 const target = new URL(url);
 const dbName = target.pathname.replace(/^\//, "");
-if (!/^(localhost|127\.0\.0\.1)$/.test(target.hostname)) {
-  throw new Error(`Refusing to drop a database on ${target.hostname}. This task is for local development only.`);
+// Same reasoning as seed-demo: local by default because this drops a
+// database, overridable because a demo machine may only have a hosted one.
+// Note that a hosted plan will usually refuse the drop/create anyway — the
+// script says which step failed rather than pretending it worked.
+if (
+  !/^(localhost|127\.0\.0\.1)$/.test(target.hostname) &&
+  process.env.DEMO_DB_IS_DISPOSABLE !== "yes"
+) {
+  throw new Error(
+    `Refusing to drop a database on ${target.hostname}. This task is for local development only.`,
+  );
 }
 if (/prod|production|live/i.test(dbName)) {
   throw new Error(`Refusing to drop a database named "${dbName}".`);
@@ -51,12 +60,26 @@ await admin.unsafe(`create database ${quoted}`);
 await admin.end();
 console.log(`recreated ${dbName}`);
 
-execFileSync("node", ["scripts/migrate.mjs"], { env: process.env, stdio: "inherit" });
+execFileSync("node", ["scripts/migrate.mjs"], {
+  env: process.env,
+  stdio: "inherit",
+});
 // Both instruments, exactly as `pnpm instrument:seed` does it. This ran
 // only the gates for a while, so a reset left Tier 2 with no activated
 // version and every severity screen empty — a clean database that looked
 // like a broken product (found on demo-data day, 2026-08-23).
-execFileSync("node", ["scripts/seed-instrument.mjs"], { env: process.env, stdio: "inherit" });
-execFileSync("node", ["scripts/seed-severity.mjs"], { env: process.env, stdio: "inherit" });
-execFileSync("node", ["scripts/seed-tier3.mjs"], { env: process.env, stdio: "inherit" });
-console.log(`${dbName} is clean: migrations applied, instrument activated, no assessments.`);
+execFileSync("node", ["scripts/seed-instrument.mjs"], {
+  env: process.env,
+  stdio: "inherit",
+});
+execFileSync("node", ["scripts/seed-severity.mjs"], {
+  env: process.env,
+  stdio: "inherit",
+});
+execFileSync("node", ["scripts/seed-tier3.mjs"], {
+  env: process.env,
+  stdio: "inherit",
+});
+console.log(
+  `${dbName} is clean: migrations applied, instrument activated, no assessments.`,
+);

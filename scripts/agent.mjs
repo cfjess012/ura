@@ -15,6 +15,7 @@
  *   node scripts/agent.mjs           whatever the environment already says
  */
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const mode = process.argv[2] ?? "plain";
@@ -40,6 +41,26 @@ if (!(mode in forMode)) {
   process.exit(1);
 }
 
+// The agent is a separate project with its own package.json and its own
+// lockfile — there is no workspace file joining them — so a root
+// `pnpm install` never creates agent/node_modules. Without this check the
+// failure is ERR_MODULE_NOT_FOUND on a transitive import, which reads as a
+// broken repository rather than a missing install step. It went unnoticed
+// for as long as it did because a machine that has ever run the agent
+// already has the folder.
+const agentDir = fileURLToPath(new URL("../agent", import.meta.url));
+if (
+  !existsSync(fileURLToPath(new URL("../agent/node_modules", import.meta.url)))
+) {
+  console.error(
+    "\n  The agent has dependencies of its own, and they are not installed.\n" +
+      "  Run this once:\n\n    pnpm agent:install\n\n" +
+      "  (A root `pnpm install` does not reach them — the agent is a separate\n" +
+      "   project so it can be deployed on its own.)\n",
+  );
+  process.exit(1);
+}
+
 const agent = spawn(
   process.execPath,
   [
@@ -49,7 +70,7 @@ const agent = spawn(
   ],
   {
     // fileURLToPath, never `.pathname`: on Windows the latter is "/C:/…".
-    cwd: fileURLToPath(new URL("../agent", import.meta.url)),
+    cwd: agentDir,
     env: { ...process.env, ...forMode[mode], PORT },
     stdio: "inherit",
   },

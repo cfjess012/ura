@@ -41,9 +41,14 @@ import postgres from "postgres";
  * Two truths from one value; the guard only tests for non-empty (verifier
  * finding R2, 2026-08-23).
  */
-const INTAKE_SRC = readFileSync(join(process.cwd(), "src", "lib", "intake.ts"), "utf8");
+const INTAKE_SRC = readFileSync(
+  join(process.cwd(), "src", "lib", "intake.ts"),
+  "utf8",
+);
 const UPDATE_TYPES = [
-  ...INTAKE_SRC.match(/UPDATE_TYPES\s*=\s*\[([\s\S]*?)\]/)[1].matchAll(/"([^"]+)"/g),
+  ...INTAKE_SRC.match(/UPDATE_TYPES\s*=\s*\[([\s\S]*?)\]/)[1].matchAll(
+    /"([^"]+)"/g,
+  ),
 ].map((m) => m[1]);
 function optionsFor(fieldId) {
   const at = INTAKE_SRC.indexOf(`id: "${fieldId}"`);
@@ -59,7 +64,8 @@ function optionsFor(fieldId) {
   return out;
 }
 /** Database columns are snake_case; intake field ids are camelCase. */
-const fieldIdOf = (column) => column.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+const fieldIdOf = (column) =>
+  column.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
 
 /**
  * Refuse to seed a value a person could never have chosen.
@@ -74,7 +80,9 @@ function checkChoice(project, column, value) {
   const field = fieldIdOf(column);
   const options = optionsFor(field);
   if (options === null) {
-    throw new Error(`${project}: no intake field "${field}" (from column "${column}") — cannot validate.`);
+    throw new Error(
+      `${project}: no intake field "${field}" (from column "${column}") — cannot validate.`,
+    );
   }
   if (!options.includes(value)) {
     throw new Error(
@@ -84,7 +92,10 @@ function checkChoice(project, column, value) {
 }
 
 const GATES = JSON.parse(
-  readFileSync(join(process.cwd(), "src", "data", "instrument", "gates.json"), "utf8"),
+  readFileSync(
+    join(process.cwd(), "src", "data", "instrument", "gates.json"),
+    "utf8",
+  ),
 );
 const gateId = (key) => {
   const category = GATES.categories.find((c) => c.key === key);
@@ -105,8 +116,20 @@ try {
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL is not set");
-if (!/^(localhost|127\.0\.0\.1)$/.test(new URL(url).hostname)) {
-  throw new Error("seed-demo is for local demo databases only.");
+// Local by default, because this truncates and rewrites tables and the
+// worst version of that is doing it to something shared. But a demo laptop
+// that may not run Postgres has to use a hosted database, and refusing
+// outright left that person with a running app and an empty list — so the
+// guard takes a deliberate override rather than being absolute.
+if (
+  !/^(localhost|127\.0\.0\.1)$/.test(new URL(url).hostname) &&
+  process.env.DEMO_DB_IS_DISPOSABLE !== "yes"
+) {
+  throw new Error(
+    "seed-demo rewrites tables, so it refuses a database that is not local.\n" +
+      "  If DATABASE_URL points at a throwaway database you created for a demo,\n" +
+      "  set DEMO_DB_IS_DISPOSABLE=yes to say so.",
+  );
 }
 const sql = postgres(url, { max: 1 });
 
@@ -122,7 +145,12 @@ const sql = postgres(url, { max: 1 });
 const LISTS = Object.fromEntries(
   ["business-units", "vendors"].map((name) => [
     name,
-    JSON.parse(readFileSync(join(process.cwd(), "src", "data", "reference", `${name}.json`), "utf8")),
+    JSON.parse(
+      readFileSync(
+        join(process.cwd(), "src", "data", "reference", `${name}.json`),
+        "utf8",
+      ),
+    ),
   ]),
 );
 function ref(listName, label) {
@@ -136,7 +164,11 @@ function ref(listName, label) {
   return { id: entry.id, label: entry.label, version: list.version };
 }
 /** An off-list answer: recorded as its own shape, not as a list id (FR-30). */
-const unlisted = (listName, label) => ({ id: "__unlisted__", label, version: LISTS[listName].version });
+const unlisted = (listName, label) => ({
+  id: "__unlisted__",
+  label,
+  version: LISTS[listName].version,
+});
 /** People are operational, not versioned (G-46's exception). */
 const person = (id, label) => ({ id, label, version: "people" });
 
@@ -148,7 +180,8 @@ const PROJECTS = [
       // One description now: the purpose sentence leads, the activity
       // follows. business_purpose is kept in step so older readers of
       // the column see the same story.
-      business_purpose: "Cut the time clinic staff spend building weekly rotas, and stop the manual errors that cause understaffed shifts.",
+      business_purpose:
+        "Cut the time clinic staff spend building weekly rotas, and stop the manual errors that cause understaffed shifts.",
       project_description:
         "Cut the time clinic staff spend building weekly rotas, and stop the manual errors that cause understaffed shifts." +
         " " +
@@ -181,7 +214,8 @@ const PROJECTS = [
       // One description now: the purpose sentence leads, the activity
       // follows. business_purpose is kept in step so older readers of
       // the column see the same story.
-      business_purpose: "Replace the emailed spreadsheet the finance team uses to track quarter-end tasks with a shared checklist in the tool they already have.",
+      business_purpose:
+        "Replace the emailed spreadsheet the finance team uses to track quarter-end tasks with a shared checklist in the tool they already have.",
       project_description:
         "Replace the emailed spreadsheet the finance team uses to track quarter-end tasks with a shared checklist in the tool they already have." +
         " " +
@@ -207,7 +241,8 @@ const PROJECTS = [
       // One description now: the purpose sentence leads, the activity
       // follows. business_purpose is kept in step so older readers of
       // the column see the same story.
-      business_purpose: "Share anonymised claims volumes with two distribution partners so they can forecast their own staffing.",
+      business_purpose:
+        "Share anonymised claims volumes with two distribution partners so they can forecast their own staffing.",
       project_description:
         "Share anonymised claims volumes with two distribution partners so they can forecast their own staffing." +
         " " +
@@ -238,7 +273,8 @@ const PROJECTS = [
       // One description now: the purpose sentence leads, the activity
       // follows. business_purpose is kept in step so older readers of
       // the column see the same story.
-      business_purpose: "Cut the time a claims handler spends reading a new claim before deciding where it should go.",
+      business_purpose:
+        "Cut the time a claims handler spends reading a new claim before deciding where it should go.",
       project_description:
         "Cut the time a claims handler spends reading a new claim before deciding where it should go." +
         " " +
@@ -273,7 +309,8 @@ const PROJECTS = [
  */
 const projectNamed = (name) => {
   const found = PROJECTS.find((p) => p.name === name);
-  if (!found) throw new Error(`the seed refers to "${name}", which is not in PROJECTS`);
+  if (!found)
+    throw new Error(`the seed refers to "${name}", which is not in PROJECTS`);
   return found;
 };
 
@@ -291,14 +328,19 @@ const projectNamed = (name) => {
 const SIGN_INS = ["d.withers"];
 await sql`update people set signs_in = false where role = 'requester'`;
 await sql`update people set signs_in = true where id in ${sql(SIGN_INS)}`;
-console.log(`sign-in enabled for ${SIGN_INS.length} requester and the assessors`);
+console.log(
+  `sign-in enabled for ${SIGN_INS.length} requester and the assessors`,
+);
 
 const activeVersion = async (slug) => {
   const [row] = await sql`
     select id from instrument_versions
     where slug = ${slug} and activated_at is not null
     order by activated_at desc limit 1`;
-  if (!row) throw new Error(`No activated version for ${slug}. Run: pnpm instrument:seed`);
+  if (!row)
+    throw new Error(
+      `No activated version for ${slug}. Run: pnpm instrument:seed`,
+    );
   return row.id;
 };
 
@@ -322,13 +364,17 @@ function decidedByIntake(intake) {
   // Solution Architecture — whose rule fires only on "Moving a proof of
   // concept into production" — was skipped on a project whose initiative
   // type is "Brand new", and the gate was left genuinely unanswered.
-  const values = new Map(Object.entries(intake).map(([k, v]) => [fieldIdOf(k), v]));
+  const values = new Map(
+    Object.entries(intake).map(([k, v]) => [fieldIdOf(k), v]),
+  );
   const left = new Set();
   const fires = (rule) => {
     const field = rule.when.field;
     if (field.startsWith("gate.")) return left.has(field.slice(5));
     const value = values.get(field);
-    return typeof value === "string" && (rule.when.equalsAny ?? []).includes(value);
+    return (
+      typeof value === "string" && (rule.when.equalsAny ?? []).includes(value)
+    );
   };
   // Two passes, because a gate may pre-fill from a gate (§3.1): security
   // follows solution-architecture.
@@ -404,7 +450,13 @@ const SABLE_ANSWERS = [
 ];
 
 for (const spec of PROJECTS) {
-  for (const field of ["initiative_type", "uses_ai", "third_party_involved", "coupa_onboarded", "data_classification"])
+  for (const field of [
+    "initiative_type",
+    "uses_ai",
+    "third_party_involved",
+    "coupa_onboarded",
+    "data_classification",
+  ])
     checkChoice(spec.name, field, spec.intake[field]);
   const [existing] = await sql`
     select id from projects where project_name = ${spec.name} limit 1`;
@@ -414,7 +466,11 @@ for (const spec of PROJECTS) {
     console.log(`skipped ${spec.name} — already present (${existing.id})`);
     continue;
   }
-  const columns = { project_name: spec.name, created_by: spec.by, ...spec.intake };
+  const columns = {
+    project_name: spec.name,
+    created_by: spec.by,
+    ...spec.intake,
+  };
   const [row] = await sql`insert into projects ${sql(columns)} returning id`;
   spec.id = row.id;
   console.log(`created ${spec.name} (${row.id})`);
@@ -444,9 +500,12 @@ const record = async (projectId, rows, answeredBy, intake) => {
 const novara = projectNamed("Novara scheduling assistant");
 const partner = projectNamed("Partner data exchange");
 const sable = projectNamed("Sable claims triage");
-if (!novara.skipped) await record(novara.id, NOVARA_ANSWERS, novara.by, novara.intake);
-if (!partner.skipped) await record(partner.id, PARTNER_ANSWERS, partner.by, partner.intake);
-if (!sable.skipped) await record(sable.id, SABLE_ANSWERS, sable.by, sable.intake);
+if (!novara.skipped)
+  await record(novara.id, NOVARA_ANSWERS, novara.by, novara.intake);
+if (!partner.skipped)
+  await record(partner.id, PARTNER_ANSWERS, partner.by, partner.intake);
+if (!sable.skipped)
+  await record(sable.id, SABLE_ANSWERS, sable.by, sable.intake);
 // What was WRITTEN, not what was offered: the gates intake decides are
 // deliberately left to the engine, and a count that ignored that reported
 // 27 while writing 17.
@@ -456,7 +515,10 @@ const offered = [
   [novara, NOVARA_ANSWERS],
   [partner, PARTNER_ANSWERS],
   [sable, SABLE_ANSWERS],
-].reduce((total, [project, rows]) => total + (project.skipped ? 0 : rows.length), 0);
+].reduce(
+  (total, [project, rows]) => total + (project.skipped ? 0 : rows.length),
+  0,
+);
 console.log(
   offered === 0
     ? "recorded 0 answers — every project was already present"
@@ -470,7 +532,9 @@ if (!partner.skipped)
   insert into handoffs (project_id, question_id, asked_by, to_domain, note)
   values (${partner.id}, ${"sev.tpr_dh_1"}, ${partner.by}, ${"third-party"},
           ${"I don't know what classification the partners hold this under once it lands their side."})`;
-console.log("handed off sev.tpr_dh_1 on Partner data exchange → Third-Party & Supply Chain");
+console.log(
+  "handed off sev.tpr_dh_1 on Partner data exchange → Third-Party & Supply Chain",
+);
 
 /**
  * The submitted assessment's control answers, and the submission itself.
@@ -483,18 +547,38 @@ console.log("handed off sev.tpr_dh_1 on Partner data exchange → Third-Party & 
 if (!sable.skipped) {
   const tier3Version = await activeVersion("tier3-objectives");
   const CONTROL_ANSWERS = [
-    ["t3.t3_iam_02", "T3-IAM-02", "Multi-Factor Authentication", "Yes",
-      "Enforced for every administrative session, including the vendor's."],
-    ["t3.t3_iam_05", "T3-IAM-05", "Access Review & Recertification", "No",
-      "No recertification process exists today — access is granted and not reviewed again."],
-    ["t3.t3_iam_03", "T3-IAM-03", "Privileged Access Management", "Partial",
-      "Admin accounts are named and logged, but they are not checked out through a vault."],
+    [
+      "t3.t3_iam_02",
+      "T3-IAM-02",
+      "Multi-Factor Authentication",
+      "Yes",
+      "Enforced for every administrative session, including the vendor's.",
+    ],
+    [
+      "t3.t3_iam_05",
+      "T3-IAM-05",
+      "Access Review & Recertification",
+      "No",
+      "No recertification process exists today — access is granted and not reviewed again.",
+    ],
+    [
+      "t3.t3_iam_03",
+      "T3-IAM-03",
+      "Privileged Access Management",
+      "Partial",
+      "Admin accounts are named and logged, but they are not checked out through a vault.",
+    ],
     // Governed by IAM-STD-004 §6.3, so this No arrives as a policy breach
     // rather than a bare gap — the reviewer sees the clause beside it.
     // It must be an objective this assessment actually accumulates: a
     // finding on a control nobody was asked about is invisible in the queue.
-    ["t3.t3_iam_10", "T3-IAM-10", "Remote Access", "No",
-      "Support connects over a shared VPN account with no gateway in front of it."],
+    [
+      "t3.t3_iam_10",
+      "T3-IAM-10",
+      "Remote Access",
+      "No",
+      "Support connects over a shared VPN account with no gateway in front of it.",
+    ],
   ];
   for (const [questionId, , , answer, note] of CONTROL_ANSWERS)
     await sql`insert into answers ${sql({
@@ -508,10 +592,22 @@ if (!sable.skipped) {
     })}`;
 
   const declared = Object.entries({
-    "intake.project_description": ["Project Description", sable.intake.project_description],
-    "intake.uses_ai": ["Does this use AI or machine learning?", sable.intake.uses_ai],
-    "intake.third_party_involved": ["Is a third party involved?", sable.intake.third_party_involved],
-    "intake.data_classification": ["Data classification", sable.intake.data_classification],
+    "intake.project_description": [
+      "Project Description",
+      sable.intake.project_description,
+    ],
+    "intake.uses_ai": [
+      "Does this use AI or machine learning?",
+      sable.intake.uses_ai,
+    ],
+    "intake.third_party_involved": [
+      "Is a third party involved?",
+      sable.intake.third_party_involved,
+    ],
+    "intake.data_classification": [
+      "Data classification",
+      sable.intake.data_classification,
+    ],
   }).map(([questionId, [label, value]]) => ({ questionId, label, value }));
 
   await sql`
@@ -529,26 +625,35 @@ if (!sable.skipped) {
   // clause. Derived here rather than hand-written, so seeded data can never
   // claim a finding the product would not raise.
   const POLICIES = JSON.parse(
-    readFileSync(join(process.cwd(), "src", "data", "reference", "policies.json"), "utf8"),
+    readFileSync(
+      join(process.cwd(), "src", "data", "reference", "policies.json"),
+      "utf8",
+    ),
   );
   const clauseFor = (questionId) => {
     for (const policy of POLICIES.policies)
       for (const clause of policy.clauses)
         for (const requirement of clause.requires)
-          if (requirement.questionId === questionId) return { policy, clause, requirement };
+          if (requirement.questionId === questionId)
+            return { policy, clause, requirement };
     return null;
   };
 
   const raised = CONTROL_ANSWERS.filter(([, , , answer]) => answer !== "Yes");
   for (const [questionId, objective, objectiveName, answer, note] of raised) {
     const governed = clauseFor(questionId);
-    const breaches = governed && answer !== governed.requirement.expect && answer !== "N-A";
+    const breaches =
+      governed && answer !== governed.requirement.expect && answer !== "N-A";
     await sql`insert into findings ${sql({
       project_id: sable.id,
       question_id: questionId,
       objective,
       objective_name: objectiveName,
-      kind: breaches ? "non-compliance" : answer === "No" ? "gap" : "enhancement",
+      kind: breaches
+        ? "non-compliance"
+        : answer === "No"
+          ? "gap"
+          : "enhancement",
       note,
       raised_by: sable.by,
       policy_ref: breaches ? governed.policy.reference : null,
@@ -564,4 +669,6 @@ if (!sable.skipped) {
 }
 
 await sql.end();
-console.log("\ndemo data ready: 4 assessments, 1 waiting obligation, 1 with a reviewer.");
+console.log(
+  "\ndemo data ready: 4 assessments, 1 waiting obligation, 1 with a reviewer.",
+);

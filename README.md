@@ -86,12 +86,12 @@ activated and 27 people seeded — with no container involved.
 Every part of this runs from a user folder. Nothing needs an installer, a
 service, or a machine-wide change.
 
-| You need        | Without admin                                                                                                                                                                                                    | Notes                                                                                      |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| **Node 22+**    | The official **.zip** build from nodejs.org — unzip anywhere and add that folder to your _user_ PATH. `fnm` also installs per-user.                                                                              | The `.msi` installer is the one that wants admin. The zip is the same Node.                |
-| **pnpm**        | `corepack enable pnpm` — corepack ships inside Node, so nothing is downloaded machine-wide.                                                                                                                      | If corepack is blocked, `npm i -g pnpm` into a user-local prefix works too.                |
-| **Postgres 16** | Either the **zip archive** from postgresql.org (`initdb -D data` then `pg_ctl -D data start`, both from the unzipped `bin`), or a **free hosted instance** — Neon, Supabase — where nothing is installed at all. | The EDB `.exe` installer wants admin and registers a service. Neither zip nor hosted does. |
-| **Docker**      | Not needed. Skip `pnpm db:up` entirely.                                                                                                                                                                          | See the table above.                                                                       |
+| You need        | Without admin                                                                                                                                                                                                                                                        | Notes                                                                                      |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Node 22.9+**  | The official **.zip** build from nodejs.org — unzip anywhere and add that folder to your _user_ PATH. `fnm` also installs per-user. 22.9 is the floor, not 22.0: the agent scripts use `--env-file-if-exists`, and an unknown flag kills Node before it runs a line. | The `.msi` installer is the one that wants admin. The zip is the same Node.                |
+| **pnpm**        | `corepack enable pnpm` — corepack ships inside Node, so nothing is downloaded machine-wide.                                                                                                                                                                          | If corepack is blocked, `npm i -g pnpm` into a user-local prefix works too.                |
+| **Postgres 16** | Either the **zip archive** from postgresql.org (`initdb -D data` then `pg_ctl -D data start`, both from the unzipped `bin`), or a **free hosted instance** — Neon, Supabase — where nothing is installed at all.                                                     | The EDB `.exe` installer wants admin and registers a service. Neither zip nor hosted does. |
+| **Docker**      | Not needed. Skip `pnpm db:up` entirely.                                                                                                                                                                                                                              | See the table above.                                                                       |
 
 On a genuinely locked-down machine the shortest path is **hosted Postgres**:
 create a free database, paste its connection string into `DATABASE_URL` and
@@ -105,10 +105,23 @@ says so plainly instead of failing obscurely.
 
 ```powershell
 pnpm install
+Copy-Item .env.example .env    # then set DATABASE_URL and E2E_DATABASE_URL
 pnpm db:migrate; pnpm instrument:seed; pnpm demo:seed
-pnpm agent:claude     # in one terminal — needs ANTHROPIC_API_KEY in .env
-pnpm dev              # in another — http://localhost:3100
+pnpm dev                       # http://localhost:3100
 ```
+
+That is the whole product, with the AI deliberately off. To turn it on, in a
+second terminal:
+
+```powershell
+pnpm agent:install    # once — the agent is a separate project with its own deps
+pnpm agent:claude     # needs ANTHROPIC_API_KEY in .env
+```
+
+then set `AGENT_TRANSPORT=local` in `.env` and restart `pnpm dev`. Leave it
+`none` when no agent is running: availability is read from that setting, not
+by reaching the agent, so `local` with nothing listening puts "Assistant on"
+in the app bar and then apologises when somebody clicks it.
 
 Two things that used to break here and no longer do, both worth knowing in
 case you meet an older checkout:
