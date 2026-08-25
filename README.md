@@ -81,6 +81,48 @@ with Docker not running at all. The block above was verified from an empty
 database — 29 migrations applied, 15 tables, three instrument versions
 activated and 27 people seeded — with no container involved.
 
+### Windows, without administrator rights
+
+Every part of this runs from a user folder. Nothing needs an installer, a
+service, or a machine-wide change.
+
+| You need        | Without admin                                                                                                                                                                                                    | Notes                                                                                      |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Node 22+**    | The official **.zip** build from nodejs.org — unzip anywhere and add that folder to your _user_ PATH. `fnm` also installs per-user.                                                                              | The `.msi` installer is the one that wants admin. The zip is the same Node.                |
+| **pnpm**        | `corepack enable pnpm` — corepack ships inside Node, so nothing is downloaded machine-wide.                                                                                                                      | If corepack is blocked, `npm i -g pnpm` into a user-local prefix works too.                |
+| **Postgres 16** | Either the **zip archive** from postgresql.org (`initdb -D data` then `pg_ctl -D data start`, both from the unzipped `bin`), or a **free hosted instance** — Neon, Supabase — where nothing is installed at all. | The EDB `.exe` installer wants admin and registers a service. Neither zip nor hosted does. |
+| **Docker**      | Not needed. Skip `pnpm db:up` entirely.                                                                                                                                                                          | See the table above.                                                                       |
+
+On a genuinely locked-down machine the shortest path is **hosted Postgres**:
+create a free database, paste its connection string into `DATABASE_URL` and
+`E2E_DATABASE_URL` (two different database names), then:
+
+```powershell
+pnpm install
+pnpm db:migrate; pnpm instrument:seed; pnpm demo:seed
+pnpm agent:claude     # in one terminal — needs ANTHROPIC_API_KEY in .env
+pnpm dev              # in another — http://localhost:3100
+```
+
+Two things that used to break here and no longer do, both worth knowing in
+case you meet an older checkout:
+
+- The agent scripts carried their own environment inline
+  (`AGENT_PROVIDER=anthropic … node …`). That is POSIX shell syntax; on
+  Windows it is not an assignment and the whole line fails — including
+  `pnpm agent:claude`, the one command that turns the AI on. They now go
+  through `scripts/agent.mjs`, which has no shell in it.
+- Paths were taken from file URLs with `.pathname`, which on Windows yields
+  `/C:/…` and is not a path anything will open. They use `fileURLToPath`.
+
+**`pnpm demo:prod` is macOS/Linux only** — it uses `cp -r` and `/dev/null`.
+It is a production-build convenience; `pnpm dev` is what a demo runs on.
+
+_Verified on macOS. The Windows-specific items above are the constructs that
+were fixed and the install routes that avoid an installer — they have not
+been executed on a Windows machine, so budget ten minutes to walk it once
+before you rely on it._
+
 The agent is a separate service and is **off by default** — with no agent
 connected the product says so rather than implying one runs. To see the AI
 features, start both with one command:

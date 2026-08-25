@@ -11,11 +11,13 @@
  * web app pointed at it. Ctrl-C stops both.
  */
 import { spawn } from "node:child_process";
+// fileURLToPath, never `.pathname`: on Windows the latter yields "/C:/…".
+import { fileURLToPath } from "node:url";
 
 // The check below says "put it in .env"; this is what makes that true here
 // as well as in the agent it spawns.
 try {
-  process.loadEnvFile(new URL("../.env", import.meta.url).pathname);
+  process.loadEnvFile(fileURLToPath(new URL("../.env", import.meta.url)));
 } catch {
   // No .env is a normal way to run this — the local model needs no key.
 }
@@ -28,7 +30,12 @@ const AGENT_URL = `http://localhost:${AGENT_PORT}`;
  *   claude           — the real Claude API, needs ANTHROPIC_API_KEY
  * Bedrock is the third and belongs to a deployment, not to a dev script.
  */
-const MODE = process.env.AGENT_MODE ?? "ollama";
+// A flag, not a leading VAR=value: the latter is POSIX shell syntax and is
+// not an assignment on Windows at all. AGENT_MODE still works for anyone
+// who already exports it.
+const MODE = process.argv.includes("--claude")
+  ? "claude"
+  : (process.env.AGENT_MODE ?? "ollama");
 const USING_CLAUDE = MODE === "claude";
 const OLLAMA = process.env.ANTHROPIC_BASE_URL ?? "http://localhost:11434";
 const MODEL =
@@ -103,7 +110,7 @@ if (await alreadyUp()) {
       "src/server.ts",
     ],
     {
-      cwd: new URL("../agent", import.meta.url).pathname,
+      cwd: fileURLToPath(new URL("../agent", import.meta.url)),
       env: {
         ...process.env,
         AGENT_PROVIDER: "anthropic",
@@ -137,8 +144,11 @@ if (await alreadyUp()) {
 say(
   "starting the web app with the assistant connected — http://localhost:3100",
 );
+// shell: true — on Windows the executable is pnpm.cmd, and spawn without a
+// shell does not resolve it.
 const web = spawn("pnpm", ["dev"], {
-  cwd: new URL("..", import.meta.url).pathname,
+  shell: process.platform === "win32",
+  cwd: fileURLToPath(new URL("..", import.meta.url)),
   env: { ...process.env, AGENT_TRANSPORT: "local", AGENT_URL },
   stdio: ["ignore", "inherit", "inherit"],
 });

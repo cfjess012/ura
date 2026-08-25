@@ -17,6 +17,9 @@
  * only .env this ever reads is the one in this repository.
  */
 import { readFileSync } from "node:fs";
+// fileURLToPath, never `.pathname`: on Windows a file URL's pathname is
+// "/C:/…", which is not a path any filesystem call accepts.
+import { fileURLToPath } from "node:url";
 
 /** Where the value in use came from, for the startup line. */
 export type EnvSource = "project .env" | "the environment" | "unset";
@@ -46,7 +49,7 @@ function parse(text: string): Map<string, string> {
  * variable ended up coming from, so startup can report it.
  */
 export function loadProjectEnv(
-  path = new URL("../../.env", import.meta.url).pathname,
+  path = fileURLToPath(new URL("../../.env", import.meta.url)),
   report: string[] = ["ANTHROPIC_API_KEY", "AGENT_MODEL", "AGENT_PROVIDER"],
 ): Record<string, EnvSource> {
   let text = "";
