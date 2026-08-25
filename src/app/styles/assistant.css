@@ -4500,3 +4500,22 @@
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
+
+/* The document control. Declared last so it wins over the earlier copies of
+   this rule in the same stylesheet. */
+.assistant-attach-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--brand);
+  font-weight: 700;
+}
+.assistant-attach-label svg {
+  flex-shrink: 0;
+  /* The spark reads at a glance; the page outline is the quieter half. */
+  opacity: 0.95;
+}
+.assistant-attach-label:hover svg,
+.assistant-attach-label:focus-within svg {
+  opacity: 1;
+}

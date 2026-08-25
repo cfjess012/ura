@@ -455,6 +455,52 @@ function Working() {
   );
 }
 
+/**
+ * A page with a spark on it.
+ *
+ * The control was an emoji paperclip and the words "Read a document", which
+ * QA read as a document being opened FOR them. Both halves are fixed here:
+ * the mark says document AND model in one glance, and it is drawn in
+ * currentColor so it takes the brand blue the label already uses rather
+ * than introducing a colour of its own.
+ *
+ * An emoji renders differently on every platform and cannot be recoloured;
+ * this is the same four-point spark the rest of the product uses for the
+ * model, set against a page outline.
+ */
+function DocSpark() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {/* The page: a folded corner says document without needing a label. */}
+      <path
+        d="M6 2.75h6.5L18 8.25v9.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4.75a2 2 0 0 1 2-2z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12.25 3v5h5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      {/* And the spark, sitting on the page rather than beside it. */}
+      <path
+        fill="currentColor"
+        d="M10.4 10.6l.95 2.5 2.5.95-2.5.95-.95 2.5-.95-2.5-2.5-.95 2.5-.95.95-2.5z"
+      />
+    </svg>
+  );
+}
+
 function AssistantSpark() {
   return (
     <svg
@@ -797,7 +843,8 @@ export function Assistant({
           }}
         />
         <label htmlFor="assistant-file" className="assistant-attach-label">
-          <span aria-hidden="true">📎</span> Add a document
+          <DocSpark />
+          Agent Assist Doc
         </label>
         <span className="help">
           A spec, a vendor overview, a contract. It proposes; you accept.
