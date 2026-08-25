@@ -11,7 +11,14 @@
  * rather than what was offered.
  */
 import { trace } from "@opentelemetry/api";
-import { extractJson, modelClient, modelId, textOf } from "./model.ts";
+import type { Trouble } from "../../src/lib/agent-contract.ts";
+import {
+  extractJson,
+  modelClient,
+  modelId,
+  modelTrouble,
+  textOf,
+} from "./model.ts";
 import { composeRewritePrompt, promptVersion } from "./prompt.ts";
 
 const tracer = trace.getTracer("ura-agent");
@@ -39,7 +46,7 @@ export type Rewrite = {
  * needs no work when in fact the model fell over is the same lie as
  * promising quotes that are not there.
  */
-export type NoRewrite = { why: "refused" | "unavailable" };
+export type NoRewrite = { why: "refused" | Trouble };
 
 /** How much longer than the original a rewrite may be before it has added. */
 const LENGTH_CEILING = 1.6;
@@ -147,9 +154,11 @@ export async function rewriteIntake(
       span.setAttribute("placeholders", verdict.rewrite.placeholders.length);
       return verdict.rewrite;
     } catch (cause) {
+      const why = modelTrouble(cause);
       span.setAttribute("gate.result", "threw");
-      console.error("[rewrite-intake]", cause);
-      return { why: "unavailable" as const };
+      span.setAttribute("trouble", why);
+      console.error("[rewrite-intake]", why, cause);
+      return { why };
     } finally {
       span.end();
     }

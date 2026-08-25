@@ -10,6 +10,10 @@
  * to be misconfigured reports "broken" when it means "not connected yet".
  */
 import { createServer } from "node:http";
+// Before anything reads process.env — model.ts included.
+import { loadProjectEnv } from "./env.ts";
+
+const ENV_SOURCES = loadProjectEnv();
 import {
   AGENT_CONTRACT_VERSION,
   type AgentEvent,
@@ -27,6 +31,13 @@ import { promptVersion } from "./prompt.ts";
 import { startTelemetry } from "./telemetry.ts";
 
 startTelemetry();
+
+// Which key is in play, said out loud. A shell profile shadowing .env cost
+// an afternoon once; the API's "invalid key" named neither the file nor the
+// export, so both looked correct in isolation.
+console.error(
+  `[agent] ANTHROPIC_API_KEY from ${ENV_SOURCES.ANTHROPIC_API_KEY}`,
+);
 
 const PORT = Number(process.env.PORT ?? 8787);
 

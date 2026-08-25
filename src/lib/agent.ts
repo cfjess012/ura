@@ -19,6 +19,7 @@
  *   that switching to it before it exists fails loudly at the seam instead
  *   of quietly somewhere else.
  */
+import { isTrouble } from "./assistant-trouble";
 import { config } from "./config";
 import {
   AGENT_CONTRACT_VERSION,
@@ -26,6 +27,7 @@ import {
   type AgentEvent,
   type AgentRequest,
   type AssessmentContext,
+  type Trouble,
 } from "./agent-contract";
 
 export type IntakeConflict = {
@@ -50,11 +52,11 @@ export type IntakeDescription =
         quote: string;
       }>;
     }
-  | { why: "refused" | "unavailable" };
+  | { why: "refused" | Trouble };
 
 export type IntakeRewrite =
   | { rewrite: string; placeholders: string[]; kept: string }
-  | { why: "refused" | "unavailable" };
+  | { why: "refused" | Trouble };
 
 export type IntakeScoring = {
   scores: Array<{ id: string; score: 1 | 2 | 3 | 4; note?: string }>;
@@ -278,18 +280,20 @@ function localTransport(baseUrl: string): AgentTransport {
           },
           body: JSON.stringify(input),
         });
-        if (!response.ok) return { why: "unavailable" as const };
+        if (!response.ok) return { why: "unreachable" as const };
         const body = await response.json();
         if (body && typeof body.description === "string") return body;
+        // The agent names its own trouble; anything unrecognised is the
+        // model having answered with nothing usable.
         return {
           why:
-            body?.why === "refused"
-              ? ("refused" as const)
+            isTrouble(body?.why) || body?.why === "refused"
+              ? body.why
               : ("unavailable" as const),
         };
       } catch (cause) {
         console.error("[agent] describe unreachable", cause);
-        return { why: "unavailable" as const };
+        return { why: "unreachable" as const };
       }
     },
     async rewriteIntake(input) {
@@ -302,18 +306,18 @@ function localTransport(baseUrl: string): AgentTransport {
           },
           body: JSON.stringify(input),
         });
-        if (!response.ok) return { why: "unavailable" as const };
+        if (!response.ok) return { why: "unreachable" as const };
         const body = await response.json();
         if (body && typeof body.rewrite === "string") return body;
         return {
           why:
-            body?.why === "refused"
-              ? ("refused" as const)
+            isTrouble(body?.why) || body?.why === "refused"
+              ? body.why
               : ("unavailable" as const),
         };
       } catch (cause) {
         console.error("[agent] rewrite unreachable", cause);
-        return { why: "unavailable" as const };
+        return { why: "unreachable" as const };
       }
     },
     async converse(input) {

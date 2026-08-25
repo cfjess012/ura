@@ -21,7 +21,9 @@ import { sessionStore } from "@/lib/session";
 import { ALL_FIELDS, INTAKE_SECTIONS, intakeAsDocument } from "@/lib/intake";
 import { documentStore } from "@/lib/documents";
 import { extractText } from "@/lib/extract";
-import { quoteAppearsVerbatim } from "@/lib/agent-contract";
+import { quoteAppearsVerbatim,
+  type Trouble,
+} from "@/lib/agent-contract";
 import {
   belowFloor,
   CRITERIA,
@@ -458,7 +460,7 @@ export async function suggestRewrite(
   Result<{
     suggestion: Suggestion | null;
     /** Why there is none, when there is none. Null when there is one. */
-    why: "refused" | "unavailable" | null;
+    why: "refused" | Trouble | null;
   }>
 > {
   try {
@@ -501,7 +503,7 @@ export async function suggestRewrite(
       return {
         ok: true as const,
         suggestion: null,
-        why: "unavailable" as const,
+        why: "unreachable" as const,
       };
     }
     const outcome = await transport.rewriteIntake({

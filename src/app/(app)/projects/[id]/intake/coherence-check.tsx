@@ -10,6 +10,8 @@ import { applyIntakeFix } from "@/app/actions";
 import { Marked } from "../marked";
 import { isFailure } from "@/lib/errors";
 import type { Coherence } from "@/lib/intake-rubric";
+import type { Trouble } from "@/lib/agent-contract";
+import { tellTrouble } from "@/lib/assistant-trouble";
 
 /**
  * The intake coherence check (FR-43).
@@ -464,9 +466,9 @@ function RewriteOffer({
 }) {
   const [suggestion, setSuggestion] = React.useState<Suggestion | null>(null);
   const [asking, setAsking] = React.useState(false);
-  const [nothing, setNothing] = React.useState<
-    null | "refused" | "unavailable"
-  >(null);
+  const [nothing, setNothing] = React.useState<null | "refused" | Trouble>(
+    null,
+  );
 
   async function ask() {
     if (asking) return;
@@ -475,7 +477,7 @@ function RewriteOffer({
     try {
       const outcome = await suggestRewrite(projectId, fieldId, shortfalls);
       if (isFailure(outcome)) {
-        setNothing("unavailable");
+        setNothing("unreachable");
         return;
       }
       setSuggestion(outcome.suggestion);
@@ -483,7 +485,7 @@ function RewriteOffer({
       setNothing(outcome.suggestion ? null : (outcome.why ?? "unavailable"));
     } catch (cause) {
       console.error("suggestRewrite transport", cause);
-      setNothing("unavailable");
+      setNothing("unreachable");
     } finally {
       setAsking(false);
     }
@@ -543,12 +545,8 @@ function RewriteOffer({
           Nothing worth suggesting — what you wrote stands.
         </span>
       )}
-      {nothing === "unavailable" && (
-        <span className="help">
-          {" "}
-          I couldn&rsquo;t write one just then — that is about me, not your
-          writing. Worth trying again.
-        </span>
+      {nothing !== null && nothing !== "refused" && (
+        <span className="help"> {tellTrouble(nothing).message}</span>
       )}
     </p>
   );

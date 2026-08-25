@@ -12,6 +12,14 @@
  */
 import { spawn } from "node:child_process";
 
+// The check below says "put it in .env"; this is what makes that true here
+// as well as in the agent it spawns.
+try {
+  process.loadEnvFile(new URL("../.env", import.meta.url).pathname);
+} catch {
+  // No .env is a normal way to run this — the local model needs no key.
+}
+
 const AGENT_PORT = Number(process.env.AGENT_PORT ?? 8790);
 const AGENT_URL = `http://localhost:${AGENT_PORT}`;
 /**
@@ -31,7 +39,9 @@ const say = (m) => console.log(`\x1b[36m[dev:ai]\x1b[0m ${m}`);
 /** Is something already answering there? Reuse it rather than fighting it. */
 async function alreadyUp() {
   try {
-    const r = await fetch(`${AGENT_URL}/healthz`, { signal: AbortSignal.timeout(1500) });
+    const r = await fetch(`${AGENT_URL}/healthz`, {
+      signal: AbortSignal.timeout(1500),
+    });
     return r.ok;
   } catch {
     return false;
@@ -41,7 +51,9 @@ async function alreadyUp() {
 /** Ollama has to be running, and it is a better error than a stack trace. */
 async function ollamaReachable() {
   try {
-    const r = await fetch(`${OLLAMA}/api/tags`, { signal: AbortSignal.timeout(2000) });
+    const r = await fetch(`${OLLAMA}/api/tags`, {
+      signal: AbortSignal.timeout(2000),
+    });
     return r.ok;
   } catch {
     return false;
@@ -76,20 +88,34 @@ if (!USING_CLAUDE && !(await ollamaReachable())) {
 if (await alreadyUp()) {
   say(`an agent is already answering on ${AGENT_PORT} — using it`);
 } else {
-  say(`starting the agent on ${AGENT_PORT} — ${USING_CLAUDE ? "Claude API" : "local"}, ${MODEL}`);
-  const agent = spawn("node", ["--experimental-strip-types", "src/server.ts"], {
-    cwd: new URL("../agent", import.meta.url).pathname,
-    env: {
-      ...process.env,
-      AGENT_PROVIDER: "anthropic",
-      // No base URL for the Claude API — that override is what makes the
-      // identical client talk to a local model instead.
-      ...(USING_CLAUDE ? {} : { ANTHROPIC_BASE_URL: OLLAMA }),
-      AGENT_MODEL: MODEL,
-      PORT: String(AGENT_PORT),
+  say(
+    `starting the agent on ${AGENT_PORT} — ${USING_CLAUDE ? "Claude API" : "local"}, ${MODEL}`,
+  );
+  // The agent is its own process and gets none of Next's .env loading, so
+  // it asks Node for the file directly. Without this it started with no key
+  // at all and the API reported the SDK's placeholder as an invalid key —
+  // which reads, from the outside, exactly like a bad key in .env.
+  const agent = spawn(
+    "node",
+    [
+      "--env-file-if-exists=../.env",
+      "--experimental-strip-types",
+      "src/server.ts",
+    ],
+    {
+      cwd: new URL("../agent", import.meta.url).pathname,
+      env: {
+        ...process.env,
+        AGENT_PROVIDER: "anthropic",
+        // No base URL for the Claude API — that override is what makes the
+        // identical client talk to a local model instead.
+        ...(USING_CLAUDE ? {} : { ANTHROPIC_BASE_URL: OLLAMA }),
+        AGENT_MODEL: MODEL,
+        PORT: String(AGENT_PORT),
+      },
+      stdio: ["ignore", "inherit", "inherit"],
     },
-    stdio: ["ignore", "inherit", "inherit"],
-  });
+  );
   children.push(agent);
 
   // Wait until it actually answers. Starting the web app first would show
@@ -100,13 +126,17 @@ if (await alreadyUp()) {
     await new Promise((r) => setTimeout(r, 400));
   }
   if (!(await alreadyUp())) {
-    console.error(`\n  The agent did not come up on ${AGENT_PORT}. Its output is above.\n`);
+    console.error(
+      `\n  The agent did not come up on ${AGENT_PORT}. Its output is above.\n`,
+    );
     stop();
   }
   say("agent is answering");
 }
 
-say("starting the web app with the assistant connected — http://localhost:3100");
+say(
+  "starting the web app with the assistant connected — http://localhost:3100",
+);
 const web = spawn("pnpm", ["dev"], {
   cwd: new URL("..", import.meta.url).pathname,
   env: { ...process.env, AGENT_TRANSPORT: "local", AGENT_URL },

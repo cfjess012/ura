@@ -142,6 +142,30 @@ export type AgentEvent =
   | { type: "done" };
 
 /** The contract version, sent on every request so a mismatch is visible. */
+/**
+ * Why there is no answer, when the reason is not the person's document or
+ * their writing.
+ *
+ * These were one word — "unavailable" — which is how a rejected API key, a
+ * rate limit and a service that was simply not running all reached somebody
+ * as "worth trying again". Two of those three are not worth trying again,
+ * and none of them is about their document. The vocabulary is shared so the
+ * agent names the trouble and the product words it, once, in one file.
+ */
+export type Trouble =
+  /** The agent service did not answer at all. */
+  | "unreachable"
+  /** The model API rejected our credentials. */
+  | "auth"
+  /** The model API is rate limiting us. */
+  | "rate"
+  /** The model API is up but overloaded. */
+  | "overloaded"
+  /** The agent could not reach the model API. */
+  | "network"
+  /** The model answered, but with nothing we could use. */
+  | "unavailable";
+
 export const AGENT_CONTRACT_VERSION = "1";
 
 /**

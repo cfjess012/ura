@@ -17,6 +17,7 @@
  * to prove the gates reject what they should. Never read a quality
  * conclusion from an Ollama run.
  */
+import type { Trouble } from "../../src/lib/agent-contract.ts";
 import Anthropic from "@anthropic-ai/sdk";
 import { AnthropicBedrock } from "@anthropic-ai/bedrock-sdk";
 
@@ -39,6 +40,33 @@ export function modelClient(): ModelClient {
     apiKey: process.env.ANTHROPIC_API_KEY ?? "not-needed-for-local",
     baseURL: process.env.ANTHROPIC_BASE_URL,
   });
+}
+
+/**
+ * What went wrong with a model call, in the shared vocabulary.
+ *
+ * The SDK's own error carries the status; everything below it is a network
+ * fault reaching the API. Anything we cannot place is reported as
+ * "unavailable" rather than guessed at — a wrong diagnosis sends somebody
+ * to check a key that was never the problem.
+ */
+export function modelTrouble(cause: unknown): Trouble {
+  const status = (cause as { status?: number })?.status;
+  if (status === 401 || status === 403) return "auth";
+  if (status === 429) return "rate";
+  if (status === 500 || status === 503 || status === 529) return "overloaded";
+  const code =
+    (cause as { code?: string })?.code ??
+    (cause as { cause?: { code?: string } })?.cause?.code;
+  if (
+    code === "ECONNREFUSED" ||
+    code === "ENOTFOUND" ||
+    code === "ETIMEDOUT" ||
+    code === "ECONNRESET"
+  ) {
+    return "network";
+  }
+  return "unavailable";
 }
 
 export function modelId(): string {

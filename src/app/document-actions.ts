@@ -13,6 +13,7 @@
  * counts as an answer nowhere until somebody writes one in their own name.
  */
 import { revalidatePath } from "next/cache";
+import { tellTrouble } from "@/lib/assistant-trouble";
 import { agentTransport } from "@/lib/agent";
 import { quoteAppearsVerbatim } from "@/lib/agent-contract";
 import { currentPerson } from "@/lib/current-person";
@@ -173,7 +174,7 @@ export async function describeFromFile(
       return failure(
         "describeFromFile",
         new Error("no agent"),
-        "No assistant is connected, so nothing was drafted. You can still write it yourself.",
+        tellTrouble("unreachable").message,
         { retryable: false, expected: true },
       );
     }
@@ -193,14 +194,20 @@ export async function describeFromFile(
     });
 
     if (!("description" in drafted)) {
-      return failure(
-        "describeFromFile",
-        new Error(drafted.why),
+      // "I read it and there was nothing in it" and "I never got to read it"
+      // are different things to be told, and only the first is about their
+      // document. Everything else is ours, and says which of ours it is.
+      const told =
         drafted.why === "refused"
-          ? `I read ${file.name}, but I could not turn it into a description worth showing you. It may not say much about the activity itself.`
-          : `I could not draft one just then — that is about me, not your document. Worth trying again.`,
-        { retryable: drafted.why === "unavailable", expected: true },
-      );
+          ? {
+              message: `I read ${file.name}, but I could not turn it into a description worth showing you. It may not say much about the activity itself.`,
+              retryable: false,
+            }
+          : tellTrouble(drafted.why);
+      return failure("describeFromFile", new Error(drafted.why), told.message, {
+        retryable: told.retryable,
+        expected: true,
+      });
     }
 
     return {

@@ -12,8 +12,17 @@
  * nobody can point at is a fact nobody should be signing for.
  */
 import { trace } from "@opentelemetry/api";
-import { quoteAppearsVerbatim } from "../../src/lib/agent-contract.ts";
-import { extractJson, modelClient, modelId, textOf } from "./model.ts";
+import {
+  quoteAppearsVerbatim,
+  type Trouble,
+} from "../../src/lib/agent-contract.ts";
+import {
+  extractJson,
+  modelClient,
+  modelId,
+  modelTrouble,
+  textOf,
+} from "./model.ts";
 import { composeDescribePrompt, promptVersion } from "./prompt.ts";
 
 const tracer = trace.getTracer("ura-agent");
@@ -46,7 +55,7 @@ export type Description = {
   fields: FieldProposal[];
 };
 
-export type NoDescription = { why: "refused" | "unavailable" };
+export type NoDescription = { why: "refused" | Trouble };
 
 /** How long a description may run before it has stopped being one. */
 const CEILING = 4000;
@@ -172,9 +181,11 @@ export async function describeIntake(
       );
       return verdict.description;
     } catch (cause) {
+      const why = modelTrouble(cause);
       span.setAttribute("gate.result", "threw");
-      console.error("[describe-intake]", cause);
-      return { why: "unavailable" as const };
+      span.setAttribute("trouble", why);
+      console.error("[describe-intake]", why, cause);
+      return { why };
     } finally {
       span.end();
     }
