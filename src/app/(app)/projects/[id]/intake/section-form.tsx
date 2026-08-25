@@ -16,11 +16,18 @@ import {
   INTAKE_SECTIONS,
   isFieldVisible,
   missingRequiredFields,
+  sectionKeyOwning,
   sectionProgress,
   type IntakeField,
   type IntakeValues,
 } from "@/lib/intake";
 import { IntakeRail } from "./intake-rail";
+import {
+  bracketSpans,
+  holdRewrite,
+  takeRewrite,
+  type PendingRewrite,
+} from "@/lib/pending-rewrite";
 import { ProjectHeader } from "../project-header";
 
 export function SectionForm({
@@ -78,6 +85,50 @@ export function SectionForm({
 
   const set = (id: string, v: string | string[]) =>
     setValues((prev) => ({ ...prev, [id]: v }));
+
+  // A rewrite that arrived from the check, which may have run on another
+  // section. Held in state so the field can be pointed at afterwards.
+  const [pending, setPending] = React.useState<PendingRewrite | null>(null);
+
+  React.useEffect(() => {
+    const waiting = takeRewrite(
+      projectId,
+      section.fields.map((f) => f.id),
+    );
+    if (waiting) setPending(waiting);
+    // Once, on arrival. Re-running would re-apply it over their edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, sectionKey]);
+
+  // Put the text in the field.
+  React.useEffect(() => {
+    if (!pending) return;
+    set(pending.fieldId, pending.text);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending]);
+
+  // Then take them to it and select the first bracket, so typing replaces
+  // it. Selecting rather than merely scrolling is the difference between
+  // being shown a gap and being put in it.
+  //
+  // This waits until the value has actually landed in the DOM. Selecting in
+  // the same frame as the write set a range on the old text, and React's
+  // re-render of the controlled field then dropped it — focus stayed, the
+  // selection silently did not.
+  const placed = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!pending) return;
+    if (placed.current === pending.fieldId) return;
+    if (values[pending.fieldId] !== pending.text) return;
+    const el = document.getElementById(pending.fieldId) as
+      HTMLTextAreaElement | HTMLInputElement | null;
+    if (!el || el.value !== pending.text) return;
+    placed.current = pending.fieldId;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.focus({ preventScroll: true });
+    const spans = bracketSpans(pending.text);
+    if (spans.length > 0) el.setSelectionRange(spans[0]!.from, spans[0]!.to);
+  }, [pending, values]);
 
   const formRef = React.useRef<HTMLFormElement>(null);
   // Adopt anything typed before this component hydrated.
@@ -282,6 +333,14 @@ export function SectionForm({
                 set={set}
                 flagged={flaggedIds.has(field.id)}
                 people={people}
+                gaps={
+                  pending?.fieldId === field.id
+                    ? {
+                        text: String(values[field.id] ?? ""),
+                        onDone: () => setPending(null),
+                      }
+                    : null
+                }
               />
             ) : null,
           )}
@@ -297,7 +356,30 @@ export function SectionForm({
             // Into the field, for them to edit — never into the record. The
             // grading judges whatever they finally submit, not what was
             // offered (FR-22).
-            onRewrite={(fieldId, text) => set(fieldId, text)}
+            // The field it rewrites usually lives on the first section, so
+            // the suggestion is carried there rather than written here into
+            // a field this form does not render. It is still not saved:
+            // they land on it, edit the brackets, and submit.
+            onRewrite={(fieldId, suggestion) => {
+              const owner = sectionKeyOwning(fieldId);
+              if (!owner) return;
+              holdRewrite({
+                projectId,
+                fieldId,
+                text: suggestion.rewrite,
+                placeholders: suggestion.placeholders,
+              });
+              if (owner === sectionKey) {
+                setPending({
+                  projectId,
+                  fieldId,
+                  text: suggestion.rewrite,
+                  placeholders: suggestion.placeholders,
+                });
+                return;
+              }
+              router.push(`/projects/${projectId}/intake/${owner}`);
+            }}
             // A correction writes to the record, and the field it corrects
             // usually lives on an earlier section — so pull the saved value
             // back onto this screen rather than leaving it stale.
@@ -395,12 +477,76 @@ export function SectionForm({
   );
 }
 
+/**
+ * The gaps a suggested rewrite left behind, listed under the field.
+ *
+ * A textarea cannot carry markup, so the brackets cannot be highlighted
+ * where they sit. Pointing at them from underneath does the same work and
+ * one thing better: choosing one **selects** it, so typing replaces it.
+ * Being put in the gap beats being shown it.
+ */
+function Gaps({
+  fieldId,
+  text,
+  onDone,
+}: {
+  fieldId: string;
+  text: string;
+  onDone: () => void;
+}) {
+  const spans = bracketSpans(text);
+  if (spans.length === 0) {
+    return (
+      <p className="gaps-clear" role="status">
+        <span aria-hidden="true">✓</span> Nothing left in brackets — this is
+        ready to save.
+      </p>
+    );
+  }
+  const jump = (from: number, to: number) => {
+    const el = document.getElementById(fieldId) as HTMLTextAreaElement | null;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(from, to);
+  };
+  return (
+    <div className="gaps">
+      <p className="gaps-head">
+        <span className="gaps-count">{spans.length}</span>
+        {spans.length === 1 ? "gap to fill in" : "gaps to fill in"} — nothing
+        here was invented, so anything it did not know is a question for you
+      </p>
+      <ol className="gaps-list">
+        {spans.map((span, at) => (
+          <li key={at}>
+            <button
+              type="button"
+              className="link-button"
+              onClick={() => jump(span.from, span.to)}
+            >
+              {text.slice(span.from + 1, span.to - 1)}
+            </button>
+          </li>
+        ))}
+      </ol>
+      <button
+        type="button"
+        className="link-button gaps-dismiss"
+        onClick={onDone}
+      >
+        Hide this
+      </button>
+    </div>
+  );
+}
+
 function Field({
   field,
   values,
   set,
   flagged,
   people,
+  gaps,
 }: {
   field: IntakeField;
   values: IntakeValues;
@@ -408,6 +554,8 @@ function Field({
   flagged: boolean;
   /** The employee directory, loaded on the server (G-46's exception). */
   people: ReferenceEntry[];
+  /** Set when a suggestion has just been placed here and has gaps in it. */
+  gaps: { text: string; onDone: () => void } | null;
 }) {
   if (field.type === "note") {
     return (
@@ -440,14 +588,19 @@ function Field({
     </>
   );
   const body = (
-    <Control
-      field={field}
-      values={values}
-      set={set}
-      flagged={flagged}
-      people={people}
-      labelId={labelId}
-    />
+    <>
+      <Control
+        field={field}
+        values={values}
+        set={set}
+        flagged={flagged}
+        people={people}
+        labelId={labelId}
+      />
+      {gaps && (
+        <Gaps fieldId={field.id} text={gaps.text} onDone={gaps.onDone} />
+      )}
+    </>
   );
   if (field.conditional) {
     return (

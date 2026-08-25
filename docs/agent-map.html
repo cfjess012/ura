@@ -1496,6 +1496,21 @@ means nobody read it. Both used to print &quot;Nothing worth suggesting just now
 fact it was never examined. The agent returns which, and the screen says the
 honest one.
 
+**Taking a suggestion moves them to the field.** The check runs at the foot
+of the last section; the field it rewrites is usually on the first. So &quot;Use
+this&quot; carries the suggestion in **session storage**, navigates to the owning
+section, puts the text in the field, and selects the first bracket so typing
+replaces it. Session storage, not the record: a suggestion is not an answer
+until they save it, and writing it to the database on the way past would
+make the platform the author of a sentence they are about to attest to. It
+is read once — a second read would overwrite their edits — and per tab, so
+closing the page means the suggestion was never taken.
+
+The gaps are listed under the field, each one clickable to select it there.
+A textarea cannot carry markup, so the brackets cannot be highlighted where
+they sit; pointing at them from underneath does the same work and one thing
+better, which is that choosing one puts the caret in it.
+
 Offered only where a long-form field scores below 4, and bound by one rule:
 **it uses only facts the person already wrote.** Anything missing becomes a
 `[bracketed placeholder]` naming what is needed — never an invention, never

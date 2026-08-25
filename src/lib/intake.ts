@@ -409,3 +409,13 @@ export function sectionProgress(values: IntakeValues): SectionProgress[] {
     };
   });
 }
+
+/** Which section owns a field, by its URL key. Null if nothing does. */
+export function sectionKeyOwning(fieldId: string): string | null {
+  for (const section of INTAKE_SECTIONS) {
+    if (section.fields.some((f) => f.id === fieldId)) {
+      return sectionKey(section.name);
+    }
+  }
+  return null;
+}

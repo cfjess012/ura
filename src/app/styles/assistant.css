@@ -827,3 +827,64 @@
 .rewrite .help {
   margin: 0;
 }
+
+/* The gaps a suggestion left. Warning treatment, because an unanswered
+   bracket in a description is a hole somebody is about to sign for — and
+   never colour alone: the count and the heading say what this is. */
+.gaps {
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--warning);
+  background: var(--warning-bg);
+  border-radius: 8px;
+}
+.gaps-head {
+  margin: 0 0 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--neutral-700);
+}
+.gaps-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--warning-strong);
+  color: var(--neutral-0);
+  font-size: 0.66rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.gaps-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.gaps-list li {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--neutral-800);
+}
+.gaps-list .link-button {
+  text-align: left;
+  font-size: 0.8rem;
+}
+.gaps-dismiss {
+  margin-top: 0.45rem;
+  font-size: 0.74rem;
+}
+.gaps-clear {
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--success);
+}

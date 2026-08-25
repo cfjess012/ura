@@ -29,7 +29,7 @@ export function CoherenceCheck({
 }: {
   projectId: string;
   /** Puts a suggestion into the field, for them to edit. Never saves it. */
-  onRewrite?: (fieldId: string, text: string) => void;
+  onRewrite?: (fieldId: string, suggestion: Suggestion) => void;
   /** Called after a correction lands, so the screen can catch up. */
   onFixed?: () => void;
   /**
@@ -116,7 +116,7 @@ function Result({
   result: Coherence;
   projectId: string;
   rewritable: string[];
-  onRewrite?: (fieldId: string, text: string) => void;
+  onRewrite?: (fieldId: string, suggestion: Suggestion) => void;
   onFixed?: () => void;
 }) {
   if (result.score === null && result.asks.length === 0) {
@@ -257,7 +257,7 @@ function Result({
             ask: a.sentence,
             anchor: a.anchor,
           }))}
-          onUse={(text) => onRewrite(rewritable[0]!, text)}
+          onUse={(suggestion) => onRewrite(rewritable[0]!, suggestion)}
         />
       )}
 
@@ -454,7 +454,7 @@ function RewriteOffer({
   projectId: string;
   fieldId: string;
   shortfalls: Array<{ label: string; ask: string; anchor: string }>;
-  onUse: (text: string) => void;
+  onUse: (suggestion: Suggestion) => void;
 }) {
   const [suggestion, setSuggestion] = React.useState<Suggestion | null>(null);
   const [asking, setAsking] = React.useState(false);
@@ -500,11 +500,11 @@ function RewriteOffer({
             type="button"
             className="btn"
             onClick={() => {
-              onUse(suggestion.rewrite);
+              onUse(suggestion);
               setSuggestion(null);
             }}
           >
-            Use this — I&rsquo;ll edit it
+            Use this — take me to it
           </button>
           <button
             type="button"
