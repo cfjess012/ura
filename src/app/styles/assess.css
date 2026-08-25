@@ -784,3 +784,53 @@
   text-transform: uppercase;
   color: var(--neutral-500);
 }
+
+/* The card wears the rail's number and the rail's words, so a person can
+   scan between the two without translating. */
+.patharea-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+.patharea-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--success);
+  color: var(--neutral-0);
+  font-size: 0.8rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+/* The formal name still shown, quietly — it is what a reviewer sees, so it
+   cannot simply be dropped in favour of the short one. */
+.patharea-formal {
+  margin: 0.3rem 0 0.6rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: var(--neutral-500);
+}
+
+/* An area that applies to every assessment, named under the walk rather
+   than numbered inside it. */
+.rail-standing {
+  margin: 0.6rem 0 0;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--neutral-200);
+}
+.rail-standing-link {
+  display: block;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--neutral-500);
+  text-decoration: none;
+}
+.rail-standing-link:hover {
+  color: var(--brand);
+  text-decoration: underline;
+}

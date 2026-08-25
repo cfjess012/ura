@@ -161,8 +161,8 @@ export default async function GatePage({
                 the askable ones, so after Governance the two disagreed by
                 one, six inches apart. One ordering, both places. */}
             {state.settled
-              ? `Step 2 · Risk area ${shown + 1} of ${CATEGORIES.length} · not asked`
-              : `Step 2 · Risk area ${shown + 1} of ${CATEGORIES.length}`}
+              ? "Step 2 · Applies to every assessment · not asked"
+              : `Step 2 · Risk area ${index + 1} of ${askable.length}`}
           </p>
           <h2 className="display gate-display">{category.name}</h2>
 

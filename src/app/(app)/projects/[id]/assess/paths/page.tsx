@@ -74,10 +74,17 @@ export default async function PathsPage({
       gates.find((g) => g.category.key === c.key)?.answer === "Yes",
   );
   const lit = litPaths(CATEGORIES, gates, selections, intake);
+  // What the rail numbers: everything except the areas nobody is asked.
+  const walk = gates.filter((g) => !g.settled);
   const areas: PathArea[] = open.map((category) => {
     const state = gates.find((g) => g.category.key === category.key);
     return {
       category,
+      // The rail's own number, so the two can be scanned against each
+      // other. Taken from the walk the rail shows, not from this list —
+      // these are only the open areas, and numbering them 1..n would put a
+      // different number on the card than the one six inches to its left.
+      number: walk.findIndex((g) => g.category.key === category.key) + 1,
       selected: selections[category.key] ?? [],
       // Anything the engine can explain, not only what it added. A path the
       // person ticked that WOULD have applied anyway carries its reason too,

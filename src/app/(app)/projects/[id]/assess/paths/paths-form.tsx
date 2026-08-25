@@ -18,6 +18,8 @@ import { SaveBar, useAutosave } from "../autosave";
 
 export type PathArea = {
   category: Category;
+  /** Its place in the rail, so the card can wear the same number. */
+  number: number;
   selected: string[];
   /** Paths the engine lit without asking, with the reason to show. */
   derived: LitPath[];
@@ -177,15 +179,33 @@ export function PathsForm({
       }}
     >
       {areas.map((area) => (
-        <section key={area.category.key} className="card patharea">
+        <section
+          key={area.category.key}
+          className="card patharea"
+          id={`area-${area.category.key}`}
+        >
           <div className="patharea-top">
-            <h3>{area.category.name}</h3>
+            {/*
+              The same number and the same words as the rail, six inches to
+              the left. It said "Third party" there and "Third-Party & Supply
+              Chain" here, with nothing tying them together — two names for
+              one thing, and a person scanning between them has to work out
+              they are the same. The formal name is still here, underneath,
+              because it is what a reviewer will see.
+            */}
+            <h3 className="patharea-name">
+              <span className="patharea-num" aria-hidden="true">
+                {area.number}
+              </span>
+              {area.category.short}
+            </h3>
             <AreaInsight
               projectId={projectId}
               area={area}
               picked={picked[area.category.key] ?? []}
             />
           </div>
+          <p className="patharea-formal">{area.category.name}</p>
           <p className="gate-question" id={`${area.category.key}-label`}>
             {area.category.pathQuestion!.text}
           </p>
