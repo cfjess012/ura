@@ -35,6 +35,7 @@ describe("§26.1 pure logic is liftable", () => {
     "lib/db.ts", // opens the connection
     "lib/repo.ts", // speaks to the driver
     "lib/repo-review.ts", // the same store seam, split for NFR-6
+    "lib/repo-answers.ts", // and again for the answers, same reason
     "lib/session.ts", // the conversation-state seam (§6.1), swapped for AgentCore Memory
     "lib/documents.ts", // the document store — same seam, its own module
     "lib/schema.ts", // drizzle table definitions
@@ -79,6 +80,7 @@ describe("§26.2 persistence is behind one interface", () => {
     const allowed = new Set([
       "lib/repo.ts",
       "lib/repo-review.ts",
+      "lib/repo-answers.ts",
       // The session seam is persistence too — Postgres today, AgentCore
       // Memory later. It is allowed the driver for the same reason the
       // stores are: it exists so nothing else needs it.

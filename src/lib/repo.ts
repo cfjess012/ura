@@ -33,6 +33,12 @@ export type ProjectSummary = {
   startedBy: string | null;
   /** When it was submitted, or null while it is still a draft (§4.1). */
   submittedAt: Date | null;
+  /**
+   * The intake columns as stored, so a listing can work out where each
+   * assessment actually is without a query per row. Raw, not flattened:
+   * `intakeValuesFrom` is what turns it into answers.
+   */
+  intake: Record<string, unknown>;
 };
 
 /**
@@ -54,28 +60,6 @@ export type ProjectRecord = typeof schema.projects.$inferSelect;
  * (Tier-1 path selections). Both are stored as JSON, so a list keeps its
  * shape instead of being flattened into text nobody can split reliably.
  */
-/**
- * A recorded answer, in the shape the instrument stores it.
- *
- * Tiers 1 and 2 store a string or a list. Tier 3 stores an answer AND the
- * note that goes with it, because the note is part of the answer — a "No"
- * without its explanation is not a finding anyone can act on (§3.4). The
- * column is jsonb and always has been; this type was narrower than the
- * column, so an object came back as the string "[object Object]" and the
- * answer silently failed to reload (S6, 2026-08-23).
- */
-export type AnswerValue = string | string[] | Record<string, unknown>;
-
-export type CurrentAnswer = {
-  value: AnswerValue;
-  source: string;
-  confirmed: boolean;
-  /** Present only on a drafted answer: the passage it came from. */
-  basis?: string | null;
-  sourceQuote?: string | null;
-  sourceRef?: string | null;
-};
-
 export interface PeopleStore {
   /**
    * Everyone the platform knows about, including the directory-only people
@@ -89,63 +73,6 @@ export interface PeopleStore {
    */
   signIns(): Promise<Person[]>;
   get(id: string): Promise<Person | null>;
-}
-
-export type AnswerInput = {
-  projectId: string;
-  questionId: string;
-  value: string | string[];
-  source: "person" | "intake";
-  confirmed: boolean;
-  instrumentVersionId: string;
-  answeredBy: string | null;
-};
-
-export interface AnswerStore {
-  /** The active instrument version every answer pins to (NFR-11). */
-  activeVersionId(slug: string): Promise<string>;
-  current(projectId: string): Promise<Record<string, CurrentAnswer>>;
-  /**
-   * How many times each question has been answered. The table is
-   * insert-only, so this is a count of rows — and it is the only way the
-   * review rubric can honestly say whether somebody kept changing their
-   * mind. It was hardcoded to 1 once, under a heading promising mechanical
-   * checks; that is the failure mode this exists to prevent.
-   */
-  timesAnswered(projectId: string): Promise<Map<string, number>>;
-  /**
-   * Record answers a model proposed. Always unconfirmed and always
-   * carrying the passage they came from — the schema refuses anything
-   * else (migration 0023).
-   */
-  recordDrafts(
-    inputs: Array<{
-      projectId: string;
-      questionId: string;
-      value: string | string[];
-      basis: string;
-      sourceQuote: string;
-      sourceRef: string;
-      instrumentVersionId: string;
-    }>,
-  ): Promise<void>;
-  /**
-   * Record several answers as one act. All of them land or none do — a
-   * screen that saves four areas in a loop can fail halfway, leaving two
-   * committed while telling the person nothing was saved (found by
-   * independent verification).
-   */
-  recordAll(inputs: AnswerInput[]): Promise<void>;
-  record(input: {
-    projectId: string;
-    questionId: string;
-    value: string | string[];
-    source: "person" | "intake";
-    confirmed: boolean;
-    instrumentVersionId: string;
-    /** Who recorded it. Null only for rows written before people existed. */
-    answeredBy: string | null;
-  }): Promise<void>;
 }
 
 export interface ProjectStore {
@@ -167,7 +94,14 @@ export interface ProjectStore {
    * bell both need this on every page load, and N assessments would
    * otherwise be N round trips before anything renders.
    */
-  awaitingReview(): Promise<SubmittedForReview[]>;
+  /**
+   * Every submitted assessment and the raw counts behind its standing.
+   *
+   * Scoped, because the requester's own list needs the same counts for the
+   * two assessments that are theirs — and a listing that asked for
+   * everyone's would hand one person's work to another (§2, F2).
+   */
+  awaitingReview(scope?: ProjectScope): Promise<SubmittedForReview[]>;
   get(id: string): Promise<ProjectRecord | null>;
   create(
     projectName: string,
@@ -201,15 +135,12 @@ export function postgresProjectStore(): ProjectStore {
   const db = getDb();
   return {
     async list(scope) {
+      // The whole project row, not six columns of it. The listing has to
+      // say where each assessment stands, and that reasons from the intake
+      // answers — which live on this row. Selecting them here is one query;
+      // fetching them per listed project was twenty-five.
       const query = db
-        .select({
-          id: schema.projects.id,
-          projectName: schema.projects.projectName,
-          businessUnit: schema.projects.businessUnit,
-          updatedAt: schema.projects.updatedAt,
-          startedBy: schema.people.name,
-          submittedAt: schema.projects.submittedAt,
-        })
+        .select({ project: schema.projects, startedBy: schema.people.name })
         .from(schema.projects)
         .leftJoin(
           schema.people,
@@ -228,11 +159,16 @@ export function postgresProjectStore(): ProjectStore {
         : query.limit(scope.limit));
       // The stored label, never today's list — that is what makes a rename
       // safe (NFR-22).
-      return rows.map((row) => ({
-        ...row,
-        businessUnit: row.businessUnit
-          ? labelOf(row.businessUnit as ReferenceAnswer)
+      return rows.map(({ project, startedBy }) => ({
+        id: project.id,
+        projectName: project.projectName,
+        businessUnit: project.businessUnit
+          ? labelOf(project.businessUnit as ReferenceAnswer)
           : null,
+        updatedAt: project.updatedAt,
+        startedBy,
+        submittedAt: project.submittedAt,
+        intake: project as unknown as Record<string, unknown>,
       }));
     },
     async count(scope) {
@@ -246,7 +182,8 @@ export function postgresProjectStore(): ProjectStore {
         );
       return row?.total ?? 0;
     },
-    async awaitingReview() {
+    async awaitingReview(scope = {}) {
+      const owner = scope.createdBy ?? null;
       // Findings carry no "open" column: a finding is open until something
       // in dispositions settles it, so that is what is asked.
       const rows = await db.execute(sql`
@@ -295,6 +232,7 @@ export function postgresProjectStore(): ProjectStore {
         from projects p
         left join people pe on pe.id = p.created_by
         where p.submitted_at is not null
+          and (${owner}::text is null or p.created_by = ${owner})
         order by p.submitted_at desc
       `);
       const list = (
@@ -380,94 +318,6 @@ export function postgresProjectStore(): ProjectStore {
   };
 }
 
-export function postgresAnswerStore(): AnswerStore {
-  const db = getDb();
-  return {
-    async recordDrafts(inputs) {
-      if (inputs.length === 0) return;
-      await db.insert(schema.answers).values(
-        inputs.map((input) => ({
-          projectId: input.projectId,
-          questionId: input.questionId,
-          value: input.value,
-          source: "drafted",
-          confirmed: false,
-          basis: input.basis,
-          sourceQuote: input.sourceQuote,
-          sourceRef: input.sourceRef,
-          instrumentVersionId: input.instrumentVersionId,
-          answeredBy: null,
-        })),
-      );
-    },
-    async timesAnswered(projectId) {
-      const rows = await db
-        .select({
-          questionId: schema.answers.questionId,
-          times: sql<number>`count(*)::int`,
-        })
-        .from(schema.answers)
-        .where(eq(schema.answers.projectId, projectId))
-        .groupBy(schema.answers.questionId);
-      return new Map(rows.map((row) => [row.questionId, Number(row.times)]));
-    },
-    async activeVersionId(slug) {
-      const [row] = await db
-        .select({ id: schema.instrumentVersions.id })
-        .from(schema.instrumentVersions)
-        .where(
-          and(
-            eq(schema.instrumentVersions.slug, slug),
-            isNotNull(schema.instrumentVersions.activatedAt),
-          ),
-        )
-        .orderBy(desc(schema.instrumentVersions.activatedAt))
-        .limit(1);
-      if (!row) {
-        throw new Error(
-          `No activated instrument version for "${slug}". Run: pnpm instrument:seed`,
-        );
-      }
-      return row.id;
-    },
-    async current(projectId) {
-      const rows = await db
-        .select()
-        .from(schema.answers)
-        .where(eq(schema.answers.projectId, projectId))
-        .orderBy(desc(schema.answers.createdAt));
-      const latest: Record<string, CurrentAnswer> = {};
-      for (const row of rows) {
-        // Rows arrive newest-first; the first one seen wins.
-        if (latest[row.questionId]) continue;
-        latest[row.questionId] = {
-          // jsonb in, jsonb out. Coercing with String() flattened every
-          // object answer to "[object Object]".
-          value:
-            typeof row.value === "object" && row.value !== null
-              ? (row.value as AnswerValue)
-              : String(row.value),
-          source: row.source,
-          confirmed: row.confirmed,
-          basis: row.basis,
-          sourceQuote: row.sourceQuote,
-          sourceRef: row.sourceRef,
-        };
-      }
-      return latest;
-    },
-    async record(input) {
-      await db.insert(schema.answers).values(input);
-    },
-    async recordAll(inputs) {
-      if (inputs.length === 0) return;
-      // One statement, one transaction: partial success is the failure mode
-      // this exists to remove.
-      await db.insert(schema.answers).values(inputs);
-    },
-  };
-}
-
 export function postgresPeopleStore(): PeopleStore {
   const db = getDb();
   const shape = (row: typeof schema.people.$inferSelect): Person => ({
@@ -522,10 +372,6 @@ export function postgresPeopleStore(): PeopleStore {
 
 export function peopleStore(): PeopleStore {
   return postgresPeopleStore();
-}
-
-export function answerStore(): AnswerStore {
-  return postgresAnswerStore();
 }
 
 /** The wiring point — the one line that changes when the store changes. */

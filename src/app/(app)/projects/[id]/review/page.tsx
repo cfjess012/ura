@@ -2,13 +2,8 @@ import Link from "next/link";
 import { canAttest } from "@/lib/people";
 import { currentPerson } from "@/lib/current-person";
 import { openProject } from "@/lib/project-access";
-import {
-  answerStore,
-  peopleStore,
-  handoffStore,
-  reviewStore,
-  submissionStore,
-} from "@/lib/repo";
+import { peopleStore, handoffStore, reviewStore, submissionStore } from "@/lib/repo";
+import { answerStore } from "@/lib/repo-answers";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { accumulatedFor } from "@/lib/severity";
 import {

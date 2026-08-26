@@ -554,6 +554,36 @@ main {
 .queue-row-clear {
   border-left-color: var(--success);
 }
+/* The requester's three groups. Whose move it is, said in the border as
+   well as in the heading — never colour alone (§11.1): the heading names
+   the group and every row states its step in words. */
+.queue-row-you {
+  border-left-color: var(--primary);
+}
+.queue-row-reviewer {
+  border-left-color: var(--neutral-300);
+}
+.queue-row-settled {
+  border-left-color: var(--success);
+}
+/* How many are in this group, beside its name — nine rows is past the
+   point where a person counts them by looking. */
+.queue-count {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--navy);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+/* Only where the denominator is honest — the risk areas deliberately have
+   no meter, because answering a gate Yes opens more questions. */
+.queue-meter {
+  margin: 0.1rem 0 0.2rem;
+  max-width: 22rem;
+}
 .queue-row-head {
   display: flex;
   flex-wrap: wrap;

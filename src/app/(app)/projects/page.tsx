@@ -9,6 +9,10 @@ import {
   seesEveryAssessment,
 } from "@/lib/people";
 import { projectStore } from "@/lib/repo";
+import { answerStore } from "@/lib/repo-answers";
+import { intakeValuesFrom } from "@/lib/intake-values";
+import { ownStanding } from "@/lib/progress";
+import { ProgressMeter } from "@/app/(app)/progress-meter";
 import { StartForm } from "./start-form";
 
 export const dynamic = "force-dynamic";
@@ -47,8 +51,17 @@ export default async function Projects({
     }),
     projectStore().count(scope),
     everyone ? Promise.resolve(0) : projectStore().countUnattributed(),
-    everyone ? projectStore().awaitingReview() : Promise.resolve([]),
+    // Scoped for a requester: the same counts, for the two assessments that
+    // are theirs. Unscoped it would hand one person's work to another (F2).
+    projectStore().awaitingReview(scope),
   ]);
+  // Every answer for the listed assessments, in one query rather than one
+  // per row. A reviewer's list does not say where each assessment stands —
+  // their groups already do — so they pay nothing for this.
+  const answers = everyone
+    ? new Map<string, Record<string, never>>()
+    : await answerStore().currentFor(rows.map((p) => p.id));
+  const countsFor = new Map(submitted.map((p) => [p.id, p.counts]));
   const draftCount = everyone ? total - submitted.length : 0;
   // Scoped to this reader by the same authority the attest button uses.
   const mine = (questionId: string) => {
@@ -57,7 +70,22 @@ export default async function Projects({
   };
   // The requester's own view of the same idea: what is half-finished, what
   // is sitting with somebody else, and how old the oldest one is.
-  const own = everyone ? null : requesterQueue(rows, new Date());
+  const own = everyone
+    ? null
+    : requesterQueue(
+        rows.map((p) => ({
+          ...p,
+          // Derived from the record every time, never read from a stored
+          // "stage" column that could disagree with the answers (NFR-3).
+          standing: ownStanding({
+            submittedAt: p.submittedAt,
+            intake: intakeValuesFrom(p.intake),
+            answers: answers.get(p.id) ?? {},
+            counts: countsFor.get(p.id) ?? null,
+          }),
+        })),
+        new Date(),
+      );
   const queue = reviewerQueue(submitted, new Date(), mine, (objectiveId) =>
     mayAttest(person, objectiveId),
   );
@@ -209,93 +237,132 @@ export default async function Projects({
         </>
       )}
 
-      {own && own.entries.length > 0 && (
-        <div className="tiles">
-          {own.tiles.map((tile) => (
-            <div key={tile.key} className={`tile tile-${tile.tone}`}>
-              <p className="tile-label">{tile.label}</p>
-              <p className="tile-value">
-                {tile.value}
-                {tile.unit && <span className="tile-unit"> {tile.unit}</span>}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {(!everyone || showingDrafts) && (
-        <h2 className="card-heading">
-          {everyone ? "All assessments" : "Your assessments"}
-        </h2>
-      )}
-
-      {(!everyone || showingDrafts) &&
-        (rows.length === 0 ? (
+      {/* The requester's own list, grouped by whose move it is.
+          A flat list of identical rows answers "what exists". The question
+          somebody opens this page with is "which of these is mine to move,
+          and which am I waiting on" — so that is what it groups on, and
+          every row says which of the four steps it has reached. */}
+      {own && <h2 className="card-heading">Your assessments</h2>}
+      {own &&
+        (own.entries.length === 0 ? (
           <div className="empty">
             <p>
-              <strong>
-                {everyone
-                  ? "Nothing has been started yet."
-                  : "No assessments yet."}
-              </strong>
+              <strong>No assessments yet.</strong>
             </p>
-            <p>
-              {everyone
-                ? "When a requester starts one, it appears here."
-                : "Start one above — it takes a name and about five minutes."}
-            </p>
+            <p>Start one above — it takes a name and about five minutes.</p>
           </div>
         ) : (
-          <>
-            {rows.map((p) => (
+          own.groups.map((group) => (
+            <section className="queue-group" key={group.key}>
+              <h2 className={`queue-title queue-${group.key}`}>
+                {group.title}
+                <span className="queue-count">{group.entries.length}</span>
+              </h2>
+              <p className="help">{group.because}</p>
+              {group.entries.map((entry) => (
+                <div
+                  className={`queue-row queue-row-${group.key}`}
+                  key={entry.id}
+                >
+                  <div className="queue-row-head">
+                    {/* Straight to where the work is — the same landing the
+                        assessment's own front door works out. */}
+                    <Link href={`/projects/${entry.id}`}>
+                      {entry.projectName}
+                    </Link>
+                    {/* A draft nobody has touched in a fortnight is the thing
+                        this product exists to prevent, and it is only ever
+                        loud on a draft: an assessment sitting with a reviewer
+                        is not the requester's to hurry. */}
+                    <span
+                      className={`queue-aged${
+                        entry.submittedAt === null && entry.days >= 7
+                          ? " late"
+                          : ""
+                      }`}
+                    >
+                      {entry.aged}
+                    </span>
+                  </div>
+                  <p className="meta">
+                    {entry.businessUnit ? `${entry.businessUnit} · ` : ""}
+                    Step {entry.standing.step} of 4 ·{" "}
+                    {entry.standing.stepLabel}
+                  </p>
+                  <p className="queue-says">{entry.standing.says}</p>
+                  {entry.standing.meter && (
+                    <div className="queue-meter">
+                      <ProgressMeter
+                        done={entry.standing.meter.done}
+                        total={entry.standing.meter.total}
+                        label={entry.standing.meter.label}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </section>
+          ))
+        ))}
+
+      {/* A reviewer asked to see the drafts too: a flat list, because a
+          draft has no standing to group on until it is submitted. */}
+      {everyone && showingDrafts && (
+        <>
+          <h2 className="card-heading">All assessments</h2>
+          {rows.length === 0 ? (
+            <div className="empty">
+              <p>
+                <strong>Nothing has been started yet.</strong>
+              </p>
+              <p>When a requester starts one, it appears here.</p>
+            </div>
+          ) : (
+            rows.map((p) => (
               <div className="list-row" key={p.id}>
                 <Link href={`/projects/${p.id}`}>{p.projectName}</Link>
                 <span className="meta">
                   {p.businessUnit ? `${p.businessUnit} · ` : ""}
-                  {everyone && p.startedBy ? `${p.startedBy} · ` : ""}
-                  {/* Age, not a date somebody has to subtract from today —
-                      a draft nobody has touched in a fortnight is the thing
-                      this product exists to prevent, and a formatted date
-                      hides it. */}
-                  {own?.entries.find((e) => e.id === p.id)?.aged ??
-                    `updated ${p.updatedAt.toLocaleDateString()}`}
+                  {p.startedBy ? `${p.startedBy} · ` : ""}
+                  updated {p.updatedAt.toLocaleDateString()}
                 </span>
-                {/* A reviewer's list showed no sign of which assessments were
-                  waiting on them — the one thing it is for (§24.7). */}
                 {p.submittedAt !== null && (
                   <span className="pill-status">In review</span>
                 )}
               </div>
-            ))}
-            {/* Say what is being withheld rather than quietly truncating (F11). */}
-            {!showingAll && total > rows.length && (
-              <p className="list-more">
-                Showing the {rows.length} most recently updated of {total}.{" "}
-                <Link href="/projects?all=1">Show all {total}</Link>
-              </p>
-            )}
-            {unattributed > 0 && (
-              <p className="list-more">
-                {unattributed} earlier assessment
-                {unattributed === 1 ? " has" : "s have"} no recorded owner and
-                can&rsquo;t be shown here — they were started before the
-                platform recorded who was working. A Risk Assessor can still
-                open them.
-              </p>
-            )}
-            {showingAll && total > PAGE_SIZE && (
-              <p className="list-more">
-                Showing all {total}.{" "}
-                <Link href="/projects">Show recent only</Link>
-              </p>
-            )}
-            {everyone && showingDrafts && (
-              <p className="list-more">
-                <Link href="/projects">Back to what needs reviewing</Link>
-              </p>
-            )}
-          </>
-        ))}
+            ))
+          )}
+          <p className="list-more">
+            <Link href="/projects">Back to what needs reviewing</Link>
+          </p>
+        </>
+      )}
+
+      {/* Say what is being withheld rather than quietly truncating (F11). */}
+      {(!everyone || showingDrafts) && rows.length > 0 && (
+        <>
+          {!showingAll && total > rows.length && (
+            <p className="list-more">
+              Showing the {rows.length} most recently updated of {total}.{" "}
+              <Link href="/projects?all=1">Show all {total}</Link>
+            </p>
+          )}
+          {showingAll && total > PAGE_SIZE && (
+            <p className="list-more">
+              Showing all {total}.{" "}
+              <Link href="/projects">Show recent only</Link>
+            </p>
+          )}
+          {unattributed > 0 && (
+            <p className="list-more">
+              {unattributed} earlier assessment
+              {unattributed === 1 ? " has" : "s have"} no recorded owner and
+              can&rsquo;t be shown here — they were started before the platform
+              recorded who was working. A Risk Assessor can still open them.
+            </p>
+          )}
+        </>
+      )}
     </main>
   );
 }

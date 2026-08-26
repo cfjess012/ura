@@ -58,15 +58,8 @@ import {
   type Tier3Value,
 } from "@/lib/tier3";
 import { editableProject, openProject } from "@/lib/project-access";
-import {
-  AlreadySubmitted,
-  answerStore,
-  handoffStore,
-  peopleStore,
-  projectStore,
-  reviewStore,
-  submissionStore,
-} from "@/lib/repo";
+import { AlreadySubmitted, handoffStore, peopleStore, projectStore, reviewStore, submissionStore } from "@/lib/repo";
+import { answerStore } from "@/lib/repo-answers";
 import { resolutionProblem } from "@/lib/handoff";
 
 /** FormData is a web detail; the logic layer takes a plain record. */

@@ -19,7 +19,7 @@ import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
 import { NotYourAssessment } from "../../not-yours";
-import { answerStore } from "@/lib/repo";
+import { answerStore } from "@/lib/repo-answers";
 import { stageOf } from "@/lib/submission";
 import { ProjectHeader } from "../../project-header";
 import { GateRail } from "../gate-rail";

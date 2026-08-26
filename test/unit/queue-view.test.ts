@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { agedLabel, requesterQueue, reviewerQueue } from "@/lib/queue-view";
+import type { OwnStanding, Turn } from "@/lib/progress";
 import type { ReviewCounts } from "@/lib/review-standing";
 
 const NOW = new Date("2026-08-25T09:00:00Z");
@@ -108,44 +109,88 @@ describe("the reviewer's queue as a day's work", () => {
 });
 
 describe("the requester's own view", () => {
-  const own = (id: string, daysAgo: number, submittedAt: Date | null) => ({
+  const standing = (turn: Turn): OwnStanding => ({
+    step: turn === "you" ? 1 : turn === "reviewer" ? 3 : 4,
+    stepLabel: "Tell us about it",
+    turn,
+    says: "something outstanding",
+    meter: null,
+  });
+  const own = (
+    id: string,
+    daysAgo: number,
+    submittedAt: Date | null,
+    turn: Turn = submittedAt ? "reviewer" : "you",
+  ) => ({
     id,
     projectName: id,
     businessUnit: null,
     updatedAt: new Date(NOW.getTime() - daysAgo * 86_400_000),
     submittedAt,
+    standing: standing(turn),
   });
 
-  it("counts what is still theirs apart from what is with a reviewer", () => {
+  it("groups by whose move it is, not by what exists", () => {
+    // The question somebody opens this list with. A flat list of identical
+    // rows answers a different one.
     const view = requesterQueue(
       [
         own("draft", 3, null),
         own("sent", 1, new Date(NOW.getTime() - 86_400_000)),
+        own("done", 1, new Date(NOW.getTime() - 86_400_000), "settled"),
       ],
       NOW,
     );
-    expect(view.tiles.find((t) => t.key === "attest")?.value).toBe(1);
-    expect(view.tiles.find((t) => t.key === "declared")?.value).toBe(1);
+    expect(view.groups.map((g) => g.key)).toEqual([
+      "you",
+      "reviewer",
+      "settled",
+    ]);
+    expect(view.groups.map((g) => g.entries.length)).toEqual([1, 1, 1]);
   });
 
-  it("raises the alarm on a draft nobody has touched for a week", () => {
-    // The thing this product exists to prevent, and a formatted date hides.
-    const quiet = requesterQueue([own("draft", 9, null)], NOW);
-    expect(quiet.tiles.find((t) => t.key === "oldest")?.tone).toBe("alarm");
-    const fresh = requesterQueue([own("draft", 1, null)], NOW);
-    expect(fresh.tiles.find((t) => t.key === "oldest")?.tone).toBe("plain");
+  it("shows no group it has nothing to put in", () => {
+    const view = requesterQueue([own("draft", 1, null)], NOW);
+    expect(view.groups.map((g) => g.key)).toEqual(["you"]);
   });
 
-  it("tells a draft and a submission apart in what it says", () => {
+  it("puts the oldest first, because a queue newest-first hides the stale", () => {
     const view = requesterQueue(
-      [own("draft", 0, null), own("sent", 0, NOW)],
+      [own("fresh", 1, null), own("stale", 12, null), own("mid", 5, null)],
       NOW,
     );
-    expect(view.entries.find((e) => e.id === "draft")?.says).toMatch(
-      /yours to finish/,
+    expect(view.groups[0]!.entries.map((e) => e.id)).toEqual([
+      "stale",
+      "mid",
+      "fresh",
+    ]);
+  });
+
+  it("says out loud how stale the oldest draft is, once", () => {
+    // The one fact the tiles carried that the groups do not count for
+    // themselves. Said in the group it belongs to rather than as a
+    // fourth number above three that already say it (§24.6).
+    const quiet = requesterQueue([own("draft", 9, null)], NOW);
+    expect(quiet.groups[0]!.because).toMatch(/untouched for 9 days/);
+    const fresh = requesterQueue([own("draft", 1, null)], NOW);
+    expect(fresh.groups[0]!.because).not.toMatch(/untouched/);
+  });
+
+  it("ages each one in the words its own state deserves", () => {
+    // "with a reviewer 6 days" over an assessment that is signed and
+    // settled says the one thing about it that is no longer true.
+    const then = new Date(NOW.getTime() - 4 * 86_400_000);
+    const view = requesterQueue(
+      [
+        own("draft", 4, null),
+        own("sent", 4, then),
+        own("done", 4, then, "settled"),
+      ],
+      NOW,
     );
-    expect(view.entries.find((e) => e.id === "sent")?.says).toMatch(
-      /read-only/,
-    );
+    const aged = (id: string) => view.entries.find((e) => e.id === id)?.aged;
+    expect(aged("draft")).toBe("untouched for 4 days");
+    expect(aged("sent")).toBe("with a reviewer 4 days");
+    expect(aged("done")).toBe("submitted 4 days ago");
   });
 });

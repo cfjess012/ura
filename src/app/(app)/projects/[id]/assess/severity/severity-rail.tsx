@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { CurrentAnswer } from "@/lib/repo";
+import type { CurrentAnswer } from "@/lib/repo-answers";
 import { severityGroupKey, type SeverityQuestion } from "@/lib/severity";
 
 export type SeverityGroup = {

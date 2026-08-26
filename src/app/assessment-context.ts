@@ -13,7 +13,7 @@ import { firstIncompleteSection, INTAKE_SECTIONS } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { CRITERIA } from "@/lib/intake-rubric";
 import { findAuthority, termsIn } from "@/lib/policy-source";
-import { answerStore } from "@/lib/repo";
+import { answerStore } from "@/lib/repo-answers";
 import { whatsOnScreen } from "@/lib/whats-on-screen";
 
 /**

@@ -16,7 +16,7 @@ import { canAnswer, NotPermitted } from "@/lib/people";
 import { failure, isFailure, type Result } from "@/lib/errors";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { editableProject, openProject } from "@/lib/project-access";
-import { answerStore } from "@/lib/repo";
+import { answerStore } from "@/lib/repo-answers";
 import { sessionStore } from "@/lib/session";
 import { ALL_FIELDS, INTAKE_SECTIONS, intakeAsDocument } from "@/lib/intake";
 import { documentStore } from "@/lib/documents";

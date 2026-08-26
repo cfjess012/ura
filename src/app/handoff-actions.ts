@@ -12,7 +12,8 @@ import { currentPerson } from "@/lib/current-person";
 import { failure, isFailure, type Result } from "@/lib/errors";
 import { NotPermitted, canAttest } from "@/lib/people";
 import { editableProject, openProject } from "@/lib/project-access";
-import { answerStore, handoffStore, peopleStore } from "@/lib/repo";
+import { handoffStore, peopleStore } from "@/lib/repo";
+import { answerStore } from "@/lib/repo-answers";
 import { questionLabelFor } from "@/lib/question-label";
 import { resolutionProblem } from "@/lib/handoff";
 

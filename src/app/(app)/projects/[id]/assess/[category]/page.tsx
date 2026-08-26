@@ -13,7 +13,8 @@ import { asksNothingFurther, STOPS_HERE } from "@/lib/severity";
 import { openProject } from "@/lib/project-access";
 import { ProposedAnswer } from "../proposed-answer";
 import { NotYourAssessment } from "../../not-yours";
-import { answerStore, handoffStore, peopleStore } from "@/lib/repo";
+import { handoffStore, peopleStore } from "@/lib/repo";
+import { answerStore } from "@/lib/repo-answers";
 import { mayResolve, recipientLabel } from "@/lib/handoff";
 import {
   HandoffPanel,

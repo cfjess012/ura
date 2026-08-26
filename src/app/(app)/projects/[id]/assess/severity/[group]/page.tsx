@@ -4,7 +4,7 @@ import { litPaths } from "@/lib/engine";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
-import { answerStore } from "@/lib/repo";
+import { answerStore } from "@/lib/repo-answers";
 import {
   deriveBand,
   severityQuestionsFor,

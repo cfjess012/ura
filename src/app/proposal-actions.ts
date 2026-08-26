@@ -33,7 +33,7 @@ import { intakeAsDocument } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { canAnswer } from "@/lib/people";
 import { editableProject, openProject } from "@/lib/project-access";
-import { answerStore } from "@/lib/repo";
+import { answerStore } from "@/lib/repo-answers";
 import { gatesAnswerableAt } from "@/lib/whats-on-screen";
 
 /** The only answers a gate accepts. Not a hint — the record's own list. */

@@ -21,12 +21,8 @@ import { type DispositionKind, dispositionProblem } from "@/lib/disposition";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { canAttest, NotPermitted } from "@/lib/people";
 import { openProject } from "@/lib/project-access";
-import {
-  answerStore,
-  peopleStore,
-  reviewStore,
-  submissionStore,
-} from "@/lib/repo";
+import { peopleStore, reviewStore, submissionStore } from "@/lib/repo";
+import { answerStore } from "@/lib/repo-answers";
 import { accumulatedFor } from "@/lib/severity";
 import {
   TIER3_ANSWERS,

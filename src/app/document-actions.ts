@@ -25,7 +25,7 @@ import { intakeValuesFrom } from "@/lib/intake-values";
 import { INTAKE_SECTIONS } from "@/lib/intake";
 import { canAnswer, NotPermitted } from "@/lib/people";
 import { editableProject, openProject } from "@/lib/project-access";
-import { answerStore } from "@/lib/repo";
+import { answerStore } from "@/lib/repo-answers";
 import { assessmentContext } from "./assessment-context";
 
 /**

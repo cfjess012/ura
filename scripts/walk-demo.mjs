@@ -104,10 +104,12 @@ ok('Beat 5 · the promise on the band', (await p.locator('body').innerText()).in
 // A claim the run sheet makes is a claim the product makes (G-56).
 await p.goto('http://localhost:3100/'); await settle();
 await p.getByText('Diego Marquez').first().click(); await p.waitForURL(/\/projects$/); await settle();
-// `.list-row` is the requester's own list; an assessor's queue rows are
-// `.queue-row`, and the row states what it needs rather than a status.
-// Same drift as the picker name above — the walk was written against a
-// page that has since changed, and it is the walk that is wrong.
+// `.queue-row` on a reviewer's landing page: a row that states what the
+// assessment needs rather than a status. (A requester's own rows are
+// `.queue-row` as well now — grouped by whose move it is — so it is the
+// page that tells the two lists apart, not the class.) Same drift as the
+// picker name above: the walk was written against a page that has since
+// changed, and it is the walk that is wrong.
 const sable = p.locator('.queue-row', { hasText: 'Sable claims triage' });
 const listed = await sable.innerText();
 ok('Follow-on · Sable is on his queue, saying what it needs',

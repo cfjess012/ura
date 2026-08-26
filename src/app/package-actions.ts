@@ -16,7 +16,8 @@ import { gateStates } from "@/lib/instrument";
 import { accumulatedFor } from "@/lib/severity";
 import { asksNothingFurther } from "@/lib/severity";
 import { OBJECTIVES, objectivesFor } from "@/lib/tier3";
-import { answerStore, peopleStore } from "@/lib/repo";
+import { peopleStore } from "@/lib/repo";
+import { answerStore } from "@/lib/repo-answers";
 import {
   packageStore,
   reviewStore,

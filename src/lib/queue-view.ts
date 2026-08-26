@@ -18,6 +18,7 @@ import {
   type ReviewCounts,
   type StandingItem,
 } from "./review-standing";
+import type { OwnStanding, Turn } from "./progress";
 
 export type QueueEntry = {
   id: string;
@@ -255,17 +256,49 @@ export type OwnEntry = {
   submittedAt: Date | null;
   aged: string;
   days: number;
-  says: string;
+  /** Where it has got to, and what is outstanding (src/lib/progress.ts). */
+  standing: OwnStanding;
 };
+
+/**
+ * The requester's list, grouped by whose move it is.
+ *
+ * Not the reviewer's four groups: those split a reviewer's own decisions
+ * from somebody else's. A requester has exactly one question — is this
+ * mine to move, or am I waiting? — and three answers to it.
+ */
+export type OwnGroup = {
+  key: Turn;
+  title: string;
+  /** Why these are together, said once rather than per row. */
+  because: string;
+  entries: OwnEntry[];
+};
+
+/** How long this has been where it is, in the words its state deserves. */
+function agedFor(turn: Turn, days: number): string {
+  if (turn === "you")
+    return days === 0
+      ? "edited today"
+      : `untouched for ${days} day${days === 1 ? "" : "s"}`;
+  if (days === 0) return "submitted today";
+  if (turn === "reviewer")
+    return `with a reviewer ${agedLabel(days).replace(" open", "")}`;
+  return `submitted ${days} days ago`;
+}
 
 /**
  * The requester's side of the same idea.
  *
  * Their question is not "what needs me" in the reviewer's sense — it is
- * "what have I left half-finished, and what is sitting with somebody else".
- * A draft untouched for a fortnight is the thing this product exists to
- * prevent, so age is on the screen for them too rather than only for the
- * reviewer chasing them.
+ * "which of these is mine to move, and which am I waiting on somebody
+ * else for". So the list is grouped by whose move it is, and each row
+ * carries the step it is on rather than only the day it was last touched.
+ *
+ * There are no tiles here on purpose. Three numbers above three groups
+ * that already count themselves is the repetition §24.6 forbids — and the
+ * one fact the tiles carried that the groups do not, how stale the oldest
+ * draft is, is said once in the group it belongs to.
  */
 export function requesterQueue(
   own: Array<{
@@ -274,9 +307,10 @@ export function requesterQueue(
     businessUnit: string | null;
     updatedAt: Date;
     submittedAt: Date | null;
+    standing: OwnStanding;
   }>,
   now: Date,
-): { groups: QueueGroup[]; tiles: QueueTile[]; entries: OwnEntry[] } {
+): { groups: OwnGroup[]; entries: OwnEntry[] } {
   const entries: OwnEntry[] = own.map((p) => {
     const since = p.submittedAt ?? p.updatedAt;
     const days = daysBetween(since, now);
@@ -286,51 +320,48 @@ export function requesterQueue(
       businessUnit: p.businessUnit,
       updatedAt: p.updatedAt,
       submittedAt: p.submittedAt,
-      aged:
-        days === 0
-          ? p.submittedAt
-            ? "submitted today"
-            : "edited today"
-          : p.submittedAt
-            ? `with a reviewer ${agedLabel(days).replace(" open", "")}`
-            : `untouched for ${days} day${days === 1 ? "" : "s"}`,
+      // Whose move it is decides the words, not merely whether it was
+      // submitted: "with a reviewer 6 days" over an assessment that is
+      // signed and settled says the one thing that is no longer true.
+      aged: agedFor(p.standing.turn, days),
       days,
-      says: p.submittedAt
-        ? "Submitted and read-only. A Risk Assessor signs each answer."
-        : "Still yours to finish — nothing is with a reviewer yet.",
+      standing: p.standing,
     };
   });
 
+  // Oldest first inside a group: a list that puts the newest thing on top
+  // is how a draft quietly waits three weeks.
   const byAge = (a: OwnEntry, b: OwnEntry) => b.days - a.days;
-  const drafts = entries.filter((e) => !e.submittedAt).sort(byAge);
-  const withReviewer = entries.filter((e) => e.submittedAt).sort(byAge);
-  const stalest = drafts[0]?.days ?? 0;
+  const of = (turn: Turn) =>
+    entries.filter((e) => e.standing.turn === turn).sort(byAge);
+  const yours = of("you");
+  const stalest = yours[0]?.days ?? 0;
 
-  const tiles: QueueTile[] = [
+  const groups: OwnGroup[] = [
     {
-      key: "attest",
-      label: "Still to finish",
-      value: drafts.length,
-      tone: drafts.length > 0 ? "attention" : "plain",
+      key: "you",
+      title: "Needs you",
+      because:
+        stalest >= 7
+          ? `Nothing moves on these until you finish them — and the oldest has been untouched for ${stalest} days.`
+          : "Nothing moves on these until you finish them. Nothing is with a reviewer yet.",
+      entries: yours,
     },
     {
-      key: "declared",
-      label: "With a reviewer",
-      value: withReviewer.length,
-      tone: "plain",
+      key: "reviewer",
+      title: "With a reviewer",
+      because:
+        "Submitted and read-only. A Risk Assessor signs each answer and settles what they find — there is nothing for you to do unless they ask.",
+      entries: of("reviewer"),
     },
     {
-      key: "oldest",
-      label: "Oldest untouched draft",
-      value: stalest,
-      unit: stalest === 1 ? "day" : "days",
-      tone: stalest >= 7 ? "alarm" : "plain",
+      key: "settled",
+      title: "Nothing outstanding",
+      because:
+        "Signed and settled. Here so they are not simply gone from the list.",
+      entries: of("settled"),
     },
   ];
 
-  return {
-    entries,
-    tiles,
-    groups: [],
-  };
+  return { entries, groups: groups.filter((g) => g.entries.length > 0) };
 }

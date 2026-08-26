@@ -6,12 +6,8 @@ import { questionLabelFor } from "@/lib/question-label";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
-import {
-  answerStore,
-  handoffStore,
-  peopleStore,
-  submissionStore,
-} from "@/lib/repo";
+import { handoffStore, peopleStore, submissionStore } from "@/lib/repo";
+import { answerStore } from "@/lib/repo-answers";
 import { accumulatedFor, severityQuestionsFor } from "@/lib/severity";
 import { objectivesFor, isTier3Value, type Tier3Value } from "@/lib/tier3";
 import {
