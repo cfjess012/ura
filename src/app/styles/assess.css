@@ -911,6 +911,24 @@
   line-height: 1.5;
   white-space: pre;
 }
+/* Stage 4 has no rail, so it uses `.assess-single` like every other
+   rail-less screen — not `.assess-layout`, whose grid is
+   `15rem minmax(0, 1fr)` and expects an `<aside class="rail">` first. It
+   had that class with a single child, so the whole screen rendered inside
+   the 240px rail column with 860px of empty page beside it. */
+
+/* Which answers, under the sentence that counts them (§19). */
+.blocker-names {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  list-style: disc;
+  color: var(--neutral-700);
+  font-size: 0.9rem;
+}
+.blocker-names li {
+  margin: 0.15rem 0;
+}
+
 /* Blocked, and saying so — the warning treatment, never a restful state
    and never colour alone: the heading says what it is (§11.1). */
 .owed-blocked {

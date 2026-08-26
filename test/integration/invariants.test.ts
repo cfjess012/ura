@@ -455,6 +455,56 @@ describe("dispositions are governed by the schema (FR-18)", () => {
 });
 
 /**
+ * §4.5 · a package is a claim about a moment, so it is insert-only in the
+ * schema and not by convention (NFR-1). Re-exporting after a correction is
+ * a NEW claim; editing one in place would rewrite a claim somebody made.
+ */
+describe("packages are insert-only", () => {
+  const record = async (answers = 3) => {
+    const row = await pg.query<{ id: string }>(
+      `insert into packages (project_id, packaged_by, payload, answer_count, finding_count)
+       values ($1, 'p.assessor', '{"answers":[]}'::jsonb, $2, 0) returning id`,
+      [projectId, answers],
+    );
+    return row.rows[0]!.id;
+  };
+
+  it("accepts a well-formed package", async () => {
+    await expect(record()).resolves.toBeTruthy();
+  });
+
+  it("refuses a package with no answers — that is not a package", async () => {
+    await expect(record(0)).rejects.toThrow(/packages_have_answers/);
+  });
+
+  it("will not let one be edited or erased (NFR-1)", async () => {
+    const id = await record();
+    await expect(
+      pg.query("update packages set answer_count = 99 where id = $1", [id]),
+    ).rejects.toThrow(/insert-only/);
+    await expect(
+      pg.query("delete from packages where id = $1", [id]),
+    ).rejects.toThrow(/insert-only/);
+  });
+
+  it("leaves the first one byte-identical when a second is recorded", async () => {
+    // The §19 criterion, at the level that has to be true: re-export adds
+    // a record. The prior payload is not touched by the later claim.
+    const first = await record();
+    const before = await pg.query<{ payload: unknown; answer_count: number }>(
+      "select payload, answer_count from packages where id = $1",
+      [first],
+    );
+    await record(7);
+    const after = await pg.query<{ payload: unknown; answer_count: number }>(
+      "select payload, answer_count from packages where id = $1",
+      [first],
+    );
+    expect(after.rows[0]).toEqual(before.rows[0]);
+  });
+});
+
+/**
  * §6.1 · conversation state is evidence too. The session seam becomes
  * AgentCore Memory later; what it stores is insert-only now, so a
  * conversation cannot be edited into a better version of itself.

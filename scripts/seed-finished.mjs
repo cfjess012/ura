@@ -27,6 +27,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import postgres from "postgres";
 
+try {
+  process.loadEnvFile(".env");
+} catch {
+  // Variables come from the environment.
+}
+
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL is not set");
 if (

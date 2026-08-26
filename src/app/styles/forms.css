@@ -314,13 +314,36 @@ select {
 .empty p {
   margin: 0.3rem 0;
 }
-.start-card {
+/* Starting an assessment: the field and its button on one row, anything the
+   server says back on its own line beneath.
+
+   The message was a third flex item on that row, so it took its width out
+   of the input — the field shrank to a third of itself at the moment
+   somebody was being told to type in it. The line below is reserved
+   whether or not there is a message, so the card does not jump when one
+   arrives. */
+.start-row {
   display: flex;
   gap: 0.6rem;
   align-items: center;
 }
-.start-card input {
+.start-row input {
   flex: 1;
+}
+.start-row input[aria-invalid="true"] {
+  border-color: var(--error);
+}
+.start-error {
+  min-height: 1.2rem;
+  margin: 0.45rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--error);
+}
+.start-error .err-ref {
+  font-weight: 500;
+  color: var(--neutral-600);
 }
 .card-heading {
   font-size: 0.76rem;
@@ -393,13 +416,7 @@ select {
   color: var(--neutral-800);
   font-weight: 700;
 }
-.start-card {
-  flex-wrap: wrap;
-}
-.start-card .save-failed {
-  flex-basis: 100%;
-  margin: 0.2rem 0 0;
-}
+
 
 /* A required answer someone tried to move past (FR-28). Never colour alone:
    the save bar names the fields and the live region reads them out. */

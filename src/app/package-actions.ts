@@ -27,7 +27,12 @@ import { intakeValuesFrom } from "@/lib/intake-values";
 import { currentPerson } from "@/lib/current-person";
 import { openProject } from "@/lib/project-access";
 import { failure, isFailure, type Result } from "@/lib/errors";
-import { blockers, type Blocker, type Package } from "@/lib/packaging";
+import {
+  blockers,
+  openFindingNames,
+  type Blocker,
+  type Package,
+} from "@/lib/packaging";
 import { labelOf, type ReferenceAnswer } from "@/lib/reference";
 import policies from "@/data/reference/policies.json";
 import { revalidatePath } from "next/cache";
@@ -79,12 +84,25 @@ export async function packageState(projectId: string): Promise<
     for (const row of attestations)
       if (!latest.has(row.questionId)) latest.set(row.questionId, row);
 
-    const settled = new Set(dispositions.map((d) => d.findingId));
+    // Dispositions arrive newest first, so the first one seen for a finding
+    // is the one in force; the earlier settlements stay readable in the
+    // record rather than being overwritten (§5.1).
+    const inForce = new Map<string, (typeof dispositions)[number]>();
+    for (const row of dispositions)
+      if (!inForce.has(row.findingId)) inForce.set(row.findingId, row);
+
+    // "Open" has one definition and it is `findingIsOpen` (§4.3), reached
+    // through the pure module so a test can hold it. A shared predicate is
+    // only shared if every caller actually calls it.
+    const now = new Date();
     const stops = blockers({
       submitted: project.submittedAt !== null,
-      required: required.map((o) => o.questionId),
+      required: required.map((o) => ({
+        questionId: o.questionId,
+        label: o.name,
+      })),
       attested: [...latest.keys()],
-      openFindings: findings.filter((f) => !settled.has(f.id)).length,
+      openFindings: openFindingNames(findings, inForce, now),
     });
 
     const history = made.map((p) => ({
@@ -107,7 +125,7 @@ export async function packageState(projectId: string): Promise<
       required,
       latest,
       findings,
-      dispositions,
+      settlements: inForce,
       everyone,
       by: person.name,
     });
@@ -132,10 +150,21 @@ export async function makePackage(
     const state = await packageState(projectId);
     if (isFailure(state)) return state;
     if (state.blockers.length > 0 || !state.payload) {
+      // Say what is outstanding rather than pointing at the screen.
+      //
+      // This refusal fires in exactly one situation: the record moved
+      // underneath somebody who already had the ready page open — a
+      // finding raised, an acceptance lapsed. So the screen they are
+      // looking at is the stale one, still saying "Ready to package", and
+      // "the screen says what is outstanding" was false at the only
+      // moment this sentence is ever read.
+      const outstanding =
+        state.blockers.map((b) => b.says).join(" ") ||
+        "Something this needs is no longer in place.";
       return failure(
         "makePackage",
         new Error("blocked"),
-        "This can't be packaged yet — the screen says what is outstanding.",
+        `This can't be packaged yet. ${outstanding}`,
         { retryable: false, expected: true },
       );
     }
@@ -213,17 +242,26 @@ function assemble(input: {
     }
   >;
   findings: FindingRow[];
-  dispositions: Array<{
-    findingId: string;
-    kind: string;
-    note: string;
-    resolvedBy: string;
-    resolvedAt: Date;
-    remediationOwner: string | null;
-    remediationDue: Date | null;
-    acceptedBy: string | null;
-    expiresAt: Date | null;
-  }>;
+  /**
+   * The settlement in force per finding. A Map rather than the raw rows:
+   * dispositions are insert-only and a finding settled twice has two, and
+   * keying the array by findingId kept whichever happened to come last —
+   * the oldest, since they arrive newest first.
+   */
+  settlements: Map<
+    string,
+    {
+      findingId: string;
+        kind: string;
+      note: string;
+      resolvedBy: string;
+      resolvedAt: Date;
+      remediationOwner: string | null;
+      remediationDue: Date | null;
+      acceptedBy: string | null;
+      expiresAt: Date | null;
+    }
+  >;
   everyone: Array<{ id: string; name: string }>;
   by: string;
   instrumentVersions: Record<string, string>;
@@ -235,7 +273,7 @@ function assemble(input: {
     required,
     latest,
     findings,
-    dispositions,
+    settlements,
     everyone,
   } = input;
   const who = (id: string | null) => (id ? nameIn(everyone, id) : "");
@@ -291,9 +329,8 @@ function assemble(input: {
     .filter((a): a is NonNullable<typeof a> => a !== null)
     .sort((a, b) => a.objective.localeCompare(b.objective));
 
-  const byFinding = new Map(dispositions.map((d) => [d.findingId, d]));
   const packagedFindings = findings.map((f) => {
-    const d = byFinding.get(f.id);
+    const d = settlements.get(f.id);
     return {
       objective: f.objective,
       objectiveName: f.objectiveName,

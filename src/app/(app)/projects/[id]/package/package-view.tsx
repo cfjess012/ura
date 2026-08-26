@@ -31,7 +31,10 @@ export function PackageView({
 }) {
   const router = useRouter();
   const [busy, setBusy] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<{
+    message: string;
+    ref?: string;
+  } | null>(null);
   const [made, setMade] = React.useState<string | null>(null);
 
   const text = React.useMemo(() => JSON.stringify(payload, null, 2), [payload]);
@@ -64,16 +67,24 @@ export function PackageView({
     try {
       const outcome = await makePackage(projectId);
       if (isFailure(outcome)) {
-        setError(outcome.message);
+        // The reference is the whole point of having one: it is logged
+        // server-side, and a person who cannot quote it starts a support
+        // conversation by re-enacting the failure (§25.2).
+        setError({ message: outcome.message, ref: outcome.ref });
+        // A refusal means the record moved underneath this page. Pull the
+        // new one, so the screen stops saying "Ready to package" while the
+        // server is refusing to.
+        router.refresh();
         return;
       }
       setMade(outcome.packagedAt);
       router.refresh();
     } catch (cause) {
       console.error("makePackage transport", cause);
-      setError(
-        `The server couldn't be reached, so nothing was recorded. Reference ${errorRef()}`,
-      );
+      setError({
+        message: "The server couldn't be reached, so nothing was recorded.",
+        ref: errorRef(),
+      });
     } finally {
       setBusy(false);
     }
@@ -159,7 +170,12 @@ export function PackageView({
         </div>
         <p className="help" role="status" aria-live="polite">
           {error ? (
-            <span className="save-failed">{error}</span>
+            <span className="save-failed">
+              {error.message}
+              {error.ref ? (
+                <span className="meta"> Reference {error.ref}</span>
+              ) : null}
+            </span>
           ) : made ? (
             `Recorded ${new Date(made).toLocaleString()}. A later export adds another; this one stands.`
           ) : (

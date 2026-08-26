@@ -23,6 +23,10 @@ const reset = (why) => {
   console.log(`  … ${why}`);
   execFileSync("node", ["scripts/reset-dev-db.mjs", "--yes"], { stdio: "ignore" });
   execFileSync("node", ["scripts/seed-demo.mjs"], { stdio: "ignore" });
+  // The finished assessment is the only one that reaches stage 4. Left out
+  // of the reset, the walk deleted the single thing stage 4 can be shown on
+  // and then demoed it as "Not ready yet".
+  execFileSync("node", ["scripts/seed-finished.mjs"], { stdio: "ignore" });
 };
 reset("rebuilding the demo data before the walk");
 
@@ -36,8 +40,8 @@ const ok=(n,c)=>{ if(!c) failures++; console.log(`  ${c?'✓':'✗'} ${n}`); };
 
 // BEAT 1
 await p.goto('http://localhost:3100/'); await settle();
-await p.getByText('Priya Sharma').first().click(); await p.waitForURL(/\/projects$/); await settle();
-ok('Beat 1 · front door → Priya → the list', p.url().endsWith('/projects'));
+await p.getByText('Isabelle Withers').first().click(); await p.waitForURL(/\/projects$/); await settle();
+ok('Beat 1 · front door → Isabelle → the list', p.url().endsWith('/projects'));
 
 // BEAT 2
 await p.getByRole('link',{name:/Novara scheduling assistant/}).click();
@@ -100,9 +104,15 @@ ok('Beat 5 · the promise on the band', (await p.locator('body').innerText()).in
 // A claim the run sheet makes is a claim the product makes (G-56).
 await p.goto('http://localhost:3100/'); await settle();
 await p.getByText('Diego Marquez').first().click(); await p.waitForURL(/\/projects$/); await settle();
-const listed = await p.locator('.list-row', { hasText: 'Sable claims triage' }).innerText();
-ok('Follow-on · Sable is listed as in review', /In review/i.test(listed));
-await p.getByRole('link', { name: /Sable claims triage/ }).click(); await settle();
+// `.list-row` is the requester's own list; an assessor's queue rows are
+// `.queue-row`, and the row states what it needs rather than a status.
+// Same drift as the picker name above — the walk was written against a
+// page that has since changed, and it is the walk that is wrong.
+const sable = p.locator('.queue-row', { hasText: 'Sable claims triage' });
+const listed = await sable.innerText();
+ok('Follow-on · Sable is on his queue, saying what it needs',
+   /control answers need your attestation/.test(listed));
+await sable.getByRole('link', { name: 'Attest controls' }).click(); await settle();
 ok("Follow-on · it opens on the reviewer's queue", /\/review$/.test(p.url()));
 ok('Follow-on · the queue names controls, not codes',
    /Access Review & Recertification/.test(await p.locator('.review-layout').innerText()));

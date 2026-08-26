@@ -38,7 +38,7 @@ one browser tab.
 
 **Problem: fragmented ecosystem.**
 
-Front door → **Priya Sharma** → the list.
+Front door → **Isabelle Withers** → the list.
 
 > "One place. Every risk area works from the same answers."
 

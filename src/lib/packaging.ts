@@ -21,7 +21,7 @@
  *
  * Pure: no framework, no driver, no environment (§26.1).
  */
-import type { FindingKind } from "./submission";
+import { findingIsOpen, type FindingKind } from "./submission";
 
 /** Why an assessment cannot be packaged yet, in a person's words. */
 export type Blocker = {
@@ -30,6 +30,13 @@ export type Blocker = {
   says: string;
   /** How many things of this kind — 0 where the count adds nothing. */
   count: number;
+  /**
+   * Which ones, by the text a person recognises (§19 requires the refusal
+   * name questions by text). A count says how much is left; only the names
+   * say what, and "4 control answers" sends somebody back to a queue to
+   * work out which four.
+   */
+  names: string[];
   /** Where they go to clear it. Relative to the project. */
   href: string;
 };
@@ -118,12 +125,17 @@ export type Package = {
  */
 export function blockers(input: {
   submitted: boolean;
-  /** Control questions required by the answers so far. */
-  required: string[];
-  /** Those carrying a current attestation. */
+  /** Control questions required by the answers so far, id and text both. */
+  required: Array<{ questionId: string; label: string }>;
+  /** The ids of those carrying a current attestation. */
   attested: string[];
-  /** Findings raised and not yet settled. */
-  openFindings: number;
+  /**
+   * The findings that are open, named by the objective each is against.
+   * A count was enough to refuse and not enough to act on, and deciding
+   * *which* findings are open is not this module's judgement to make —
+   * `findingIsOpen` owns that, and an expired acceptance is open (§4.3).
+   */
+  openFindings: string[];
 }): Blocker[] {
   const found: Blocker[] = [];
 
@@ -132,6 +144,7 @@ export function blockers(input: {
       kind: "not-submitted",
       says: "This has not been submitted yet, so there is nothing signed to package.",
       count: 0,
+      names: [],
       href: "/submit",
     });
     // Everything below is a consequence of that, and listing three symptoms
@@ -140,26 +153,71 @@ export function blockers(input: {
   }
 
   const signed = new Set(input.attested);
-  const waiting = input.required.filter((id) => !signed.has(id)).length;
-  if (waiting > 0) {
+  const waiting = input.required.filter((q) => !signed.has(q.questionId));
+  if (waiting.length > 0) {
+    const names = waiting.map((q) => q.label);
     found.push({
       kind: "unattested",
-      says: `${waiting} control answer${waiting === 1 ? " has" : "s have"} not been attested. The package says a named person checked each answer, so it cannot include one nobody signed.`,
-      count: waiting,
+      says: `${waiting.length} control answer${waiting.length === 1 ? " has" : "s have"} not been attested — ${sentenceList(names)}. The package says a named person checked each answer, so it cannot include one nobody signed.`,
+      count: waiting.length,
+      names,
       href: "/review",
     });
   }
 
-  if (input.openFindings > 0) {
+  const open = input.openFindings;
+  if (open.length > 0) {
     found.push({
       kind: "open-finding",
-      says: `${input.openFindings} finding${input.openFindings === 1 ? " is" : "s are"} still open. A package with an unsettled finding would export a question as though it were an answer.`,
-      count: input.openFindings,
+      says: `${open.length} finding${open.length === 1 ? " is" : "s are"} still open — ${sentenceList(open)}. A package with an unsettled finding would export a question as though it were an answer.`,
+      count: open.length,
+      names: open,
       href: "/review",
     });
   }
 
   return found;
+}
+
+/**
+ * Names inside a sentence, not a comma-separated dump.
+ *
+ * Cut past four with a count of the rest: twenty names in one sentence is
+ * a wall somebody skips, and the screen lists every one of them underneath
+ * regardless — the sentence is there to make the refusal specific, not to
+ * be the only place the names appear.
+ */
+function sentenceList(names: string[], limit = 4): string {
+  const shown = names.slice(0, limit);
+  const rest = names.length - shown.length;
+  if (rest > 0) return `${shown.join(", ")}, and ${rest} more`;
+  if (shown.length === 1) return shown[0];
+  return `${shown.slice(0, -1).join(", ")} and ${shown[shown.length - 1]}`;
+}
+
+/**
+ * Which findings are open, named by the objective each is against (§4.3).
+ *
+ * Here, in the pure module, rather than in the action that calls it —
+ * because *the action* is exactly where this lived when it was wrong. It
+ * counted disposition rows: any settlement at all meant settled. A risk
+ * acceptance past its expiry has a row and is open, so the review queue
+ * flagged findings the packaging gate was letting through, one assessment
+ * and one moment reading two ways.
+ *
+ * No unit test could reach it there. That is not a coincidence — it is why
+ * the defect shipped, and moving it is the fix for the gap as much as for
+ * the bug.
+ */
+export function openFindingNames(
+  findings: Array<{ id: string; objectiveName: string }>,
+  /** The settlement in force per finding, if there is one. */
+  settlements: Map<string, { kind: string; expiresAt: Date | null }>,
+  now: Date,
+): string[] {
+  return findings
+    .filter((finding) => findingIsOpen(settlements.get(finding.id) ?? null, now))
+    .map((finding) => finding.objectiveName);
 }
 
 /** Can this be packaged? The same rule, said the short way. */
