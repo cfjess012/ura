@@ -14,7 +14,10 @@ import type { AssessmentContext } from "@/lib/agent-contract";
 import { currentPerson } from "@/lib/current-person";
 import { canAnswer, NotPermitted } from "@/lib/people";
 import { failure, isFailure, type Result } from "@/lib/errors";
-import { intakeValuesFrom } from "@/lib/intake-values";
+import {
+  intakeValuesForReading,
+  intakeValuesFrom,
+} from "@/lib/intake-values";
 import { editableProject, openProject } from "@/lib/project-access";
 import { answerStore } from "@/lib/repo-answers";
 import { sessionStore } from "@/lib/session";
@@ -26,6 +29,7 @@ import { quoteAppearsVerbatim,
 } from "@/lib/agent-contract";
 import {
   belowFloor,
+  coherenceNotRead,
   CRITERIA,
   coherenceFrom,
   coherenceWhenUnavailable,
@@ -352,7 +356,9 @@ export async function checkIntake(
         { retryable: false, expected: true },
       );
     }
-    const values = intakeValuesFrom(
+    // Labels, never ids — the model cannot check an opaque token, and
+    // what it cannot check it invents (NFR-9, §7).
+    const values = intakeValuesForReading(
       access.project as unknown as Record<string, unknown>,
     );
 
@@ -375,35 +381,20 @@ export async function checkIntake(
       typeof values.projectDescription === "string"
         ? values.projectDescription
         : "";
-    const floor = belowFloor(description);
-    if (floor) {
+    // Below the floor the model is never called, so nothing here may read
+    // as a grade. It used to return one ask dressed as a criterion, with
+    // `checkedByModel: true` on a path where no model ran — a person saw a
+    // grading panel and could not tell the button had not reached the model.
+    if (belowFloor(description)) {
       return {
         ok: true as const,
-        coherence: {
-          score: null,
-          outOf: 20,
-          band: null,
-          meaning: null,
-          opening: null,
-          checkedByModel: true,
-          summary: null,
-          conflicts: [],
-          asks: [
-            {
-              id: "floor",
-              label: "The description",
-              level: 1 as Level,
-              sentence: floor,
-              anchor: "",
-              why: "Everything downstream routes on what you write here.",
-              routing: true,
-              note: null,
-              conflicts: [],
-              conflictHeading: null,
-              unquoted: null,
-            },
-          ],
-        },
+        coherence: coherenceNotRead({
+          field: "projectDescription",
+          fieldLabel:
+            ALL_FIELDS.find((f) => f.id === "projectDescription")?.label ??
+            "Project Description",
+          text: description,
+        }),
         rewritable: [],
       };
     }
@@ -493,7 +484,9 @@ export async function suggestRewrite(
         { retryable: false, expected: true },
       );
     }
-    const values = intakeValuesFrom(
+    // Labels, never ids — the model cannot check an opaque token, and
+    // what it cannot check it invents (NFR-9, §7).
+    const values = intakeValuesForReading(
       access.project as unknown as Record<string, unknown>,
     );
     const original =

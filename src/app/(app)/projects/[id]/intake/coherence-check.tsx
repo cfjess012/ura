@@ -1,6 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { sectionKeyOwning } from "@/lib/intake";
+import { FOCUS } from "@/lib/destination";
 import {
   checkIntake,
   suggestRewrite,
@@ -9,7 +12,11 @@ import {
 import { applyIntakeFix } from "@/app/actions";
 import { Marked } from "../marked";
 import { isFailure } from "@/lib/errors";
-import type { Coherence } from "@/lib/intake-rubric";
+import {
+  clashSides,
+  type Coherence,
+  type Conflict,
+} from "@/lib/intake-rubric";
 import type { Trouble } from "@/lib/agent-contract";
 import { tellTrouble } from "@/lib/assistant-trouble";
 
@@ -47,15 +54,35 @@ export function CoherenceCheck({
   const [result, setResult] = React.useState<Coherence | null>(null);
   const [running, setRunning] = React.useState(false);
   const [rewritable, setRewritable] = React.useState<string[]>([]);
-  const resultRef = React.useRef<HTMLDivElement>(null);
+  const dialog = React.useRef<HTMLDialogElement>(null);
+  const opener = React.useRef<HTMLButtonElement>(null);
 
-  // Bring the answer into view. It renders below a long form, so on a full
-  // section it landed off the bottom of the screen — and a check that
-  // finished in two seconds looked like a button that did nothing.
+  /**
+   * The full read is a document — a band, four paragraphs, the conflicts and
+   * five graded criteria. Inline it landed below a long form, pushed the way
+   * forward off the screen, and made the page busy enough that the owner
+   * asked for a window three times.
+   *
+   * A native `<dialog>` rather than a hand-built overlay: Escape, the
+   * backdrop, focus containment and the top layer are the browser's, and a
+   * re-implementation of any of them is a worse version of all of them.
+   *
+   * It does not gate anything (G-69). Closing leaves every answer exactly as
+   * it was, the way forward is behind it, and the short states — too thin to
+   * read, and could-not-check — stay inline, because one line does not
+   * deserve a window.
+   */
+  const full = result !== null && !result.notRead && result.asks.length + (result.score ?? 0) > 0;
   React.useEffect(() => {
-    if (!result || running) return;
-    resultRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [result, running]);
+    if (running || !full) return;
+    const el = dialog.current;
+    if (el && !el.open) el.showModal();
+  }, [full, running, result]);
+
+  const close = () => {
+    dialog.current?.close();
+    opener.current?.focus();
+  };
 
   async function run() {
     if (running) return;
@@ -83,6 +110,7 @@ export function CoherenceCheck({
   return (
     <div className="coherence">
       <button
+        ref={opener}
         type="button"
         className="ai-check"
         onClick={() => void run()}
@@ -94,17 +122,68 @@ export function CoherenceCheck({
 
       {running && <Thinking doing="Reading your whole intake" usually={18} />}
 
-      <div ref={resultRef}>
-        {result && !running && (
-          <Result
-            result={result}
-            projectId={projectId}
-            rewritable={rewritable}
-            onRewrite={onRewrite}
-            onFixed={onFixed}
-          />
-        )}
-      </div>
+      {/* Short answers stay on the page. */}
+      {result && !running && !full && (
+        <Result
+          result={result}
+          projectId={projectId}
+          rewritable={rewritable}
+          onRewrite={onRewrite}
+          onFixed={onFixed}
+        />
+      )}
+
+      {/* A line back into the read, so closing the window is not the same as
+          throwing the answer away — reopening costs nothing, re-running the
+          check costs a minute. */}
+      {full && !running && (
+        <p className="coherence-reopen">
+          <button type="button" onClick={() => dialog.current?.showModal()}>
+            {result!.band ? `${result!.band} · ` : ""}
+            {result!.score !== null ? `${result!.score}/${result!.outOf} — ` : ""}
+            read the check again
+          </button>
+        </p>
+      )}
+
+      <dialog
+        ref={dialog}
+        className="coherence-dialog"
+        aria-label="How this intake reads"
+        // Clicking the backdrop is the same as pressing Escape. The click
+        // lands on the dialog element itself, never on its contents.
+        onClick={(event) => {
+          if (event.target === dialog.current) close();
+        }}
+        onClose={() => opener.current?.focus()}
+      >
+        <div className="coherence-dialog-body">
+          {/* Opens with focus on the way out rather than on the scroll
+              container, which is where the browser put it otherwise —
+              announced as nothing, and a Tab away from the first control. */}
+          <button
+            autoFocus
+            type="button"
+            className="coherence-dialog-close"
+            onClick={close}
+            aria-label="Close"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+          {/* `full` and not merely `result`: the short states render inline
+              above, and rendering them here too put the same sentence in the
+              document twice — once visible, once inside a closed dialog. */}
+          {full && result && (
+            <Result
+              result={result}
+              projectId={projectId}
+              rewritable={rewritable}
+              onRewrite={onRewrite}
+              onFixed={onFixed}
+            />
+          )}
+        </div>
+      </dialog>
     </div>
   );
 }
@@ -122,6 +201,35 @@ function Result({
   onRewrite?: (fieldId: string, suggestion: Suggestion) => void;
   onFixed?: () => void;
 }) {
+  // Stopped before the model. Say that, say the number, and offer the way
+  // back to the field — a message that names a problem and leaves the person
+  // to find it is half a message (§25).
+  if (result.notRead) {
+    const { field, fieldLabel, words, needs } = result.notRead;
+    const section = sectionKeyOwning(field);
+    // One line, under the button, no card. A boxed four-line notice for
+    // "add a few more words" was more chrome than the message deserved and
+    // read as a stray toast in the empty half of the row. The instructions
+    // for what to write belong at the field, and the link goes there.
+    return (
+      <p className="coherence-short" role="status">
+        Too short to check — {fieldLabel.toLowerCase()} is{" "}
+        <strong>
+          {words} word{words === 1 ? "" : "s"}
+        </strong>
+        , I need about {needs}.{" "}
+        {section && (
+          <Link
+            className="coherence-short-link"
+            href={`/projects/${projectId}/intake/${section}?${FOCUS}=${field}`}
+          >
+            Add to it →
+          </Link>
+        )}
+      </p>
+    );
+  }
+
   if (result.score === null && result.asks.length === 0) {
     return (
       <p className="help coherence-nocheck" role="status">
@@ -180,25 +288,12 @@ function Result({
             </span>
           </p>
           {result.conflicts.map((clash, at) => (
-            <div className="coherence-conflict" key={at}>
-              <div className="coherence-halves">
-                <blockquote className="coherence-quote">{clash.one}</blockquote>
-                <p className="coherence-versus">
-                  <span>against</span>
-                </p>
-                <blockquote className="coherence-quote">{clash.two}</blockquote>
-              </div>
-              {clash.why && (
-                <p className="coherence-conflict-why">{clash.why}</p>
-              )}
-              {clash.fix && onFixed && (
-                <FixButton
-                  projectId={projectId}
-                  fix={clash.fix}
-                  onDone={onFixed}
-                />
-              )}
-            </div>
+            <Clash
+              key={at}
+              clash={clash}
+              projectId={projectId}
+              onFixed={onFixed}
+            />
           ))}
         </div>
       )}
@@ -212,6 +307,9 @@ function Result({
         <details className="coherence-grades">
           <summary>
             How it graded
+            {/* Only ever said about criteria the model actually scored.
+                On the floor path nothing is scored at all, and that path
+                never reaches here. */}
             <span className="coherence-grades-hint">
               {result.asks.length} of {result.outOf / 4} criteria below full
               marks
@@ -301,14 +399,101 @@ function LevelDots({ level }: { level: number }) {
  * already allowed. It is still theirs: it sits beside both halves of the
  * contradiction, and it changes nothing until clicked.
  */
+/**
+ * One disagreement, as a card that names what it is about.
+ *
+ * A stack of unlabelled quote pairs is unreadable past the second one: with
+ * four of them you re-read every card to work out which field each concerns.
+ * The subject line is the difference between a list you scan and a list you
+ * decode.
+ *
+ * Both actions are real. Offering only the correction quietly makes
+ * accepting it the path of least resistance, and §7 is propose-never-decide
+ * — the person has to be able to say the platform is wrong without leaving
+ * the card. Standing by an answer records nothing, because there is nothing
+ * to record: the disagreement is derived on every read, never stored.
+ */
+function Clash({
+  clash,
+  projectId,
+  onFixed,
+}: {
+  clash: Conflict;
+  projectId: string;
+  onFixed?: () => void;
+}) {
+  const [stood, setStood] = React.useState(false);
+  const sides = clashSides(clash);
+
+  if (stood) {
+    return (
+      <p className="coherence-stood" role="status">
+        <span aria-hidden="true">✓</span> Left as it is
+        {sides.answered.marked ? ` — “${sides.answered.marked}”` : ""}. A
+        reviewer will see the same thing and can ask.
+      </p>
+    );
+  }
+
+  return (
+    <div className="coherence-clash">
+      {sides.subject && (
+        <p className="coherence-clash-head">
+          <span aria-hidden="true" className="coherence-clash-dot" />
+          {sides.subject}
+        </p>
+      )}
+      <div className="coherence-clash-body">
+        <div className="coherence-clash-line">
+          <p className="coherence-clash-key">{sides.answered.label}</p>
+          <p className="coherence-clash-value">
+            {sides.answered.marked ? (
+              <mark className="coherence-marked">{sides.answered.marked}</mark>
+            ) : (
+              sides.answered.text
+            )}
+          </p>
+        </div>
+        <div className="coherence-clash-line">
+          <p className="coherence-clash-key">{sides.wrote.label}</p>
+          <p className="coherence-clash-value">“{sides.wrote.text}”</p>
+        </div>
+        {clash.why && <p className="coherence-clash-why">{clash.why}</p>}
+        <div className="coherence-clash-acts">
+          {clash.fix && onFixed && (
+            <FixButton
+              projectId={projectId}
+              fix={clash.fix}
+              onDone={onFixed}
+              named={sides.subject !== null}
+            />
+          )}
+          <button
+            type="button"
+            className="coherence-stand"
+            onClick={() => setStood(true)}
+          >
+            {sides.answered.marked
+              ? `Keep “${sides.answered.marked}”`
+              : "Leave it as it is"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FixButton({
   projectId,
   fix,
   onDone,
+  named = false,
 }: {
   projectId: string;
   fix: { field: string; label: string; value: string };
   onDone: () => void;
+  /** Whether whatever contains this already says which field it is. */
+  named?: boolean;
 }) {
   const [state, setState] = React.useState<
     "idle" | "saving" | "done" | "failed"
@@ -351,10 +536,15 @@ function FixButton({
       >
         {state === "saving"
           ? "Changing…"
-          : // Naming the field, because this writes to the record and two
-            // corrections sitting together both reading "change to Yes"
-            // would leave a person guessing which answer they just moved.
-            `Change “${fix.label.replace(/\?$/, "")}” to “${fix.value}”`}
+          : // Named only when nothing else does. This writes to the record,
+            // and two corrections sitting together both reading "change to
+            // Yes" would leave a person guessing which answer they moved —
+            // but the card's own subject line says it now, and saying it
+            // twice produced "DATA ELEMENTS … Change 'Data Elements' to …"
+            // (§24.6, seen live).
+            named
+              ? `Change to “${fix.value}”`
+              : `Change “${fix.label.replace(/\?$/, "")}” to “${fix.value}”`}
       </button>
       {state === "failed" && (
         <span className="help">

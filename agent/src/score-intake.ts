@@ -209,6 +209,20 @@ export function scoreGate(parsed: unknown, task: ScoreTask): DimensionScore[] {
  * web side treats that as "nothing to ask for" and lets the person through,
  * because a quality assistant that blocks is a gate.
  */
+/**
+ * The ceiling funds THINKING AND OUTPUT, not output alone (model.ts:95).
+ * This reads a whole intake — every section, answered or not — and a
+ * reasoning model spends most of the budget before it writes a character.
+ *
+ * Raised four times now: 1200, 3000, 6000, and this. The first three were
+ * each diagnosed as a parsing fault, because nothing read `stop_reason` and
+ * truncation surfaces from `extractJson` as "the model returned no JSON
+ * object". At 6000 it was intermittent — two runs in four truncated on the
+ * same intake. `usage` is recorded on the span from here, so the next
+ * number is chosen from a measured distribution rather than doubled again.
+ */
+const MAX_TOKENS = 16000;
+
 export async function scoreIntake(task: ScoreTask): Promise<Scoring> {
   return tracer.startActiveSpan("score-intake", async (span) => {
     span.setAttribute("prompt.version", promptVersion());
@@ -221,9 +235,32 @@ export async function scoreIntake(task: ScoreTask): Promise<Scoring> {
         // answered or not — and a reasoning model spends most of its budget
         // thinking before it writes. It returned no text at all at 1200,
         // then again at 3000 once the unanswered questions were included.
-        max_tokens: 6000,
+        max_tokens: MAX_TOKENS,
         messages: [{ role: "user", content: composeScorePrompt(task) }],
       });
+      // Say WHY it produced nothing, before trying to parse it. Truncation
+      // surfaces from `extractJson` as "the model returned no JSON object",
+      // which is true and useless: the ceiling has been raised three times
+      // here — 1200, then 3000, then 6000 — each time diagnosed as a
+      // parsing problem because nothing ever read `stop_reason`. Every
+      // other capability in this service checks it; this one did not.
+      // Recorded on every outcome, not only failures: a ceiling chosen
+      // without the distribution underneath it is a guess that looks like a
+      // decision.
+      const usage = (message as unknown as {
+        usage?: { input_tokens?: number; output_tokens?: number };
+      }).usage;
+      if (usage) {
+        span.setAttribute("usage.input", usage.input_tokens ?? 0);
+        span.setAttribute("usage.output", usage.output_tokens ?? 0);
+      }
+      if ((message as { stop_reason?: string }).stop_reason === "max_tokens") {
+        span.setAttribute("gate.result", "truncated");
+        console.error(
+          `[score-intake] truncated at max_tokens (${MAX_TOKENS}) — the whole intake plus its unanswered questions did not fit`,
+        );
+        return { scores: [], conflicts: [], summary: null };
+      }
       const text = textOf(
         message as unknown as {
           content: Array<{ type: string; text?: string }>;

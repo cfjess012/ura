@@ -12,6 +12,7 @@ import {
   answerFor,
   entriesOf,
   isUnlisted,
+  labelOf,
   type ReferenceAnswer,
   type ReferenceEntry,
 } from "./reference";
@@ -181,6 +182,51 @@ export function intakeValuesFrom(row: Record<string, unknown>): IntakeValues {
     }
     if (Array.isArray(raw)) values[field.id] = raw as string[];
     else values[field.id] = raw == null ? "" : String(raw);
+  }
+  return values;
+}
+
+/**
+ * The same answers, but as a person would read them — labels, never ids.
+ *
+ * `intakeValuesFrom` flattens a reference answer to its bare id because a
+ * form needs that to pre-select an option. Anything that will be READ needs
+ * the opposite, and handing the id to a model is the worse half of the same
+ * mistake twice over: the id reaches the screen (NFR-9), and the model,
+ * given an opaque token it cannot verify, writes a plausible one instead.
+ * Observed 2026-08-26: the intake check told a person their business unit
+ * was "BU_ENG" and named two owners — d.grant and d.reyes — who had never
+ * been on the assessment at all.
+ *
+ * The same defect was found once before and fixed at a single caller
+ * (`declarableFrom`, verifier B2). This is the shared point, so there is
+ * one place to call rather than a rule every future caller must remember.
+ */
+export function intakeValuesForReading(
+  row: Record<string, unknown>,
+): IntakeValues {
+  const values = intakeValuesFrom(row);
+  for (const field of ALL_FIELDS) {
+    if (field.type !== "pick" && field.type !== "pick-many") continue;
+    const raw = row[field.id];
+    const stored = (
+      Array.isArray(raw) ? raw : raw ? [raw] : []
+    ) as ReferenceAnswer[];
+    const shown = stored
+      .map((answer) =>
+        isUnlisted(answer) ? answer.unlisted : labelOf(answer),
+      )
+      // A stored value that is not a reference answer — a legacy row, or a
+      // caller that handed over already-flattened values — has no label, and
+      // `labelOf` returns undefined rather than throwing. Filtering on
+      // `label.trim()` then threw INSIDE a render and took the whole screen
+      // to the error boundary. A reading helper may return less than it
+      // hoped for; it may not bring down the page it is read on.
+      .filter((label): label is string => typeof label === "string" && label.trim() !== "");
+    values[field.id] = field.type === "pick-many" ? shown : (shown[0] ?? "");
+    // The off-list text is already in the label above; repeating it under
+    // its own key would say the same answer twice to the model.
+    delete values[unlistedKey(field.id)];
   }
   return values;
 }

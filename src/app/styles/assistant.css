@@ -744,63 +744,8 @@
   text-transform: uppercase;
   color: var(--warning-strong);
 }
-.coherence-conflict {
-  border: 1px solid var(--warning);
-  background: var(--warning-bg);
-  border-radius: 7px;
-  padding: 0.45rem 0.6rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
 /* The two halves set against each other, with the rule between them doing
    the work the word "against" only labels. */
-.coherence-halves {
-  display: flex;
-  flex-direction: column;
-}
-.coherence-quote {
-  margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: var(--neutral-900);
-  background: var(--neutral-0);
-  border-radius: 5px;
-  padding: 0.3rem 0.45rem;
-}
-.coherence-quote::before {
-  content: "\201C";
-}
-.coherence-quote::after {
-  content: "\201D";
-}
-.coherence-versus {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.2rem 0;
-}
-.coherence-versus::before,
-.coherence-versus::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--warning);
-}
-.coherence-versus span {
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--warning-strong);
-}
-.coherence-conflict-why {
-  margin: 0;
-  font-size: 0.74rem;
-  line-height: 1.45;
-  color: var(--neutral-700);
-}
 .coherence .help {
   margin: 0;
   font-size: 0.78rem;
@@ -1687,63 +1632,8 @@
   text-transform: uppercase;
   color: var(--warning-strong);
 }
-.coherence-conflict {
-  border: 1px solid var(--warning);
-  background: var(--warning-bg);
-  border-radius: 7px;
-  padding: 0.45rem 0.6rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
 /* The two halves set against each other, with the rule between them doing
    the work the word "against" only labels. */
-.coherence-halves {
-  display: flex;
-  flex-direction: column;
-}
-.coherence-quote {
-  margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: var(--neutral-900);
-  background: var(--neutral-0);
-  border-radius: 5px;
-  padding: 0.3rem 0.45rem;
-}
-.coherence-quote::before {
-  content: "\201C";
-}
-.coherence-quote::after {
-  content: "\201D";
-}
-.coherence-versus {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.2rem 0;
-}
-.coherence-versus::before,
-.coherence-versus::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--warning);
-}
-.coherence-versus span {
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--warning-strong);
-}
-.coherence-conflict-why {
-  margin: 0;
-  font-size: 0.74rem;
-  line-height: 1.45;
-  color: var(--neutral-700);
-}
 .coherence .help {
   margin: 0;
   font-size: 0.78rem;
@@ -2935,63 +2825,8 @@
   text-transform: uppercase;
   color: var(--warning-strong);
 }
-.coherence-conflict {
-  border: 1px solid var(--warning);
-  background: var(--warning-bg);
-  border-radius: 7px;
-  padding: 0.45rem 0.6rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
 /* The two halves set against each other, with the rule between them doing
    the work the word "against" only labels. */
-.coherence-halves {
-  display: flex;
-  flex-direction: column;
-}
-.coherence-quote {
-  margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: var(--neutral-900);
-  background: var(--neutral-0);
-  border-radius: 5px;
-  padding: 0.3rem 0.45rem;
-}
-.coherence-quote::before {
-  content: "\201C";
-}
-.coherence-quote::after {
-  content: "\201D";
-}
-.coherence-versus {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.2rem 0;
-}
-.coherence-versus::before,
-.coherence-versus::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--warning);
-}
-.coherence-versus span {
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--warning-strong);
-}
-.coherence-conflict-why {
-  margin: 0;
-  font-size: 0.74rem;
-  line-height: 1.45;
-  color: var(--neutral-700);
-}
 .coherence .help {
   margin: 0;
   font-size: 0.78rem;
@@ -3866,63 +3701,8 @@
   text-transform: uppercase;
   color: var(--warning-strong);
 }
-.coherence-conflict {
-  border: 1px solid var(--warning);
-  background: var(--warning-bg);
-  border-radius: 7px;
-  padding: 0.45rem 0.6rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
 /* The two halves set against each other, with the rule between them doing
    the work the word "against" only labels. */
-.coherence-halves {
-  display: flex;
-  flex-direction: column;
-}
-.coherence-quote {
-  margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: var(--neutral-900);
-  background: var(--neutral-0);
-  border-radius: 5px;
-  padding: 0.3rem 0.45rem;
-}
-.coherence-quote::before {
-  content: "\201C";
-}
-.coherence-quote::after {
-  content: "\201D";
-}
-.coherence-versus {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.2rem 0;
-}
-.coherence-versus::before,
-.coherence-versus::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--warning);
-}
-.coherence-versus span {
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--warning-strong);
-}
-.coherence-conflict-why {
-  margin: 0;
-  font-size: 0.74rem;
-  line-height: 1.45;
-  color: var(--neutral-700);
-}
 .coherence .help {
   margin: 0;
   font-size: 0.78rem;
@@ -4769,4 +4549,222 @@
 .assistant-grip,
 .assistant-grip-top {
   display: none;
+}
+
+/* The check stopped before the model: the description is under the floor.
+   One quiet line under the button, not a card. Deliberately not styled as a
+   grade — no band, no meter, no criteria — so it cannot be mistaken for a
+   reading that happened, and not styled as an error either, because nothing
+   is wrong: there is simply not enough to read yet. */
+.coherence-short {
+  margin: 0 0 0 auto;
+  max-width: 30rem;
+  text-align: right;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--neutral-600);
+}
+.coherence-short strong {
+  color: var(--neutral-800);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.coherence-short-link {
+  color: var(--link);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* The full read, in a window. A native <dialog>: the top layer, the
+   backdrop, Escape and focus containment are the browser's. */
+.coherence-dialog {
+  width: min(52rem, calc(100vw - 2rem));
+  max-height: min(84vh, 56rem);
+  padding: 0;
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-lg);
+  background: var(--neutral-0);
+  color: var(--neutral-900);
+  box-shadow: 0 24px 64px rgb(11 31 59 / 26%);
+  overflow: hidden;
+}
+.coherence-dialog::backdrop {
+  background: rgb(11 31 59 / 42%);
+  backdrop-filter: blur(2px);
+}
+/* The body scrolls, not the page behind it. */
+.coherence-dialog-body {
+  max-height: min(84vh, 56rem);
+  overflow-y: auto;
+  padding: 1.6rem 1.9rem 1.9rem;
+  position: relative;
+}
+.coherence-dialog-close {
+  position: sticky;
+  top: 0;
+  float: right;
+  margin: -0.5rem -0.7rem 0 0;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--neutral-100);
+  color: var(--neutral-700);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.coherence-dialog-close:hover {
+  background: var(--neutral-200);
+}
+/* Inside the window the read owns the width, so it does not need its own
+   card treatment on top of the dialog's. */
+.coherence-dialog .coherence-result {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+/* The way back in after closing. */
+.coherence-reopen {
+  margin: 0 0 0 auto;
+  text-align: right;
+}
+.coherence-reopen button {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--link);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .coherence-dialog[open] {
+    animation: coherence-in 0.18s var(--ease);
+  }
+  @keyframes coherence-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.99);
+    }
+  }
+}
+
+/* ---- one disagreement, as a card that names what it is about ---------- */
+.coherence-clash {
+  border: 1px solid var(--neutral-200);
+  border-radius: 14px;
+  background: var(--neutral-0);
+  overflow: hidden;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 1px 2px rgb(11 31 59 / 5%);
+}
+.coherence-clash-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.62rem 1.1rem;
+  background: var(--navy);
+  color: var(--neutral-0);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+/* The accent, on navy, sparingly — the one place the tokens allow it. */
+.coherence-clash-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+}
+.coherence-clash-body {
+  padding: 1rem 1.15rem 1.15rem;
+}
+.coherence-clash-line {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 0.9rem;
+  align-items: baseline;
+  padding: 0.5rem 0;
+}
+.coherence-clash-line + .coherence-clash-line {
+  border-top: 1px dashed var(--neutral-200);
+}
+.coherence-clash-key {
+  margin: 0;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--neutral-500);
+}
+/* Their words, set as a quotation rather than as more interface — the same
+   serif the handoff dossier uses, so the product has one voice for this. */
+.coherence-clash-value {
+  margin: 0;
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  font-size: 1.02rem;
+  line-height: 1.5;
+  color: var(--neutral-900);
+}
+/* The marker pen, borrowed from the gap highlighter: it marks the exact
+   answer being challenged, so the eye lands on it before reading a word. */
+.coherence-marked {
+  background: linear-gradient(
+    180deg,
+    transparent 55%,
+    var(--gap-highlight) 55%
+  );
+  color: inherit;
+  padding: 0 0.08em;
+  font-weight: 700;
+}
+.coherence-clash-why {
+  margin: 0.9rem 0 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--neutral-100);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--neutral-700);
+}
+.coherence-clash-acts {
+  margin-top: 0.9rem;
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+/* Standing by an answer is a real choice, so it is a real control — quieter
+   than the correction, never absent. */
+.coherence-stand {
+  border: 1px solid var(--neutral-300);
+  background: var(--neutral-0);
+  color: var(--neutral-700);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0.5rem 0.95rem;
+  cursor: pointer;
+}
+.coherence-stand:hover {
+  background: var(--neutral-100);
+}
+.coherence-stood {
+  margin: 0 0 0.85rem;
+  font-size: 0.88rem;
+  color: var(--neutral-600);
+  padding: 0.7rem 1.1rem;
+  border: 1px dashed var(--neutral-200);
+  border-radius: 12px;
 }

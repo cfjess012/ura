@@ -30,7 +30,7 @@ import {
 } from "@/lib/drafts";
 import { gateStates } from "@/lib/instrument";
 import { intakeAsDocument } from "@/lib/intake";
-import { intakeValuesFrom } from "@/lib/intake-values";
+import { intakeValuesForReading } from "@/lib/intake-values";
 import { canAnswer } from "@/lib/people";
 import { editableProject, openProject } from "@/lib/project-access";
 import { answerStore } from "@/lib/repo-answers";
@@ -85,7 +85,9 @@ export async function proposeFromIntake(input: {
 
     // The screen said what may be proposed; the record says what is still
     // open. Both, because either alone is wrong.
-    const values = intakeValuesFrom(
+    // Labels, never ids — every quote the model returns is checked back
+    // against this text, and an id it cannot read it will not quote.
+    const values = intakeValuesForReading(
       access.project as unknown as Record<string, unknown>,
     );
     const stored = await answerStore().current(projectId);

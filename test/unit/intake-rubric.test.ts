@@ -10,12 +10,19 @@ import {
   bandFor,
   belowFloor,
   coherenceFrom,
+  clashSides,
+  coherenceNotRead,
   coherenceWhenUnavailable,
   CRITERIA,
   RUBRIC_VERSION,
   scoringBrief,
+  type Conflict,
   type Level,
 } from "@/lib/intake-rubric";
+import { sectionKeyOwning } from "@/lib/intake";
+// The rubric file itself, not a module re-export: the floor is data, and
+// the test should break when the DATA changes, not when a wrapper does.
+import rubric from "@/data/reference/intake-rubric.json";
 
 const all = (level: Level) => CRITERIA.map((c) => ({ id: c.id, level }));
 
@@ -250,5 +257,103 @@ describe("what a person is told about conflicts", () => {
     expect(ask.conflicts).toEqual([]);
     expect(ask.sentence).not.toContain("quoted below");
     expect(ask.unquoted).toBeTruthy();
+  });
+});
+
+describe("stopping before the model (the floor)", () => {
+  // Found live 2026-08-26: a 12-word description short-circuited the check,
+  // and the screen showed a grading panel reading "1 of 5 criteria below
+  // full marks" with `checkedByModel: true`. No model had run. The person
+  // read it as a button that did nothing. What the screen says is now one
+  // quiet line; what it may CLAIM is pinned here.
+  const short = coherenceNotRead({
+    field: "projectDescription",
+    fieldLabel: "Project Description",
+    text: "I want to use ChatGPT to summarize 10-K reports for board reporting.",
+  });
+
+  it("never claims a model read it", () => {
+    expect(short.checkedByModel).toBe(false);
+  });
+
+  it("reports no grade at all, because nothing was graded", () => {
+    expect(short.score).toBeNull();
+    expect(short.band).toBeNull();
+    expect(short.asks).toEqual([]);
+    expect(short.conflicts).toEqual([]);
+  });
+
+  it("counts the words it actually got, and names what it needs", () => {
+    expect(short.notRead?.words).toBe(12);
+    expect(short.notRead?.needs).toBe(rubric.floor.minWords);
+    expect(short.notRead!.words).toBeLessThan(short.notRead!.needs);
+  });
+
+  it("names the field to go and fix, so the screen can offer the way back", () => {
+    expect(short.notRead?.field).toBe("projectDescription");
+    expect(sectionKeyOwning(short.notRead!.field)).toBe("description");
+  });
+
+  it("is absent on every path where a model did run", () => {
+    // The discriminator has to be trustworthy in both directions, or the
+    // screen branches on it and shows the wrong state.
+    const scored = coherenceFrom(
+      CRITERIA.map((c) => ({ id: c.id, level: 3 as const })),
+    );
+    expect(scored.notRead).toBeNull();
+    expect(coherenceWhenUnavailable().notRead).toBeNull();
+  });
+
+  it("stops one word under, and runs one word over", () => {
+    const words = (n: number) => Array(n).fill("scheduling").join(" ");
+    expect(belowFloor(words(rubric.floor.minWords - 1))).not.toBeNull();
+    // Distinct-ratio and word-length floors still apply above the count.
+    expect(belowFloor(words(rubric.floor.minWords + 1))).not.toBeNull();
+  });
+});
+
+describe("splitting a disagreement into the two sides a person reads", () => {
+  const clash = (fix: Conflict["fix"]): Conflict => ({
+    one: "What's the most sensitive data involved?: Public",
+    two: "claude api for quarterly board reproting.",
+    why: "Board reporting is not public.",
+    fix,
+  });
+  const withFix = clash({
+    field: "dataClassification",
+    label: "What's the most sensitive data involved",
+    value: "Confidential",
+  });
+
+  it("names what the disagreement is about", () => {
+    expect(clashSides(withFix).subject).toBe(
+      "What's the most sensitive data involved",
+    );
+  });
+
+  it("tells the answer apart from the prose, whichever order they arrive in", () => {
+    const flipped: Conflict = { ...withFix, one: withFix.two, two: withFix.one };
+    for (const c of [withFix, flipped]) {
+      const sides = clashSides(c);
+      expect(sides.answered.text).toBe("Public");
+      expect(sides.wrote.text).toBe("claude api for quarterly board reproting.");
+    }
+  });
+
+  it("drops the field label from the value — the card already says it", () => {
+    // "What's the most sensitive data involved?: Public" would otherwise
+    // print its own heading back inside itself (§24.6).
+    expect(clashSides(withFix).answered.text).toBe("Public");
+    expect(clashSides(withFix).answered.marked).toBe("Public");
+  });
+
+  it("marks nothing it cannot isolate", () => {
+    // Without a fix there is nothing naming which half is the answer, so
+    // both are labelled as things they wrote and neither is marked.
+    const sides = clashSides(clash(null));
+    expect(sides.answered.marked).toBeNull();
+    expect(sides.answered.label).toBe("You wrote");
+    expect(sides.wrote.label).toBe("And also");
+    expect(sides.subject).toBeNull();
   });
 });

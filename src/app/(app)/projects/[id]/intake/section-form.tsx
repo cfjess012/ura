@@ -31,6 +31,7 @@ import {
   type PendingRewrite,
 } from "@/lib/pending-rewrite";
 import { ProjectHeader } from "../project-header";
+import { FocusOnArrival } from "@/app/(app)/focus-on-arrival";
 import { useHoldUnsaved } from "@/app/(app)/unsaved-guard";
 
 export function SectionForm({
@@ -440,6 +441,10 @@ export function SectionForm({
             </span>
           </p>
         )}
+
+        {/* Somebody sent here to fix one field lands ON it, marked and
+            focused, rather than on the top of a four-field form. */}
+        <FocusOnArrival />
 
         <div className="card">
           {section.fields.map((field) =>

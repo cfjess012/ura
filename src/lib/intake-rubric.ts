@@ -49,6 +49,66 @@ export type Conflict = {
   fix: { field: string; label: string; value: string } | null;
 };
 
+/** One side of a disagreement, as the screen lays it out. */
+export type ClashSide = {
+  /** Whose words these are, in the person's terms. */
+  label: string;
+  text: string;
+};
+
+export type ClashSides = {
+  /** What the disagreement is ABOUT — the field, when a fix names one. */
+  subject: string | null;
+  /** The answer being challenged. Marked, when it can be isolated. */
+  answered: ClashSide & { marked: string | null };
+  /** What they wrote that disagrees with it. */
+  wrote: ClashSide;
+};
+
+/**
+ * Split a disagreement into the two sides a person reads.
+ *
+ * Both halves are verbatim from the intake — the agent's gate drops any
+ * conflict where either half cannot be found in the document — so this only
+ * has to decide WHICH half is the answer and which is the prose. The fix
+ * names the field, and the answer-side quote is the one carrying that
+ * field's label; without a fix there is nothing to decide it by, and both
+ * halves are honestly labelled as things they wrote.
+ *
+ * Pure, and separate from the component, because "which of these two is the
+ * answer" is a rule that ought to be testable without a browser.
+ */
+export function clashSides(clash: Conflict): ClashSides {
+  const label = clash.fix?.label ?? null;
+  const carries = (text: string) =>
+    label !== null && text.toLowerCase().includes(label.toLowerCase());
+
+  if (label && (carries(clash.one) || carries(clash.two))) {
+    const answered = carries(clash.one) ? clash.one : clash.two;
+    const wrote = answered === clash.one ? clash.two : clash.one;
+    // "What's the most sensitive data involved?: Public" → "Public". The
+    // label is already the card's subject; repeating it in the value says
+    // the same thing twice (§24.6).
+    const at = answered.indexOf(":", answered.toLowerCase().indexOf(label.toLowerCase()));
+    const value = at === -1 ? null : answered.slice(at + 1).trim();
+    return {
+      subject: label,
+      answered: {
+        label: "You answered",
+        text: value ?? answered,
+        marked: value,
+      },
+      wrote: { label: "But you wrote", text: wrote },
+    };
+  }
+
+  return {
+    subject: label,
+    answered: { label: "You wrote", text: clash.one, marked: null },
+    wrote: { label: "And also", text: clash.two },
+  };
+}
+
 /**
  * The read of the activity a person is shown first: what the platform
  * understood this to be, and what a reviewer notices about it.
@@ -135,10 +195,36 @@ export type Coherence = {
   asks: Ask[];
   /** Whether a model actually read it, as opposed to failing open. */
   checkedByModel: boolean;
+  /**
+   * Set when the check stopped BEFORE the model, because the description is
+   * below the floor — and null on every other path.
+   *
+   * It exists because the floor used to be dressed as a grade: one ask, a
+   * "1 of 5 criteria below full marks" summary over four criteria nobody
+   * scored, and `checkedByModel: true` on a path where no model ran. A
+   * person read a grading panel and could not tell that the button they
+   * pressed had not reached the model at all.
+   */
+  notRead: NotRead | null;
   /** What the platform understood this to be. Null when none was written. */
   summary: Summary | null;
   /** Every contradiction, hoisted: it is the finding, not a grade detail. */
   conflicts: Conflict[];
+};
+
+/**
+ * Why the check stopped short, in the numbers the person can act on.
+ *
+ * `field` is what to go and edit — carried so the screen can offer a way
+ * back to it rather than naming it and leaving them to find it.
+ */
+export type NotRead = {
+  field: string;
+  fieldLabel: string;
+  words: number;
+  needs: number;
+  /** One sentence, from the rubric — never composed at the call site. */
+  because: string;
 };
 
 /** The band a total falls in. Bands are data; this only looks it up. */
@@ -163,6 +249,7 @@ export function coherenceFrom(
     return {
       score: null,
       outOf,
+      notRead: null,
       band: null,
       meaning: null,
       opening: null,
@@ -224,6 +311,7 @@ export function coherenceFrom(
   return {
     score: total,
     outOf,
+    notRead: null,
     band: band.label,
     meaning: band.meaning,
     opening: asks.length === 0 ? null : RUBRIC.engine.opening,
@@ -283,6 +371,39 @@ export function coherenceWhenUnavailable(): Coherence {
     opening: null,
     asks: [],
     checkedByModel: false,
+    notRead: null,
+    summary: null,
+    conflicts: [],
+  };
+}
+
+/**
+ * The state when the description is too thin to send to a model.
+ *
+ * Deliberately NOT a grade. Nothing was scored, so nothing is reported as
+ * scored, and `checkedByModel` says what actually happened.
+ */
+export function coherenceNotRead(input: {
+  field: string;
+  fieldLabel: string;
+  text: string;
+}): Coherence {
+  const words = input.text.trim().split(/\s+/).filter(Boolean).length;
+  return {
+    score: null,
+    outOf: CRITERIA.length * 4,
+    band: null,
+    meaning: null,
+    opening: null,
+    asks: [],
+    checkedByModel: false,
+    notRead: {
+      field: input.field,
+      fieldLabel: input.fieldLabel,
+      words,
+      needs: RUBRIC.floor.minWords,
+      because: belowFloor(input.text) ?? RUBRIC.messages.tooShort,
+    },
     summary: null,
     conflicts: [],
   };

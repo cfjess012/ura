@@ -8,10 +8,12 @@ import { listBySlug } from "../../src/lib/reference";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { intakeAsDocument } from "../../src/lib/intake";
 import {
   intakeChanges,
   SCOPE_KEY,
   intakePatchFrom,
+  intakeValuesForReading,
   intakeValuesFrom,
   projectNameOrNull,
 } from "../../src/lib/intake-values";
@@ -281,5 +283,79 @@ describe("a section's form only speaks for its own fields (verifier R1)", () => 
     expect(source, "hydration must not iterate ALL_FIELDS").not.toMatch(
       /for \(const field of ALL_FIELDS\)/,
     );
+  });
+});
+
+describe("what a model is handed — labels, never ids (NFR-9, §7)", () => {
+  const row = {
+    projectName: "Board reporting assistant",
+    projectDescription: "Drafts the quarterly board pack.",
+    businessUnit: { id: "BU_ENG", label: "Engineering", version: "2026-08-21.1" },
+    businessOwner: {
+      id: "d.withers",
+      label: "Isabelle Withers — Head of Claims Operations",
+      version: "directory",
+    },
+    technicalOwner: {
+      id: "d.whitfield",
+      label: "Grace Whitfield — Senior Counsel, Legal",
+      version: "directory",
+    },
+  } as unknown as Record<string, unknown>;
+
+  it("resolves a reference answer to its label", () => {
+    const read = intakeValuesForReading(row);
+    expect(read.businessUnit).toBe("Engineering");
+    expect(read.businessOwner).toBe("Isabelle Withers — Head of Claims Operations");
+  });
+
+  it("keeps ids where a FORM needs them, so the two readings stay distinct", () => {
+    // intakeValuesFrom flattens deliberately: a select pre-selects by id.
+    expect(intakeValuesFrom(row).businessUnit).toBe("BU_ENG");
+  });
+
+  it("puts no internal identifier in the document a model reads", () => {
+    // Observed 2026-08-26: handed the form values, the check told a person
+    // their business unit was "BU_ENG" and named two owners — d.grant and
+    // d.reyes — who had never been on the assessment. An opaque token is
+    // not something a model can check, and what it cannot check it invents.
+    const doc = intakeAsDocument(intakeValuesForReading(row), {
+      blanks: "named",
+    });
+    expect(doc).toContain("Engineering");
+    expect(doc).toContain("Isabelle Withers");
+    expect(doc).not.toMatch(/\bBU_[A-Z]+\b/);
+    expect(doc).not.toMatch(/\bd\.[a-z]+\b/);
+  });
+
+  it("carries an off-list answer as the words that were typed", () => {
+    const typed = intakeValuesForReading({
+      ...row,
+      businessUnit: { unlisted: "Group Treasury" },
+    } as unknown as Record<string, unknown>);
+    expect(typed.businessUnit).toBe("Group Treasury");
+  });
+});
+
+describe("reading values never bring down the page they are read on", () => {
+  it("survives a value that is not a reference answer", () => {
+    // A legacy row, or a caller handing over already-flattened values.
+    // `labelOf` returns undefined for these rather than throwing, and
+    // filtering on `label.trim()` then threw inside a render — the whole
+    // screen went to the error boundary over one unlabelled value.
+    expect(() =>
+      intakeValuesForReading({
+        projectName: "Legacy",
+        businessUnit: "BU_ENG",
+        vendorNames: ["V_SNOWFLAKE", { id: "V_X", label: "Acme" }],
+      } as unknown as Record<string, unknown>),
+    ).not.toThrow();
+  });
+
+  it("keeps the labels it can read and drops the ones it cannot", () => {
+    const read = intakeValuesForReading({
+      vendorNames: ["V_SNOWFLAKE", { id: "V_X", label: "Acme", version: "d" }],
+    } as unknown as Record<string, unknown>);
+    expect(read.vendorNames).toEqual(["Acme"]);
   });
 });

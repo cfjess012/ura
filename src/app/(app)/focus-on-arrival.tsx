@@ -22,9 +22,14 @@ export function FocusOnArrival() {
 
   React.useEffect(() => {
     if (!wanted) return;
-    const target = document.querySelector<HTMLElement>(
-      `[data-focus="${CSS.escape(wanted)}"]`,
-    );
+    // `data-focus` first, then the element's own id. Intake fields carry an
+    // id and no data-focus — adding one to every field would have meant a
+    // wrapper element around each, and a second way of saying the same
+    // thing. One helper, two ways to find the target (§11).
+    const target =
+      document.querySelector<HTMLElement>(
+        `[data-focus="${CSS.escape(wanted)}"]`,
+      ) ?? document.getElementById(wanted);
     if (!target) {
       // Honest failure: the alert sent us somewhere the thing is not.
       // Saying so beats leaving a person on a screen with no idea why.
@@ -33,9 +38,14 @@ export function FocusOnArrival() {
     }
     target.scrollIntoView({ behavior: "smooth", block: "center" });
     target.classList.add("landed");
-    const focusable = target.querySelector<HTMLElement>(
+    const itself = target.matches(
       "button, [href], input, select, textarea, [tabindex]",
     );
+    const focusable = itself
+      ? target
+      : target.querySelector<HTMLElement>(
+          "button, [href], input, select, textarea, [tabindex]",
+        );
     (focusable ?? target).focus?.({ preventScroll: true });
     const done = window.setTimeout(
       () => target.classList.remove("landed"),

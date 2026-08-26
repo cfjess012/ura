@@ -115,11 +115,39 @@ test("the intake floor catches a bare name with no model", async ({ page }) => {
   // filled form grades absence rather than the description.
   await completeIntake(page, base);
   await page.goto(`${base}/intake/description`);
-  await page.getByLabel("Project Description").fill("Salesforce");
+  // Wait for hydration before typing. The form deliberately adopts whatever
+  // was typed before it hydrated, but a fill that lands mid-hydration is
+  // overwritten by React's first render with the server's value — the exact
+  // window section-form.tsx documents. Real people cannot type this fast;
+  // Playwright can.
+  await page.waitForLoadState("networkidle");
+  const description = page.getByLabel("Project Description");
+  await description.fill("Salesforce");
+  // Confirm it actually landed before moving on. It did not, previously —
+  // the form adopts what was typed before hydration, and a fill that raced
+  // that left the earlier text in place. The old assertion matched "too
+  // thin" either way, so the test passed while testing nothing it claimed.
+  await expect(description).toHaveValue("Salesforce");
   await page.getByRole("button", { name: /Next: Ownership/ }).click();
+  await expect(page.getByRole("heading", { name: "Ownership" })).toBeVisible();
   await page.goto(`${base}/intake/compliance-data`);
   await page.getByRole("button", { name: /Save & run AI check/ }).click();
-  await expect(page.locator(".coherence-ask")).toContainText(/too thin/i);
+
+  // It says it STOPPED, and it is not dressed as a grade. The old shape put
+  // one ask inside a "1 of 5 criteria below full marks" panel over four
+  // criteria nobody scored — a person read a grading panel and could not
+  // tell the model had never run.
+  const stopped = page.locator(".coherence-short");
+  await expect(stopped).toContainText("Too short to check");
+  await expect(stopped).toContainText(/\b1 word\b/);
+  await expect(stopped).toContainText(/I need about \d+/);
+  await expect(page.locator(".coherence-grades")).toHaveCount(0);
+  await expect(page.locator(".coherence-band")).toHaveCount(0);
+
+  // And it offers the way back to the field, which must LAND on it.
+  await page.getByRole("link", { name: /Add to it/i }).click();
+  await expect(page).toHaveURL(/\/intake\/description\?focus=projectDescription/);
+  await expect(page.getByLabel("Project Description")).toBeFocused();
 });
 
 test("the intake assistant fails open — it never blocks the way forward", async ({
