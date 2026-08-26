@@ -32,6 +32,7 @@ import {
 } from "@/lib/pending-rewrite";
 import { ProjectHeader } from "../project-header";
 import { FocusOnArrival } from "@/app/(app)/focus-on-arrival";
+import { RegisterUseCase } from "./register-use-case";
 import { useHoldUnsaved } from "@/app/(app)/unsaved-guard";
 
 export function SectionForm({
@@ -466,6 +467,15 @@ export function SectionForm({
                 }
               />
             ) : null,
+          )}
+
+          {/* Beside the answer that makes this an AI use case at all, and
+              nowhere else (FR-26). It reads from what is ON SCREEN, so the
+              count moves as they type rather than reporting the last save. */}
+          {section.fields.some(
+            (f) => f.id === "aiUseCase" && isFieldVisible(f, values),
+          ) && (
+            <RegisterUseCase projectId={projectId} values={values} />
           )}
         </div>
 

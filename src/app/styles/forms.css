@@ -645,3 +645,58 @@ select.flagged {
   gap: 0.9rem;
   margin-top: 1rem;
 }
+
+/* ---- the offer to file this in the AI use case inventory (FR-26) ------
+   An offer beside the field, not a step in front of it. Quiet by default:
+   it is help, and help that shouts is another thing to dismiss. */
+.usecase {
+  margin: 1.1rem 0 0;
+  padding: 0.95rem 1.1rem;
+  border: 1px solid var(--surface-3);
+  border-radius: 12px;
+  background: var(--surface-1);
+}
+.usecase-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 0.45rem;
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: var(--navy);
+}
+.usecase-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--brand);
+  flex: none;
+}
+.usecase-body {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--neutral-700);
+  max-width: 60ch;
+}
+.usecase-body strong {
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+.usecase-acts {
+  margin: 0.7rem 0 0;
+}
+.usecase-go {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--link);
+}
+/* Said every time, until the destination's published field list arrives.
+   A screen implying a live mapping it does not have is the claim §27.1
+   exists to prevent. */
+.usecase-caveat {
+  margin: 0.6rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--neutral-600);
+}

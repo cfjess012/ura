@@ -1,0 +1,34 @@
+{
+  "slug": "ai-use-case-record",
+  "name": "AI Use Case Record",
+  "where": "the AI use case inventory",
+  "version": "2026-08-26.1",
+  "provisional": true,
+  "why": "Field names are a working set, not the destination's published list. Every row is marked provisional on screen until the real list arrives, and replacing it is a change to this file and a new version — never a code change (NFR-20, SPEC 27.1).",
+  "fields": [
+    { "target": "use_case_name",      "label": "Use case name",              "required": true,  "from": "projectName" },
+    { "target": "description",        "label": "What it is",                 "required": true,  "from": "projectDescription" },
+    { "target": "ai_function",        "label": "What the AI does",           "required": true,  "from": "aiUseCase" },
+    { "target": "business_owner",     "label": "Business owner",             "required": true,  "from": "businessOwner" },
+    { "target": "technical_owner",    "label": "Technical owner",            "required": false, "from": "technicalOwner" },
+    { "target": "business_unit",      "label": "Responsible business unit",  "required": true,  "from": "businessUnit" },
+    { "target": "other_units",        "label": "Other business units",       "required": false, "from": "otherUnits" },
+    { "target": "lifecycle_stage",    "label": "New or an update",           "required": true,  "from": "initiativeType" },
+    { "target": "target_live_date",   "label": "Target go-live",             "required": false, "from": "targetGoLive" },
+    { "target": "data_classification","label": "Data sensitivity",           "required": true,  "from": "dataClassification" },
+    { "target": "data_elements",      "label": "Data elements",              "required": false, "from": "dataElements" },
+    { "target": "third_party",        "label": "Outside company involved",   "required": true,  "from": "thirdPartyInvolved" },
+    { "target": "vendors",            "label": "Which companies",            "required": false, "from": "vendorNames" },
+    { "target": "procurement_status", "label": "Onboarded through Procurement", "required": false, "from": "coupaOnboarded" },
+    { "target": "collaborators",      "label": "Collaborators",              "required": false, "from": "collaborators" },
+    { "target": "prior_assessment",   "label": "What has already been assessed", "required": false, "from": "priorAssessmentRef" },
+
+    { "target": "risk_areas",         "label": "Risk areas engaged",         "required": false, "derived": "The areas this assessment opened, worked out from the answers given." },
+    { "target": "assessment_ref",     "label": "Assessment reference",       "required": true,  "derived": "This assessment, so the record and the assessment point at each other." },
+    { "target": "assessment_status",  "label": "Assessment status",          "required": false, "derived": "Where this assessment has got to." },
+
+    { "target": "model_or_vendor",    "label": "Model or provider",          "required": true,  "needs": "Which model or provider this runs on. The assessment does not ask." },
+    { "target": "human_oversight",    "label": "Human oversight",            "required": true,  "needs": "Who reviews the output before it is used, and at what point." },
+    { "target": "review_cadence",     "label": "Review cadence",             "required": false, "needs": "How often this use case is re-examined once it is live." }
+  ]
+}
