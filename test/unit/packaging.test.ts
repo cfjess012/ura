@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   blockers,
   canPackage,
+  editionsPinned,
   openFindingNames,
   packageFilename,
 } from "@/lib/packaging";
@@ -165,6 +166,59 @@ describe("which findings are open — the one rule, not a second one", () => {
     expect(openFindingNames(FINDINGS, rows, now)).toContain(
       "Multi-Factor Authentication",
     );
+  });
+});
+
+/**
+ * Provenance has to survive the instrument moving — that is the only
+ * moment it matters. It read the *currently activated* editions, which is
+ * the right answer right up until somebody publishes a new one, and then
+ * the record silently starts claiming it was asked by questions it was
+ * never asked by.
+ */
+describe("which instrument editions actually asked these questions", () => {
+  // Newest-first, as the query returns them.
+  it("names the edition each answer pinned", () => {
+    expect(
+      editionsPinned([
+        { questionId: "q1", versionId: "v1" },
+        { questionId: "q2", versionId: "v1" },
+      ]),
+    ).toEqual(["v1"]);
+  });
+
+  it("a re-answer under a new edition supersedes the old one", () => {
+    // q1 was answered under v1, then answered again under v2. Only the v2
+    // answer is in the package, so only v2 asked anything that is in it.
+    const pinned = editionsPinned([
+      { questionId: "q1", versionId: "v2" },
+      { questionId: "q1", versionId: "v1" },
+    ]);
+    expect(pinned).toEqual(["v2"]);
+    expect(pinned).not.toContain("v1");
+  });
+
+  it("an assessment answered across a boundary names both", () => {
+    // The case a map keyed by slug could not represent, which is why the
+    // payload carries a list.
+    expect(
+      editionsPinned([
+        { questionId: "q2", versionId: "v2" },
+        { questionId: "q1", versionId: "v1" },
+      ]).sort(),
+    ).toEqual(["v1", "v2"]);
+  });
+
+  it("does not depend on what is active now — only on what was pinned", () => {
+    // Nothing here can see the activation table, which is the point: a
+    // newly published v3 cannot change this answer.
+    expect(editionsPinned([{ questionId: "q1", versionId: "v1" }])).toEqual([
+      "v1",
+    ]);
+  });
+
+  it("an assessment with no answers pins nothing", () => {
+    expect(editionsPinned([])).toEqual([]);
   });
 });
 

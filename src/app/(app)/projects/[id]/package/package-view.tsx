@@ -137,7 +137,12 @@ export function PackageView({
             <strong>Provenance</strong>
             <span className="meta">
               {" "}
-              — the instrument versions that asked these questions
+              — the instrument editions that asked these questions
+              {payload.provenance.instrumentVersions.length > 0
+                ? ` (${payload.provenance.instrumentVersions
+                    .map((v) => `${v.slug} ${v.version}`)
+                    .join(", ")})`
+                : ""}
               {payload.provenance.policyVersion
                 ? `, and the policy edition that judged the findings (${payload.provenance.policyVersion})`
                 : ""}

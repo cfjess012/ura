@@ -5,8 +5,9 @@
  * seam is unchanged: callers still import a `<thing>Store()` function and
  * never see a query, so swapping the driver stays a one-file change (§26.1).
  */
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { getDb, schema } from "./db";
+import { editionsPinned } from "./packaging";
 import type { Declared, Gap, SynthesisedFinding } from "./submission";
 
 /**
@@ -279,6 +280,22 @@ export function reviewStore(): ReviewStore {
  * accident or by a later refactor.
  */
 export interface PackageStore {
+  /**
+   * The instrument editions that actually asked this assessment's
+   * questions, read from what each answer pinned (`instrument_version_id`,
+   * NOT NULL since NFR-11).
+   *
+   * Not the currently-activated editions. Those are the same thing right
+   * up until the instrument is re-versioned — which is the one moment a
+   * reader needs this, and the moment the answer would silently change
+   * under a record that is supposed to be replayable.
+   *
+   * A list rather than a map by slug: an assessment answered across an
+   * edition boundary genuinely used two, and a map would have to pick one.
+   */
+  instrumentVersionsFor(
+    projectId: string,
+  ): Promise<Array<{ slug: string; version: string }>>;
   /** Every package made for this assessment, newest first. */
   forProject(projectId: string): Promise<PackageRow[]>;
   /** The most recent one, or null where none has been made. */
@@ -318,6 +335,30 @@ export function postgresPackageStore(): PackageStore {
       .orderBy(desc(schema.packages.packagedAt));
 
   return {
+    async instrumentVersionsFor(projectId) {
+      // Rows newest-first; `editionsPinned` keeps the latest per question,
+      // the same way `current()` decides what an answer is.
+      const answered = await db
+        .select({
+          questionId: schema.answers.questionId,
+          versionId: schema.answers.instrumentVersionId,
+        })
+        .from(schema.answers)
+        .where(eq(schema.answers.projectId, projectId))
+        .orderBy(desc(schema.answers.createdAt));
+
+      const pinned = editionsPinned(answered);
+      if (pinned.length === 0) return [];
+
+      return db
+        .select({
+          slug: schema.instrumentVersions.slug,
+          version: schema.instrumentVersions.version,
+        })
+        .from(schema.instrumentVersions)
+        .where(inArray(schema.instrumentVersions.id, pinned))
+        .orderBy(schema.instrumentVersions.slug, schema.instrumentVersions.version);
+    },
     async forProject(projectId) {
       return rows(projectId);
     },

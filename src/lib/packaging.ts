@@ -110,7 +110,13 @@ export type Package = {
   provenance: {
     packagedAt: string;
     packagedBy: string;
-    instrumentVersions: Record<string, string>;
+    /**
+     * The editions that asked these questions, read from what each answer
+     * pinned — not whichever editions happen to be active at export time.
+     * A list, because an assessment answered across an edition boundary
+     * used two of the same slug and a map would have to pick one.
+     */
+    instrumentVersions: Array<{ slug: string; version: string }>;
     /** Which edition of the policy library judged the findings (§22.5). */
     policyVersion: string | null;
   };
@@ -218,6 +224,31 @@ export function openFindingNames(
   return findings
     .filter((finding) => findingIsOpen(settlements.get(finding.id) ?? null, now))
     .map((finding) => finding.objectiveName);
+}
+
+/**
+ * Which instrument editions the answers in the record actually pinned.
+ *
+ * `answered` arrives newest-first. The latest answer per question is the
+ * one in the package — the same rule `current()` uses to decide what an
+ * answer *is* — so an answer given under one edition and re-answered under
+ * the next names only the second. Naming both would credit an edition
+ * whose answer was superseded and is not in the file.
+ *
+ * Pure and here rather than inside the store, for the reason B-1 taught:
+ * logic that no unit test can reach is where the defects live.
+ */
+export function editionsPinned(
+  answered: Array<{ questionId: string; versionId: string }>,
+): string[] {
+  const seen = new Set<string>();
+  const pinned = new Set<string>();
+  for (const row of answered) {
+    if (seen.has(row.questionId)) continue;
+    seen.add(row.questionId);
+    pinned.add(row.versionId);
+  }
+  return [...pinned];
 }
 
 /** Can this be packaged? The same rule, said the short way. */

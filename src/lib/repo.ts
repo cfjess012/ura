@@ -104,12 +104,6 @@ export type AnswerInput = {
 export interface AnswerStore {
   /** The active instrument version every answer pins to (NFR-11). */
   activeVersionId(slug: string): Promise<string>;
-  /**
-   * Every activated instrument version, by slug. A package names the
-   * edition that asked its questions, and reading it beats hardcoding a
-   * number that goes stale the first time the instrument moves.
-   */
-  activeVersions(): Promise<Array<{ slug: string; version: string }>>;
   current(projectId: string): Promise<Record<string, CurrentAnswer>>;
   /**
    * How many times each question has been answered. The table is
@@ -416,19 +410,6 @@ export function postgresAnswerStore(): AnswerStore {
         .where(eq(schema.answers.projectId, projectId))
         .groupBy(schema.answers.questionId);
       return new Map(rows.map((row) => [row.questionId, Number(row.times)]));
-    },
-    async activeVersions() {
-      return db
-        .selectDistinctOn([schema.instrumentVersions.slug], {
-          slug: schema.instrumentVersions.slug,
-          version: schema.instrumentVersions.version,
-        })
-        .from(schema.instrumentVersions)
-        .where(isNotNull(schema.instrumentVersions.activatedAt))
-        .orderBy(
-          schema.instrumentVersions.slug,
-          desc(schema.instrumentVersions.activatedAt),
-        );
     },
     async activeVersionId(slug) {
       const [row] = await db

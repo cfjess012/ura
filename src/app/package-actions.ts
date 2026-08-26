@@ -118,7 +118,7 @@ export async function packageState(projectId: string): Promise<
 
     const person = await currentPerson();
     const payload = assemble({
-      instrumentVersions: await activeInstrumentVersions(),
+      instrumentVersions: await packageStore().instrumentVersionsFor(projectId),
       project,
       intake,
       stored,
@@ -187,18 +187,6 @@ export async function makePackage(
   }
 }
 
-/**
- * The activated instrument versions, by slug.
- *
- * Read rather than hardcoded: the whole point of versioning the instrument
- * is that it moves, and a package that named a version by hand would go
- * stale the first time it did.
- */
-async function activeInstrumentVersions(): Promise<Record<string, string>> {
-  const rows = await answerStore().activeVersions();
-  return Object.fromEntries(rows.map((r) => [r.slug, r.version]));
-}
-
 /** An objective by its question id, for answers outside the required set. */
 function objectiveByQuestion(questionId: string) {
   return OBJECTIVES.find((o) => o.questionId === questionId) ?? null;
@@ -264,7 +252,7 @@ function assemble(input: {
   >;
   everyone: Array<{ id: string; name: string }>;
   by: string;
-  instrumentVersions: Record<string, string>;
+  instrumentVersions: Array<{ slug: string; version: string }>;
 }): Package {
   const {
     project,
@@ -378,6 +366,12 @@ function assemble(input: {
       // Which edition of the instrument asked these questions. A replay
       // against a different one is a different question, and a reader has
       // to be able to tell.
+      // What asked these questions, from what the answers pinned. This read
+      // the *currently activated* editions, which is the same answer right
+      // up until the instrument is re-versioned — and a replayable record
+      // that changes its own provenance when the instrument moves is the
+      // one thing it must not do. The screen promised what the code did
+      // not (§24: copy is a claim).
       instrumentVersions: input.instrumentVersions,
       policyVersion:
         (policies as { version?: string }).version ??
