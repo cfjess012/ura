@@ -1,0 +1,480 @@
+<title>URA Engineering Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --ground:#f7f8f6; --surface:#ffffff; --surface-2:#f1f3f0;
+  --ink:#161a19; --ink-2:#3c4643; --muted:#5f6a66; --rule:#dde2df; --rule-2:#eceeea;
+  --accent:#0a5c4a; --accent-soft:#e4efea;
+  --crit:#a01b2b; --high:#b8510d; --med:#87680a; --low:#3f6f5e; --info:#6c7672;
+  --crit-bg:#f8e9eb; --high-bg:#faeee4; --med-bg:#f7f1dd; --low-bg:#e7f0ec; --info-bg:#eef0ee;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#121614; --surface:#191e1c; --surface-2:#202623;
+  --ink:#e7ebe9; --ink-2:#c2cac7; --muted:#98a29e; --rule:#2b3230; --rule-2:#242a28;
+  --accent:#57cfa6; --accent-soft:#1c2b26;
+  --crit:#ff8b96; --high:#f0a463; --med:#d9bb5a; --low:#7fc4a8; --info:#98a29e;
+  --crit-bg:#2c1a1d; --high-bg:#2b2014; --med-bg:#282314; --low-bg:#17251f; --info-bg:#1e2422;
+}}
+:root[data-theme="dark"]{
+  --ground:#121614; --surface:#191e1c; --surface-2:#202623;
+  --ink:#e7ebe9; --ink-2:#c2cac7; --muted:#98a29e; --rule:#2b3230; --rule-2:#242a28;
+  --accent:#57cfa6; --accent-soft:#1c2b26;
+  --crit:#ff8b96; --high:#f0a463; --med:#d9bb5a; --low:#7fc4a8; --info:#98a29e;
+  --crit-bg:#2c1a1d; --high-bg:#2b2014; --med-bg:#282314; --low-bg:#17251f; --info-bg:#1e2422;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:60rem;margin:0 auto;padding:0 1.5rem 6rem}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+
+/* ---- masthead ---------------------------------------------------- */
+.mast{border-bottom:2px solid var(--ink);padding:3.5rem 0 1.1rem;margin-bottom:2.5rem}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);margin:0 0 1rem;font-weight:500}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(2.1rem,5.2vw,3.1rem);line-height:1.08;
+  margin:0 0 .9rem;letter-spacing:-.015em;text-wrap:balance}
+.mast .sub{font-family:var(--mono);font-size:.78rem;color:var(--muted);margin:0;
+  display:flex;flex-wrap:wrap;gap:.4rem 1.1rem}
+
+/* ---- verdict ----------------------------------------------------- */
+.verdict{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--accent);
+  padding:1.4rem 1.6rem;margin-bottom:2rem;border-radius:2px}
+.verdict p{margin:0 0 .8rem;max-width:64ch}
+.verdict p:last-child{margin-bottom:0}
+.verdict strong{font-weight:700}
+
+/* ---- stats ------------------------------------------------------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:1px;
+  background:var(--rule);border:1px solid var(--rule);margin:0 0 2.5rem;border-radius:2px;overflow:hidden}
+.stat{background:var(--surface);padding:1rem 1.1rem}
+.stat .k{font-family:var(--mono);font-size:.64rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 .45rem}
+.stat .v{font-family:var(--serif);font-size:1.9rem;line-height:1;font-weight:500;margin:0;
+  font-variant-numeric:tabular-nums}
+.stat .n{font-size:.76rem;color:var(--muted);margin:.35rem 0 0;line-height:1.35}
+.stat.is-crit .v{color:var(--crit)}
+.stat.is-ok .v{color:var(--low)}
+
+/* ---- sections ---------------------------------------------------- */
+section{margin:0 0 3.25rem;scroll-margin-top:1.5rem}
+h2{font-family:var(--serif);font-weight:500;font-size:1.6rem;line-height:1.2;margin:0 0 1rem;
+  padding-top:1.1rem;border-top:1px solid var(--rule);display:flex;gap:.8rem;align-items:baseline;
+  text-wrap:balance}
+h2 .num{font-family:var(--mono);font-size:.72rem;font-weight:500;color:var(--accent);
+  letter-spacing:.08em;flex:none;transform:translateY(-.15em)}
+h3{font-family:var(--sans);font-weight:700;font-size:.82rem;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);margin:2rem 0 .7rem}
+p{margin:0 0 1rem;max-width:70ch}
+ul,ol{margin:0 0 1rem;padding-left:1.15rem;max-width:70ch}
+li{margin-bottom:.5rem}
+code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:.1em .35em;
+  border-radius:3px;color:var(--ink-2)}
+
+/* ---- ranked list ------------------------------------------------- */
+.ranked{list-style:none;padding:0;counter-reset:r;max-width:none}
+.ranked li{counter-increment:r;display:grid;grid-template-columns:2rem 1fr;gap:.9rem;
+  padding:.85rem 0;border-bottom:1px solid var(--rule-2);margin:0}
+.ranked li::before{content:counter(r,decimal-leading-zero);font-family:var(--mono);font-size:.72rem;
+  color:var(--accent);padding-top:.35em;font-weight:500}
+.ranked li:last-child{border-bottom:0}
+
+/* ---- tables ------------------------------------------------------ */
+.scroll{overflow-x:auto;border:1px solid var(--rule);border-radius:2px;margin:0 0 1.4rem;
+  background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:34rem}
+th{text-align:left;font-family:var(--mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);font-weight:500;padding:.7rem .9rem;border-bottom:1px solid var(--rule);
+  background:var(--surface-2);white-space:nowrap}
+td{padding:.7rem .9rem;border-bottom:1px solid var(--rule-2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+td.id{font-family:var(--mono);font-weight:500;white-space:nowrap}
+
+/* ---- chips ------------------------------------------------------- */
+.chip{display:inline-block;font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;
+  text-transform:uppercase;padding:.2em .55em;border-radius:2px;font-weight:700;white-space:nowrap}
+.chip.crit{background:var(--crit-bg);color:var(--crit)}
+.chip.high{background:var(--high-bg);color:var(--high)}
+.chip.med{background:var(--med-bg);color:var(--med)}
+.chip.low{background:var(--low-bg);color:var(--low)}
+.chip.info{background:var(--info-bg);color:var(--info)}
+
+/* ---- ratings ----------------------------------------------------- */
+.rate{display:inline-flex;align-items:center;gap:.4rem;font-family:var(--mono);font-size:.68rem;
+  letter-spacing:.08em;text-transform:uppercase;font-weight:500;white-space:nowrap}
+.rate::before{content:"";width:2.6rem;height:.42rem;border-radius:1px;background:var(--rule);
+  flex:none;box-shadow:inset 0 0 0 1px var(--rule)}
+.rate.strong::before{background:linear-gradient(90deg,var(--low) 100%,transparent 0)}
+.rate.adequate::before{background:linear-gradient(90deg,var(--med) 66%,var(--rule) 0)}
+.rate.weak::before{background:linear-gradient(90deg,var(--high) 33%,var(--rule) 0)}
+.rate.none::before{background:linear-gradient(90deg,var(--crit) 8%,var(--rule) 0)}
+.rate.strong{color:var(--low)} .rate.adequate{color:var(--med)}
+.rate.weak{color:var(--high)} .rate.none{color:var(--crit)}
+
+/* ---- findings ---------------------------------------------------- */
+.find{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--info);
+  border-radius:2px;padding:1.1rem 1.3rem;margin:0 0 .8rem}
+.find.crit{border-left-color:var(--crit)} .find.high{border-left-color:var(--high)}
+.find.med{border-left-color:var(--med)}  .find.low{border-left-color:var(--low)}
+.find-top{display:flex;flex-wrap:wrap;gap:.55rem;align-items:center;margin-bottom:.5rem}
+.find-id{font-family:var(--mono);font-size:.78rem;font-weight:700}
+.find-cat{font-family:var(--mono);font-size:.66rem;color:var(--muted);letter-spacing:.08em;
+  text-transform:uppercase}
+.find h4{font-family:var(--sans);font-size:1rem;font-weight:600;margin:0 0 .5rem;line-height:1.4}
+.find p{font-size:.9rem;margin:0 0 .5rem;max-width:74ch;color:var(--ink-2)}
+.find p:last-child{margin-bottom:0}
+.find .loc{font-family:var(--mono);font-size:.74rem;color:var(--muted);word-break:break-word}
+.find .lbl{font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);margin-right:.4rem}
+
+/* ---- plan -------------------------------------------------------- */
+.phase{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--surface);background:var(--accent);padding:.25rem .6rem;border-radius:2px;
+  display:inline-block;margin:1.6rem 0 .9rem;font-weight:700}
+:root[data-theme="dark"] .phase,
+:root:not([data-theme="light"]) .phase{color:var(--ground)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .phase{color:#fff}}
+
+/* ---- gaps -------------------------------------------------------- */
+.gaps{background:var(--surface-2);border:1px solid var(--rule);border-radius:2px;padding:1.2rem 1.4rem}
+.gaps ul{margin:0;max-width:none}
+.gaps li{font-size:.9rem;color:var(--ink-2)}
+
+.note{font-size:.84rem;color:var(--muted);max-width:70ch;font-style:italic}
+.foot{border-top:2px solid var(--ink);padding-top:1rem;margin-top:3rem;font-family:var(--mono);
+  font-size:.7rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:.4rem 1.2rem}
+@media (max-width:34rem){h2{font-size:1.35rem}.wrap{padding:0 1.1rem 4rem}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Engineering audit</p>
+  <h1>Front Door AI Risk Advisor</h1>
+  <p class="sub">
+    <span>26 Aug 2026</span><span>commit a5f226d</span><span>335 files · 71,466 lines</span>
+    <span>run with .claude/skills/repository-audit</span>
+  </p>
+</header>
+
+<section id="summary">
+  <div class="verdict">
+    <p><strong>Structurally strong, production-blocked on one thing.</strong> This is an unusually
+    well-disciplined codebase — strict types with almost no escape hatches, invariants enforced in the
+    schema rather than in UI code, pure logic genuinely separated from executors, and a governance log
+    that records why decisions were made.</p>
+    <p>The gate chain is real and it passes: <strong>740 unit + 51 integration + 72 agent + 73
+    end-to-end tests, all executed in this session, all green.</strong> Most audits of a codebase this
+    size find correctness problems. This one does not.</p>
+    <p>What it finds instead is a gap between <strong>what the specification says is enforced and what
+    is actually enforced</strong>, and one hard production blocker.</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat is-crit"><p class="k">Critical</p><p class="v">1</p><p class="n">No authentication</p></div>
+    <div class="stat"><p class="k">High</p><p class="v">3</p><p class="n">CVEs · CI gap · no linter</p></div>
+    <div class="stat"><p class="k">Medium</p><p class="v">4</p><p class="n">Spec, dead code, traceability</p></div>
+    <div class="stat"><p class="k">Low + info</p><p class="v">3</p><p class="n">Tidiness</p></div>
+    <div class="stat is-ok"><p class="k">Tests green</p><p class="v">936</p><p class="n">Across four tiers</p></div>
+    <div class="stat"><p class="k">Dead code</p><p class="v">77</p><p class="n">Lines, 2 items confirmed</p></div>
+  </div>
+
+  <h3>The five that matter</h3>
+  <ol class="ranked">
+    <li><strong>There is no authentication.</strong> The identity cookie is unsigned and
+      <code>httpOnly: false</code>. Anyone can become any persona, including the administrator. Every
+      downstream authority check is correct and keys off an identity nobody proved. Acknowledged in §12
+      and scheduled for Phase 3 — fine for a sandbox, and the single thing standing between the deploy
+      and production.</li>
+    <li><strong>14 high-severity dependency advisories,</strong> most requiring Next ≥ 15.5.x — which
+      conflicts with the deliberate, measured 15.3 pin (G-58). A real trade-off, not an oversight, but
+      it needs a decision.</li>
+    <li><strong>CI never runs the end-to-end suite.</strong> The tier that proves journeys work runs
+      only on a developer's laptop.</li>
+    <li><strong>No linter and no formatter exist anywhere,</strong> under a specification that opens
+      with a clean-code charter.</li>
+    <li><strong>§11 asserts mechanical enforcement that does not exist.</strong> "File budgets enforced
+      mechanically (≤400 / hard 800)" and "an unused-export gate keeps it dead" are present tense.
+      Neither gate exists, and <code>assistant.css</code> is <strong>4,772 lines — six times the stated
+      hard ceiling.</strong></li>
+  </ol>
+</section>
+
+<section id="requirements">
+  <h2><span class="num">01</span> Requirements</h2>
+  <p>The §20 register carries 69 requirements. The whole S1–S9 journey is exercised end to end:
+  intake with conditional reveals, gates closing categories, path derivation, severity with derived
+  bands, control accumulation, Tier-3 with required notes, submission with named gaps and a
+  declaration, attestation with server-side authority, four dispositions with four-eyes and expiry,
+  and packaging to a replayable export.</p>
+
+  <div class="scroll"><table>
+    <thead><tr><th>Status</th><th class="num">Count</th><th>Means</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Verified</strong></td><td class="num">44</td><td>Slice DONE and exercised by a tier that ran green in this session</td></tr>
+      <tr><td>Implemented, not verified here</td><td class="num">13</td><td>Code traces to it; no test or record I could execute names it</td></tr>
+      <tr><td>Partial</td><td class="num">8</td><td>S4.5 reference data, FR-21, and NFR-6 (see F-05)</td></tr>
+      <tr><td>Missing</td><td class="num">4</td><td>FR-26, FR-27, FR-34, NFR-20 — slices not built, matching §17</td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="note">Method, stated because it changes how much the numbers are worth: derived by script
+  from slice status plus whether any test, e2e spec or UAT record names the requirement ID. Two hand
+  corrections were needed after checking the machine's output — S6's status string "DONE · FR-21
+  partial" filed FR-12 and FR-13 as partial when only FR-21 is, and NFR-6 was filed Verified because a
+  UAT record names it, when its two stated gates do not actually exist.</p>
+
+  <h3>The traceability finding</h3>
+  <p>27 of 69 requirements are not cited by ID in any test. <strong>This is a tagging gap, not a
+  coverage gap</strong> — eight of the worst were checked by hand and every one had real, untagged
+  coverage:</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Requirement</th><th>Cited by ID</th><th>Actually covered by</th></tr></thead>
+    <tbody>
+      <tr><td>FR-38 reviewer rubric ordering</td><td>no</td><td><code>test/unit/queue-view.test.ts</code></td></tr>
+      <tr><td>FR-25 three roles</td><td>no</td><td><code>e2e/personas.spec.ts</code> + 21 others</td></tr>
+      <tr><td>FR-24 agent inventory page</td><td>no</td><td><code>test/unit/agent-map.test.ts</code></td></tr>
+      <tr><td>FR-44 assistant proposes on screen</td><td>no</td><td><code>test/unit/whats-on-screen.test.ts</code></td></tr>
+      <tr><td>NFR-14 pure logic separated</td><td>no</td><td><code>test/unit/architecture.test.ts</code> §26.1</td></tr>
+      <tr><td>NFR-16 config read in one place</td><td>no</td><td><code>test/unit/architecture.test.ts</code> §26.3</td></tr>
+    </tbody>
+  </table></div>
+  <p>The cost is not risk today — it is that the register cannot be checked mechanically, so a
+  requirement that <em>does</em> lose its coverage will go unnoticed.</p>
+</section>
+
+<section id="spec">
+  <h2><span class="num">02</span> The specification</h2>
+  <p><code>SPEC.md</code> is canonical and the repo treats it as such. Two other spec-shaped documents
+  exist — <code>deploy/architecture.md</code> and <code>docs/spec-delta-reference-data.md</code> — and
+  both are scoped addenda, not rivals. <strong>No consolidation needed.</strong></p>
+  <p>This spec is leaner than its 132 KB suggests: §13 (the governance log) and the §20 register are
+  append-only by design, and the repo's own length guard already excludes them for that reason.
+  <strong>One bloat finding only</strong> — the §11 / §20 contradiction, recorded as F-05 below.
+  Everything else in §11 is enforced by a real test.</p>
+</section>
+
+<section id="practices">
+  <h2><span class="num">03</span> Engineering practices</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Category</th><th>Rating</th><th>Basis</th></tr></thead>
+    <tbody>
+      <tr><td>Correctness</td><td><span class="rate strong">Strong</span></td><td>Zero empty catches. Failures are typed values, not exceptions. Invariants are schema CHECKs and triggers — proven when the database refused a <code>DELETE</code> mid-audit.</td></tr>
+      <tr><td>Types</td><td><span class="rate strong">Strong</span></td><td>In 39k lines of TypeScript: <strong>0</strong> <code>@ts-ignore</code>, 5 <code>: any</code>, 29 <code>as unknown as</code>. <code>strict: true</code>. Typecheck clean.</td></tr>
+      <tr><td>Security</td><td><span class="rate weak">Weak</span></td><td>F-01 auth, F-02 advisories, no <code>secure</code> cookie flag. Positives: no secrets tracked anywhere in history, object-level authorization, parameterized queries throughout.</td></tr>
+      <tr><td>Testing</td><td><span class="rate adequate">Adequate</span></td><td>936 tests across four separable tiers, all green here. Assertions on rendered DOM. Held back from Strong only by F-03. This repo repeatedly <em>finds and fixes</em> tests that could not fail.</td></tr>
+      <tr><td>Configuration</td><td><span class="rate strong">Strong</span></td><td>One config module, enforced by a test that greps for <code>process.env</code> outside it. <code>.env.example</code> complete.</td></tr>
+      <tr><td>Observability</td><td><span class="rate adequate">Adequate</span></td><td><code>/healthz</code> and <code>/readyz</code> verified against a dead database. Errors carry a user-visible reference tied to a log. OTel in the agent service.</td></tr>
+      <tr><td>Dependencies</td><td><span class="rate weak">Weak</span></td><td>32 advisories, 14 high. Lockfiles committed for both workspaces; runtime pinned.</td></tr>
+      <tr><td>Style</td><td><span class="rate weak">Weak</span></td><td>No linter, no formatter, no lint script. Budgets breached with nothing measuring.</td></tr>
+      <tr><td>Documentation</td><td><span class="rate strong">Strong</span></td><td>Every <code>pnpm</code> command in README and CLAUDE.md exists. <strong>Every file path named in CLAUDE.md resolves.</strong></td></tr>
+      <tr><td>CI/CD</td><td><span class="rate weak">Weak</span></td><td>No e2e, no lint. Runs typecheck + unit + integration + agent tests on both workspaces.</td></tr>
+      <tr><td>Performance</td><td><span class="rate none">Not verified</span></td><td>NFR-4 recompute timing is scheduled for re-proof at S10 and was not measured here.</td></tr>
+      <tr><td>AI / LLM</td><td><span class="rate adequate">Adequate</span></td><td>Model access confined to one seam, asserted by test. Prompts versioned. 72 agent tests pass. Grounding not re-verified against sources here.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="deadcode">
+  <h2><span class="num">04</span> Dead code</h2>
+  <p><strong>23 of knip's 25 flagged files were disproved by hand</strong> — worth stating, because
+  acting on the raw output would have deleted a working service. Disproved: <code>agent/src/*</code>
+  and <code>agent/test/*</code> (separate workspace, own entry point, 72 passing tests),
+  <code>scripts/hooks/*.mjs</code> (wired in <code>.claude/settings.json</code>),
+  <code>scripts/lib/*</code> (4 references).</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Confirmed dead</th><th class="num">Size</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr><td class="id">src/app/person-switcher.tsx</td><td class="num">61 lines</td><td>Zero importers. <code>git log -S</code> shows it was replaced by the app bar at <code>db6aa04</code> and never deleted.</td></tr>
+      <tr><td class="id">switchPerson (actions.ts:634)</td><td class="num">8 lines</td><td>Its only caller was the above. A dead server action.</td></tr>
+      <tr><td class="id">.repro.mjs</td><td class="num">16 lines</td><td>Tracked since <code>6b25e6e</code>, referenced nowhere. <code>.gitignore</code> covers <code>.verify-*</code> and <code>.diag*</code> but not <code>.repro*</code>.</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Owner question, not dead:</strong> <code>src/lib/attachments.ts</code> is unreferenced,
+  but S4.6 is blocked on §3.6 (attachment retention, unwritten). Confirm before removing.</p>
+  <p class="note">knip's flat list of ~60 "unused" exported types is an artifact of running it
+  unconfigured against <code>import type</code> — not reportable. A standing gate needs a
+  <code>knip.json</code> first.</p>
+</section>
+
+<section id="skills">
+  <h2><span class="num">05</span> Skills and agent instructions</h2>
+  <p><strong>13 of 13 skills pass</strong> the mechanical checks — names match folders, frontmatter keys
+  are legal, descriptions carry a "Use when" clause, bundled paths resolve.</p>
+  <p><code>CLAUDE.md</code> was verified line by line against the repo: every command exists, every path
+  resolves, every routed skill exists and every skill on disk is routed to. It is a router, not a
+  manual — 94 lines against its own 105 budget.</p>
+</section>
+
+<section id="findings">
+  <h2><span class="num">06</span> Findings</h2>
+
+  <div class="find crit">
+    <div class="find-top"><span class="find-id">F-01</span><span class="chip crit">Critical</span><span class="find-cat">Security</span></div>
+    <h4>Identity cookie is unsigned and readable by client script</h4>
+    <p class="loc">src/lib/current-person.ts:24 · src/app/actions.ts:642, 666</p>
+    <p><span class="lbl">Evidence</span><code>jar.set(PERSON_COOKIE, id, {path:'/', sameSite:'lax', httpOnly:false})</code> — no signature, no <code>secure</code> flag. <code>currentPerson()</code> trusts the value if it names any sign-in persona.</p>
+    <p><span class="lbl">Why</span>Anyone can set the cookie in devtools and become any persona, including the administrator. Every server-side authority check downstream is correct and keys off an identity nobody proved.</p>
+    <p><span class="lbl">Fix</span>Signed session cookie at minimum; SSO at the edge properly. <strong>Effort: M</strong></p>
+  </div>
+
+  <div class="find high">
+    <div class="find-top"><span class="find-id">F-02</span><span class="chip high">High</span><span class="find-cat">Dependencies</span></div>
+    <h4>32 advisories, 14 high — the Next pin now conflicts with the patches</h4>
+    <p class="loc">package.json</p>
+    <p><span class="lbl">Evidence</span><code>pnpm audit --prod</code>: 2 low, 16 moderate, 14 high. Advisories require next ≥ 15.5.15 / .16 / .18 / .21 against the pinned 15.3.9.</p>
+    <p><span class="lbl">Why</span>The G-58 pin is deliberate and measured — 15.5 broke client-side navigation, 3 of 15 clicks completing — but it now carries a large security backlog.</p>
+    <p><span class="lbl">Fix</span>Re-test 15.5.x against <code>demo:prod</code> and the walk, or formally accept with an expiry the way §4.3 already does for risk acceptances. <strong>Effort: M</strong></p>
+  </div>
+
+  <div class="find high">
+    <div class="find-top"><span class="find-id">F-03</span><span class="chip high">High</span><span class="find-cat">CI/CD</span></div>
+    <h4>CI never runs the end-to-end suite</h4>
+    <p class="loc">.github/workflows/ci.yml</p>
+    <p><span class="lbl">Evidence</span>CI runs typecheck, <code>pnpm test</code> and the agent tests. There is no Playwright step.</p>
+    <p><span class="lbl">Why</span>NFR-7 requires end-to-end assertions on rendered DOM. The tier that proves journeys work runs only on a developer's laptop.</p>
+    <p><span class="lbl">Fix</span>Add a Playwright job with a Postgres service and <code>E2E_DATABASE_URL</code>. The suite already runs headless in 8 minutes. <strong>Effort: S</strong></p>
+  </div>
+
+  <div class="find high">
+    <div class="find-top"><span class="find-id">F-04</span><span class="chip high">High</span><span class="find-cat">Style</span></div>
+    <h4>No linter and no formatter configured anywhere</h4>
+    <p class="loc">repository root</p>
+    <p><span class="lbl">Evidence</span>No <code>.eslintrc</code>, <code>eslint.config.*</code> or <code>.prettierrc</code>; no <code>lint</code> or <code>format</code> script in <code>package.json</code>.</p>
+    <p><span class="lbl">Why</span>The specification opens with a clean-code charter that nothing mechanically enforces for style.</p>
+    <p><span class="lbl">Fix</span>ESLint <code>next/core-web-vitals</code> plus Prettier in check mode, wired into CI beside typecheck. <strong>Effort: S</strong></p>
+  </div>
+
+  <div class="find med">
+    <div class="find-top"><span class="find-id">F-05</span><span class="chip med">Medium</span><span class="find-cat">Spec</span></div>
+    <h4>§11 asserts mechanical gates that do not exist</h4>
+    <p class="loc">SPEC.md §11 vs §20 (NFR-6)</p>
+    <p><span class="lbl">Evidence</span>§11, present tense: "File budgets enforced <strong>mechanically</strong> (components ≤ 400 lines; hard ceiling 800)" and "an unused-export gate keeps it dead". §20 NFR-6, future tense: "gate on from S10". S10 is not started. Neither gate exists. <code>src/app/styles/assistant.css</code> is 4,772 lines; <code>assistant.tsx</code> 1,126; <code>section-form.tsx</code> 1,119.</p>
+    <p><span class="lbl">Why</span>A charter rule with no enforcement is invisible to both the suite and the verifier — the failure mode G-37, G-56, G-60 and G-65 each record.</p>
+    <p><span class="lbl">Fix</span>Build the file-budget test — about fifteen lines, derived from the tree, in the style <code>architecture.test.ts</code> already uses — or move §11 to future tense. <strong>Building it is the better trade. Effort: M</strong></p>
+  </div>
+
+  <div class="find med">
+    <div class="find-top"><span class="find-id">F-06</span><span class="chip med">Medium</span><span class="find-cat">Dead code</span></div>
+    <h4>Orphaned component and its server action, never deleted</h4>
+    <p class="loc">src/app/person-switcher.tsx · src/app/actions.ts:634</p>
+    <p><span class="lbl">Evidence</span>Zero importers repo-wide. <code>git log -S PersonSwitcher</code> shows replacement by the app bar at <code>db6aa04</code>. <code>switchPerson</code> had no other caller.</p>
+    <p><span class="lbl">Why</span>§11 requires dead code deleted in the same change that orphans it.</p>
+    <p><span class="lbl">Fix</span>Delete both in one commit. <strong>Effort: S</strong></p>
+  </div>
+
+  <div class="find med">
+    <div class="find-top"><span class="find-id">F-07</span><span class="chip med">Medium</span><span class="find-cat">Traceability</span></div>
+    <h4>27 of 69 requirements are cited by no test</h4>
+    <p class="loc">SPEC.md §20</p>
+    <p><span class="lbl">Evidence</span>Grep of requirement IDs across <code>test/</code> and <code>e2e/</code>. Eight of the worst checked by hand — all had real, untagged coverage.</p>
+    <p><span class="lbl">Why</span>Coverage exists, so this is not risk today. But the register cannot be checked mechanically, so silent loss of coverage would go unnoticed.</p>
+    <p><span class="lbl">Fix</span>Cite requirement IDs in tests; add a test asserting every register row is cited somewhere. <strong>Effort: M</strong></p>
+  </div>
+
+  <div class="find med">
+    <div class="find-top"><span class="find-id">F-08</span><span class="chip med">Medium</span><span class="find-cat">Documentation</span></div>
+    <h4>An expiring banner tells every session to skip the gate chain</h4>
+    <p class="loc">.claude/skills/verify/SKILL.md:6</p>
+    <p><span class="lbl">Evidence</span>"DEMO PUSH until 2026-08-26 (G-70). The chain below is suspended per change." It expires today; G-70 carries the same date.</p>
+    <p><span class="lbl">Why</span>An expired instruction telling an agent to skip testing is the most expensive kind of stale.</p>
+    <p><span class="lbl">Fix</span>Delete the banner block. <strong>Effort: S</strong></p>
+  </div>
+
+  <div class="find low">
+    <div class="find-top"><span class="find-id">F-09</span><span class="chip low">Low</span><span class="find-cat">Dead code</span></div>
+    <h4>Tracked throwaway script</h4>
+    <p class="loc">.repro.mjs</p>
+    <p>16 lines, tracked since <code>6b25e6e</code>, referenced nowhere. <code>.gitignore</code> covers <code>.verify-*</code>, <code>.diag*</code> and <code>.chip-*</code> but not <code>.repro*</code>. Delete and extend the pattern. <strong>Effort: S</strong></p>
+  </div>
+
+  <div class="find low">
+    <div class="find-top"><span class="find-id">F-10</span><span class="chip low">Low</span><span class="find-cat">Structure</span></div>
+    <h4>No LICENSE, no CONTRIBUTING.md</h4>
+    <p class="loc">repository root</p>
+    <p>Ownership and contribution terms unstated. <strong>Effort: S</strong></p>
+  </div>
+
+  <div class="find">
+    <div class="find-top"><span class="find-id">F-11</span><span class="chip info">Info</span><span class="find-cat">Dead code</span></div>
+    <h4>Unreferenced module for a blocked slice</h4>
+    <p class="loc">src/lib/attachments.ts</p>
+    <p>The only mention outside the file is a comment in <code>src/lib/schema.ts:287</code>. S4.6 is blocked on §3.6. Deleting a blocked slice's groundwork is worse than keeping it — owner question before any action.</p>
+  </div>
+</section>
+
+<section id="plan">
+  <h2><span class="num">07</span> Remediation plan</h2>
+  <p>Ordered by severity and dependency, not by discovery.</p>
+
+  <p class="phase">Now — before anything ships to production</p>
+  <ol class="ranked">
+    <li><strong>F-01 authentication.</strong> Signed session cookie at minimum; SSO at the edge properly.
+      Nothing else on this list is close in consequence. Until it lands, treat any deployment as
+      sandbox-only with synthetic data.</li>
+    <li><strong>F-02 dependency advisories.</strong> Decide the Next question explicitly — re-test
+      15.5.x (G-58's measurement may be stale by now), or record the acceptance with an expiry.</li>
+    <li><strong>F-08 the expired banner.</strong> One-line deletion; it is instructing sessions to skip
+      testing right now.</li>
+  </ol>
+
+  <p class="phase">Next — before the next slice is called done</p>
+  <ol class="ranked">
+    <li><strong>F-03 end-to-end in CI.</strong> Needs only a Postgres service and one env var.</li>
+    <li><strong>F-04 linter and formatter,</strong> wired into CI alongside typecheck.</li>
+    <li><strong>F-06 / F-09 delete the dead code.</strong> One commit; git remembers.</li>
+    <li><strong>F-05 resolve the contradiction.</strong> Build the file-budget test, or move §11 to
+      future tense. Building it is the better trade: the repo's own hard-won rule is that what nobody
+      writes down mechanically is invisible to the suite and the verifier — and there is already a file
+      six times over the cap to prove it.</li>
+  </ol>
+
+  <p class="phase">Later — with S10</p>
+  <ol class="ranked">
+    <li><strong>F-07 traceability.</strong> Cite requirement IDs in tests and assert the register is
+      fully cited. That turns it into something a machine can check.</li>
+    <li><strong>F-10</strong> LICENSE and CONTRIBUTING.md.</li>
+    <li><strong>NFR-4</strong> performance re-proof, already scheduled.</li>
+  </ol>
+</section>
+
+<section id="notverified">
+  <h2><span class="num">08</span> Not verified in this audit</h2>
+  <p>Silence about gaps reads as coverage, so:</p>
+  <div class="gaps"><ul>
+    <li><strong>The AWS deployment.</strong> No stack created, no image built. <code>deploy/READINESS.md</code> already says so: "ready to deploy, never deployed."</li>
+    <li><strong>Bedrock.</strong> The provider seam is proven against an API-compatible local model — which proves the seam, not the model grant.</li>
+    <li><strong>NFR-4 recompute performance.</strong> Not measured. Scheduled for S10.</li>
+    <li><strong>AI grounding.</strong> Gates and abstention are tested against fabricated replies (72 tests). No live model output was taken and its verbatim quote checked against a source document.</li>
+    <li><strong>Colour contrast and screen-reader announcement.</strong> Markup checked (<code>role</code>, <code>aria-*</code>); nothing measured with a contrast tool or heard with a reader.</li>
+    <li><strong>Migrations individually.</strong> All 30 are applied in order by the integration suite on every run — stronger evidence than reading them — but none was read line by line.</li>
+    <li><strong>Instrument content.</strong> Structure checked; the 51 control objectives and 26 severity questions were not reviewed for correctness. That is an instrument review, not an engineering audit.</li>
+    <li><strong>A real secrets scanner.</strong> gitleaks/trufflehog were not installed. The screen used was pattern-based over the working tree plus <code>git log -S</code> over full history.</li>
+    <li><strong><code>pnpm walk:demo</code>.</strong> Not run: it drops and rebuilds the development database, which would have destroyed the owner's working data.</li>
+  </ul></div>
+</section>
+
+<section id="questions">
+  <h2><span class="num">09</span> Questions for the owner</h2>
+  <ol class="ranked">
+    <li>Is <code>src/lib/attachments.ts</code> deliberately retained for S4.6, or should it go with the other dead code?</li>
+    <li>The Next 15.3 pin — is re-testing 15.5.x worth a day, or do you want the advisories formally accepted with an expiry?</li>
+    <li>Does the demo-readiness gate survive the pivot to production? It is the only mechanism in the repo that asks whether a person has actually used a feature before it is called done, and it is currently worded for a demo.</li>
+    <li>When does "production" mean real assessment data? That date is the deadline for F-01, and nothing else on this list depends on it.</li>
+  </ol>
+</section>
+
+<div class="foot">
+  <span>Full report: audit/2026-08-26-repo-audit.md</span>
+  <span>Findings: audit/2026-08-26-findings.csv</span>
+  <span>Evidence: audit/inventory.json · traceability.txt · e2e.log · gates.txt</span>
+</div>
+
+</div>

@@ -1,0 +1,433 @@
+{
+  "root": "/Users/arcos/Desktop/ura",
+  "file_source": "git ls-files",
+  "file_count": 335,
+  "total_source_lines": 71466,
+  "languages": [
+    {
+      "language": "TypeScript",
+      "lines": 39496,
+      "files": 194
+    },
+    {
+      "language": "CSS",
+      "lines": 8930,
+      "files": 12
+    },
+    {
+      "language": "Markdown",
+      "lines": 7890,
+      "files": 51
+    },
+    {
+      "language": "YAML",
+      "lines": 3904,
+      "files": 6
+    },
+    {
+      "language": "HTML",
+      "lines": 3481,
+      "files": 1
+    },
+    {
+      "language": "JSON",
+      "lines": 3428,
+      "files": 14
+    },
+    {
+      "language": "JavaScript",
+      "lines": 3305,
+      "files": 20
+    },
+    {
+      "language": "SQL",
+      "lines": 1032,
+      "files": 30
+    }
+  ],
+  "manifests": [
+    "agent/package.json",
+    "agent/pnpm-lock.yaml",
+    "package.json",
+    "pnpm-lock.yaml"
+  ],
+  "lockfiles": [
+    "agent/pnpm-lock.yaml",
+    "pnpm-lock.yaml"
+  ],
+  "spec_candidates": [
+    "SPEC.md",
+    "deploy/architecture.md",
+    "docs/spec-delta-reference-data.md"
+  ],
+  "skills": [
+    ".claude/skills/agent-capability/SKILL.md",
+    ".claude/skills/agentic-design/SKILL.md",
+    ".claude/skills/ai-surface/SKILL.md",
+    ".claude/skills/aws-ready/SKILL.md",
+    ".claude/skills/demo-truth/SKILL.md",
+    ".claude/skills/design-mock/SKILL.md",
+    ".claude/skills/error-handling/SKILL.md",
+    ".claude/skills/instrument/SKILL.md",
+    ".claude/skills/intake-rubric/SKILL.md",
+    ".claude/skills/owner-brief/SKILL.md",
+    ".claude/skills/ui-craft/SKILL.md",
+    ".claude/skills/verify/SKILL.md"
+  ],
+  "agent_instruction_files": [
+    "CLAUDE.md"
+  ],
+  "tests": {
+    "count": 65,
+    "paths": [
+      "agent/test/converse.test.ts",
+      "agent/test/env.test.ts",
+      "agent/test/gate.test.ts",
+      "agent/test/model-trouble.test.ts",
+      "agent/test/score-intake.test.ts",
+      "e2e/ai-surfaces.spec.ts",
+      "e2e/gates.spec.ts",
+      "e2e/handoff.spec.ts",
+      "e2e/helpers.ts",
+      "e2e/intake.spec.ts",
+      "e2e/objectives.spec.ts",
+      "e2e/package.spec.ts",
+      "e2e/paths.spec.ts",
+      "e2e/personas.spec.ts",
+      "e2e/policy.spec.ts",
+      "e2e/proposals.spec.ts",
+      "e2e/review.spec.ts",
+      "e2e/severity.spec.ts",
+      "e2e/standing.spec.ts",
+      "e2e/submit.spec.ts",
+      "test/integration/db.test.ts",
+      "test/integration/invariants.test.ts",
+      "test/unit/agent-guardrails.test.ts",
+      "test/unit/agent-map.test.ts",
+      "test/unit/agent-seam.test.ts",
+      "test/unit/architecture.test.ts",
+      "test/unit/assistant-trouble.test.ts",
+      "test/unit/attestation.test.ts",
+      "test/unit/declared-boundaries.test.ts",
+      "test/unit/demo-readiness.test.ts",
+      "test/unit/diff.test.ts",
+      "test/unit/disposition.test.ts",
+      "test/unit/docs.test.ts",
+      "test/unit/drafts.test.ts",
+      "test/unit/errors.test.ts",
+      "test/unit/experience.test.ts",
+      "test/unit/extract.test.ts",
+      "test/unit/grounding.test.ts",
+      "test/unit/handoff.test.ts",
+      "test/unit/hooks-wired.test.ts",
+      "test/unit/instrument.test.ts",
+      "test/unit/intake-rubric.test.ts",
+      "test/unit/intake-values.test.ts",
+      "test/unit/intake.test.ts",
+      "test/unit/on-screen-review.test.ts",
+      "test/unit/packaging.test.ts",
+      "test/unit/pending-rewrite.test.ts",
+      "test/unit/people.test.ts",
+      "test/unit/policy-source.test.ts",
+      "test/unit/policy.test.ts",
+      "test/unit/prefill-reach.test.ts",
+      "test/unit/progress.test.ts",
+      "test/unit/queue-view.test.ts",
+      "test/unit/reference.test.ts",
+      "test/unit/reply-format.test.ts",
+      "test/unit/report-domains.test.ts",
+      "test/unit/report.test.ts",
+      "test/unit/review-standing.test.ts",
+      "test/unit/severity.test.ts",
+      "test/unit/spec-register.test.ts",
+      "test/unit/submission.test.ts",
+      "test/unit/tier3.test.ts",
+      "test/unit/uat.test.ts",
+      "test/unit/unsaved-work.test.ts",
+      "test/unit/whats-on-screen.test.ts"
+    ]
+  },
+  "ci": [
+    ".github/workflows/ci.yml",
+    "deploy/buildspec.yml"
+  ],
+  "container_and_infra": [
+    "Dockerfile",
+    "agent/Dockerfile",
+    "deploy/infra.yaml",
+    "docker-compose.yml"
+  ],
+  "env": {
+    "declared_not_used": [],
+    "used_not_declared": [
+      "AGENT_MODE",
+      "AGENT_MODEL",
+      "AGENT_PORT",
+      "AGENT_PROVIDER",
+      "AGENT_VERSION",
+      "ANTHROPIC_BASE_URL",
+      "CLAUDE_PROJECT_DIR",
+      "DB_POOL_MAX",
+      "DEMO_DB_IS_DISPOSABLE",
+      "NEXT_DIST_DIR",
+      "PLAIN",
+      "PORT",
+      "QUOTED",
+      "SINGLE",
+      "SPACED",
+      "WITH_EQUALS"
+    ],
+    "used": {
+      "AGENT_MODE": [
+        "scripts/dev-ai.mjs"
+      ],
+      "AGENT_MODEL": [
+        "agent/src/model.ts",
+        "agent/test/env.test.ts",
+        "scripts/agent.mjs",
+        "scripts/dev-ai.mjs"
+      ],
+      "AGENT_PORT": [
+        "scripts/dev-ai.mjs"
+      ],
+      "AGENT_PROVIDER": [
+        "agent/src/model.ts",
+        "agent/test/env.test.ts"
+      ],
+      "AGENT_TRANSPORT": [
+        "src/lib/config.ts",
+        "test/unit/agent-seam.test.ts"
+      ],
+      "AGENT_URL": [
+        "scripts/ai-check.mjs",
+        "src/lib/config.ts",
+        "test/unit/agent-seam.test.ts"
+      ],
+      "AGENT_VERSION": [
+        "agent/src/telemetry.ts"
+      ],
+      "ANTHROPIC_API_KEY": [
+        "agent/src/model.ts",
+        "agent/test/env.test.ts",
+        "scripts/dev-ai.mjs"
+      ],
+      "ANTHROPIC_BASE_URL": [
+        "agent/src/model.ts",
+        "scripts/agent.mjs",
+        "scripts/dev-ai.mjs"
+      ],
+      "CLAUDE_PROJECT_DIR": [
+        "docs/agent-map.html",
+        "scripts/hooks/advise.mjs",
+        "scripts/hooks/guard.mjs",
+        "src/data/agents.json"
+      ],
+      "DATABASE_URL": [
+        "audits/S9-verify-2026-08-26.md",
+        "e2e/helpers.ts",
+        "scripts/migrate.mjs",
+        "scripts/reset-dev-db.mjs",
+        "scripts/seed-demo.mjs",
+        "scripts/seed-finished.mjs",
+        "scripts/seed-instrument.mjs",
+        "scripts/seed-severity.mjs",
+        "scripts/seed-tier3.mjs"
+      ],
+      "DB_POOL_MAX": [
+        "src/lib/config.ts"
+      ],
+      "DEMO_DB_IS_DISPOSABLE": [
+        "scripts/reset-dev-db.mjs",
+        "scripts/seed-demo.mjs",
+        "scripts/seed-finished.mjs"
+      ],
+      "E2E_DATABASE_URL": [
+        "e2e/helpers.ts",
+        "playwright.config.ts",
+        "scripts/prepare-e2e-db.mjs"
+      ],
+      "NEXT_DIST_DIR": [
+        "next.config.ts"
+      ],
+      "PLAIN": [
+        "agent/test/env.test.ts"
+      ],
+      "PORT": [
+        "agent/src/server.ts",
+        "scripts/agent.mjs"
+      ],
+      "QUOTED": [
+        "agent/test/env.test.ts"
+      ],
+      "SINGLE": [
+        "agent/test/env.test.ts"
+      ],
+      "SPACED": [
+        "agent/test/env.test.ts"
+      ],
+      "WITH_EQUALS": [
+        "agent/test/env.test.ts"
+      ]
+    }
+  },
+  "todos": {
+    "count": 3,
+    "items": [
+      {
+        "path": "docs/agent-map.html",
+        "line": 1698,
+        "text": "infrastructure files, environment variables declared versus used, TODO and"
+      },
+      {
+        "path": "docs/agent-map.html",
+        "line": 1699,
+        "text": "FIXME density, commented-out code hotspots, large files, build artifacts that"
+      },
+      {
+        "path": "src/data/agents.json",
+        "line": 130,
+        "text": "\"full\": \"# Repository Audit\\n\\nImplements SPEC \u00a711 (the clean-code charter), and audits against \u00a710 (quality\\nbars), \u00a719 (subsystem acceptance criteria), \u00a720 (t"
+      }
+    ]
+  },
+  "commented_out_hotspots": [],
+  "large_files": [
+    {
+      "path": "src/app/styles/assistant.css",
+      "lines": 4773
+    },
+    {
+      "path": "docs/agent-map.html",
+      "lines": 3481
+    },
+    {
+      "path": "docs/agent-map.html",
+      "bytes": 197336
+    },
+    {
+      "path": "src/data/agents.json",
+      "bytes": 169567
+    },
+    {
+      "path": "SPEC.md",
+      "bytes": 135550
+    },
+    {
+      "path": "src/app/styles/assistant.css",
+      "bytes": 107614
+    },
+    {
+      "path": "src/app/(app)/projects/[id]/assistant.tsx",
+      "lines": 1127
+    },
+    {
+      "path": "src/app/(app)/projects/[id]/intake/section-form.tsx",
+      "lines": 1120
+    },
+    {
+      "path": "src/app/styles/assess.css",
+      "lines": 940
+    },
+    {
+      "path": "src/app/styles/review.css",
+      "lines": 736
+    },
+    {
+      "path": "test/integration/invariants.test.ts",
+      "lines": 715
+    },
+    {
+      "path": "scripts/seed-demo.mjs",
+      "lines": 675
+    },
+    {
+      "path": "src/app/actions.ts",
+      "lines": 669
+    },
+    {
+      "path": "src/app/(app)/projects/[id]/review/review-queue.tsx",
+      "lines": 668
+    },
+    {
+      "path": "src/app/styles/forms.css",
+      "lines": 648
+    },
+    {
+      "path": "src/lib/repo.ts",
+      "lines": 635
+    },
+    {
+      "path": "src/app/styles/chrome.css",
+      "lines": 626
+    },
+    {
+      "path": "src/lib/severity.ts",
+      "lines": 590
+    },
+    {
+      "path": "src/app/(app)/projects/[id]/intake/coherence-check.tsx",
+      "lines": 554
+    },
+    {
+      "path": "scripts/build-agent-map.mjs",
+      "lines": 551
+    },
+    {
+      "path": "src/app/(app)/projects/[id]/assess/severity/handoff-panel.tsx",
+      "lines": 551
+    },
+    {
+      "path": "src/app/(app)/projects/[id]/assess/severity/severity-form.tsx",
+      "lines": 547
+    },
+    {
+      "path": "test/unit/severity.test.ts",
+      "lines": 545
+    },
+    {
+      "path": "src/app/agent-actions.ts",
+      "lines": 537
+    },
+    {
+      "path": "src/lib/intake.ts",
+      "lines": 536
+    },
+    {
+      "path": "src/lib/agent-contract.ts",
+      "lines": 529
+    },
+    {
+      "path": "test/unit/architecture.test.ts",
+      "lines": 516
+    },
+    {
+      "path": "src/lib/agent.ts",
+      "lines": 502
+    }
+  ],
+  "possible_secrets": [
+    {
+      "path": "agent/test/env.test.ts",
+      "kind": "assignment",
+      "match": "ANTHROPIC_API_KEY"
+    },
+    {
+      "path": "deploy/README.md",
+      "kind": "assignment",
+      "match": "DbPassword"
+    },
+    {
+      "path": "deploy/README.md",
+      "kind": "assignment",
+      "match": "DbPassword"
+    }
+  ],
+  "committed_build_artifacts": [],
+  "essential_files": {
+    "readme.md": true,
+    "license": false,
+    "contributing.md": false,
+    ".gitignore": true,
+    ".env.example": true
+  }
+}

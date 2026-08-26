@@ -1,0 +1,79 @@
+
+Running 73 tests using 1 worker
+
+[1/73] e2e/ai-surfaces.spec.ts:58:5 › the handoff report is complete with no agent at all
+[2/73] e2e/ai-surfaces.spec.ts:83:5 › the report names what nobody answered rather than counting it done
+[3/73] e2e/ai-surfaces.spec.ts:98:5 › the report shows a policy breach with the clause it breaches
+[4/73] e2e/ai-surfaces.spec.ts:109:5 › the intake floor catches a bare name with no model
+[5/73] e2e/ai-surfaces.spec.ts:125:5 › the intake assistant fails open — it never blocks the way forward
+[6/73] e2e/gates.spec.ts:10:5 › intake pre-answers gates; answers persist; No closes a category
+[7/73] e2e/gates.spec.ts:108:5 › intake can CLOSE risk areas, and an area that applies to everyone is never asked
+[8/73] e2e/handoff.spec.ts:71:5 › a requester hands a question over and carries on (FR-36)
+[9/73] e2e/handoff.spec.ts:89:5 › the obligation reaches the domain's assessor, and cannot be dismissed
+[10/73] e2e/handoff.spec.ts:114:5 › an assessor for another domain is not shown it (scoped, not global)
+[11/73] e2e/handoff.spec.ts:130:5 › the alert lands ON the question, and the thread reads in order
+[12/73] e2e/handoff.spec.ts:165:5 › resolving is refused while the question has no answer
+[13/73] e2e/handoff.spec.ts:185:5 › answering the question clears the obligation by itself (FR-36, the derived class)
+[14/73] e2e/intake.spec.ts:13:5 › create → fill each section (conditionals reveal) → reopen → everything is there
+[15/73] e2e/intake.spec.ts:153:5 › saving a later section does not erase an earlier section's answers
+[16/73] e2e/intake.spec.ts:201:5 › you cannot blast through intake — required means required (FR-28)
+[17/73] e2e/intake.spec.ts:259:5 › switching user with answers not written down asks first (S1)
+[18/73] e2e/intake.spec.ts:293:5 › switching user with nothing outstanding does not ask (S1)
+[19/73] e2e/objectives.spec.ts:41:5 › the controls asked about are the ones the answers required
+[20/73] e2e/objectives.spec.ts:54:5 › children appear only on Yes, and vanish again (FR-13)
+[21/73] e2e/objectives.spec.ts:69:5 › anything but Yes has to be written down, and N-A asks a different question
+[22/73] e2e/objectives.spec.ts:90:5 › submitting without the note is refused, and says which one
+[23/73] e2e/objectives.spec.ts:108:5 › an answer survives leaving the screen and coming back
+[24/73] e2e/objectives.spec.ts:135:5 › controls with no questions are declared, never silently dropped
+[25/73] e2e/objectives.spec.ts:150:5 › an answer is saved when it is given, not when the form is submitted (G-40a)
+[26/73] e2e/objectives.spec.ts:176:5 › an answer needing a note is not saved until it has one
+[27/73] e2e/package.spec.ts:114:5 › packaging names what is outstanding, by question, not by count (FR-19)
+[28/73] e2e/package.spec.ts:136:5 › an assessment nobody has submitted cannot be packaged, and says why
+[29/73] e2e/package.spec.ts:152:5 › the full journey ends in a record another system can replay (FR-20)
+[30/73] e2e/paths.spec.ts:12:5 › open areas narrow down; the engine adds paths and says why
+[31/73] e2e/paths.spec.ts:80:5 › changing an upstream answer re-derives the paths — nothing is stored
+[WebServer]  ⨯ [Error: aborted] { code: 'ECONNRESET', digest: '3485663598' }
+
+[32/73] e2e/paths.spec.ts:118:5 › answering No to everything still reaches the summary (B2)
+[33/73] e2e/paths.spec.ts:184:5 › one tick records one area, not four (N3)
+[34/73] e2e/paths.spec.ts:204:5 › a gate answered by another gate does not claim to come from intake (N2)
+[35/73] e2e/paths.spec.ts:245:5 › a tick survives leaving the screen by the rail (S2)
+[36/73] e2e/personas.spec.ts:9:5 › the front door introduces the platform and asks who you are
+[37/73] e2e/personas.spec.ts:29:5 › choosing a person switches immediately — no second click
+[38/73] e2e/personas.spec.ts:44:5 › switching persona changes role, navigation, and what is permitted
+[39/73] e2e/personas.spec.ts:86:5 › Switch user leaves the product and returns to the front door
+[40/73] e2e/personas.spec.ts:106:5 › an answer records who gave it
+[41/73] e2e/personas.spec.ts:127:5 › a requester sees their own assessments; a Risk Assessor sees the queue (F2)
+[42/73] e2e/personas.spec.ts:168:5 › an intake change records who made it, and says so on the screen (F5)
+[43/73] e2e/personas.spec.ts:198:5 › an assessment cannot be opened or edited by someone it doesn't belong to (N1)
+[44/73] e2e/personas.spec.ts:230:5 › a Risk Assessor is refused in writing when they try to start an assessment (N3)
+[45/73] e2e/policy.spec.ts:41:5 › with no agent connected the assistant is absent, not apologetic (§7)
+[46/73] e2e/policy.spec.ts:56:5 › a control question says which clause requires it, in the policy's own words
+[47/73] e2e/policy.spec.ts:73:5 › the authority never blocks an answer — it explains what follows
+[48/73] e2e/policy.spec.ts:93:5 › a policy-governed No reaches the reviewer as a breach with both quotes
+[49/73] e2e/proposals.spec.ts:19:5 › a proposal is offered with its quote, and is not the answer yet
+[50/73] e2e/proposals.spec.ts:44:5 › an unaccepted proposal does not count as an answer anywhere
+[51/73] e2e/proposals.spec.ts:67:5 › accepting makes it the person's answer, and the proposal stays on the record
+[52/73] e2e/proposals.spec.ts:89:5 › a proposal whose value is not an answer is never offered
+[53/73] e2e/proposals.spec.ts:110:5 › somebody else cannot accept a proposal on your assessment
+[54/73] e2e/review.spec.ts:60:5 › a draft cannot be attested — there is nothing settled to sign
+[55/73] e2e/review.spec.ts:70:5 › an assessor signs only their own risk area, and the refusal says so (FR-17)
+[56/73] e2e/review.spec.ts:93:5 › signing drains the queue, and the signature is named on the item (FR-16)
+[57/73] e2e/review.spec.ts:116:5 › the keyboard loop moves and signs without a mouse (NFR-10)
+[58/73] e2e/review.spec.ts:152:5 › a finding is settled one of exactly four ways, with what each commits to (FR-18)
+[59/73] e2e/review.spec.ts:169:5 › remediation without an owner or a date is refused on screen
+[60/73] e2e/review.spec.ts:191:5 › a person cannot accept their own risk — four-eyes (FR-18)
+[61/73] e2e/review.spec.ts:219:5 › a settled finding reads as settled, by whom and until when
+[62/73] e2e/severity.spec.ts:25:5 › a severity answer summons controls and says why (FR-6, §19)
+[63/73] e2e/severity.spec.ts:74:5 › a band the platform can work out is offered, not asked (FR-7)
+[64/73] e2e/severity.spec.ts:95:5 › the detail question hides again when severity drops (FR-8)
+[65/73] e2e/severity.spec.ts:116:5 › the ledger counts the whole assessment, and agrees with the summary (FR-11)
+[66/73] e2e/standing.spec.ts:11:5 › a fresh draft says which step it is on and which section owes answers
+[67/73] e2e/standing.spec.ts:31:5 › finishing intake moves the row to the risk areas, with no fraction
+[68/73] e2e/standing.spec.ts:47:5 › a submitted assessment leaves the requester's own group
+[69/73] e2e/submit.spec.ts:49:5 › the declaration shows the answers being declared, not a checkbox alone
+[70/73] e2e/submit.spec.ts:61:5 › gaps are named, and submitting with them takes a second confirmation (FR-14)
+[71/73] e2e/submit.spec.ts:83:5 › submitting raises a finding carrying its note, and says so first (FR-15)
+[72/73] e2e/submit.spec.ts:110:5 › a submitted assessment cannot be edited, and says why
+[73/73] e2e/submit.spec.ts:135:5 › the submitted view names a person, never an identifier (NFR-9)
+  73 passed (8.0m)

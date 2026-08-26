@@ -24,3 +24,15 @@ next-env.d.ts
 .DS_Store
 .next-prod/
 .next-verify/
+
+# Audit run logs. The report's own evidence — inventory.json, traceability,
+# tally, e2e.log and the findings CSV — IS tracked, because a document that
+# cites a path nobody can open is the finding it was written to avoid. These
+# are the ad-hoc captures behind it, regenerable by re-running the tools.
+audit/gates*.log
+audit/gates.txt
+audit/e2e-floor.log
+audit/inventory.txt
+audit/practices.txt
+audit/requirements.txt
+audit/deadcode-knip.txt
