@@ -27,6 +27,10 @@ export type ReportArea = {
   standing: "applies" | "closed" | "recorded";
   /** Why it stands that way, in the words the person would recognise. */
   because: string;
+  /** The scoping question this area is gated on, as it was asked. */
+  question: string;
+  /** What was answered, or how it came to be settled without asking. */
+  answer: string;
 };
 
 export type ReportControl = {
@@ -39,9 +43,18 @@ export type ReportControl = {
   note: string;
   /** The clause requiring it, where one does. */
   authority: string | null;
+  /**
+   * The signature standing on this answer, where a reviewer has given one.
+   * A control answer and a control *attested* are different claims, and a
+   * report that showed only the first would let an unsigned answer read as
+   * checked.
+   */
+  attestation: { by: string; act: string; at: string } | null;
 };
 
 export type ReportFinding = {
+  /** Present on a finding read back from the record; "" on a derived one. */
+  id: string;
   kind: SynthesisedFinding["kind"];
   /** The objective it was raised against, for the same reason. */
   objective: string;
@@ -52,6 +65,25 @@ export type ReportFinding = {
   expected: string | null;
   /** The edition in force when it was raised (§22.5). */
   policyVersion: string | null;
+  /**
+   * How it was settled, where it has been. This is what turns a finding
+   * into a recommendation somebody owns: a remediation names an owner and
+   * a date, and without them the report can say what is wrong but not who
+   * is doing anything about it.
+   */
+  settlement: {
+    kind: string;
+    by: string;
+    owner: string | null;
+    due: string | null;
+    /**
+     * Whether the finding is open *despite* this settlement — an
+     * acceptance past its expiry reopens it (§4.3, `findingIsOpen`). A
+     * report that showed a lapsed acceptance as settled would be the
+     * packaging bug again, one screen earlier.
+     */
+    open: boolean;
+  } | null;
 };
 
 export type Report = {
@@ -87,8 +119,21 @@ export function reportFrom(input: {
   severityBands: Array<{ name: string; band: string }>;
   required: Tier3Objective[];
   values: Record<string, Tier3Value | undefined>;
-  findings: SynthesisedFinding[];
+  findings: Array<SynthesisedFinding & { id?: string }>;
   asksNothingFurther: (key: string) => boolean;
+  /** The signature on each control answer, by question id. */
+  attestations?: Map<string, { by: string; act: string; at: string }>;
+  /** How each finding was settled, by finding id. */
+  settlements?: Map<
+    string,
+    {
+      kind: string;
+      by: string;
+      owner: string | null;
+      due: string | null;
+      open: boolean;
+    }
+  >;
 }): Report {
   const areasThatApply: ReportArea[] = input.states.map((state) => {
     const applies = state.settled || state.answer === "Yes";
@@ -100,6 +145,12 @@ export function reportFrom(input: {
       because:
         state.because ??
         (applies ? "it applies to this activity" : "it was ruled out"),
+      question: state.category.text,
+      // An area that always applies was never asked, and saying "Yes"
+      // would put an answer in somebody's mouth (C-8/G-36).
+      answer: state.settled
+        ? "Not asked — this area applies to every assessment"
+        : (state.answer ?? "Unanswered"),
     };
   });
 
@@ -119,10 +170,12 @@ export function reportFrom(input: {
       answer: value.answer,
       note: value.note.trim(),
       authority: authority ? authority.clause.id : null,
+      attestation: input.attestations?.get(objective.questionId) ?? null,
     });
   }
 
   const findings: ReportFinding[] = input.findings.map((finding) => ({
+    id: finding.id ?? "",
     kind: finding.kind,
     objective: finding.objective,
     objectiveName: finding.objectiveName,
@@ -131,6 +184,9 @@ export function reportFrom(input: {
     policyVersion: finding.citation?.policyVersion ?? null,
     clauseText: finding.citation?.clauseText ?? null,
     expected: finding.citation?.expected ?? null,
+    settlement: finding.id
+      ? (input.settlements?.get(finding.id) ?? null)
+      : null,
   }));
 
   return {

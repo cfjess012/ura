@@ -394,21 +394,23 @@
   border: 1px solid var(--warning);
 }
 
-/* One tab per risk domain: the slice of the assessment each domain is
-   handed. Which domain owns which control is versioned data, so a tab is
-   never a judgement made in the UI. */
-.report-domains .report-muted {
-  margin-top: 0;
+/* The dossier: the handoff report as one numbered document per risk area.
+
+   Set like a document rather than a dashboard — a measured column, a serif
+   for the one thing that names the sheet you are on, and rules doing the
+   work that boxes and shadows would otherwise do. Tokens only (§23). */
+.dossier {
+  margin: 1.5rem 0 0;
 }
-.domain-tablist {
+.dossier-tablist {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
-  margin: 0.9rem 0 0;
+  margin: 0 0 1.25rem;
   border-bottom: 2px solid var(--neutral-200);
-  padding-bottom: 0.4rem;
+  padding-bottom: 0.5rem;
 }
-.domain-tab {
+.dossier-tab {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -422,66 +424,279 @@
   color: var(--neutral-700);
   cursor: pointer;
 }
-.domain-tab:hover {
+.dossier-tab:hover {
   border-color: var(--primary);
   color: var(--link);
 }
-.domain-tab.on {
+.dossier-tab.on {
   background: var(--navy);
   border-color: var(--navy);
   color: var(--neutral-0);
 }
-.domain-tab:focus-visible {
+.dossier-tab:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
-.domain-tab-count {
+/* The area's name inside its tab, so the count beside it can never be
+   mistaken for part of it. */
+.dossier-tab-name {
+  white-space: nowrap;
+}
+.dossier-tab-count {
   font-size: 0.72rem;
   font-weight: 700;
   padding: 0.05rem 0.4rem;
   border-radius: 999px;
 }
-.domain-tab-count.breach {
+.dossier-tab-count.breach {
   background: var(--warning-bg);
   color: var(--error);
 }
-.domain-tab-count.finding {
+.dossier-tab-count.finding {
   background: var(--warning-bg);
   color: var(--warning-strong);
 }
-.domain-tab.on .domain-tab-count.breach,
-.domain-tab.on .domain-tab-count.finding {
+.dossier-tab-count.clear {
+  background: var(--neutral-100);
+  color: var(--neutral-600);
+}
+.dossier-tab.on .dossier-tab-count {
   background: var(--neutral-0);
+  color: var(--navy);
 }
-.domain-panel {
-  padding-top: 1rem;
+
+/* The sheet. A page of a document, so it has the paper and the margin. */
+.dossier-sheet {
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-lg);
+  background: var(--neutral-0);
+  padding: 2rem 2.25rem 2.5rem;
+  box-shadow: var(--shadow-card);
 }
-.domain-why {
-  margin: 0 0 0.8rem;
-  font-size: 0.94rem;
-  color: var(--neutral-700);
+@media (max-width: 640px) {
+  .dossier-sheet {
+    padding: 1.25rem 1.1rem 1.75rem;
+  }
 }
-.domain-block {
-  margin-bottom: 1.2rem;
+
+.dossier-head {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 1.1rem;
+  margin-bottom: 1.75rem;
+  border-bottom: 2px solid var(--navy);
 }
-.domain-list {
+.dossier-kicker {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--neutral-600);
+  margin: 0 0 0.35rem;
+}
+.dossier-title {
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  font-size: clamp(1.7rem, 3.4vw, 2.4rem);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--navy);
   margin: 0;
-  padding-left: 1.1rem;
-  font-size: 0.94rem;
+  text-wrap: balance;
 }
-.domain-list li {
-  margin: 0.4rem 0;
-}
-.domain-note {
-  margin: 0.2rem 0 0;
-  font-size: 0.9rem;
+.dossier-standfirst {
+  margin: 0.55rem 0 0;
+  font-size: 0.96rem;
+  font-style: italic;
+  line-height: 1.5;
   color: var(--neutral-700);
+  max-width: 34rem;
 }
-.domain-clause {
-  margin: 0.3rem 0 0;
+/* The sheet number, the way a printed document carries one. Decorative:
+   the tab list already says where you are, and a screen reader reading
+   "01 of 11" between the title and the first section would be noise. */
+.dossier-count {
+  text-align: right;
+  flex: none;
+  margin: 0;
+  line-height: 1;
+}
+.dossier-count-n {
+  display: block;
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  font-size: 2.6rem;
+  font-weight: 700;
+  color: var(--neutral-300);
+}
+.dossier-count-of {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--neutral-500);
+}
+
+/* A numbered part. The chip carries the number, the heading the name. */
+.dossier-part {
+  margin-bottom: 2rem;
+}
+.dossier-part:last-child {
+  margin-bottom: 0;
+}
+.dossier-part-head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0 0 0.85rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--neutral-200);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+.dossier-part-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 4px;
+  background: var(--navy);
+  color: var(--neutral-0);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.dossier-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.9rem 1.5rem;
+  margin: 0;
+}
+.dossier-facts dt {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--neutral-600);
+  margin-bottom: 0.2rem;
+}
+.dossier-facts dd {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.45;
+  color: var(--neutral-800);
+}
+
+/* Ruled, not boxed. A table of record reads as rows, and the header is
+   the only fill on it. Wide content scrolls in its own container rather
+   than pushing the page sideways (§23). */
+.dossier-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  display: block;
+  overflow-x: auto;
+}
+.dossier-table thead th {
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  background: var(--neutral-100);
+  border-bottom: 1px solid var(--neutral-300);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--neutral-700);
+  white-space: nowrap;
+}
+.dossier-table td {
+  padding: 0.7rem;
+  border-bottom: 1px solid var(--neutral-200);
+  vertical-align: top;
+  line-height: 1.5;
+  color: var(--neutral-800);
+}
+.dossier-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.dossier-cell-tight {
+  white-space: nowrap;
+}
+.dossier-muted {
+  margin: 0.25rem 0 0;
+  font-size: 0.86rem;
+  color: var(--neutral-600);
+}
+.dossier-clause {
+  margin: 0.35rem 0 0;
   padding-left: 0.7rem;
   border-left: 3px solid var(--warning-strong);
+  font-size: 0.88rem;
+  font-style: italic;
+  color: var(--neutral-700);
+}
+.dossier-note {
+  margin: 0 0 0.8rem;
+  font-size: 0.88rem;
+  color: var(--neutral-600);
+}
+/* Says what is not there and why. An empty box reads as broken (§24.4). */
+.dossier-empty {
+  margin: 0;
+  padding: 0.8rem 0.9rem;
+  border-radius: var(--radius);
+  background: var(--neutral-50);
   font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--neutral-600);
+}
+.dossier-pending {
+  margin: 0;
+  padding: 0.8rem 0.9rem;
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  border: 1px dashed var(--surface-3);
+  font-size: 0.9rem;
+  color: var(--neutral-700);
+}
+.dossier-scenario {
+  padding: 0.85rem 0 0.85rem 0.9rem;
+  border-left: 3px solid var(--surface-3);
+  margin-bottom: 0.9rem;
+}
+.dossier-scenario:last-child {
+  margin-bottom: 0;
+}
+.dossier-scenario-what {
+  margin: 0;
+  font-weight: 650;
+  line-height: 1.5;
+  color: var(--neutral-900);
+}
+.dossier-scenario-ask {
+  margin: 0.3rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--neutral-700);
+}
+
+/* Signed and unsigned are different claims, so they read differently. */
+.chip-signed {
+  background: var(--surface-1);
+  border-color: var(--primary);
+  color: var(--link);
+}
+.chip-unsigned {
+  background: var(--neutral-100);
+  border-color: var(--neutral-300);
   color: var(--neutral-700);
 }
 

@@ -6,10 +6,15 @@ import { intakeValuesFrom } from "@/lib/intake-values";
 import { gateStates } from "@/lib/instrument";
 import { openProject } from "@/lib/project-access";
 import { answerStore, peopleStore, submissionStore } from "@/lib/repo";
+import { reviewStore } from "@/lib/repo-review";
 import { accumulatedFor, asksNothingFurther, SEVERITY } from "@/lib/severity";
+import { findingIsOpen } from "@/lib/submission";
 import { reportFrom, standingLine } from "@/lib/report";
+import { domainForObjective } from "@/lib/attestation";
+import { domainSlices, severityAreaOf } from "@/lib/report-domains";
 import { isTier3Value, objectivesFor, type Tier3Value } from "@/lib/tier3";
 import { NotYourAssessment } from "../not-yours";
+import { DomainDossier } from "./domain-dossier";
 import { ReportSummary, SummaryPending } from "./summary";
 
 export const dynamic = "force-dynamic";
@@ -34,10 +39,12 @@ export default async function ReportPage({
   const project = access.project;
   if (!project) notFound();
 
-  const [stored, findings, everyone] = await Promise.all([
+  const [stored, findings, everyone, attested, disposed] = await Promise.all([
     answerStore().current(id),
     submissionStore().findingsFor(id),
     peopleStore().list(),
+    reviewStore().attestationsFor(id),
+    reviewStore().dispositionsFor(id),
   ]);
 
   const intake = intakeValuesFrom(
@@ -64,6 +71,48 @@ export default async function ReportPage({
       severityBands.push({ name: question.name, band: answer });
   }
 
+  const named = (personId: string | null) =>
+    personId
+      ? (everyone.find((someone) => someone.id === personId)?.name ?? personId)
+      : "";
+
+  // The most recent signature per question is the one that stands, and the
+  // most recent settlement per finding — both tables are insert-only and
+  // arrive newest-first, so the first one seen wins (§4.2, §5.1).
+  const signatures = new Map<string, { by: string; act: string; at: string }>();
+  for (const row of attested) {
+    if (signatures.has(row.questionId)) continue;
+    signatures.set(row.questionId, {
+      by: named(row.attestedBy),
+      act: row.act,
+      at: row.attestedAt.toLocaleDateString(),
+    });
+  }
+  const settlements = new Map<
+    string,
+    {
+      kind: string;
+      by: string;
+      owner: string | null;
+      due: string | null;
+      open: boolean;
+    }
+  >();
+  const now = new Date();
+  for (const row of disposed) {
+    if (settlements.has(row.findingId)) continue;
+    settlements.set(row.findingId, {
+      kind: row.kind,
+      by: named(row.resolvedBy),
+      owner: row.remediationOwner ? named(row.remediationOwner) : null,
+      due: row.remediationDue ? row.remediationDue.toLocaleDateString() : null,
+      // The one rule for "open" (§4.3). A settled row is not a settled
+      // finding: an acceptance past its expiry reopens, and a report that
+      // read the row alone would say "risk accepted" about a live gap.
+      open: findingIsOpen(row, now),
+    });
+  }
+
   const report = reportFrom({
     activity:
       typeof intake.projectDescription === "string"
@@ -84,7 +133,27 @@ export default async function ReportPage({
     values,
     findings,
     asksNothingFurther,
+    attestations: signatures,
+    settlements,
   });
+
+  // The dossier is built from the record, so it is complete before the
+  // assistant has said anything. It used to be rendered inside the summary,
+  // which returns null when the agent is unavailable — so the whole
+  // per-area reading vanished whenever the model was down, on a page whose
+  // own promise is that it is complete without one.
+  const slices = domainSlices(report, [], severityAreaOf);
+
+  // Anything the per-area dossiers cannot hold, so nothing falls between
+  // them. A report that quietly drops a finding is worse than one that
+  // files it awkwardly.
+  const filedAreas = new Set(slices.map((slice) => slice.key));
+  const assessmentWide = report.severities.filter(
+    (severity) => !filedAreas.has(severityAreaOf(severity.name) ?? ""),
+  );
+  const unfiledFindings = report.findings.filter(
+    (finding) => !filedAreas.has(domainForObjective(finding.objective) ?? ""),
+  );
 
   const transport = agentTransport();
   const record = asPlainText(report, intake);
@@ -120,22 +189,6 @@ export default async function ReportPage({
         </dl>
       </header>
 
-      {/* Streamed: the derived report is already complete, so nobody waits
-          on a model to read what a person actually answered. */}
-      {transport.available && (
-        <Suspense fallback={<SummaryPending />}>
-          <ReportSummary projectId={id} report={report} record={record} />
-        </Suspense>
-      )}
-
-      {/* Where this goes next. The stepper promised a fourth stage from
-
-          the beginning; this is the link to it. */}
-
-      <p className="report-next">
-        <Link href={`/projects/${id}/package`}>Package this assessment →</Link>
-      </p>
-
       <section className="report-card">
         <h2>What this is</h2>
         <p>{report.activity}</p>
@@ -144,6 +197,12 @@ export default async function ReportPage({
 
       <section className="report-card">
         <h2>Where it lands</h2>
+        <p className="report-muted">
+          Every risk area the instrument covers, including the ones ruled
+          out. An area that was never in scope is worth seeing: it is the
+          difference between &ldquo;we asked and it does not apply&rdquo; and
+          &ldquo;nobody asked&rdquo;.
+        </p>
         <ul className="report-areas">
           {report.areasThatApply.map((area) => (
             <li
@@ -164,11 +223,53 @@ export default async function ReportPage({
         </ul>
       </section>
 
-      {report.severities.length > 0 && (
+      {/* Streamed: the dossier below is derived from the record and is
+          already complete, so nobody waits on a model to read what a
+          person actually answered. */}
+      {transport.available ? (
+        <Suspense fallback={<SummaryPending slices={slices} />}>
+          <ReportSummary
+            projectId={id}
+            report={report}
+            record={record}
+            slices={slices}
+          />
+        </Suspense>
+      ) : (
+        <DomainDossier slices={slices} scenarios="unavailable" />
+      )}
+
+      {report.unanswered.length > 0 && (
         <section className="report-card">
-          <h2>Severity</h2>
+          <h2>Not answered</h2>
+          <p className="report-unanswered">
+            <strong>Not answered:</strong> {report.unanswered.join(", ")}.{" "}
+            <span className="report-muted">
+              Named here so nobody reads silence as a yes. An unanswered
+              control has no row in any area&rsquo;s dossier, because there
+              is nothing to show and nothing to sign.
+            </span>
+          </p>
+        </section>
+      )}
+
+      {/* Where this goes next. The stepper promised a fourth stage from
+
+          the beginning; this is the link to it. */}
+
+      <p className="report-next">
+        <Link href={`/projects/${id}/package`}>Package this assessment →</Link>
+      </p>
+
+      {/* Only what no single area owns. The rest are asked and answered
+          inside their area's dossier, and showing them twice would be the
+          report repeating itself (§24.6) — but dropping these three
+          entirely would lose them, because they belong to no area. */}
+      {assessmentWide.length > 0 && (
+        <section className="report-card">
+          <h2>Severity across the assessment</h2>
           <ul className="report-sev">
-            {report.severities.map((s) => (
+            {assessmentWide.map((s) => (
               <li key={s.name}>
                 <span>{s.name}</span>
                 <span className={`band-tag band-${s.band.toLowerCase()}`}>
@@ -180,42 +281,13 @@ export default async function ReportPage({
         </section>
       )}
 
-      <section className="report-card">
-        <h2>Controls</h2>
-        <table className="report-table">
-          <thead>
-            <tr>
-              <th>Control</th>
-              <th>Answer</th>
-              <th>What they said</th>
-              <th>Required by</th>
-            </tr>
-          </thead>
-          <tbody>
-            {report.controls.map((control) => (
-              <tr key={control.name}>
-                <td>{control.name}</td>
-                <td>
-                  <strong>{control.answer}</strong>
-                </td>
-                <td className="report-muted">{control.note || "—"}</td>
-                <td className="report-muted">{control.authority ?? "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {report.unanswered.length > 0 && (
-          <p className="report-unanswered">
-            <strong>Not answered:</strong> {report.unanswered.join(", ")}. Named
-            here so nobody reads silence as a yes.
-          </p>
-        )}
-      </section>
-
-      {report.findings.length > 0 && (
+      {/* Same rule as severity: an area's findings are recommendations in
+          its own dossier. One whose objective no area owns would otherwise
+          disappear, so it is named here. */}
+      {unfiledFindings.length > 0 && (
         <section className="report-card">
-          <h2>What this raises</h2>
-          {report.findings.map((finding, i) => (
+          <h2>Raised, and owned by no single area</h2>
+          {unfiledFindings.map((finding, i) => (
             <div
               key={`${finding.objectiveName}-${i}`}
               className="report-finding"

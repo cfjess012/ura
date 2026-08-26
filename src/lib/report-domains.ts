@@ -18,6 +18,7 @@
  */
 import { domainForObjective } from "./attestation";
 import { CATEGORIES } from "./instrument";
+import { SEVERITY_QUESTIONS } from "./severity";
 import type {
   ProposedScenario,
   Report,
@@ -30,6 +31,9 @@ export type DomainSlice = {
   name: string;
   /** Why this domain is in the assessment at all, in the person's words. */
   because: string;
+  /** The scoping question that put it in scope, and what was answered. */
+  question: string;
+  answer: string;
   controls: ReportControl[];
   findings: ReportFinding[];
   severities: Array<{ name: string; band: string }>;
@@ -39,6 +43,40 @@ export type DomainSlice = {
 };
 
 const NAME_OF = new Map(CATEGORIES.map((c) => [c.key, c.name]));
+
+/**
+ * Which risk area owns a severity question, from the instrument's own path
+ * map — the category whose path question offers that path.
+ *
+ * Derived, never a table kept alongside. A hand-written mapping would be a
+ * second opinion about the instrument's structure, and it would be wrong
+ * the first time a path moved. `severityDomain` was always meant to be
+ * answered by the instrument; nothing was passing it, so every follow-up
+ * question in the report was filed nowhere.
+ */
+const AREA_OF_PATH = new Map<string, string>();
+for (const category of CATEGORIES) {
+  for (const option of category.pathQuestion?.options ?? []) {
+    AREA_OF_PATH.set(option.id, category.key);
+  }
+}
+
+const AREA_OF_SEVERITY = new Map<string, string>();
+for (const question of SEVERITY_QUESTIONS) {
+  const area = question.path ? AREA_OF_PATH.get(question.path) : undefined;
+  if (area && !AREA_OF_SEVERITY.has(question.name)) {
+    AREA_OF_SEVERITY.set(question.name, area);
+  }
+}
+
+/**
+ * The area a severity question belongs to, by the name the report carries.
+ * Null for the three that apply to every assessment — those belong to no
+ * single area, and filing them under one would be a guess.
+ */
+export function severityAreaOf(name: string): string | null {
+  return AREA_OF_SEVERITY.get(name) ?? null;
+}
 
 /**
  * Which domain a scenario belongs to, from what it says it read.
@@ -95,6 +133,10 @@ export function domainSlices(
       key,
       name: NAME_OF.get(key) ?? key,
       because: area?.because ?? "it owns controls this activity requires",
+      // A domain can hold a control without its own gate having been asked
+      // — the control map, not the gate, is what put it here.
+      question: area?.question ?? "",
+      answer: area?.answer ?? "",
       controls: [],
       findings: [],
       severities: [],

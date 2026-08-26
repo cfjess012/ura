@@ -51,6 +51,7 @@ const control = (o: (typeof OBJECTIVES)[number]) => ({
   answer: "No",
   note: "",
   authority: null,
+  attestation: null,
 });
 
 describe("splitting the handoff summary by risk domain", () => {
@@ -115,6 +116,8 @@ describe("splitting the handoff summary by risk domain", () => {
       clauseText: "text",
       expected: "Yes",
       policyVersion: "1.0",
+      id: "f1",
+      settlement: null,
     };
     const slices = domainSlices(
       reportWith([control(a), control(b)], [breach]),

@@ -1,14 +1,24 @@
 import { agentTransport } from "@/lib/agent";
 import { groundedScenarios, type Report } from "@/lib/report";
-import { domainSlices, unfiledScenarios } from "@/lib/report-domains";
-import { DomainTabs } from "./domain-tabs";
+import {
+  domainSlices,
+  severityAreaOf,
+  unfiledScenarios,
+  type DomainSlice,
+} from "@/lib/report-domains";
+import { DomainDossier } from "./domain-dossier";
 
 /**
- * The assistant's reading of the report, streamed in after the derived
- * facts are already on screen.
+ * The assistant's reading, streamed in after the derived facts are already
+ * on screen.
  *
- * Split out purely so it can suspend. Everything a reviewer needs is
- * rendered from the record immediately; a model takes as long as it takes,
+ * One call, two places: the paragraph at the top, and the scenarios filed
+ * into each area's dossier. It renders the dossier itself rather than
+ * sitting beside it, because the scenarios belong *inside* an area's
+ * reading — but the fallback renders the same dossier without them, so
+ * nothing a reviewer needs is ever waiting on a model.
+ *
+ * Split out purely so it can suspend. A model takes as long as it takes,
  * and making somebody watch a blank page while it thinks would be the
  * friction this whole product exists to remove.
  */
@@ -16,17 +26,18 @@ export async function ReportSummary({
   projectId,
   report,
   record,
-  severityDomain,
+  slices,
 }: {
   projectId: string;
   report: Report;
   record: string;
-  /** Which risk area a severity question belongs to. Passed in rather than
-   *  worked out here: the instrument owns that, not the summary. */
-  severityDomain?: (name: string) => string | null;
+  /** The record-derived dossier, so the agent adds to it, never gates it. */
+  slices: DomainSlice[];
 }) {
   const transport = agentTransport();
-  if (!transport.available) return null;
+  if (!transport.available) {
+    return <DomainDossier slices={slices} scenarios="unavailable" />;
+  }
 
   const writing = await transport.writeReport({
     assessment: {
@@ -40,14 +51,14 @@ export async function ReportSummary({
     },
     record,
   });
-  if (!writing) return null;
+  if (!writing) return <DomainDossier slices={slices} scenarios="unavailable" />;
 
   const scenarios = groundedScenarios(writing.scenarios, report);
-  // Filed by what each scenario cites, so a tab holds the reading of its own
-  // answers. One that cites nothing a domain owns is still shown — dropping
-  // it would lose a question because the filing failed, not because the
-  // question was weak.
-  const slices = domainSlices(report, scenarios, severityDomain);
+  // Filed by what each scenario cites, so an area holds the reading of its
+  // own answers. One that cites nothing an area owns is still shown —
+  // dropping it would lose a question because the filing failed, not
+  // because the question was weak.
+  const filed = domainSlices(report, scenarios, severityAreaOf);
   const unfiled = unfiledScenarios(report, scenarios);
 
   return (
@@ -61,11 +72,11 @@ export async function ReportSummary({
         </p>
       </section>
 
-      {slices.length > 0 && <DomainTabs slices={slices} />}
+      <DomainDossier slices={filed} />
 
       {unfiled.length > 0 && (
         <section className="report-card report-scenarios">
-          <h2>Worth asking about — across domains</h2>
+          <h2>Worth asking about — across areas</h2>
           <p className="report-muted report-scenarios-note">
             Proposed by the assistant from the answers named beneath each one.
             These are questions, not findings — nothing here has been decided.
@@ -85,22 +96,25 @@ export async function ReportSummary({
   );
 }
 
-/** What sits there while it writes. Says what is happening, and that the
- *  rest of the page is already complete — waiting is easier when you know
- *  you are not waiting for the thing you came for. */
-export function SummaryPending() {
+/** What sits there while it writes: the paragraph as a shimmer, and the
+ *  dossier already complete beneath it. Waiting is easier when you know you
+ *  are not waiting for the thing you came for. */
+export function SummaryPending({ slices }: { slices: DomainSlice[] }) {
   return (
-    <section className="report-card report-summary" aria-live="polite">
-      <h2>In short</h2>
-      <div className="report-shimmer">
-        <span />
-        <span />
-        <span />
-      </div>
-      <p className="report-byline">
-        The assistant is reading the record. Everything below is already
-        complete and does not depend on it.
-      </p>
-    </section>
+    <>
+      <section className="report-card report-summary" aria-live="polite">
+        <h2>In short</h2>
+        <div className="report-shimmer">
+          <span />
+          <span />
+          <span />
+        </div>
+        <p className="report-byline">
+          The assistant is reading the record. Everything below is already
+          complete and does not depend on it.
+        </p>
+      </section>
+      <DomainDossier slices={slices} scenarios="pending" />
+    </>
   );
 }

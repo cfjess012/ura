@@ -66,8 +66,12 @@ test("the handoff report is complete with no agent at all", async ({
   await expect(page.locator(".report-standing")).toContainText(
     /controls answered/,
   );
-  await expect(page.locator(".report-table tbody tr").first()).toBeVisible();
-  await expect(page.locator(".report-finding").first()).toBeVisible();
+  // The per-area dossier is derived from the record, so it is whole before
+  // a model has said anything — it used to render inside the summary,
+  // which meant no agent, no dossier.
+  await expect(page.locator(".dossier-sheet")).toBeVisible();
+  await expect(page.locator(".dossier-table tbody tr").first()).toBeVisible();
+  await expect(page.locator(".dossier-part-head")).toHaveCount(6);
 
   // And the assistant's half is simply absent — not a placeholder, not an
   // apology, and above all not a shimmer that never resolves.
@@ -96,8 +100,10 @@ test("the report shows a policy breach with the clause it breaches", async ({
 }) => {
   const base = await submitted(page, `Report breach ${Date.now()}`);
   await page.goto(`${base}/report`);
+  // Named in words, not encoded as a priority: "High" says how urgent it
+  // is and never what it is.
   await expect(page.getByText("Breaches policy").first()).toBeVisible();
-  await expect(page.locator(".report-clause").first()).toContainText(/shall/);
+  await expect(page.locator(".dossier-clause").first()).toContainText(/shall/);
 });
 
 test("the intake floor catches a bare name with no model", async ({ page }) => {
