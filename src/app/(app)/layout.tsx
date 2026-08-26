@@ -8,6 +8,7 @@ import { mayAttest } from "@/lib/attestation";
 import { OBJECTIVES } from "@/lib/tier3";
 import { switchUser } from "@/app/actions";
 import { AlertBell } from "./alert-bell";
+import { SwitchUser } from "./unsaved-guard";
 import { agentTransport } from "@/lib/agent";
 import { openFor } from "@/lib/handoff";
 import { destinationFor } from "@/lib/destination";
@@ -113,12 +114,10 @@ export default async function AppLayout({
               <span className="whoami-name">{current.name}</span>
               <span className="whoami-role">{ROLE_LABEL[current.role]}</span>
             </span>
-            {/* The pilot equivalent of signing out: back to the front door. */}
-            <form action={switchUser}>
-              <button type="submit" className="appbar-leave">
-                Switch user
-              </button>
-            </form>
+            {/* The pilot equivalent of signing out: back to the front door
+                — and the one way out of a screen that the screen itself
+                cannot guard, so it asks first when answers are unsaved. */}
+            <SwitchUser action={switchUser} />
           </span>
         </div>
       </header>

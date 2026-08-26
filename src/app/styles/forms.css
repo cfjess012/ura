@@ -625,6 +625,19 @@ select.flagged {
   font-weight: 800;
   color: var(--navy);
 }
+/* A save refused while the dialog is open. The save bar that normally
+   carries the sentence and its reference is behind this card, so the card
+   has to say it itself (§25). */
+.leaving-refused {
+  margin: 0.6rem 0 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border-left: 3px solid var(--error);
+  background: var(--warning-bg);
+  color: var(--neutral-800);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
 .leaving-actions {
   display: flex;
   flex-wrap: wrap;

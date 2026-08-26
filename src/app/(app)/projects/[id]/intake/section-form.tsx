@@ -31,6 +31,7 @@ import {
   type PendingRewrite,
 } from "@/lib/pending-rewrite";
 import { ProjectHeader } from "../project-header";
+import { useHoldUnsaved } from "@/app/(app)/unsaved-guard";
 
 export function SectionForm({
   projectId,
@@ -95,6 +96,16 @@ export function SectionForm({
     /** False when trying again cannot possibly work (§25.4, N2). */
     retryable: boolean;
   } | null>(null);
+  /**
+   * The same refusal as a value, not as state.
+   *
+   * The save bar reads `error`. The guard on the app bar's "Switch user"
+   * cannot — it is mounted above this screen and renders over it — so it
+   * needs the sentence and its reference handed back instead of shown.
+   */
+  const lastRefusal = React.useRef<{ message: string; ref?: string } | null>(
+    null,
+  );
 
   const set = (id: string, v: string | string[]) =>
     setValues((prev) => ({ ...prev, [id]: v }));
@@ -222,6 +233,7 @@ export function SectionForm({
   async function save(): Promise<boolean> {
     setSaving(true);
     setError(null);
+    lastRefusal.current = null;
     try {
       const formData = new FormData();
       // Declare the scope: this submission is responsible for this section's
@@ -253,6 +265,7 @@ export function SectionForm({
       }
       const result = await saveIntake(projectId, formData);
       if (isFailure(result)) {
+        lastRefusal.current = { message: result.message, ref: result.ref };
         setError({
           message: result.message,
           ref: result.ref,
@@ -267,17 +280,38 @@ export function SectionForm({
       return true;
     } catch (cause) {
       console.error("saveIntake transport", cause);
-      setError({
+      const refusal = {
         message:
           "The server couldn't be reached, so nothing was saved. Your answers are still on screen — try again in a moment.",
         ref: errorRef(),
-        retryable: true,
-      });
+      };
+      lastRefusal.current = refusal;
+      setError({ ...refusal, retryable: true });
       return false;
     } finally {
       setSaving(false);
     }
   }
+
+  /**
+   * Say what is at stake to anything that can take them off this screen.
+   *
+   * The rail below is guarded by `onLeave`, because the rail is in this
+   * form. The app bar's "Switch user" and the browser's own close button
+   * are not, and both threw away everything typed since the last write
+   * without a word.
+   */
+  useHoldUnsaved(dirty, `the ${sectionName} section`, async () =>
+    (await save())
+      ? { ok: true }
+      : {
+          ok: false,
+          ...(lastRefusal.current ?? {
+            message:
+              "That didn't save, so your answers are still only on this screen.",
+          }),
+        },
+  );
 
   // The rail lives inside the form so it reports what is on screen rather
   // than what was last saved. Rendered from the server it went stale the

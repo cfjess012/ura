@@ -4,7 +4,7 @@
  * answer is there. Rendered-DOM assertions only (NFR-7).
  */
 import { expect, test } from "@playwright/test";
-import { completeIntake } from "./helpers";
+import { completeIntake, startAssessment } from "./helpers";
 
 const NAME = `S1 proof ${Date.now()}`;
 const AI_DETAIL =
@@ -254,4 +254,49 @@ test("you cannot blast through intake — required means required (FR-28)", asyn
   await expect(page.getByLabel("Project Description")).toHaveValue(
     "Shorten scheduling effort.",
   );
+});
+
+test("switching user with answers not written down asks first (S1)", async ({
+  page,
+}) => {
+  const base = await startAssessment(page, "Unsaved guard");
+  await page
+    .getByLabel("Project Description")
+    .fill("Typed, and never sent anywhere.");
+
+  // The app bar is not inside the form, so nothing on the screen could have
+  // guarded this. Leaving used to be silent and total.
+  await page.getByRole("button", { name: "Switch user" }).click();
+  await expect(
+    page.getByRole("dialog").getByText("You have answers not saved yet"),
+  ).toBeVisible();
+  expect(page.url()).toContain("/intake/description");
+
+  // Stay here means stay here, and the answer is still on screen.
+  await page.getByRole("button", { name: "Stay here" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByLabel("Project Description")).toHaveValue(
+    "Typed, and never sent anywhere.",
+  );
+
+  // Save and switch writes it BEFORE leaving, so coming back finds it.
+  await page.getByRole("button", { name: "Switch user" }).click();
+  await page.getByRole("button", { name: "Save and switch user" }).click();
+  await page.waitForURL((url) => !url.pathname.includes("/intake/"));
+
+  await page.goto(`${base}/intake/description`);
+  await expect(page.getByLabel("Project Description")).toHaveValue(
+    "Typed, and never sent anywhere.",
+  );
+});
+
+test("switching user with nothing outstanding does not ask (S1)", async ({
+  page,
+}) => {
+  // §24.4: a question nobody needs to answer is friction, not safety. The
+  // guard has to be silent when there is genuinely nothing to lose.
+  await startAssessment(page, "Nothing to lose");
+  await page.getByRole("button", { name: "Switch user" }).click();
+  await page.waitForURL((url) => !url.pathname.includes("/intake/"));
+  await expect(page.getByRole("dialog")).toHaveCount(0);
 });
