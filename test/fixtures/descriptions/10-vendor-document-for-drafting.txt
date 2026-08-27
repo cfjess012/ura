@@ -1,0 +1,37 @@
+TESSERA SYSTEMS - IRONWOOD PLATFORM
+Security and Architecture Overview, v4.2
+Prepared for prospective customers
+
+1. PLATFORM SUMMARY
+
+Ironwood is a document generation platform for regulated industries. Customers connect Ironwood to their system of record; Ironwood assembles context from the customer's own records and returns drafted correspondence for a human operator to review, amend and send. Ironwood does not transmit any generated document to an end recipient. All outbound communication remains the customer's responsibility and is performed by the customer's own systems.
+
+2. HOSTING AND DATA RESIDENCY
+
+Customer data is stored and processed in the AWS region selected by the customer at onboarding. Available regions are us-east-1, eu-west-1, eu-west-2 and ap-southeast-2. Customer data does not leave the selected region in the ordinary course of processing.
+
+Tessera engineering and support personnel are located in Austin, Texas, United States. Support personnel may access customer production environments where required to diagnose an incident, and such access is logged and requires a named customer-approved ticket.
+
+3. MODEL PROVIDER
+
+Ironwood invokes large language models through Amazon Bedrock. Tessera does not train, fine-tune or host models. Customer data submitted to Ironwood is not used to train any model, whether Tessera's or a third party's, and Bedrock is configured with model invocation logging disabled for customer workloads.
+
+4. ENCRYPTION
+
+Data is encrypted in transit using TLS 1.3. Data at rest is encrypted using AES-256 with keys managed in AWS KMS. Customer-managed keys (CMK) are available on the Enterprise tier.
+
+5. ACCESS CONTROL
+
+Ironwood supports SAML 2.0 single sign-on and SCIM user provisioning. Role-based access control is enforced at the API layer. Customer administrators manage their own role assignments. Tessera does not provision or manage end-user accounts on the customer's behalf.
+
+6. AUDIT LOGGING
+
+All document generation events, human review actions and administrative changes are written to an immutable audit log. Logs are retained for 13 months and are exportable by the customer at any time via the audit API.
+
+7. CERTIFICATIONS
+
+Tessera Systems holds SOC 2 Type II (most recent report dated 14 March 2026) and ISO/IEC 27001:2022 certification. Reports are available under NDA through the Tessera trust portal.
+
+8. SUB-PROCESSORS
+
+A current list of sub-processors is maintained at tessera.example/subprocessors. Customers are notified of additions not less than 30 days before a new sub-processor begins processing.

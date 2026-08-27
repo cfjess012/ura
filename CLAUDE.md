@@ -26,8 +26,10 @@ implementation, stop on ambiguity.
   note is deferred to S8, see uat/S6.md)
 - S4.5 Reference data — PARTIAL: searchable vendor picker and
   provenance-on-accept (FR-33) remain
-- S3.5 Destinations — SPEC'd not built (§27) · S4.6 Attachments — blocked on
-  §3.6 retention
+- S3.5 Destinations — BUILT 2026-08-27 (FR-26/FR-27 · NFR-20: the offer with
+  a computed count, and the assembled record in three parts with a real
+  payload and no send that pretends). **Not DONE: no uat/S3.5.md and no
+  slice review.** · S4.6 Attachments — blocked on §3.6 retention
 - S8 Review & attest — DONE 2026-08-23 (FR-16/FR-17/FR-18 · NFR-10: the
   reviewer queue, attestation with the keyboard loop, authority derived from
   the question server-side, and the four dispositions with four-eyes and

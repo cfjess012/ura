@@ -8,6 +8,8 @@ import {
   AI_USE_CASE_RECORD,
   assembleUseCaseRecord,
   offerUseCaseRecord,
+  recordFilename,
+  useCaseRecordPayload,
 } from "@/lib/use-case-record";
 import { ALL_FIELDS, type IntakeValues } from "@/lib/intake";
 
@@ -123,5 +125,95 @@ describe("nothing is claimed that is not true (§27.1, §27.4)", () => {
     const record = assembleUseCaseRecord(FILLED) as Record<string, unknown>;
     for (const word of ["sent", "sentAt", "delivered", "synced", "status"])
       expect(record).not.toHaveProperty(word);
+  });
+});
+
+describe("what the platform worked out (FR-27)", () => {
+  it("carries the derived value when the caller could supply it", () => {
+    const record = assembleUseCaseRecord(FILLED, {
+      assessment_status: "In review",
+    });
+    const row = record.rows.find((r) => r.target === "assessment_status")!;
+    expect(row.source).toMatchObject({ kind: "derived", value: "In review" });
+  });
+
+  it("still says why, so a worked-out value is never bare", () => {
+    const record = assembleUseCaseRecord(FILLED, { risk_areas: "AI & Model Risk" });
+    const row = record.rows.find((r) => r.target === "risk_areas")!;
+    if (row.source.kind !== "derived") throw new Error("expected a derived row");
+    expect(row.source.because.length).toBeGreaterThan(20);
+  });
+
+  it("does not invent one when the caller supplied nothing", () => {
+    const row = assembleUseCaseRecord(FILLED).rows.find(
+      (r) => r.target === "risk_areas",
+    )!;
+    if (row.source.kind !== "derived") throw new Error("expected a derived row");
+    expect(row.source.value).toBeUndefined();
+  });
+
+  it("treats whitespace as nothing supplied, not as a value", () => {
+    const record = assembleUseCaseRecord(FILLED, { risk_areas: "   " });
+    const row = record.rows.find((r) => r.target === "risk_areas")!;
+    if (row.source.kind !== "derived") throw new Error("expected a derived row");
+    expect(row.source.value).toBeUndefined();
+  });
+
+  it("names the intake field a blank row came from, so a screen can send somebody to it", () => {
+    const record = assembleUseCaseRecord({ usesAi: "Yes" });
+    const row = record.rows.find((r) => r.target === "business_owner")!;
+    expect(row.source).toMatchObject({ kind: "blank", from: "businessOwner" });
+  });
+});
+
+describe("the payload is honest on its own, away from the screen (§27.4)", () => {
+  const AT = new Date("2026-08-27T09:00:00.000Z");
+  const payload = () =>
+    useCaseRecordPayload(
+      assembleUseCaseRecord(FILLED, { assessment_status: "Draft" }),
+      "Isabelle Withers",
+      AT,
+    );
+
+  it("carries every field, including the ones it cannot fill", () => {
+    // Dropping the key would let a reader count fields and conclude the
+    // record is complete. Absence is stated, never implied (FR-20's rule).
+    expect(payload().fields).toHaveLength(AI_USE_CASE_RECORD.fields.length);
+  });
+
+  it("gives every empty field a reason a stranger can read", () => {
+    for (const field of payload().fields)
+      if (field.value === null)
+        expect(field.missing, field.field).toBeTruthy();
+  });
+
+  it("says it was never sent, in the file itself", () => {
+    // The download outlives the screen that explained it, and whoever opens
+    // it next did not read the caveat beside the button.
+    expect(payload().notFiled).toMatch(/has no connection|not been sent/i);
+  });
+
+  it("has no field that could hold a delivery state", () => {
+    const top = payload() as unknown as Record<string, unknown>;
+    for (const word of ["sent", "sentAt", "delivered", "synced", "status"])
+      expect(top).not.toHaveProperty(word);
+  });
+
+  it("keeps the map version, so a replay knows which field list it used", () => {
+    expect(payload().destination.mapVersion).toBe(AI_USE_CASE_RECORD.version);
+    expect(payload().destination.provisional).toBe(true);
+  });
+
+  it("names an answered field's question, so provenance survives the download", () => {
+    const name = payload().fields.find((f) => f.field === "use_case_name")!;
+    expect(name).toMatchObject({ value: "Board pack assistant", from: "Project Name" });
+  });
+
+  it("builds a filename that says what it is and stays a filename", () => {
+    expect(recordFilename("Novara scheduling assistant", AT)).toBe(
+      "ai-use-case-record-novara-scheduling-assistant-2026-08-27.json",
+    );
+    // A name that is all punctuation must still produce a usable file.
+    expect(recordFilename("///", AT)).toBe("ai-use-case-record-assessment-2026-08-27.json");
   });
 });

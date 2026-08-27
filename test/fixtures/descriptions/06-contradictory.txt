@@ -1,0 +1,7 @@
+Kestrel is an internal-only workflow tool for the Underwriting Support team. It handles no customer data and sits entirely inside our network, so it should be a light-touch assessment.
+
+The way it works: when a broker submits a commercial property submission, Kestrel pulls the submission pack apart, reads the schedule of values and the loss run, and pre-populates the rating worksheet so the underwriter is not retyping figures out of a PDF. Claimant names, addresses and the broker's own commentary come across with the pack and are stored against the submission record.
+
+Access is limited to the fourteen people in Underwriting Support. Our offshore processing partner in Manila also works the overnight queue, and their team leads have the same access the onshore team does so they can clear the backlog before UK business hours. The vendor who built Kestrel retains a support login for troubleshooting.
+
+There is no AI in it beyond the document reading model that extracts the figures.

@@ -1,0 +1,11 @@
+Ironwood is a claims correspondence assistant we are procuring from Tessera Systems, a US-headquartered vendor, to draft the routine letters that Claims Operations sends to policyholders - acknowledgement of a new claim, requests for missing documentation, settlement offers and closure notifications.
+
+How it works. When a handler opens a claim in the core system, Ironwood reads the claim record and the notes on file and drafts the appropriate letter into the handler's outbox. The handler reads it, edits it and sends it - nothing goes to a customer without a named person approving it. The model does not decide claim outcomes, set reserves, or accept or repudiate liability; it drafts language for decisions a handler has already made.
+
+Data. The claim record includes the policyholder's name, address, date of birth, policy number and bank details where a settlement has been agreed, plus free-text handler notes that frequently contain medical information for injury claims and, occasionally, details of a criminal matter where a claim is under investigation. We classify this as Confidential, and the injury notes as Special Category under UK GDPR.
+
+Where the data goes. Tessera hosts Ironwood on AWS in eu-west-2 (London), but their support and engineering teams sit in Austin, Texas and can access the production environment for incident response, so there is a transfer to the US in scope. The underlying model is Anthropic's Claude, accessed by Tessera through AWS Bedrock rather than trained or hosted by Tessera themselves - so there is a fourth party in the chain that we do not contract with directly.
+
+Users and scale. Roughly 400 handlers across Claims Operations in the UK, handling about 11,000 letters a month once fully rolled out. Team leaders and the Claims quality function can see drafts and sent letters for audit sampling.
+
+Status. Tessera has been through Procurement and has a Coupa vendor record. Contract is not yet signed - we are at the point of agreeing the data processing agreement, and the no-training clause is the open point. Target go-live is 1 March 2027, with a pilot on two teams from January.

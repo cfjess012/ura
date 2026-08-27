@@ -1,0 +1,9 @@
+Bracken is a rewrite of the monthly reinsurance recovery reconciliation that Finance Operations runs between the claims ledger and the reinsurance ledger.
+
+Today it is a spreadsheet. An analyst exports the recoveries due from the claims system, exports what the reinsurance system says has been billed, matches them by treaty and claim reference, and works through the breaks by hand. It takes four days a month and the workbook has grown to the point where only two people understand it.
+
+Bracken replaces the workbook with a scheduled job on our existing internal reporting platform. It reads both extracts, applies the same matching rules the spreadsheet applies, and produces the break report the analysts already work from. The matching rules are written down and deterministic - a claim reference matches or it does not. There is no model and no scoring involved.
+
+Nothing leaves our environment. Both extracts are already on the internal platform, no new system is being bought, no vendor is involved, and the build is being done by our own Finance Systems team. The data is treaty-level financial aggregates and claim reference numbers - no policyholder names, no addresses, no personal data of any kind. Our data classification for this is Internal.
+
+Users are the six analysts in Finance Operations plus the Reinsurance Manager who signs off the monthly position. Target is the March 2027 close.
