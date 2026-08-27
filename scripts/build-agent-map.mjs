@@ -129,7 +129,7 @@ const HOOK_META = {
     name: "stop-gate",
     what: "Work cannot conclude on a red build, a stale generated artifact, a slice with no record, or a demo nobody has thought about",
     access:
-      "Runs the type checker and the unit tests, regenerates the map into a scratch directory to compare it, and reads CLAUDE.md, every uat/ record and demo/readiness.md. It writes nothing.",
+      "Runs the type checker and the unit tests, regenerates the map into a scratch directory to compare it, and reads CLAUDE.md, SPEC.md and every uat/ record. It writes nothing.",
   },
 };
 

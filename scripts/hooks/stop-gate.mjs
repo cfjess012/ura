@@ -131,30 +131,7 @@ try {
   problems.push(`could not check slice records: ${error.message}`);
 }
 
-// ---- 4. The demo conversation has been had ------------------------------
-// Build completeness is not demo readiness. This does not judge whether the
-// demo is good — it refuses to let a slice finish without someone saying
-// what it changed for the room (G-44).
-try {
-  const readiness = readFileSync(join(ROOT, "demo", "readiness.md"), "utf8");
-  const claude = readFileSync(join(ROOT, "CLAUDE.md"), "utf8");
-  const done = doneSlices(claude).sort();
-  const covered = (readiness.match(/^slices-covered:\s*(.+)$/m)?.[1] ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .sort();
-  const missing = done.filter((s) => !covered.includes(s));
-  if (missing.length > 0) {
-    problems.push(
-      `demo/readiness.md does not cover ${missing.join(", ")}. Before finishing: which beat does this slice add or change, is it built, has a person walked it, and what is the fallback if it breaks in front of the room? Update the file and say so out loud — this is the conversation, not the paperwork.`,
-    );
-  }
-} catch (error) {
-  problems.push(`could not read demo/readiness.md — the demo record is missing: ${error.message}`);
-}
-
-// ---- 5. No governance decision has disappeared ----------------------------
+// ---- 4. No governance decision has disappeared ----------------------------
 // The PreToolUse guard can only inspect an Edit's replacement text, so a
 // SPEC rewritten through Bash slipped past it. This compares the whole log
 // against the last commit and cannot be walked around by choosing a
@@ -177,34 +154,6 @@ try {
   if (!/unknown revision|does not exist/i.test(String(error.message))) {
     problems.push(`could not check the governance log against the last commit: ${error.message}`);
   }
-}
-
-// ---- 5. Stated measurements cite the test that asserts them ---------------
-// "Five intake answers decided six of eleven areas" sat in the demo script
-// after the instrument had moved on; the real number was four (G-50 era,
-// caught 2026-08-22). A number a presenter is told to SAY is a claim the
-// product makes: it must cite a test file, and the file must exist.
-try {
-  const readiness = readFileSync(join(ROOT, "demo", "readiness.md"), "utf8");
-  const measured = [...readiness.matchAll(/measured[^|]*?—\s*see\s+`([^`]+)`/g)].map((m) => m[1]);
-  const numeric = /\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+) (?:of|out of) (?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|\d+)\b/;
-  const saysNumbers = readiness
-    .split("\n")
-    .filter((line) => line.startsWith("|") && numeric.test(line) && /say/i.test(line));
-  for (const line of saysNumbers) {
-    if (!/`[^`]*test[^`]*`/.test(line)) {
-      problems.push(
-        `demo/readiness.md tells the presenter to say a number without citing the test that asserts it: "${line.slice(0, 100)}…" — a stated measurement cites its test (demo-truth).`,
-      );
-    }
-  }
-  for (const cited of measured) {
-    if (!existsSync(join(ROOT, cited))) {
-      problems.push(`demo/readiness.md cites \`${cited}\` as the measurement's test, but the file does not exist.`);
-    }
-  }
-} catch (error) {
-  problems.push(`could not run the claim check on demo/readiness.md: ${error.message}`);
 }
 
 if (problems.length > 0) {

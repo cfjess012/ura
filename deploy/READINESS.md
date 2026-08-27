@@ -93,7 +93,5 @@ list-foundation-models` will tell you what is granted; set `AGENT_MODEL`
 
 - Run the deploy once, end to end, on a day that is not demo day.
 - `curl` both health endpoints and open the URL.
-- Run `pnpm walk:demo` locally the morning of — it asserts the run sheet
-  still matches the product, and it has caught a stale run sheet twice.
 - Decide whether the agent is connected. The product is complete without it
   and says so; with it, drafting and the assistant appear.

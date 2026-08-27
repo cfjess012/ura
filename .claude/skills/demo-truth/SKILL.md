@@ -1,11 +1,16 @@
 ---
 name: demo-truth
-description: Find claims the build does not back before a person repeats them in a room. Use when finishing a slice review, before each UAT round, before demo day, and whenever a number or capability statement is written into a doc or a screen.
+description: Find claims the build does not back before somebody repeats them. Use when finishing a slice review, before each UAT round, before writing an audit or a brief, and whenever a number or capability statement is written into a doc or a screen.
 ---
 
 Implements SPEC §24 (honesty on screen), G-34, G-42 and G-50. The deal was struck 2026-08-23, after the
 demo script instructed the presenter to say "five intake answers decided
 six of eleven areas" — the real figure was four, and had been for days.
+
+That run sheet is retired (G-74) and this skill is not: **the room was never
+the point.** A number in a README, a capability in a slice review, a sentence
+on a screen and a figure in a UAT record are all claims somebody will repeat,
+and none of them has a presenter to catch it.
 
 ## The rule
 
@@ -15,13 +20,15 @@ an audience is a claim the product makes.
 
 ## The pass
 
-Walk every surface a person will see and every doc a presenter will hold
-(`demo/readiness.md` first), and for each statement of fact ask:
+Walk every surface a person will see and every doc that states a fact about
+this build — README, SPEC, slice reviews, `uat/`, `audits/` — and for each
+statement of fact ask:
 
 1. **Is it a number?** Then something must compute it, and the doc must cite
-   the test that asserts it (`prefill-reach.test.ts` is the pattern). The
-   Stop gate checks the citation exists; only this pass checks it is the
-   *right* test.
+   the test that asserts it (`prefill-reach.test.ts` is the pattern). Nothing
+   mechanical checks that citation any more — the Stop gate check went with
+   the run sheet — so this pass is now the only thing standing between a
+   stale number and somebody repeating it.
 2. **Is it a capability?** Then walk it end to end, today, in the running
    app. "Built" in a table is not evidence — every defect that mattered in
    this project was found by a person using the product.

@@ -45,9 +45,9 @@ implementation, stop on ambiguity.
   agentic on Bedrock/AgentCore was the Phase-2 epic and shipped as S11/S12.
   **The three §6.1 seams exist in code.** The agent is a separate service
   and is off by default — `AGENT_TRANSPORT` decides.
-- `demo/readiness.md` = what the room sees; the stop gate blocks finishing
-  until it covers every DONE slice (G-44). `db:reset` held for demo-data
-  day. Audit C-6/7 open (`audits/instrument-2026-08-21.md`).
+- The demo shipped 2026-08-25 and its apparatus is retired (G-74): no run
+  sheet, no readiness artifact, no stop-gate check about the room. Audit
+  C-6/7 open (`audits/instrument-2026-08-21.md`).
 
 Instrument data lives in `src/data/instrument/*.json`, imported at build time
 (never from disk at runtime). After editing, `pnpm instrument:seed` activates
@@ -73,13 +73,12 @@ pnpm agent-map     # regenerates docs/agent-map.html from the repo itself
 pnpm uat:new S4    # UAT record skeleton for a slice (rows from SPEC §17/§20)
 ```
 
-## DEMO PUSH — until 2026-08-26 (G-70, read it there)
-
-Demo is 2026-08-25. Every change: `pnpm typecheck && pnpm test:unit` (35s).
-NOT per change: `pnpm e2e`, the slice verifier, per-slice UAT records.
-Before the demo, without exception: `pnpm walk:demo` and one `pnpm e2e`.
 One dev server and one agent — nothing else; a starved machine turned a
 9-second test into 17 minutes.
+
+**The full gate chain is the rule again.** Demo-push mode (G-70) expired
+2026-08-26: `pnpm verify`, the slice verifier and a per-slice UAT record are
+all back on, and one verifier pass is owed over everything built under it.
 
 ## Skills — load them at these moments (SPEC G-18)
 
@@ -99,7 +98,7 @@ work, not after:
 | change the intake rubric, its scoring, or how a score is shown | `intake-rubric` |
 | write anything to the owner | `owner-brief` |
 | answer design feedback or a screenshot | `design-mock` |
-| finish a review, prep UAT or the demo, or write down a claim | `demo-truth` |
+| finish a review, prep UAT, or write down a claim | `demo-truth` |
 | audit the repo, the spec, code quality, dead code, or skills | `repository-audit` |
 
 Law lives in SPEC and is always true; procedure lives in skills and is

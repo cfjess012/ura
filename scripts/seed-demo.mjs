@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
- * Curated demo assessments (G-44 — the demo is a tracked artifact).
+ * Curated seed assessments — the fixture set this pilot is shown and
+ * developed against. The demo apparatus is retired (G-74); this is not, because
+ * the alternative is developing on whatever scratch rows happen to exist.
  *
  * Why a script and not "type it live": typing a scenario in front of a room
  * is slow and error-prone, and the alternative — demoing on whatever test
