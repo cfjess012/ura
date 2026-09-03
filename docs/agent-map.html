@@ -88,7 +88,7 @@
   @media (prefers-reduced-motion:reduce){ *{transition:none!important;} }
 </style>
 <main>
-  <p class="kicker">Universal Risk Assessment · generated 2026-08-26</p>
+  <p class="kicker">Universal Risk Assessment · generated 2026-09-03</p>
   <h1>Agent Topology</h1>
   <p class="lede">
     Every agent in this project, what triggers it, what it can see, and its full instruction set.
@@ -148,11 +148,20 @@ requirements in §20, the acceptance criteria in §19, and the UI standard
 in §23. Read those first. Never accept a summary of the requirements —
 read the requirements.
 
+**If the brief carries a previous pass's verdict and findings, this is a
+delta pass.** Scope it as `.claude/skills/verify/SKILL.md` defines — the
+findings, regressions where the fixes landed, whatever the last pass could
+not verify, and a fresh verdict — instead of the full procedure below. The
+brief's account of what was fixed is a claim to be checked, never evidence.
+
 ## Procedure
 
 1. **Gate chain.** **Read `.claude/skills/verify/SKILL.md` first — it is the ONLY definition of the chain; never restate it here.** Run the chain it defines, in its order,
    (start the dev server first if it is not up). Record counts and any
    failures verbatim. A red gate is an immediate FAIL — stop and report.
+   Where the brief already carries the chain's counts, take them and spend
+   the time saved on the app; re-run any tier you have reason to doubt, and
+   say in the report which you ran and which you took.
 2. **Requirement-by-requirement UAT.** For each requirement ID the slice
    owns, drive the running app as a user would and confirm the behaviour
    with your own eyes, not by reading the source.
@@ -2234,6 +2243,55 @@ Critique is owed in both directions (Build Rule 15). Surface disagreements
 with the owner's instructions as readily as with your own work — agreeable
 implementation of a flawed instruction is a specification failure, not
 courtesy.
+
+## The verifier's passes — full once, delta after
+
+A slice gets **one full verification pass**. Every pass after it is a
+**delta pass** against the findings of the one before. Re-verifying a slice
+from scratch to confirm a list of named fixes is the most expensive way to
+learn nothing.
+
+**Full pass** — the slice-verifier's whole procedure: the chain, every owned
+requirement driven in the running app, the adversarial input pass, every
+prior slice's journey, §19, §23, §24, §25, the invariants, the scope check.
+
+**Delta pass** — brief it with the previous verdict's findings and exactly
+what changed, and scope it to four things:
+
+1. each finding, marked **confirmed fixed** or **not fixed**, on its own
+   evidence, never on the brief's word;
+2. regressions in what the fixes touched — the files, and the screens that
+   render them;
+3. anything the previous pass recorded as &quot;could not verify&quot; that the fixes
+   have now made reachable;
+4. a fresh verdict.
+
+Nothing else is re-driven. A second walk of a journey the last pass cleared,
+over code the fixes never touched, buys nothing.
+
+**Hand it the chain; don't make it re-run it.** Run the chain yourself and
+put the counts in the brief. A second run of the same deterministic tests is
+not independent verification — they are the same tests, and they answer the
+same way. The verifier's budget belongs where only an agent driving the
+product can go: the app as a person meets it, adversarial probes on the pure
+functions, and every claim in `uat/` read against what the product actually
+does. It may still run any tier it has reason to doubt, and it says so.
+
+**Every finding becomes a test before the delta pass runs.** A finding that
+leaves no test behind gets found again by hand, at full price, on a later
+slice. This is what makes each slice's verification cheaper than the last.
+
+**When a pass dies mid-run** — an outage, a rate limit, a crash — mine its
+transcript before relaunching. A dead run has usually already done the
+expensive part; its probes and their output are in the record, and restarting
+from zero pays for them twice.
+
+*Origin: S15, 2026-09-03. One full pass cost roughly 185,000 tokens and
+returned two blocking findings. The second was briefed to re-do the entire
+slice in order to confirm ten named fixes. Five other runs died to an API
+outage and returned no verdict at all; reading one dead run's transcript
+recovered two real defects — an appetite line that escalated to nobody, and
+a severity word off the scale reaching an area rating — for almost nothing.*
 
 # The owner's UAT
 
