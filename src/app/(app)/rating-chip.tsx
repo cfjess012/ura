@@ -1,4 +1,4 @@
-import type { AppetiteBreach, Rated } from "@/lib/rating";
+import { bandWord, type AppetiteBreach, type Rated } from "@/lib/rating";
 
 /**
  * A rating as a person reads it (FR-50): the band as a word, and every
@@ -8,6 +8,12 @@ import type { AppetiteBreach, Rated } from "@/lib/rating";
  * them behind hover would make the band a verdict. It renders without
  * JavaScript, which is what a server component and a print stylesheet
  * both want.
+ *
+ * Three states, not one (G-81). **Rated** is a band that stands on a
+ * complete record. **So far** is a floor that can still rise, and says so
+ * on its face. **Not yet rated** has no band at all: an assessment nobody
+ * has answered used to print "Low" here, which is the product asserting
+ * safety it had never checked.
  */
 export function RatingChip({
   label,
@@ -26,9 +32,14 @@ export function RatingChip({
     <details className={`rating${compact ? " rating-compact" : ""}`}>
       <summary className="rating-summary">
         <span className="rating-label">{label}</span>
-        <span className={`rating-band rating-${rated.band.toLowerCase()}`}>
-          {rated.band}
+        <span
+          className={`rating-band rating-${rated.band ? rated.band.toLowerCase() : "unrated"}`}
+        >
+          {bandWord(rated)}
         </span>
+        {rated.standing === "provisional" && (
+          <span className="rating-sofar">so far</span>
+        )}
         {breaches.length > 0 && (
           <span className="rating-breach">Exceeds appetite</span>
         )}
@@ -50,8 +61,11 @@ export function RatingChip({
           </p>
         ))}
         <p className="help">
-          Worked out from the answers every time this is opened — nothing here
-          is stored, and changing an answer changes it.
+          {rated.standing === "unrated"
+            ? "Answer the risk areas and the detail questions and a reading appears here. Nothing is stored; it is worked out from the record every time this is opened."
+            : rated.standing === "provisional"
+              ? "A floor, not a verdict: it can rise as the rest is answered, and never falls because a question went unanswered. Worked out from the record every time this is opened — nothing here is stored."
+              : "Worked out from the answers every time this is opened — nothing here is stored, and changing an answer changes it."}
         </p>
       </div>
     </details>

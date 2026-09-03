@@ -44,8 +44,79 @@ export type RatingBand = (typeof RATING_BANDS)[number];
 /** A rating band's place on its own scale — the array is the order. */
 const rank = (band: RatingBand) => RATING_BANDS.indexOf(band);
 
-/** What a person reads: the band, and every reason it holds. */
-export type Rated = { band: RatingBand; because: string[] };
+/**
+ * How much of what a rating reads has an answer behind it.
+ *
+ * The scale has four bands and, until now, no way to say "nobody has
+ * assessed this". So an assessment with nothing answered fell to the
+ * default band and rendered as **Low** — absence of evidence reading as
+ * evidence of absence, on the screen a reviewer triages from. A real
+ * submission did exactly that (G-81).
+ */
+export type RatingStanding =
+  /** Everything the rating reads is answered: the band is the reading. */
+  | "rated"
+  /** Some of it. The band holds as a floor and can only rise. */
+  | "provisional"
+  /** None of it, and no rule fired: there is no band to give. */
+  | "unrated";
+
+/**
+ * What a person reads: the band, every reason it holds, and how much of the
+ * record stands behind it.
+ *
+ * `band` is null exactly when the standing is "unrated". Nullable rather
+ * than a flag beside a band, deliberately: every screen calls
+ * `band.toLowerCase()`, so the type checker forces each one to say what it
+ * shows instead of quietly printing Low.
+ */
+export type Rated = {
+  band: RatingBand | null;
+  because: string[];
+  standing: RatingStanding;
+};
+
+/** The band as a person reads it, or the honest absence of one (NFR-9). */
+export function bandWord(rated: Rated): string {
+  return rated.band ?? "Not yet rated";
+}
+
+/** What a rating has to read, and how much of it is answered. */
+export type Coverage = {
+  areasUnanswered: number;
+  partsUnnarrowed: number;
+  severityAsked: number;
+  severityAnswered: number;
+};
+
+/** Nothing outstanding — what a caller with a complete record passes. */
+export const FULLY_ANSWERED: Coverage = {
+  areasUnanswered: 0,
+  partsUnnarrowed: 0,
+  severityAsked: 0,
+  severityAnswered: 0,
+};
+
+/** How much of the record is still owed. */
+export function owed(coverage: Coverage): number {
+  return (
+    coverage.areasUnanswered +
+    coverage.partsUnnarrowed +
+    Math.max(0, coverage.severityAsked - coverage.severityAnswered)
+  );
+}
+
+/**
+ * Rated, provisional or unrated.
+ *
+ * A rule firing beats incompleteness: intake alone can establish a floor,
+ * and a floor is a real reading even while questions are outstanding. What
+ * it can never do is stay silent and be read as Low.
+ */
+function standingOf(coverage: Coverage, fired: boolean): RatingStanding {
+  if (owed(coverage) === 0) return "rated";
+  return fired || coverage.severityAnswered > 0 ? "provisional" : "unrated";
+}
 
 type Rule = { band: RatingBand; when: Condition; because: string };
 type Step = { step: number; when: Condition; because: string };
@@ -63,6 +134,12 @@ export type RatingDoc = {
   controls: { defaultWeight: Band; weight: Record<string, Band> };
   residual: { rules: Step[] };
   appetite: Appetite[];
+  /**
+   * What to say when there is no reading yet. Authored prose in the
+   * edition rather than in code, because what the product says about a
+   * rating is a governance act (G-78).
+   */
+  notYetRated: { inherent: string; residual: string; provisional: string };
 };
 
 /* ---------- the derived namespace ---------- */
@@ -146,6 +223,7 @@ export type RatedControl = {
 export function residualNamespace(input: {
   findings: RatedFinding[];
   controls: RatedControl[];
+  coverage?: Coverage;
 }): AnswerLookup {
   const weightOf = (objective: string): Band =>
     RATING.controls.weight[objective] ?? RATING.controls.defaultWeight;
@@ -176,6 +254,10 @@ export function residualNamespace(input: {
         (f) => f.standing === "settled" && f.settlementKind === "remediation",
       ).length,
     ),
+    // How much of the record is still owed. In the namespace so an edition
+    // can say that an unfinished assessment earns nothing back, rather than
+    // that rule living in code where nobody ratifies it.
+    "coverage.unanswered": n(input.coverage ? owed(input.coverage) : 0),
     "controls.required.any": n(input.controls.length),
     "controls.required.unattested": n(input.controls.filter((c) => !c.attested).length),
     // How many required controls carry high weight. Without this a rule
@@ -201,6 +283,7 @@ export function residualNamespace(input: {
 export function inherentRating(
   assessment: AnswerLookup,
   severities: Record<string, Band | null | undefined>,
+  coverage: Coverage,
 ): Rated {
   const lookup = { ...assessment, ...inherentNamespace(severities) };
   let band = RATING.inherent.default.band;
@@ -212,16 +295,30 @@ export function inherentRating(
     if (rank(rule.band) > rank(band)) band = rule.band;
     because.push(rule.because);
   }
+  const standing = standingOf(coverage, because.length > 0);
+  if (standing === "unrated") {
+    return { band: null, because: [RATING.notYetRated.inherent], standing };
+  }
+  const reasons = because.length > 0 ? because : [RATING.inherent.default.because];
   return {
     band,
-    because: because.length > 0 ? because : [RATING.inherent.default.because],
+    because:
+      standing === "provisional"
+        ? [...reasons, RATING.notYetRated.provisional]
+        : reasons,
+    standing,
   };
 }
 
 export function residualRating(
   inherent: Rated,
-  input: { findings: RatedFinding[]; controls: RatedControl[] },
+  input: { findings: RatedFinding[]; controls: RatedControl[]; coverage: Coverage },
 ): Rated {
+  // No inherent band means no ceiling for a control to reduce. Saying Low
+  // here would be the same defect one step further on.
+  if (inherent.band === null) {
+    return { band: null, because: [RATING.notYetRated.residual], standing: "unrated" };
+  }
   const lookup = residualNamespace(input);
   const ceiling = rank(inherent.band);
   let at = ceiling;
@@ -236,19 +333,35 @@ export function residualRating(
     at = Math.max(0, Math.min(ceiling, at + step.step));
     because.push(step.because);
   }
-  return { band: RATING_BANDS[at]!, because };
+  return { band: RATING_BANDS[at]!, because, standing: inherent.standing };
 }
 
 /** The band an area sits at before controls: its worst severity, as a rating. */
 export function areaRatings(
   severities: Record<string, Band | null | undefined>,
+  asked: string[] = [],
 ): Record<string, Rated> {
   const out: Record<string, Rated> = {};
   const ns = inherentNamespace(severities);
   for (const [field, value] of Object.entries(ns)) {
     const m = /^area\.(.+)\.severity$/.exec(field);
     if (!m || typeof value !== "string") continue;
-    out[m[1]!] = { band: value as RatingBand, because: [`the worst severity answer in this area is ${value}`] };
+    out[m[1]!] = {
+      band: value as RatingBand,
+      because: [`the worst severity answer in this area is ${value}`],
+      standing: "rated",
+    };
+  }
+  // An area whose questions are lit but unanswered used to vanish from the
+  // map, which reads on a report as an area with nothing to say about it.
+  for (const questionId of asked) {
+    const area = AREA_OF_QUESTION.get(questionId);
+    if (!area || out[area] || severities[questionId]) continue;
+    out[area] = {
+      band: null,
+      because: [RATING.notYetRated.inherent],
+      standing: "unrated",
+    };
   }
   return out;
 }
@@ -283,7 +396,9 @@ export function appetiteBreaches(rated: {
           ? rated.areas[line.scope.slice("area:".length)]
           : undefined;
     if (!held) continue;
-    if (rank(held.band) > rank(line.max)) {
+    // A rating with no band asserts nothing, so it can breach nothing. A
+    // provisional one is a floor, so exceeding the line is already certain.
+    if (held.band !== null && rank(held.band) > rank(line.max)) {
       out.push({ scope: line.scope, label: scopeLabel(line.scope), band: held.band, max: line.max, because: line.because, escalateTo: line.escalateTo });
     }
   }
@@ -313,7 +428,11 @@ export function ratingFields(): KnownFields {
     if (field === "activity.atHigh") return "number";
     const m = /^area\.(.+)\.severity$/.exec(field);
     if (m) return areaKeys.has(m[1]!) ? "severity" : "unknown";
-    if (field.startsWith("findings.") || field.startsWith("controls.")) {
+    if (
+      field.startsWith("findings.") ||
+      field.startsWith("controls.") ||
+      field.startsWith("coverage.")
+    ) {
       return NUMERIC.has(field) ? "number" : "unknown";
     }
     return null;
@@ -382,6 +501,11 @@ export function validate(candidate: RatingDoc): RatingDoc {
       problems.push(
         `appetite ${line.scope}: escalates to "${target}", which is neither an administrator nor a risk area\x27s assessor`,
       );
+    }
+  }
+  for (const key of ["inherent", "residual", "provisional"] as const) {
+    if (!candidate.notYetRated?.[key]?.trim()) {
+      problems.push(`notYetRated.${key}: the edition has to say what to show when there is no reading yet`);
     }
   }
   if (problems.length > 0) throw new Error(`Rating edition is invalid:\n- ${problems.join("\n- ")}`);

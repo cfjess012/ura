@@ -54,6 +54,19 @@
   background: var(--rating-critical-tint);
   color: var(--rating-critical-ink);
 }
+.rating-unrated {
+  background: var(--rating-unrated-tint);
+  color: var(--rating-unrated-ink);
+}
+/* A floor that can still rise. A word, never a shade — the band beside it
+   already carries the colour, and state is never colour alone (§23). */
+.rating-sofar {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--neutral-700);
+}
 .rating-breach {
   font-size: 0.7rem;
   font-weight: 800;

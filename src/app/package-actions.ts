@@ -103,6 +103,16 @@ export async function packageState(projectId: string): Promise<
     // through the pure module so a test can hold it. A shared predicate is
     // only shared if every caller actually calls it.
     const now = new Date();
+    // Computed before the gate, because whether there is a reading at all
+    // is one of the things that stops a package (G-81).
+    const rating = rateAssessment({
+      stored,
+      intake,
+      findings,
+      dispositions,
+      attestations,
+      now,
+    });
     const stops = blockers({
       submitted: project.submittedAt !== null,
       required: required.map((o) => ({
@@ -111,6 +121,7 @@ export async function packageState(projectId: string): Promise<
       })),
       attested: [...latest.keys()],
       openFindings: openFindingNames(findings, inForce, now),
+      rated: rating.inherent.standing !== "unrated",
     });
 
     const history = made.map((p) => ({
@@ -125,14 +136,6 @@ export async function packageState(projectId: string): Promise<
     }
 
     const person = await currentPerson();
-    const rating = rateAssessment({
-      stored,
-      intake,
-      findings,
-      dispositions,
-      attestations,
-      now,
-    });
     const payload = assemblePackage({
       rating,
       instrumentVersions: await packageStore().instrumentVersionsFor(projectId),

@@ -1,7 +1,7 @@
 {
   "slug": "risk-rating",
-  "version": "2026-09-03.5",
-  "note": "Fourth edition (G-79, closing the two gaps its verification named). Two changes of substance over .2, both from a risk-management review. First, the residual can never exceed the inherent band: controls reduce risk, they do not create it, so every residual step is zero or negative and the engine clamps at the inherent band. What used to raise the band now says, in the same words, why nothing was earned back. Second, the inherent band reads the profile rather than the single worst answer: a whole risk area must reach High, or two areas must be elevated. The unit of judgement is the risk area, not any one of the twenty-six answers, so adding questions no longer drags every assessment upward.",
+  "version": "2026-09-03.6",
+  "note": "Fifth edition (G-81). The scale could not say \"nobody has assessed this\", so an assessment with nothing answered fell to the default band and read as Low on the screen a reviewer triages from. Two changes. A rating now carries its standing — rated, provisional, or unrated with no band at all — and intake alone can establish a floor, because what a person tells the front door is evidence: AI, a company outside ours, confidential data and information about identifiable people are known before a single risk question is answered. A floor can only rise; it is labelled as provisional wherever it is shown.",
   "bands": [
     "Low",
     "Medium",
@@ -11,7 +11,7 @@
   "inherent": {
     "default": {
       "band": "Low",
-      "because": "nothing answered so far rates higher"
+      "because": "every risk area has an answer, and nothing recorded rates higher"
     },
     "rules": [
       {
@@ -87,6 +87,60 @@
           ]
         },
         "because": "a risk area at High in an activity that is itself High on two or more counts"
+      },
+      {
+        "band": "Medium",
+        "when": {
+          "field": "dataClassification",
+          "equalsAny": [
+            "Confidential",
+            "Restricted"
+          ]
+        },
+        "because": "the most sensitive data involved is confidential or above"
+      },
+      {
+        "band": "High",
+        "when": {
+          "all": [
+            {
+              "field": "dataElements",
+              "includesAny": [
+                "Customer personal information",
+                "Employee personal information",
+                "Applicant personal information",
+                "Partner/Vendor contact personal information"
+              ]
+            },
+            {
+              "field": "gate.ai",
+              "equalsAny": [
+                "Yes"
+              ]
+            }
+          ]
+        },
+        "because": "information about identifiable people is used in an activity that involves AI"
+      },
+      {
+        "band": "High",
+        "when": {
+          "all": [
+            {
+              "field": "dataClassification",
+              "equalsAny": [
+                "Restricted"
+              ]
+            },
+            {
+              "field": "gate.third-party",
+              "equalsAny": [
+                "Yes"
+              ]
+            }
+          ]
+        },
+        "because": "the most sensitive data we hold is involved and a company outside ours is part of it"
       }
     ]
   },
@@ -100,7 +154,7 @@
     }
   },
   "residual": {
-    "note": "Starts at the inherent band and can only fall. A step is never positive — the engine refuses an edition that tries — because a control cannot make an activity riskier than it is before any control exists. A fall has to be earned by evidence: an assessment that required no control at all has demonstrated nothing and stays where it is. A promised fix is a plan, not a control, and earns nothing until a reviewer settles the finding again to say it is done. The zero steps are the reasons nothing was earned back, and they are shown as such — including the commonest one of all, a control still waiting for a signature, which the second edition left the screen silent about.",
+    "note": "Starts at the inherent band and can only fall. A step is never positive — the engine refuses an edition that tries — because a control cannot make an activity riskier than it is before any control exists. A fall has to be earned by evidence: an assessment that required no control at all has demonstrated nothing and stays where it is. An unfinished assessment earns nothing back either. A promised fix is a plan, not a control, and earns nothing until a reviewer settles the finding again to say it is done. The zero steps are the reasons nothing was earned back, and they are shown as such — including the commonest one of all, a control still waiting for a signature, which the second edition left the screen silent about.",
     "rules": [
       {
         "step": 0,
@@ -151,9 +205,21 @@
         "because": "a fix is promised but not yet made, so nothing is earned back"
       },
       {
+        "step": 0,
+        "when": {
+          "field": "coverage.unanswered",
+          "atLeast": 1
+        },
+        "because": "not everything has been answered yet, so nothing is earned back"
+      },
+      {
         "step": -1,
         "when": {
           "all": [
+            {
+              "field": "coverage.unanswered",
+              "atMost": 0
+            },
             {
               "field": "findings.open.any",
               "atMost": 0
@@ -205,5 +271,10 @@
       "because": "personal data above Medium needs the privacy office",
       "escalateTo": "domain:data-privacy"
     }
-  ]
+  ],
+  "notYetRated": {
+    "inherent": "nothing that could rate this has been answered yet — the risk areas and the detail questions are still open",
+    "residual": "there is no inherent rating yet for the controls to reduce",
+    "provisional": "not everything has been answered yet, so this reading can still rise"
+  }
 }

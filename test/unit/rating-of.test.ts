@@ -16,8 +16,24 @@ const mfa = objectivesFor(["T3-IAM-02"])[0]!;
 const said = (value: unknown, source = "person", confirmed = true) => ({ value, source, confirmed });
 const now = new Date("2026-09-03T12:00:00Z");
 
+/**
+ * Every risk area answered — No everywhere except what a case ticks on top.
+ * Without this a fixture leaves risk areas open, and since G-81 an open
+ * assessment is provisional rather than rated, which is the point.
+ */
+const allGatesAnswered = Object.fromEntries(
+  CATEGORIES.filter((c) => !c.alwaysApplies).map((c) => [c.questionId, said("No")]),
+);
+/** Every severity question answered Low. Only the asked ones are read. */
+const allSeverityLow = Object.fromEntries(
+  SEVERITY_QUESTIONS.map((q) => [q.questionId, said("Low")]),
+);
+/** A complete record: nothing outstanding anywhere. */
+const complete = { ...allGatesAnswered, ...allSeverityLow };
+
 /** Third party applies with logical access, provider access High. */
 const stored = {
+  ...complete,
   [thirdParty.questionId]: said("Yes"),
   [thirdParty.pathQuestion!.questionId]: said(["TPR_LA"]),
   [provider]: said("High"),
@@ -41,11 +57,15 @@ describe("what counts as a severity", () => {
   it("reads only the questions the assessment is asking — an unticked part takes its answer with it", () => {
     // The answer stays on record; the question is no longer asked, so the
     // rating no longer reads it (§19, verifier S15-B2).
-    const unticked = { ...lit, [thirdParty.pathQuestion!.questionId]: said([]), [provider]: said("High") };
-    expect(severitiesOf(unticked, {})).toEqual({});
+    const unticked = { ...complete, ...lit, [thirdParty.pathQuestion!.questionId]: said([]), [provider]: said("High") };
+    // The provider answer is on record and no longer read; the questions
+    // this assessment still asks are.
+    expect(severitiesOf(unticked, {})[provider]).toBeUndefined();
     const rated = rateAssessment({ stored: unticked, intake: {}, findings: [], dispositions: [], attestations: [], now });
     expect(rated.inherent.band).toBe("Low");
-    expect(rated.areas).toEqual({});
+    // The area still has the questions its derived parts ask, and they are
+    // Low. What must not happen is the unticked High leaking back into it.
+    expect(rated.areas["third-party"]?.band).toBe("Low");
     // And the whole area said not to apply.
     const gateNo = { ...unticked, [thirdParty.questionId]: said("No") };
     expect(rateAssessment({ stored: gateNo, intake: {}, findings: [], dispositions: [], attestations: [], now }).inherent.band).toBe("Low");
@@ -57,7 +77,7 @@ describe("rating an assessment from its record", () => {
     const rated = rateAssessment({ stored, intake: {}, findings: [], dispositions: [], attestations: [], now });
     expect(rated.inherent.band).toBe("High");
     expect(rated.edition).toBe(RATING_EDITION);
-    expect(rated.edition).toBe("risk-rating@2026-09-03.5");
+    expect(rated.edition).toBe("risk-rating@2026-09-03.6");
     expect(rated.areas["third-party"]?.band).toBe("High");
   });
 

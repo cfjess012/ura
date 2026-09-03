@@ -34,7 +34,7 @@ import policies from "@/data/reference/policies.json";
 
 /** Why an assessment cannot be packaged yet, in a person's words. */
 export type Blocker = {
-  kind: "unattested" | "open-finding" | "not-submitted";
+  kind: "unattested" | "open-finding" | "not-submitted" | "unrated";
   /** What to tell them. */
   says: string;
   /** How many things of this kind — 0 where the count adds nothing. */
@@ -148,10 +148,25 @@ export type Package = {
    * their reasons; never a number.
    */
   rating: {
-    inherent: { band: string; because: string[] };
-    residual: { band: string; because: string[] };
+    /**
+     * A band, or null where nothing had been answered that could rate it.
+     * The standing travels with it: an export that said "Low" for a record
+     * nobody assessed would carry the defect past every screen (G-81).
+     */
+    inherent: { band: string | null; standing: string; because: string[] };
+    residual: { band: string | null; standing: string; because: string[] };
     exceedsAppetite: Array<{ scope: string; label: string; band: string; max: string; because: string; escalateTo: string }>;
     edition: string;
+    /**
+     * How much of the record stood behind the reading. Counts live here and
+     * never in the reasons, which stay free of digits.
+     */
+    coverage: {
+      areasUnanswered: number;
+      partsUnnarrowed: number;
+      severityAsked: number;
+      severityAnswered: number;
+    };
   };
   /**
    * What produced this. A replay against a different instrument version is
@@ -192,6 +207,13 @@ export function blockers(input: {
    * `findingIsOpen` owns that, and an expired acceptance is open (§4.3).
    */
   openFindings: string[];
+  /**
+   * Whether anything has been answered that could rate this. An assessment
+   * with no answers has no unattested control and no open finding, so it
+   * passed every other condition here and exported a reading nobody made
+   * (G-81).
+   */
+  rated?: boolean;
 }): Blocker[] {
   const found: Blocker[] = [];
 
@@ -206,6 +228,16 @@ export function blockers(input: {
     // Everything below is a consequence of that, and listing three symptoms
     // of one cause reads as three problems.
     return found;
+  }
+
+  if (input.rated === false) {
+    found.push({
+      kind: "unrated",
+      says: "Nothing has been answered that could rate this, so the package would carry a reading nobody made. Answer the risk areas and the detail questions first.",
+      count: 0,
+      names: [],
+      href: "/review",
+    });
   }
 
   const signed = new Set(input.attested);
@@ -539,6 +571,7 @@ export function assemblePackage(input: {
         escalateTo: b.escalateTo,
       })),
       edition: input.rating.edition,
+      coverage: input.rating.coverage,
     },
     provenance: {
       packagedAt: new Date().toISOString(),

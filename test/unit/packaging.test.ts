@@ -9,7 +9,7 @@ import {
   openFindingNames,
   packageFilename,
 } from "@/lib/packaging";
-import { RATING_EDITION } from "@/lib/rating";
+import { FULLY_ANSWERED, RATING_EDITION } from "@/lib/rating";
 import type { Rating } from "@/lib/rating-of";
 
 const READY = {
@@ -26,6 +26,19 @@ describe("what stands between an assessment and a package", () => {
   it("lets a finished assessment through", () => {
     expect(blockers(READY)).toEqual([]);
     expect(canPackage(READY)).toBe(true);
+  });
+
+  it("refuses to package a record nothing has rated", () => {
+    // An assessment with no answers has no unattested control and no open
+    // finding, so it passed every other condition and exported a reading
+    // nobody made (G-81).
+    const empty = { submitted: true, required: [], attested: [], openFindings: [], rated: false };
+    expect(canPackage(empty)).toBe(false);
+    const [stop] = blockers(empty);
+    expect(stop!.kind).toBe("unrated");
+    expect(stop!.says).toMatch(/a reading nobody made/);
+    // And it does not stand in the way of one that has been answered.
+    expect(blockers({ ...empty, rated: true })).toEqual([]);
   });
 
   it("refuses an answer nobody signed, and says how many", () => {
@@ -294,14 +307,15 @@ describe("the downloaded filename", () => {
  */
 describe("the rating a package freezes", () => {
   const rating: Rating = {
-    inherent: { band: "Critical", because: ["two or more risk areas are at High"] },
-    residual: { band: "Critical", because: ["inherent rating Critical", "a required control has not been signed off yet, so nothing is earned back"] },
-    areas: { "data-privacy": { band: "High", because: ["the worst severity answer in this area is High"] } },
+    inherent: { band: "Critical", because: ["two or more risk areas are at High"], standing: "rated" },
+    residual: { band: "Critical", because: ["inherent rating Critical", "a required control has not been signed off yet, so nothing is earned back"], standing: "rated" },
+    areas: { "data-privacy": { band: "High", because: ["the worst severity answer in this area is High"], standing: "rated" } },
     breaches: [
       { scope: "assessment", label: "the assessment", band: "Critical", max: "High", because: "a Critical residual rating is outside the stated appetite", escalateTo: "role:admin" },
       { scope: "area:data-privacy", label: "Data & privacy", band: "High", max: "Medium", because: "personal data above Medium needs the privacy office", escalateTo: "domain:data-privacy" },
     ],
     edition: RATING_EDITION,
+    coverage: FULLY_ANSWERED,
   };
   const payload = () =>
     assemblePackage({

@@ -57,6 +57,10 @@
   --rating-high-tint: var(--warning-bg);
   --rating-critical-ink: #c40000;
   --rating-critical-tint: #fde8e8;
+  /* No reading yet. Deliberately not the Low green: an unassessed record
+     must never borrow the colour of a safe one (G-81). 5.9:1 on its tint. */
+  --rating-unrated-ink: #5b4a1f;
+  --rating-unrated-tint: #f3edda;
   /* The marker pen over a gap somebody still has to fill. Yellow because
      that is what a highlighter is, and it has to read as "unfinished"
      beside the orange the platform already uses for "wrong". */

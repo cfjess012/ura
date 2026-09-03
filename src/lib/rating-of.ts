@@ -13,6 +13,7 @@
 import { assessmentLookup, litPaths, pathSelectionsFrom } from "./engine";
 import { CATEGORIES, gateStates } from "./instrument";
 import { BANDS, type AnswerLookup, type Band } from "./conditions";
+import { assessJourney } from "./assess-journey";
 import {
   appetiteBreaches,
   areaRatings,
@@ -20,6 +21,7 @@ import {
   RATING_EDITION,
   residualRating,
   type AppetiteBreach,
+  type Coverage,
   type Rated,
   type RatedControl,
   type RatedFinding,
@@ -33,6 +35,8 @@ export type Rating = {
   residual: Rated;
   areas: Record<string, Rated>;
   breaches: AppetiteBreach[];
+  /** How much of what the rating reads is answered — for the screens, not the reasons. */
+  coverage: Coverage;
   /** The edition whose rules produced this — slug@version, as the seed names it. */
   edition: string;
 };
@@ -84,8 +88,20 @@ export function rateAssessment(input: {
   now: Date;
 }): Rating {
   const { stored, intake, now } = input;
+  const { gates, selections, paths } = litFor(stored, intake);
+  const asked = severityQuestionsFor(paths);
   const severities = severitiesOf(stored, intake);
-  const { gates, selections } = litFor(stored, intake);
+  // What the rating reads, and how much of it has an answer. Both halves
+  // come from derivations that already exist — the journey counts what the
+  // assess stage still owes, and the severity reader is the one definition of a
+  // severity answer that counts (a drafted proposal does not).
+  const journey = assessJourney(stored, intake);
+  const coverage: Coverage = {
+    areasUnanswered: journey.gatesRemaining,
+    partsUnnarrowed: journey.partsRemaining,
+    severityAsked: asked.length,
+    severityAnswered: Object.keys(severities).length,
+  };
   const lookup = assessmentLookup({
     intake,
     gates,
@@ -93,8 +109,8 @@ export function rateAssessment(input: {
     severities,
   });
 
-  const inherent = inherentRating(lookup, severities);
-  const areas = areaRatings(severities);
+  const inherent = inherentRating(lookup, severities, coverage);
+  const areas = areaRatings(severities, asked.map((q) => q.questionId));
 
   // Findings, with the settlement in force — the newest row per finding.
   const inForce = new Map<string, (typeof input.dispositions)[number]>();
@@ -137,12 +153,13 @@ export function rateAssessment(input: {
     };
   });
 
-  const residual = residualRating(inherent, { findings, controls });
+  const residual = residualRating(inherent, { findings, controls, coverage });
   return {
     inherent,
     residual,
     areas,
     breaches: appetiteBreaches({ residual, areas }),
+    coverage,
     edition: RATING_EDITION,
   };
 }
