@@ -49,6 +49,14 @@
   --warning-strong: #d64205;
   --warning-bg: #fff0e5;
   --error: #e40c0c;
+  /* Risk rating bands (FR-50): ink on tint, each pair at or above 4.5:1 for
+     the 13px band word. The state is always the word — never the tint. */
+  --rating-low-ink: #00733a;
+  --rating-low-tint: #e6f6ec;
+  --rating-high-ink: #b83800;
+  --rating-high-tint: var(--warning-bg);
+  --rating-critical-ink: #c40000;
+  --rating-critical-tint: #fde8e8;
   /* The marker pen over a gap somebody still has to fill. Yellow because
      that is what a highlighter is, and it has to read as "unfinished"
      beside the orange the platform already uses for "wrong". */

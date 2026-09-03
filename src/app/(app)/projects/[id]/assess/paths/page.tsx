@@ -16,7 +16,8 @@ import { answerStore } from "@/lib/repo-answers";
 import { NotYourAssessment } from "../../not-yours";
 import { stageOf } from "@/lib/submission";
 import { ProjectHeader } from "../../project-header";
-import { GateRail } from "../gate-rail";
+import { AssessRail } from "../assess-rail";
+import { assessJourney } from "@/lib/assess-journey";
 import { PathsForm, type PathArea } from "./paths-form";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +48,8 @@ export default async function PathsPage({
   if (incomplete) redirect(`/projects/${id}/intake/${incomplete}?needed=1`);
 
   const stored = await answerStore().current(id);
-  const gates = gateStates(stored, intake);
+  const journey = assessJourney(stored, intake);
+  const gates = journey.gates;
   const remaining = unansweredCount(gates);
   // Every gate has to be answered before we can know what to ask about.
   if (remaining > 0) {
@@ -128,7 +130,7 @@ export default async function PathsPage({
       />
 
       <div className="assess-layout">
-        <GateRail projectId={id} states={gates} currentKey="" />
+        <AssessRail projectId={id} journey={journey} at={{ section: "parts" }} />
 
         <section>
           <p className="eyebrow">Step 2 · Which parts apply</p>

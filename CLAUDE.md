@@ -28,7 +28,7 @@ implementation, stop on ambiguity.
   provenance-on-accept (FR-33) remain
 - S3.5 Destinations — BUILT 2026-08-27 (FR-26/FR-27 · NFR-20: the offer with
   a computed count, and the assembled record in three parts with a real
-  payload and no send that pretends). **Not DONE: no uat/S3.5.md and no
+  payload and no send that pretends). **Not finished: no uat/S3.5.md and no
   slice review.** · S4.6 Attachments — blocked on §3.6 retention
 - S8 Review & attest — DONE 2026-08-23 (FR-16/FR-17/FR-18 · NFR-10: the
   reviewer queue, attestation with the keyboard loop, authority derived from
@@ -41,8 +41,19 @@ implementation, stop on ambiguity.
   companion, document drafting, policy authority and breach findings, the
   handoff report, intake scoring. Two verifier FAILs then fixed — see
   uat/S12.md)
-- S9 Package & export, S10 Harden — not started (do not scaffold ahead;
-  SPEC §0 rule 5)
+- S9 Package & export — DONE 2026-08-26 (FR-19/FR-20: packaging gates and
+  the insert-only replayable export; verifier FAIL then fixed — see uat/S9.md)
+- S13 Debts first — DONE 2026-09-03 (G-76: the seven defects the evaluation
+  found, fixed before anything is built on them. Verifier FAIL then fixed —
+  see uat/S13.md). The approved S13–S24 plan lives outside the repo, in the
+  owner's plan file; each slice adds its own §17 row and G-entry.
+- S14 Engine to §6.3 — DONE 2026-09-03 (FR-49/NFR-23, G-77: the full
+  condition language with nesting, the English renderer, the lint at every
+  validator's import. Verifier FAIL then fixed — see uat/S14.md)
+- S15 Risk rating — DONE 2026-09-03 (FR-50/FR-51, G-78: bands with reasons
+  from rating.json, on every summary screen and frozen into the package;
+  edition .2 after the verifier FAILed the first — see uat/S15.md)
+- S10 Harden — not started (do not scaffold ahead; SPEC §0 rule 5)
 - 2026-08-23 level set: SPEC rewritten to the official mission (G-51..G-55);
   agentic on Bedrock/AgentCore was the Phase-2 epic and shipped as S11/S12.
   **The three §6.1 seams exist in code.** The agent is a separate service

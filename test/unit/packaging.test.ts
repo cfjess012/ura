@@ -248,10 +248,14 @@ describe("nothing decides 'open' for itself", () => {
       if (!source.includes("dispositionsFor(")) continue;
       if (file.endsWith("repo-review.ts")) continue; // it is the store itself
       readers += 1;
-      // Directly, or through the pure module that wraps it.
+      // Directly, or through a pure function that wraps it — findingStanding
+      // is findingIsOpen with one more word (S13).
       if (
         !source.includes("findingIsOpen") &&
-        !source.includes("openFindingNames")
+        !source.includes("openFindingNames") &&
+        !source.includes("findingStanding") &&
+        // rateAssessment reaches findingStanding for every finding (S15).
+        !source.includes("rateAssessment")
       ) {
         offenders.push(file.slice(SRC.length + 1));
       }

@@ -1,0 +1,38 @@
+{
+  "slug": "risk-rating",
+  "version": "2026-09-03.2",
+  "note": "First edition, to be ratified by the owner (G-78). Every rule is a condition the one engine evaluates over a derived namespace: worst.severity, areas.atHigh, areas.atMedium, area.<key>.severity, findings.*, controls.* — plus every intake field, gate and part. A rating is a band with its reasons; no number is ever shown.",
+  "bands": ["Low", "Medium", "High", "Critical"],
+  "inherent": {
+    "default": { "band": "Low", "because": "nothing answered so far rates higher" },
+    "rules": [
+      { "band": "Medium", "when": { "field": "worst.severity", "severityAtLeast": "Medium" }, "because": "at least one severity answer is Medium or higher" },
+      { "band": "High", "when": { "field": "worst.severity", "severityAtLeast": "High" }, "because": "at least one severity answer is High" },
+      { "band": "Critical", "when": { "field": "areas.atHigh", "atLeast": 2 }, "because": "two or more risk areas are at High" },
+      { "band": "Critical", "when": { "all": [ { "field": "area.data-privacy.severity", "severityAtLeast": "High" }, { "field": "gate.ai", "equalsAny": ["Yes"] } ] }, "because": "personal data at High severity in an activity that uses AI" }
+    ]
+  },
+  "controls": {
+    "defaultWeight": "Medium",
+    "weight": {
+      "T3-IAM-02": "High",
+      "T3-IAM-03": "High",
+      "T3-DP-01": "High",
+      "T3-NB-02": "High"
+    }
+  },
+  "residual": {
+    "note": "Starts from the inherent band and moves by whole bands, never above Critical or below Low; every step names its reason.",
+    "rules": [
+      { "step": 1, "when": { "field": "findings.open.nonCompliance", "atLeast": 1 }, "because": "an answer contradicts a policy clause and nothing has settled it" },
+      { "step": 1, "when": { "field": "findings.open.gapOnHighWeight", "atLeast": 1 }, "because": "a high-weight control is not in place and nothing has settled it" },
+      { "step": 1, "when": { "field": "findings.overdue", "atLeast": 1 }, "because": "a promised fix is past its date" },
+      { "step": 0, "when": { "field": "findings.accepted", "atLeast": 1 }, "because": "a risk is accepted for now — the rating holds until the acceptance lapses" },
+      { "step": -1, "when": { "all": [ { "field": "findings.open.any", "atMost": 0 }, { "field": "controls.required.unattested", "atMost": 0 }, { "field": "controls.attested.highWeightYes", "atLeast": 1 } ] }, "because": "every required control is attested and the high-weight ones are in place" }
+    ]
+  },
+  "appetite": [
+    { "scope": "assessment", "max": "High", "because": "a Critical residual rating is outside the stated appetite", "escalateTo": "role:admin" },
+    { "scope": "area:data-privacy", "max": "Medium", "because": "personal data above Medium needs the privacy office", "escalateTo": "domain:data-privacy" }
+  ]
+}

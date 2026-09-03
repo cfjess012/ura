@@ -318,3 +318,12 @@
     background: var(--surface-2);
   }
 }
+
+/* The controls required and never asked about (S13): the same muted mark a
+   recorded area wears, so the two readings of "we did not ask" match. */
+.report-area.report-recorded .report-area-name {
+  color: var(--neutral-700);
+}
+.report-area.report-recorded {
+  border-left: 3px solid var(--neutral-300);
+}

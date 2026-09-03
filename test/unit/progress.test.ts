@@ -28,6 +28,7 @@ const NONE: ReviewCounts = {
   openGaps: [],
   openEnhancements: [],
   openViolations: [],
+      overdueRemediations: [],
   declaredGaps: 0,
 };
 

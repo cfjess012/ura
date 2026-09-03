@@ -556,7 +556,7 @@ export async function answerObjectives(
       Object.entries(shaped).map(([questionId, value]) => ({
         projectId,
         questionId,
-        value: value as unknown as string,
+        value,
         source: "person",
         confirmed: true,
         instrumentVersionId: versionId,

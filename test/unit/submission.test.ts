@@ -12,6 +12,7 @@ import {
   stageOf,
   submissionProblem,
   synthesiseFindings,
+  findingStanding,
 } from "@/lib/submission";
 import { OBJECTIVES, childrenAsked, type Tier3Value } from "@/lib/tier3";
 
@@ -181,5 +182,38 @@ describe("submission is a one-way fact, not a status (§4.1)", () => {
     // describe a record that no longer exists.
     expect(editableAfter(null)).toBe(true);
     expect(editableAfter(new Date())).toBe(false);
+  });
+});
+
+describe("where a finding stands, in one word (S13)", () => {
+  const now = new Date("2026-09-02T12:00:00Z");
+  const day = (iso: string) => new Date(iso);
+
+  it("is open with nothing settling it", () => {
+    expect(findingStanding(null, now)).toBe("open");
+  });
+
+  it("is settled by a correction, an N-A, or a remediation still within its date", () => {
+    expect(findingStanding({ kind: "answer-corrected", expiresAt: null, remediationDue: null }, now)).toBe("settled");
+    expect(findingStanding({ kind: "not-applicable", expiresAt: null, remediationDue: null }, now)).toBe("settled");
+    expect(
+      findingStanding({ kind: "remediation", expiresAt: null, remediationDue: day("2026-12-01") }, now),
+    ).toBe("settled");
+  });
+
+  it("is overdue once a remediation's promised date has passed", () => {
+    // The date was stored and read by nothing (S13 audit, defect g).
+    expect(
+      findingStanding({ kind: "remediation", expiresAt: null, remediationDue: day("2026-06-30") }, now),
+    ).toBe("overdue");
+  });
+
+  it("is reopened when an acceptance has lapsed, and settled while it holds", () => {
+    expect(
+      findingStanding({ kind: "risk-accepted", expiresAt: day("2026-06-30"), remediationDue: null }, now),
+    ).toBe("reopened");
+    expect(
+      findingStanding({ kind: "risk-accepted", expiresAt: day("2027-06-30"), remediationDue: null }, now),
+    ).toBe("settled");
   });
 });

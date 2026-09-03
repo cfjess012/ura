@@ -11,6 +11,7 @@ import {
 } from "@/app/agent-actions";
 import { applyIntakeFix } from "@/app/actions";
 import { Marked } from "../marked";
+import { CheckStopped, type Stopped } from "./check-stopped";
 import { isFailure } from "@/lib/errors";
 import {
   clashSides,
@@ -54,6 +55,7 @@ export function CoherenceCheck({
   const [result, setResult] = React.useState<Coherence | null>(null);
   const [running, setRunning] = React.useState(false);
   const [rewritable, setRewritable] = React.useState<string[]>([]);
+  const [stopped, setStopped] = React.useState<Stopped | null>(null);
   const dialog = React.useRef<HTMLDialogElement>(null);
   const opener = React.useRef<HTMLButtonElement>(null);
 
@@ -87,6 +89,12 @@ export function CoherenceCheck({
   async function run() {
     if (running) return;
     setRunning(true);
+    setStopped(null);
+    // Whether their words reached the record before anything went wrong.
+    // The difference decides whether the message may promise the work is
+    // safe, and a promise made on the wrong side of it is the one thing a
+    // failure message must never get wrong.
+    let stored = false;
     try {
       const saved = await save();
       if (!saved) {
@@ -95,13 +103,46 @@ export function CoherenceCheck({
         setResult(null);
         return;
       }
+      stored = true;
       const outcome = await checkIntake(projectId);
-      setResult(isFailure(outcome) ? null : outcome.coherence);
-      setRewritable(isFailure(outcome) ? [] : outcome.rewritable);
+      if (isFailure(outcome)) {
+        // A refusal the rules intended — not yours to work on. It carries
+        // its own sentence and its own verdict on retrying.
+        setResult(null);
+        setStopped({
+          message: outcome.message,
+          retryable: outcome.retryable,
+          ...(outcome.ref ? { ref: outcome.ref } : {}),
+        });
+        return;
+      }
+      if (outcome.why) {
+        // Nothing read, and now it says which nothing. Every sentence here
+        // is written once in `assistant-trouble.ts`, so the rewrite button,
+        // the chat and this button all word one fault the same way.
+        const told = tellTrouble(outcome.why, "check");
+        setResult(null);
+        setStopped({
+          message: told.message,
+          retryable: told.retryable,
+          ...(outcome.ref ? { ref: outcome.ref } : {}),
+        });
+        return;
+      }
+      setResult(outcome.coherence);
+      setRewritable(outcome.rewritable);
     } catch (cause) {
-      // Fails open, like everything else about this.
+      // The action never ran — offline, or a deploy mid-request. That is a
+      // different sentence from the agent having failed, because what is
+      // in doubt is different: here it is whether the save landed.
       console.error("checkIntake transport", cause);
       setResult(null);
+      setStopped({
+        message: stored
+          ? "The check didn’t reach the server, so nothing was read. Your answers were saved first, so nothing you wrote was lost — try again in a moment."
+          : "The check didn’t reach the server. Nothing was saved and nothing was read, so everything you typed is still on screen exactly as you left it — try again in a moment.",
+        retryable: true,
+      });
     } finally {
       setRunning(false);
     }
@@ -121,6 +162,12 @@ export function CoherenceCheck({
       </button>
 
       {running && <Thinking doing="Reading your whole intake" usually={18} />}
+
+      {/* The check did not run. Loud enough to be an outcome, because the
+          quiet version of this was reported as the button doing nothing. */}
+      {stopped && !running && (
+        <CheckStopped stopped={stopped} onRetry={() => void run()} />
+      )}
 
       {/* Short answers stay on the page. */}
       {result && !running && !full && (
@@ -226,15 +273,6 @@ function Result({
             Add to it →
           </Link>
         )}
-      </p>
-    );
-  }
-
-  if (result.score === null && result.asks.length === 0) {
-    return (
-      <p className="help coherence-nocheck" role="status">
-        I couldn&rsquo;t check this one just now — carry on, and a reviewer
-        picks up anything thin.
       </p>
     );
   }

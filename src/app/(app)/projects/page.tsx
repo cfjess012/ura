@@ -14,6 +14,9 @@ import { intakeValuesFrom } from "@/lib/intake-values";
 import { ownStanding } from "@/lib/progress";
 import { ProgressMeter } from "@/app/(app)/progress-meter";
 import { StartForm } from "./start-form";
+import { reviewStore, submissionStore } from "@/lib/repo-review";
+import { RatingChip } from "@/app/(app)/rating-chip";
+import { rateAssessment, type Rating } from "@/lib/rating-of";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +92,38 @@ export default async function Projects({
   const queue = reviewerQueue(submitted, new Date(), mine, (objectiveId) =>
     mayAttest(person, objectiveId),
   );
+  // The residual rating per submitted assessment, so the queue can be read
+  // by how risky each one stands, not only by what it is waiting for
+  // (FR-50). One read of the answers for all rows, then the findings,
+  // settlements and signatures per row — a reviewer's list is short; S22's
+  // register moves this into one query.
+  const ratings = new Map<string, Rating>();
+  if (everyone && submitted.length > 0) {
+    const now = new Date();
+    const answersFor = await answerStore().currentFor(submitted.map((p) => p.id));
+    await Promise.all(
+      submitted.map(async (p) => {
+        const [findings, dispositions, attestations, record] = await Promise.all([
+          submissionStore().findingsFor(p.id),
+          reviewStore().dispositionsFor(p.id),
+          reviewStore().attestationsFor(p.id),
+          projectStore().get(p.id),
+        ]);
+        if (!record) return;
+        ratings.set(
+          p.id,
+          rateAssessment({
+            stored: answersFor.get(p.id) ?? {},
+            intake: intakeValuesFrom(record as unknown as Record<string, unknown>),
+            findings,
+            dispositions,
+            attestations,
+            now,
+          }),
+        );
+      }),
+    );
+  }
 
   return (
     <main>
@@ -173,6 +208,16 @@ export default async function Projects({
                           {entry.aged}
                         </span>
                       </div>
+                      {ratings.get(entry.id) && (
+                        <div className="rating-row">
+                          <RatingChip
+                            label="Residual"
+                            rated={ratings.get(entry.id)!.residual}
+                            breaches={ratings.get(entry.id)!.breaches}
+                            compact
+                          />
+                        </div>
+                      )}
                       <p className="meta">
                         {entry.businessUnit ? `${entry.businessUnit} · ` : ""}
                         {entry.startedBy ? `${entry.startedBy} · ` : ""}
@@ -198,7 +243,10 @@ export default async function Projects({
                           (i) =>
                             i.kind === "violation" ||
                             i.kind === "gap" ||
-                            i.kind === "enhancement",
+                            i.kind === "enhancement" ||
+                            // A fix past its date is settled again from the
+                            // same door (S13, findingStanding).
+                            i.kind === "overdue",
                         ) && (
                           <Link
                             className="btn ghost"

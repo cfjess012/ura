@@ -168,3 +168,32 @@ describe("a proposed scenario must cite something that is really there", () => {
     ).toHaveLength(1);
   });
 });
+
+describe("the boundary reaches the report (S13)", () => {
+  it("names the controls required and never asked about, with their reasons", () => {
+    const report = build({
+      recorded: [
+        {
+          objective: "T3-AI-03",
+          name: "Fairness & Bias Testing",
+          because: ["AI Decision Impact is High"],
+        },
+      ],
+    });
+    expect(report.controlsRecorded).toEqual([
+      {
+        objective: "T3-AI-03",
+        name: "Fairness & Bias Testing",
+        because: ["AI Decision Impact is High"],
+      },
+    ]);
+    expect(report.counts.controlsRecorded).toBe(1);
+    // Not counted among the answered: "we never asked" is a different fact.
+    expect(report.counts.controlsAnswered).toBe(2);
+  });
+
+  it("is an empty list, not an absence, when everything required was asked", () => {
+    expect(build().controlsRecorded).toEqual([]);
+    expect(build().counts.controlsRecorded).toBe(0);
+  });
+});

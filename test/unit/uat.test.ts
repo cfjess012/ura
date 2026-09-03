@@ -17,6 +17,29 @@ import { describe, expect, it } from "vitest";
 // (enforcement-layer verification, gate 2).
 import { doneSlices } from "../../scripts/lib/slices.mjs";
 
+describe("the slice-status parser reads what the line actually says", () => {
+  const block = (body: string) => `## Slice status\n\n${body}\n\n## Commands\n`;
+
+  it("takes a slice that says DONE, however it is decorated", () => {
+    expect(doneSlices(block("- S4.8 Declared boundaries — **DONE** 2026-08-23"))).toEqual(["S4.8"]);
+  });
+
+  it("does NOT take one that says it is not done", () => {
+    // This exact line tripped the Stop gate on 2026-08-27: the gate demanded
+    // a UAT record for a slice whose own line said it had none.
+    expect(
+      doneSlices(block("- S3.5 Destinations — BUILT 2026-08-27. **Not DONE: no uat/S3.5.md.**")),
+    ).toEqual([]);
+  });
+
+  it("still takes a finished slice whose line mentions something else undone", () => {
+    // The dangerous inverse: a broad "contains not" rule would hide this.
+    expect(
+      doneSlices(block("- S6 Tier 3 — DONE 2026-08-23 (FR-21 not yet met, deferred to S8)")),
+    ).toEqual(["S6"]);
+  });
+});
+
 const ROOT = join(__dirname, "..", "..");
 const spec = readFileSync(join(ROOT, "SPEC.md"), "utf8");
 const specVersion = spec.match(/^spec-version:\s*(.+)$/m)![1]!.trim();

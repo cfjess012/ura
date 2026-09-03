@@ -15,6 +15,7 @@
  * Pure: no framework, no driver, no environment (§26.1).
  */
 import type { Category, GateState } from "./instrument";
+import type { AccumulatedControl } from "./severity";
 import type { Tier3Objective, Tier3Value } from "./tier3";
 import type { SynthesisedFinding } from "./submission";
 import { authorityFor } from "./policy";
@@ -83,6 +84,8 @@ export type ReportFinding = {
      * packaging bug again, one screen earlier.
      */
     open: boolean;
+    /** A remediation whose promised date has passed (`findingStanding`). */
+    overdue?: boolean;
   } | null;
 };
 
@@ -92,6 +95,14 @@ export type Report = {
   areasThatApply: ReportArea[];
   severities: Array<{ name: string; band: string }>;
   controls: ReportControl[];
+  /**
+   * Controls this activity requires that the pilot asks no question about
+   * — named with the reasons they accumulated, because the objectives
+   * screen declares them and the report and the package did not (S13
+   * audit, defect d). A record that lists only the answered controls lets
+   * a reader count answers and conclude the assessment was complete.
+   */
+  controlsRecorded: Array<{ objective: string; name: string; because: string[] }>;
   findings: ReportFinding[];
   /** Questions nobody answered, named so the reviewer is not surprised. */
   unanswered: string[];
@@ -100,6 +111,7 @@ export type Report = {
     areasClosed: number;
     controlsRequired: number;
     controlsAnswered: number;
+    controlsRecorded: number;
     findings: number;
     breaches: number;
   };
@@ -118,6 +130,8 @@ export function reportFrom(input: {
   states: GateState[];
   severityBands: Array<{ name: string; band: string }>;
   required: Tier3Objective[];
+  /** Required and recorded for a reviewer, with no question to answer. */
+  recorded?: AccumulatedControl[];
   values: Record<string, Tier3Value | undefined>;
   findings: Array<SynthesisedFinding & { id?: string }>;
   asksNothingFurther: (key: string) => boolean;
@@ -132,6 +146,7 @@ export function reportFrom(input: {
       owner: string | null;
       due: string | null;
       open: boolean;
+      overdue?: boolean;
     }
   >;
 }): Report {
@@ -195,6 +210,11 @@ export function reportFrom(input: {
     areasThatApply,
     severities: input.severityBands,
     controls,
+    controlsRecorded: (input.recorded ?? []).map((c) => ({
+      objective: c.objective,
+      name: c.name,
+      because: c.because,
+    })),
     findings,
     unanswered,
     counts: {
@@ -203,6 +223,7 @@ export function reportFrom(input: {
       areasClosed: areasThatApply.filter((a) => a.standing === "closed").length,
       controlsRequired: input.required.length,
       controlsAnswered: controls.length,
+      controlsRecorded: (input.recorded ?? []).length,
       findings: findings.length,
       breaches: findings.filter((f) => f.kind === "non-compliance").length,
     },

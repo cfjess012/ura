@@ -68,12 +68,44 @@ const TOLD: Record<Trouble, TroubleTold> = {
   },
 };
 
+/**
+ * The same six faults, worded for a surface that CHECKS rather than writes.
+ *
+ * One fault must not have two wordings, which is why they all live here —
+ * but "nothing was drafted" is a false statement on a button that reads the
+ * intake and grades it, and a message that misnames the act it failed at is
+ * a worse kind of wrong than an inconsistent one. Same fault, same verdict
+ * on retrying, same promise about their work; only the act changes.
+ */
+const TOLD_CHECKING: Record<Trouble, string> = {
+  unreachable:
+    "The assistant isn’t running, so nothing was checked. Your answers are saved and untouched — ask whoever set this up to start the assistant.",
+  auth: "The assistant’s access to Claude was rejected — usually an expired or missing API key. That needs someone to fix the key; trying again won’t help. Your answers are saved and untouched.",
+  rate: "Claude is rate-limiting us at the moment, so the check had to stop. Give it a minute and try again — nothing you wrote was lost.",
+  overloaded:
+    "Claude is overloaded right now and couldn’t read this. That usually clears in a moment — try again shortly. Nothing you wrote was lost.",
+  network:
+    "The assistant couldn’t reach Claude — that looks like a network problem on our side, not anything you wrote. Your answers are saved and untouched.",
+  unavailable:
+    "The assistant answered with nothing usable just then. That’s about us, not your writing — worth trying once more. Nothing you wrote was lost.",
+};
+
 /** Is this one of the troubles, rather than a judgement about their text? */
 export function isTrouble(why: string): why is Trouble {
   return why in TOLD;
 }
 
-/** The sentence for a trouble, and whether trying again could help. */
-export function tellTrouble(why: Trouble): TroubleTold {
-  return TOLD[why];
+/**
+ * The sentence for a trouble, and whether trying again could help.
+ *
+ * `act` picks the voice: what the assistant failed to do. Whether waiting
+ * helps is a property of the fault, never of the surface, so it is the same
+ * either way.
+ */
+export function tellTrouble(
+  why: Trouble,
+  act: "draft" | "check" = "draft",
+): TroubleTold {
+  const told = TOLD[why];
+  return act === "check" ? { ...told, message: TOLD_CHECKING[why] } : told;
 }

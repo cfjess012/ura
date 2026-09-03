@@ -8,6 +8,7 @@ const NONE: ReviewCounts = {
   openGaps: [],
   openEnhancements: [],
   openViolations: [],
+  overdueRemediations: [],
   declaredGaps: 0,
 };
 
@@ -100,5 +101,25 @@ describe("what a submitted assessment is still waiting for", () => {
     const counts = { ...NONE, answeredIds: ["t3.a"], attestedIds: ["t3.a"] };
     expect(reviewStanding("p1", counts)).toEqual([]);
     expect(needsReviewer(counts)).toBe(false);
+  });
+});
+
+describe("a promised fix past its date is the reviewer's business (S13)", () => {
+  it("stands as overdue, scoped to the domain that owns the control", () => {
+    const counts = { ...NONE, overdueRemediations: ["T3-IAM-02", "T3-DP-01"] };
+    const standing = reviewStanding("p1", counts, () => true, (o) => o === "T3-IAM-02");
+    const overdue = standing.find((s) => s.kind === "overdue");
+    expect(overdue?.count).toBe(1);
+    expect(overdue?.label).toMatch(/past its due date/);
+    expect(overdue?.href).toContain("#findings");
+  });
+
+  it("keeps the assessment on the reviewer's list until it is chased or re-settled", () => {
+    // `remediation_due` was stored and read by nothing; a settled row looked
+    // finished in July about a fix promised for June.
+    expect(needsReviewer({ ...NONE, overdueRemediations: ["T3-IAM-02"] })).toBe(true);
+    expect(
+      needsReviewer({ ...NONE, overdueRemediations: ["T3-IAM-02"] }, () => true, () => false),
+    ).toBe(false);
   });
 });

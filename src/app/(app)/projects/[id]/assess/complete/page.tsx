@@ -22,7 +22,8 @@ import { NotYourAssessment } from "../../not-yours";
 import { answerStore } from "@/lib/repo-answers";
 import { stageOf } from "@/lib/submission";
 import { ProjectHeader } from "../../project-header";
-import { GateRail } from "../gate-rail";
+import { AssessRail } from "../assess-rail";
+import { assessJourney } from "@/lib/assess-journey";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,8 @@ export default async function GatesCompletePage({
   const incomplete = firstIncompleteSection(intake);
   if (incomplete) redirect(`/projects/${id}/intake/${incomplete}?needed=1`);
   const stored = await answerStore().current(id);
-  const states = gateStates(stored, intake);
+  const journey = assessJourney(stored, intake);
+  const states = journey.gates;
   const remaining = unansweredCount(states);
   const applies = states.filter((s) => s.answer === "Yes");
   const closed = states.filter((s) => s.answer === "No");
@@ -113,7 +115,7 @@ export default async function GatesCompletePage({
       />
 
       <div className="assess-layout">
-        <GateRail projectId={id} states={states} currentKey="" />
+        <AssessRail projectId={id} journey={journey} at={null} />
 
         <section>
           <p className="eyebrow">Where this assessment stands</p>

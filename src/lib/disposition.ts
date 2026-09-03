@@ -174,6 +174,19 @@ export function reopenedBecause(
   return `The acceptance expired on ${asDay(row.expiresAt)}, so this is open again.`;
 }
 
+/**
+ * A remediation past its due date, in words — so a reviewer reads "the fix
+ * was promised for June" rather than a settled-looking row in July.
+ */
+export function overdueBecause(
+  row: { kind: string; remediationDue: Date | null } | null,
+  now: Date,
+): string | null {
+  if (!row || row.kind !== "remediation" || !row.remediationDue) return null;
+  if (row.remediationDue >= now) return null;
+  return `The fix was due on ${asDay(row.remediationDue)} and nothing has closed it, so this is overdue.`;
+}
+
 function isRealDate(value: string): boolean {
   const at = new Date(value);
   return !Number.isNaN(at.getTime());

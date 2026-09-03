@@ -322,3 +322,34 @@ export function findingIsOpen(
   if (disposition.kind !== "risk-accepted") return false;
   return disposition.expiresAt === null || disposition.expiresAt <= now;
 }
+
+/**
+ * Where a finding stands, in one word — the reading the queue, the review
+ * and the report all give. `findingIsOpen` answers yes or no; this says
+ * which kind of no. A remediation is settled the day it is recorded and
+ * overdue the day after its promise lapses, and until S13 nothing read the
+ * date at all (`remediation_due` was stored and never consulted).
+ */
+export type FindingStanding = "open" | "settled" | "overdue" | "reopened";
+
+export function findingStanding(
+  disposition: {
+    kind: string;
+    expiresAt: Date | null;
+    remediationDue: Date | null;
+  } | null,
+  now: Date,
+): FindingStanding {
+  if (disposition === null) return "open";
+  if (disposition.kind === "risk-accepted") {
+    return findingIsOpen(disposition, now) ? "reopened" : "settled";
+  }
+  if (
+    disposition.kind === "remediation" &&
+    disposition.remediationDue !== null &&
+    disposition.remediationDue < now
+  ) {
+    return "overdue";
+  }
+  return "settled";
+}

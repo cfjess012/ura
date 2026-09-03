@@ -1,4 +1,6 @@
 "use server";
+import { findingStanding } from "@/lib/submission";
+import { rateAssessment, type Rating } from "@/lib/rating-of";
 
 /**
  * Assembling and recording a package (SPEC §4.5).
@@ -76,9 +78,12 @@ export async function packageState(projectId: string): Promise<
     const intake = intakeValuesFrom(
       project as unknown as Record<string, unknown>,
     );
-    const required = objectivesFor(
-      accumulatedFor(stored, intake).map((c) => c.objective),
-    );
+    const owed = accumulatedFor(stored, intake);
+    const required = objectivesFor(owed.map((c) => c.objective));
+    // The controls the pilot asks nothing about, kept by name so the export
+    // says what was required and never asked (S13, defect d).
+    const askable = new Set(required.map((o) => o.id));
+    const recorded = owed.filter((c) => !askable.has(c.objective));
     // The most recent attestation per question is the one that stands —
     // re-attesting appends, it does not replace (§4.2).
     const latest = new Map<string, (typeof attestations)[number]>();
@@ -118,17 +123,28 @@ export async function packageState(projectId: string): Promise<
     }
 
     const person = await currentPerson();
+    const rating = rateAssessment({
+      stored,
+      intake,
+      findings,
+      dispositions,
+      attestations,
+      now,
+    });
     const payload = assemble({
+      rating,
       instrumentVersions: await packageStore().instrumentVersionsFor(projectId),
       project,
       intake,
       stored,
       required,
+      recorded,
       latest,
       findings,
       settlements: inForce,
       everyone,
       by: person.name,
+      now,
     });
     return { ok: true as const, blockers: [], payload, history };
   } catch (error) {
@@ -220,6 +236,8 @@ function assemble(input: {
   intake: Record<string, unknown>;
   stored: Record<string, { value: unknown }>;
   required: Array<{ id: string; questionId: string; name: string }>;
+  recorded: Array<{ objective: string; name: string; because: string[] }>;
+  rating: Rating;
   latest: Map<
     string,
     {
@@ -253,6 +271,7 @@ function assemble(input: {
   >;
   everyone: Array<{ id: string; name: string }>;
   by: string;
+  now: Date;
   instrumentVersions: Array<{ slug: string; version: string }>;
 }): Package {
   const {
@@ -339,6 +358,10 @@ function assemble(input: {
         : {}),
       settlement: {
         kind: d?.kind ?? "",
+        standing:
+          findingStanding(d ?? null, input.now) === "overdue"
+            ? ("overdue" as const)
+            : ("settled" as const),
         note: d?.note ?? "",
         resolvedBy: who(d?.resolvedBy ?? null),
         resolvedAt: d?.resolvedAt?.toISOString() ?? "",
@@ -360,7 +383,27 @@ function assemble(input: {
     },
     coverage,
     answers,
+    controlsRecorded: input.recorded.map((c) => ({
+      objective: c.objective,
+      name: c.name,
+      because: c.because,
+    })),
     findings: packagedFindings,
+    rating: {
+      inherent: input.rating.inherent,
+      residual: input.rating.residual,
+      // The whole breach, including where it was routed — a replayable record
+      // has to say who the breach went to, not only that it happened.
+      exceedsAppetite: input.rating.breaches.map((b) => ({
+        scope: b.scope,
+        label: b.label,
+        band: b.band,
+        max: b.max,
+        because: b.because,
+        escalateTo: b.escalateTo,
+      })),
+      edition: input.rating.edition,
+    },
     provenance: {
       packagedAt: new Date().toISOString(),
       packagedBy: input.by,

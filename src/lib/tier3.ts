@@ -11,7 +11,11 @@
  */
 import doc from "@/data/instrument/tier3.json";
 import { matches, type AnswerLookup, type Condition } from "./conditions";
-import { controlName } from "./severity";
+import { knownFields } from "./condition-known";
+import { lintConditions } from "./condition-lint";
+import { CATEGORIES } from "./instrument";
+import { ALL_FIELDS } from "./intake";
+import { controlName, SEVERITY_QUESTIONS } from "./severity";
 
 /** The four answers, worst-consequence order preserved from §3.4. */
 export const TIER3_ANSWERS = ["Yes", "Partial", "No", "N-A"] as const;
@@ -54,6 +58,13 @@ function validate(candidate: Tier3Doc): Tier3Doc {
     throw new Error(`tier3.json: ${why}`);
   };
   if (candidate.objectives.length === 0) fail("has no objectives");
+  const known = knownFields({
+    areas: CATEGORIES,
+    intake: ALL_FIELDS,
+    severityQuestionIds: SEVERITY_QUESTIONS.map((q) => q.questionId),
+    canSeePaths: true,
+    allowsBlank: false,
+  });
   const declared = new Set(candidate.answers);
   for (const answer of TIER3_ANSWERS) {
     if (!declared.has(answer))
@@ -70,6 +81,12 @@ function validate(candidate: Tier3Doc): Tier3Doc {
         fail(`question id "${id}" is not namespaced t3.`);
     }
     if (!objective.text.trim()) fail(`${objective.id} has no question text`);
+    // A follow-up's condition must read something that exists and be able
+    // to fire — a typo here was a child that silently never appeared (S14).
+    for (const child of objective.children) {
+      const problems = lintConditions(child.when ?? [], `${child.id}`, known);
+      if (problems.length > 0) fail(problems.join("; "));
+    }
     // A control nobody can be asked about is content that never reaches a
     // person — the reachability rule, one tier down (audit C-10).
     if (!controlName(objective.id))

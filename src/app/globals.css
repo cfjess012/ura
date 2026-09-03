@@ -16,5 +16,7 @@
 @import "./styles/report.css";
 @import "./styles/record.css";
 @import "./styles/admin.css";
+@import "./styles/model.css";
+@import "./styles/rating.css";
 @import "./styles/landing.css";
 @import "./styles/status.css";

@@ -328,7 +328,19 @@ export function DomainDossier({
                       {/* Never invented. A finding nobody has settled has
                           no owner, and writing one in would put a name
                           against work nobody agreed to do. */}
-                      {finding.settlement?.open ? (
+                      {finding.settlement?.overdue ? (
+                        // Settled is not finished: the fix was promised for
+                        // a date that has passed — and the owner stays on
+                        // the row, because this is the moment a reader
+                        // needs the name (S13, findingStanding).
+                        <>
+                          {finding.settlement.owner}
+                          <br />
+                          <span className="chip chip-gap">
+                            Overdue — promised for {finding.settlement.due}
+                          </span>
+                        </>
+                      ) : finding.settlement?.open ? (
                         // A settlement that has lapsed is not a settlement.
                         // Showing "risk accepted" here would tell a reader
                         // somebody has this in hand when nobody does.

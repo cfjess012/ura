@@ -9,12 +9,15 @@ import { peopleStore, submissionStore } from "@/lib/repo";
 import { answerStore } from "@/lib/repo-answers";
 import { reviewStore } from "@/lib/repo-review";
 import { accumulatedFor, asksNothingFurther, SEVERITY } from "@/lib/severity";
-import { findingIsOpen } from "@/lib/submission";
+import { findingIsOpen, findingStanding } from "@/lib/submission";
 import { reportFrom, standingLine } from "@/lib/report";
 import { domainForObjective } from "@/lib/attestation";
 import { domainSlices, severityAreaOf } from "@/lib/report-domains";
 import { isTier3Value, objectivesFor, type Tier3Value } from "@/lib/tier3";
 import { NotYourAssessment } from "../not-yours";
+import { RatingChip } from "@/app/(app)/rating-chip";
+import { rateAssessment } from "@/lib/rating-of";
+import { CATEGORIES } from "@/lib/instrument";
 import { DomainDossier } from "./domain-dossier";
 import { ReportSummary, SummaryPending } from "./summary";
 
@@ -54,6 +57,10 @@ export default async function ReportPage({
   const states = gateStates(stored, intake);
   const accumulated = accumulatedFor(stored, intake);
   const required = objectivesFor(accumulated.map((c) => c.objective));
+  // Required, and never asked about: the pilot's boundary, carried into
+  // the one reading that outlives the screen which declares it (S13).
+  const askable = new Set(required.map((o) => o.id));
+  const recorded = accumulated.filter((c) => !askable.has(c.objective));
 
   const values: Record<string, Tier3Value> = {};
   for (const [questionId, answer] of Object.entries(stored)) {
@@ -97,6 +104,7 @@ export default async function ReportPage({
       owner: string | null;
       due: string | null;
       open: boolean;
+      overdue: boolean;
     }
   >();
   const now = new Date();
@@ -106,13 +114,27 @@ export default async function ReportPage({
       kind: row.kind,
       by: named(row.resolvedBy),
       owner: row.remediationOwner ? named(row.remediationOwner) : null,
-      due: row.remediationDue ? row.remediationDue.toLocaleDateString() : null,
+      // In UTC, like the review's `asDay`: a date field stores midnight
+      // UTC, and a local read printed the day before (S13 verifier F3).
+      due: row.remediationDue
+        ? row.remediationDue.toLocaleDateString(undefined, { timeZone: "UTC" })
+        : null,
       // The one rule for "open" (§4.3). A settled row is not a settled
       // finding: an acceptance past its expiry reopens, and a report that
       // read the row alone would say "risk accepted" about a live gap.
       open: findingIsOpen(row, now),
+      overdue: findingStanding(row, now) === "overdue",
     });
   }
+
+  const rating = rateAssessment({
+    stored,
+    intake,
+    findings,
+    dispositions: disposed,
+    attestations: attested,
+    now,
+  });
 
   const report = reportFrom({
     activity:
@@ -131,6 +153,7 @@ export default async function ReportPage({
     states,
     severityBands,
     required,
+    recorded,
     values,
     findings,
     asksNothingFurther,
@@ -191,10 +214,56 @@ export default async function ReportPage({
       </header>
 
       <section className="report-card">
+        <h2>How this rates</h2>
+        <p className="report-muted">
+          Inherent is the activity before the controls; residual is where it
+          stands with the findings and their settlements. Each band carries
+          its reasons, and both are worked out from the record on every read.
+        </p>
+        <div className="rating-row">
+          <RatingChip label="Inherent" rated={rating.inherent} />
+          <RatingChip
+            label="Residual"
+            rated={rating.residual}
+            breaches={rating.breaches}
+          />
+          {Object.entries(rating.areas).map(([key, rated]) => (
+            <RatingChip
+              key={key}
+              label={CATEGORIES.find((c) => c.key === key)?.short ?? key}
+              rated={rated}
+              breaches={rating.breaches.filter((b) => b.scope === `area:${key}`)}
+              compact
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="report-card">
         <h2>What this is</h2>
         <p>{report.activity}</p>
         {report.purpose && <p className="report-muted">{report.purpose}</p>}
       </section>
+
+      {report.controlsRecorded.length > 0 && (
+        <section className="report-card">
+          <h2>Required, and recorded for a reviewer</h2>
+          <p className="report-muted">
+            These controls are required by the answers given, and the pilot
+            asks no question about them. They are named here with why they
+            were required, so nobody reads the answered list and concludes
+            it is the whole of what this activity needs.
+          </p>
+          <ul className="report-areas">
+            {report.controlsRecorded.map((control) => (
+              <li key={control.objective} className="report-area report-recorded">
+                <span className="report-area-name">{control.name}</span>
+                <span className="report-muted">{control.because.join("; ")}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="report-card">
         <h2>Where it lands</h2>

@@ -14,9 +14,11 @@ import {
 } from "@/lib/tier3";
 import { domainForObjective, mayAttest } from "@/lib/attestation";
 import { reviewRubric, BAND_ORDER, type ReviewResult } from "@/lib/grounding";
-import { dispositionSummary, reopenedBecause } from "@/lib/disposition";
+import { dispositionSummary, reopenedBecause, overdueBecause } from "@/lib/disposition";
 import { findingIsOpen, stageOf } from "@/lib/submission";
 import { NotYourAssessment } from "../not-yours";
+import { RatingChip } from "@/app/(app)/rating-chip";
+import { rateAssessment } from "@/lib/rating-of";
 import { ProjectHeader } from "../project-header";
 import { ReviewQueue, type QueueItem } from "./review-queue";
 
@@ -115,6 +117,14 @@ export default async function ReviewPage({
   lookup.paths = paths;
 
   const now = new Date();
+  const rating = rateAssessment({
+    stored,
+    intake,
+    findings,
+    dispositions,
+    attestations,
+    now,
+  });
   // Which questions were handed to a risk assessor. Read, not assumed: the
   // rubric prints this as a checked fact, and today no Tier-3 question can
   // be handed over — but the store is general and the claim would quietly
@@ -195,6 +205,7 @@ export default async function ReviewPage({
                 })
               : null,
             reopened: reopenedBecause(settled, now),
+            overdue: overdueBecause(settled, now),
             citation: finding.citation ?? null,
           };
         }),
@@ -226,6 +237,12 @@ export default async function ReviewPage({
     }));
 
   const mine = items.filter((item) => item.mine && !item.attestation).length;
+
+  const decisions = items.filter(
+
+    (item) => item.mine && item.findings.some((f) => f.open || f.overdue !== null),
+
+  ).length;
   const signedCount = items.filter((item) => item.attestation).length;
 
   return (
@@ -236,13 +253,28 @@ export default async function ReviewPage({
         nextLine={
           !canAttest(person.role)
             ? "You can read this, but attesting is a Risk Assessor's act."
-            : mine === 0
-              ? `Nothing left for you here — ${signedCount} of ${items.length} signed.`
-              : `${mine} control${mine === 1 ? "" : "s"} for you to attest — ${signedCount} of ${items.length} signed.`
+            : mine > 0
+              ? `${mine} control${mine === 1 ? "" : "s"} for you to attest — ${signedCount} of ${items.length} signed.`
+              : decisions > 0
+                // Signed is not finished: an open or overdue finding on a
+                // control this reviewer owns is still theirs to settle, and
+                // the queue said so on the way in (§24.9).
+                ? `${decisions} finding${decisions === 1 ? "" : "s"} for you to settle — ${signedCount} of ${items.length} signed.`
+                : `Nothing left for you here — ${signedCount} of ${items.length} signed.`
         }
         currentStage={2}
         progress={{ done: signedCount, total: items.length, label: "signed" }}
       />
+      {/* Where it stands, rated — the residual moves as findings are
+          settled, so a reviewer sees the effect of each act (FR-50). */}
+      <div className="rating-row">
+        <RatingChip label="Inherent" rated={rating.inherent} compact />
+        <RatingChip
+          label="Residual"
+          rated={rating.residual}
+          breaches={rating.breaches}
+        />
+      </div>
       <p className="review-report-link">
         <Link href={`/projects/${id}/report`}>Read the handoff summary →</Link>
         {/* Stage 4 was in the stepper from stage one and reachable from

@@ -21,7 +21,11 @@ import { answerStore } from "@/lib/repo-answers";
 import { NotYourAssessment } from "../../not-yours";
 import { stageOf } from "@/lib/submission";
 import { ProjectHeader } from "../../project-header";
-import { groupsFor } from "../severity/severity-rail";
+import { AssessRail } from "../assess-rail";
+import { RatingChip } from "@/app/(app)/rating-chip";
+import { rateAssessment } from "@/lib/rating-of";
+import { FocusOnArrival } from "@/app/(app)/focus-on-arrival";
+import { assessJourney } from "@/lib/assess-journey";
 import { ObjectivesForm } from "./objectives-form";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +57,8 @@ export default async function ObjectivesPage({
   if (incomplete) redirect(`/projects/${id}/intake/${incomplete}?needed=1`);
 
   const stored = await answerStore().current(id);
-  const gates = gateStates(stored, intake);
+  const journey = assessJourney(stored, intake);
+  const gates = journey.gates;
   const selections: Record<string, string[]> = {};
   for (const category of CATEGORIES) {
     const value = category.pathQuestion
@@ -71,6 +76,17 @@ export default async function ObjectivesPage({
   // The same derivation the action authorises against — one definition, so
   // the screen and the server can never disagree about what is asked.
   const owed = accumulatedFor(stored, intake);
+  // Rated from the record, not stored (FR-50). Before submission there are
+  // no findings, so the residual would read as the inherent; only the
+  // inherent is shown here.
+  const rating = rateAssessment({
+    stored,
+    intake,
+    findings: [],
+    dispositions: [],
+    attestations: [],
+    now: new Date(),
+  });
   const askable = objectivesFor(owed.map((c) => c.objective));
   const recorded = withoutQuestions(owed.map((c) => c.objective));
   const reasonFor = new Map(owed.map((c) => [c.objective, c.because]));
@@ -80,7 +96,6 @@ export default async function ObjectivesPage({
   const answeredSeverity = severityQuestions.filter(
     (q) => bands[q.questionId],
   ).length;
-  const firstSeverityGroup = groupsFor(severityQuestions)[0]?.key ?? "";
 
   const values: Record<string, Tier3Value> = {};
   for (const [questionId, value] of Object.entries(stored)) {
@@ -118,9 +133,16 @@ export default async function ObjectivesPage({
         currentStage={1}
       />
 
-      <div className="assess-single">
+      <div className="assess-layout">
+        <AssessRail
+          projectId={id}
+          journey={journey}
+          at={{ section: "controls" }}
+        />
+
         <section>
-          <p className="eyebrow">Step 4 · Do the controls exist</p>
+          <FocusOnArrival />
+          <p className="eyebrow">Step 2 · Do the controls exist</p>
           <h2 className="display">What this activity requires</h2>
           <p
             className="lede"
@@ -130,6 +152,16 @@ export default async function ObjectivesPage({
             needs. These questions ask whether it is already there. Answer
             honestly — a gap named here is a finding a reviewer can act on, and
             a gap found later is a surprise.
+          </p>
+          {/* How risky this is before the controls are asked about — the
+              reading the answers so far produce, with its reasons (FR-50). */}
+          <div className="rating-row">
+            <RatingChip label="Inherent" rated={rating.inherent} />
+          </div>
+          <p className="help rating-gloss">
+            Inherent is how risky the activity is before anyone asks whether
+            the controls exist — read from your severity answers. The answers
+            below do not change it; they decide what a reviewer sees next.
           </p>
 
           {answeredSeverity === 0 ? (
@@ -172,22 +204,6 @@ export default async function ObjectivesPage({
             />
           )}
 
-          {/* Not a dead end: every other assess screen offers a way back, and
-              this one offered only Save (verifier S6-4). */}
-          <p className="rail-back" style={{ marginTop: "1rem" }}>
-            <Link
-              className="rail-back-link"
-              href={`/projects/${id}/assess/severity/${firstSeverityGroup}`}
-            >
-              ← Back to the severity questions
-            </Link>
-            <Link
-              className="rail-back-link"
-              href={`/projects/${id}/assess/complete`}
-            >
-              Where this assessment stands
-            </Link>
-          </p>
 
           {recorded.length > 0 && (
             /* Where the pilot stops, it says so (FR-35's rule, one tier down).

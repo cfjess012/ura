@@ -21,7 +21,7 @@
  *
  * Pure: no framework, no driver, no environment (§26.1).
  */
-import { findingIsOpen, type FindingKind } from "./submission";
+import { findingIsOpen, findingStanding, type FindingKind } from "./submission";
 
 /** Why an assessment cannot be packaged yet, in a person's words. */
 export type Blocker = {
@@ -78,6 +78,12 @@ export type PackagedFinding = {
   clause?: { reference: string; clauseId: string; version: string; text: string };
   settlement: {
     kind: string;
+    /**
+     * Where it stands at packaging — settled, or a remediation whose date
+     * has passed. A raw due date lets a reader compute this; the word means
+     * nobody has to (S13 verifier F2).
+     */
+    standing: "settled" | "overdue";
     note: string;
     resolvedBy: string;
     resolvedAt: string;
@@ -102,7 +108,28 @@ export type Package = {
   /** What the instrument asked, and why — the part a bare answer list loses. */
   coverage: Coverage[];
   answers: PackagedAnswer[];
+  /**
+   * Controls this activity requires that no question was asked about, with
+   * the reasons they were required. Coverage is by risk area and answers
+   * come from attestations, so without this the boundary the objectives
+   * screen declares vanished from the one artefact that outlives the
+   * screen (S13 audit, defect d). "We never asked" is a different fact from
+   * "they said it is in place".
+   */
+  controlsRecorded: Array<{ objective: string; name: string; because: string[] }>;
   findings: PackagedFinding[];
+  /**
+   * The rating at the moment of packaging, frozen — §4.6 permits a grade to
+   * be computed at packaging, and a replayable record needs the reading it
+   * was exported under, not whichever the rules produce later. Bands with
+   * their reasons; never a number.
+   */
+  rating: {
+    inherent: { band: string; because: string[] };
+    residual: { band: string; because: string[] };
+    exceedsAppetite: Array<{ scope: string; label: string; band: string; max: string; because: string; escalateTo: string }>;
+    edition: string;
+  };
   /**
    * What produced this. A replay against a different instrument version is
    * a different question, and a reader has to be able to tell.

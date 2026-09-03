@@ -587,3 +587,27 @@ export function accumulatedFor(
   }
   return accumulateControls(questions, bands, details);
 }
+
+/** Severity questions grouped by the area they belong to, in instrument order. */
+export type SeverityGroup = {
+  key: string;
+  name: string;
+  questions: SeverityQuestion[];
+};
+
+export function groupsFor(questions: SeverityQuestion[]): SeverityGroup[] {
+  const order: string[] = [];
+  const byName = new Map<string, SeverityQuestion[]>();
+  for (const q of questions) {
+    if (!byName.has(q.category)) {
+      byName.set(q.category, []);
+      order.push(q.category);
+    }
+    byName.get(q.category)!.push(q);
+  }
+  return order.map((name) => ({
+    key: severityGroupKey(name),
+    name,
+    questions: byName.get(name)!,
+  }));
+}

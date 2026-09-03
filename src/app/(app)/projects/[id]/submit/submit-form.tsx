@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { submitAssessment } from "@/app/actions";
 import { errorRef, isFailure } from "@/lib/errors";
+import type { Destination } from "@/lib/destination";
 import type { Declared, Gap } from "@/lib/submission";
 
 /**
@@ -24,7 +26,8 @@ export function SubmitForm({
 }: {
   projectId: string;
   declarable: Declared[];
-  gaps: Gap[];
+  /** Each with the way to it, where the question has a screen of its own. */
+  gaps: Array<Gap & { destination: Destination | null }>;
   /** How many findings this will raise — said before, not after. */
   willRaise: number;
   nextHref: string;
@@ -94,33 +97,73 @@ export function SubmitForm({
       {gaps.length > 0 && (
         /* Gaps are named, never counted (FR-14): "12 unanswered" is a
            number nobody can act on. The same list is stored with the
-           declaration so a reviewer sees exactly what was known missing. */
-        <div className="card gaps">
-          <h2>
-            {gaps.length} question{gaps.length === 1 ? "" : "s"} you have not
-            answered
-          </h2>
-          <p className="help">
-            You can submit anyway — a reviewer would rather see a gap than a
-            guess. They will see this list exactly as it is.
-          </p>
-          <ul className="summary-list">
-            {gaps.map((gap) => (
-              <li key={gap.questionId}>{gap.label}</li>
+           declaration so a reviewer sees exactly what was known missing.
+
+           Each one is a row with its own door. The list used to be bullets
+           in an orange box with no way to any of them, on the one screen a
+           person cannot leave without signing — and the confirmation read
+           "I know these is unanswered". A warning state, still, and never
+           colour alone: the count, the heading and the numbered rows say
+           what this is. The band at the foot is the act, and it changes
+           when the act is done. */
+        <section className="card gaps gap-card" aria-labelledby="gaps-title">
+          <header className="gap-card-head">
+            <span className="gap-card-count" aria-hidden="true">
+              {gaps.length}
+            </span>
+            <div>
+              <h2 id="gaps-title" className="gap-card-title">
+                {gaps.length === 1
+                  ? "One question you haven’t answered"
+                  : `${gaps.length} questions you haven’t answered`}
+              </h2>
+              <p className="gap-card-lede">
+                A reviewer would rather see a gap than a guess. They will see
+                this list exactly as it is.
+              </p>
+            </div>
+          </header>
+          <ol className="gap-list">
+            {gaps.map((gap, at) => (
+              <li key={gap.questionId} className="gap-row">
+                <span className="gap-row-num" aria-hidden="true">
+                  {at + 1}
+                </span>
+                <div className="gap-row-body">
+                  <p className="gap-row-q">{gap.label}</p>
+                  {gap.destination && (
+                    <p className="gap-row-where">{gap.destination.label}</p>
+                  )}
+                </div>
+                {gap.destination && (
+                  <Link className="gap-row-go" href={gap.destination.href}>
+                    Answer it →
+                  </Link>
+                )}
+              </li>
             ))}
-          </ul>
-          <label className="confirm">
+          </ol>
+          <label className="confirm gap-confirm">
             <input
               type="checkbox"
               checked={acknowledged}
               onChange={(event) => setAcknowledged(event.target.checked)}
             />
             <span>
-              I know these {gaps.length === 1 ? "is" : "are"} unanswered and I
-              am submitting anyway.
+              <strong>
+                {gaps.length === 1
+                  ? "I know this question is unanswered"
+                  : `I know these ${gaps.length} questions are unanswered`}
+              </strong>{" "}
+              and I’m submitting anyway.
+              <span className="gap-confirm-note">
+                {acknowledged
+                  ? "Recorded with your declaration — it is not an answer."
+                  : "Confirming records the gap with your declaration. It is not an answer."}
+              </span>
             </span>
           </label>
-        </div>
+        </section>
       )}
 
       <div className="card declare">

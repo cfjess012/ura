@@ -712,3 +712,23 @@ describe("a breach records which policy version it was raised against", () => {
     );
   });
 });
+
+describe("an approval owes a note, at the database (S13, migration 0031)", () => {
+  it("refuses an approve with nothing beside it", async () => {
+    await expect(
+      pg.query(
+        "insert into attestations (project_id, question_id, attested_by, act, note) values ($1, 't3.t3_iam_02', 'a.security', 'approve', '  ')",
+        [projectId],
+      ),
+    ).rejects.toThrow(/attestations_approve_explained/);
+  });
+
+  it("accepts an approve that says what was concluded", async () => {
+    await expect(
+      pg.query(
+        "insert into attestations (project_id, question_id, attested_by, act, note) values ($1, 't3.t3_iam_02', 'a.security', 'approve', 'Confirmed with the vendor.')",
+        [projectId],
+      ),
+    ).resolves.toBeTruthy();
+  });
+});

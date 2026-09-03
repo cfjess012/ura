@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CATEGORIES, gateStates } from "@/lib/instrument";
+import { destinationFor } from "@/lib/destination";
 import { litPaths } from "@/lib/engine";
 import { questionLabelFor } from "@/lib/question-label";
 import { firstIncompleteSection } from "@/lib/intake";
@@ -20,6 +21,9 @@ import {
 import { NotYourAssessment } from "../not-yours";
 import { ProjectHeader } from "../project-header";
 import { SubmitForm } from "./submit-form";
+import { reviewStore } from "@/lib/repo-review";
+import { RatingChip } from "@/app/(app)/rating-chip";
+import { rateAssessment } from "@/lib/rating-of";
 
 export const dynamic = "force-dynamic";
 
@@ -106,11 +110,24 @@ export default async function SubmitPage({
   const submitted = project.submittedAt !== null;
 
   if (submitted) {
-    const [declaration, findings, everyone] = await Promise.all([
-      submissionStore().declarationFor(id),
-      submissionStore().findingsFor(id),
-      peopleStore().list(),
-    ]);
+    const [declaration, findings, everyone, dispositions, attestations] =
+      await Promise.all([
+        submissionStore().declarationFor(id),
+        submissionStore().findingsFor(id),
+        peopleStore().list(),
+        reviewStore().dispositionsFor(id),
+        reviewStore().attestationsFor(id),
+      ]);
+    // Rated from the record on every read (FR-50): the inherent from the
+    // bands, the residual from the findings and how they were settled.
+    const rating = rateAssessment({
+      stored,
+      intake,
+      findings,
+      dispositions,
+      attestations,
+      now: new Date(),
+    });
     // A person, not an id (NFR-9). "Declared accurate by p.requester" put
     // an internal identifier on the one screen whose whole point is that a
     // named person stands behind the record.
@@ -140,6 +157,24 @@ export default async function SubmitPage({
               Nothing here can be changed now — an answer edited after the
               declaration would make it describe a record that no longer exists.
             </p>
+
+            <div className="card">
+              <h2>How this rates</h2>
+              <p className="help">
+                Two readings, each with its reasons. Inherent is the activity
+                before anyone asked whether the controls exist; residual is
+                where it stands with the findings and their settlements. Both
+                move as the review does.
+              </p>
+              <div className="rating-row">
+                <RatingChip label="Inherent" rated={rating.inherent} />
+                <RatingChip
+                  label="Residual"
+                  rated={rating.residual}
+                  breaches={rating.breaches}
+                />
+              </div>
+            </div>
 
             {findings.length > 0 ? (
               <div className="card owed">
@@ -259,7 +294,13 @@ export default async function SubmitPage({
           <SubmitForm
             projectId={id}
             declarable={declarable}
-            gaps={gaps}
+            // Each gap carries the way to the thing itself (owner rule,
+            // 2026-08-22): a list of what you have not done, with no door
+            // to any of it, is the worst place to be handed a list.
+            gaps={gaps.map((gap) => ({
+              ...gap,
+              destination: destinationFor(id, gap.questionId),
+            }))}
             willRaise={willRaise.length}
             nextHref={`/projects/${id}/submit`}
           />

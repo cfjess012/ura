@@ -15,7 +15,7 @@ import { editableProject, openProject } from "@/lib/project-access";
 import { handoffStore, peopleStore } from "@/lib/repo";
 import { answerStore } from "@/lib/repo-answers";
 import { questionLabelFor } from "@/lib/question-label";
-import { resolutionProblem } from "@/lib/handoff";
+import { MAX_DEPTH, depthOf, resolutionProblem } from "@/lib/handoff";
 
 /**
  * Hand a question to a person or an office (S4.7, FR-35).
@@ -111,6 +111,20 @@ export async function replyToHandoff(
         "That conversation is gone.",
         { retryable: false, expected: true },
       );
+    // The staircase rule (MAX_DEPTH), enforced where a reply is written.
+    // The panel offers "reply to the whole thread instead" for exactly
+    // this case, so the refusal says the same thing.
+    if (input.parentId) {
+      const replies = await handoffStore().repliesFor([input.handoffId]);
+      if (depthOf(replies, input.parentId) >= MAX_DEPTH) {
+        return failure(
+          "replyToHandoff",
+          new Error("thread too deep"),
+          "This thread is as deep as it goes. Your reply is still on screen — post it to the whole thread instead.",
+          { retryable: false, expected: true },
+        );
+      }
+    }
     await handoffStore().reply({
       handoffId: input.handoffId,
       parentId: input.parentId,

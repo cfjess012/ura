@@ -7,8 +7,17 @@
  * the easiest to be wrong about safely.
  */
 import { trace } from "@opentelemetry/api";
-import { quoteAppearsVerbatim } from "../../src/lib/agent-contract.ts";
-import { extractJson, modelClient, modelId, textOf } from "./model.ts";
+import {
+  quoteAppearsVerbatim,
+  type Trouble,
+} from "../../src/lib/agent-contract.ts";
+import {
+  extractJson,
+  modelClient,
+  modelId,
+  modelTrouble,
+  textOf,
+} from "./model.ts";
 import { composeScorePrompt, promptVersion } from "./prompt.ts";
 
 const tracer = trace.getTracer("ura-agent");
@@ -73,6 +82,17 @@ export type Scoring = {
   scores: DimensionScore[];
   conflicts: Conflict[];
   summary: Summary | null;
+  /**
+   * Why nothing was scored, when nothing was. Absent on a real read.
+   *
+   * Every other capability in this service names its trouble; this one
+   * returned the same empty scoring for a rejected key, a rate limit and a
+   * model that answered with prose. All three arrived at the person as one
+   * grey sentence saying the check could not run, which is true of every
+   * one of them and useful about none — and two of the three are not worth
+   * trying again (`assistant-trouble.ts`).
+   */
+  why?: Trouble;
 };
 
 /** Bounds on a narrative, past which it has stopped being one. */
@@ -259,7 +279,15 @@ export async function scoreIntake(task: ScoreTask): Promise<Scoring> {
         console.error(
           `[score-intake] truncated at max_tokens (${MAX_TOKENS}) — the whole intake plus its unanswered questions did not fit`,
         );
-        return { scores: [], conflicts: [], summary: null };
+        // The model answered; what came back was half a sentence. That is
+        // "nothing we could use", and it is worth one more try — the
+        // ceiling is generous and truncation here has been intermittent.
+        return {
+          scores: [],
+          conflicts: [],
+          summary: null,
+          why: "unavailable" as const,
+        };
       }
       const text = textOf(
         message as unknown as {
@@ -275,9 +303,11 @@ export async function scoreIntake(task: ScoreTask): Promise<Scoring> {
       span.setAttribute("summarised", summary !== null);
       return { scores, conflicts, summary };
     } catch (cause) {
+      const why = modelTrouble(cause);
       span.setAttribute("gate.result", "threw");
-      console.error("[score-intake]", cause);
-      return { scores: [], conflicts: [], summary: null };
+      span.setAttribute("trouble", why);
+      console.error("[score-intake]", why, cause);
+      return { scores: [], conflicts: [], summary: null, why };
     } finally {
       span.end();
     }

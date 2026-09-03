@@ -65,10 +65,32 @@ export function thread(replies: Reply[]): ThreadNode[] {
   return roots;
 }
 
-/** How deep a reply sits, capped so the conversation cannot become a staircase. */
+/** How deep a reply may sit, so the conversation cannot become a staircase. */
 export const MAX_DEPTH = 4;
 
-export function depthOf(node: ThreadNode, depth = 0): number {
+/**
+ * How deep a reply to `parentId` would sit: a reply to the thread itself is
+ * at depth 0, a reply to that is at 1, and so on up the chain of parents.
+ *
+ * The cap was declared and never enforced — the old version ignored its
+ * argument and returned the default, so nothing ever reached MAX_DEPTH
+ * (S13 audit, defect b). A missing parent ends the walk rather than
+ * throwing: an orphan is surfaced at the top by `thread()`, and a reply
+ * to it sits one below the top.
+ */
+export function depthOf(
+  replies: Array<Pick<Reply, "id" | "parentId">>,
+  parentId: string | null,
+): number {
+  const byId = new Map(replies.map((r) => [r.id, r]));
+  let depth = 0;
+  let at = parentId;
+  while (at) {
+    const parent = byId.get(at);
+    if (!parent) break;
+    depth += 1;
+    at = parent.parentId;
+  }
   return depth;
 }
 

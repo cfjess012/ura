@@ -8,6 +8,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  depthOf,
+  MAX_DEPTH,
   isWaitingOn,
   mayResolve,
   recipientLabel,
@@ -224,5 +226,27 @@ describe("a hand-off open at submission is not a deadlock (verifier S2)", () => 
   it("submission does not hand the close to somebody it was never with", () => {
     const stranger = person({ id: "d.grant", role: "requester", riskDomain: null });
     expect(resolutionProblem(open, stranger, false, true)).toMatch(/isn't yours to close/);
+  });
+});
+
+describe("the staircase rule is real (S13)", () => {
+  const chain = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `r${i + 1}`,
+      parentId: i === 0 ? null : `r${i}`,
+    }));
+
+  it("counts a reply's depth from the thread's roots", () => {
+    // depthOf used to ignore its argument and return the default, so the
+    // declared MAX_DEPTH was never reached by anything.
+    const replies = chain(5);
+    expect(depthOf(replies, null)).toBe(0);
+    expect(depthOf(replies, "r1")).toBe(1);
+    expect(depthOf(replies, "r5")).toBe(5);
+    expect(depthOf(replies, "r5")).toBeGreaterThanOrEqual(MAX_DEPTH);
+  });
+
+  it("stops at a missing parent rather than throwing", () => {
+    expect(depthOf([{ id: "r2", parentId: "gone" }], "r2")).toBe(1);
   });
 });

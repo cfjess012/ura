@@ -13,7 +13,7 @@ import { agentTransport } from "@/lib/agent";
 import type { AssessmentContext } from "@/lib/agent-contract";
 import { currentPerson } from "@/lib/current-person";
 import { canAnswer, NotPermitted } from "@/lib/people";
-import { failure, isFailure, type Result } from "@/lib/errors";
+import { errorRef, failure, isFailure, type Result } from "@/lib/errors";
 import {
   intakeValuesForReading,
   intakeValuesFrom,
@@ -345,7 +345,24 @@ function correctableFields(): Array<{
 
 export async function checkIntake(
   projectId: string,
-): Promise<Result<{ coherence: Coherence; rewritable: string[] }>> {
+): Promise<
+  Result<{
+    coherence: Coherence;
+    rewritable: string[];
+    /**
+     * Why nothing was read, when nothing was. Null on a real read.
+     *
+     * This action fails OPEN on purpose — the check never blocks anybody
+     * (G-69) — but failing open was being read as failing silent: every
+     * trouble came back as an empty coherence, and the screen said "I
+     * couldn't check this one just now" to a person whose agent was simply
+     * not running. Failing open and saying why are not in tension.
+     */
+    why: Trouble | null;
+    /** Quotable on the phone, and in the server log beside the cause. */
+    ref?: string;
+  }>
+> {
   try {
     const access = await openProject(projectId);
     if (!access.ok) {
@@ -396,6 +413,10 @@ export async function checkIntake(
           text: description,
         }),
         rewritable: [],
+        // Not a trouble: nothing failed. The screen says how many words
+        // are missing and links to the field, and calling that a fault
+        // would send somebody looking for a broken thing.
+        why: null,
       };
     }
 
@@ -405,6 +426,7 @@ export async function checkIntake(
         ok: true as const,
         coherence: coherenceWhenUnavailable(),
         rewritable: [],
+        why: "unreachable" as const,
       };
     }
     const scoring = await transport.scoreIntake({
@@ -412,8 +434,23 @@ export async function checkIntake(
       fields: correctableFields(),
       dimensions: scoringBrief(),
     });
+    if (scoring.why) {
+      // A reference even though this returns ok: the operator's log and the
+      // person's screen need the same short string, or a support call opens
+      // with a re-enactment instead of a fact (§25).
+      const ref = errorRef();
+      console.error(`[checkIntake] ref=${ref} trouble=${scoring.why}`);
+      return {
+        ok: true as const,
+        coherence: coherenceWhenUnavailable(),
+        rewritable: [],
+        why: scoring.why,
+        ref,
+      };
+    }
     return {
       ok: true as const,
+      why: null,
       coherence: coherenceFrom(
         scoring.scores.map((s) => ({
           id: s.id,
@@ -427,12 +464,16 @@ export async function checkIntake(
     };
   } catch (error) {
     // Even a thrown error passes. Nothing about checking a description is
-    // worth stopping somebody over.
-    console.error("[checkIntake]", error);
+    // worth stopping somebody over — but passing is not the same as saying
+    // nothing, and this used to do both.
+    const ref = errorRef();
+    console.error(`[checkIntake] ref=${ref}`, error);
     return {
       ok: true as const,
       coherence: coherenceWhenUnavailable(),
       rewritable: [],
+      why: "unavailable" as const,
+      ref,
     };
   }
 }
