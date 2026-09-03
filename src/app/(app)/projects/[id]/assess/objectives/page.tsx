@@ -27,6 +27,7 @@ import { rateAssessment } from "@/lib/rating-of";
 import { FocusOnArrival } from "@/app/(app)/focus-on-arrival";
 import { assessJourney } from "@/lib/assess-journey";
 import { ObjectivesForm } from "./objectives-form";
+import { obligationsFor } from "@/lib/crosswalk";
 
 export const dynamic = "force-dynamic";
 
@@ -187,6 +188,9 @@ export default async function ObjectivesPage({
             </div>
           ) : (
             <ObjectivesForm
+              obligations={Object.fromEntries(
+                askable.map((o) => [o.id, obligationsFor(o.id)]),
+              )}
               projectId={id}
               objectives={askable}
               values={values}

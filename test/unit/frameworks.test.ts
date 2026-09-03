@@ -55,6 +55,15 @@ describe("what ships", () => {
     expect(quoteOf("gdpr-2016-679", "Article 35")).toContain("data protection impact assessment");
   });
 
+  it("transcribes what the publisher wrote, including what looks like a typo", () => {
+    // The Official Journal's own markup carries a stray backtick in the AI
+    // Act's first heading. It renders on screen looking like our defect, and
+    // it is not: cleaning a source silently is how a transcription starts
+    // drifting from the document it claims to reproduce. If this ever fails,
+    // check the publisher's text before changing anything here.
+    expect(itemOf("eu-ai-act-2024-1689", "Article 1")?.heading).toBe("Subject matter`");
+  });
+
   it("knows nothing it was not given", () => {
     expect(frameworkById("iso-27001")).toBeNull();
     expect(itemOf("nist-csf-2.0", "GV.XX-99")).toBeNull();

@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { WhyAsked } from "../why-asked";
+import { AlsoRequiredBy } from "../also-required-by";
+import type { Obligation } from "@/lib/crosswalk";
 import { useRouter } from "next/navigation";
 import { answerObjectives } from "@/app/actions";
 import { isFailure } from "@/lib/errors";
@@ -32,6 +34,7 @@ export function ObjectivesForm({
   values,
   lookup,
   reasons,
+  obligations,
   nextHref,
 }: {
   projectId: string;
@@ -40,6 +43,9 @@ export function ObjectivesForm({
   lookup: AnswerLookup;
   /** Why each objective is here — carried through from accumulation. */
   reasons: Record<string, string[]>;
+  /** What each control also satisfies outside — composed on the server so the
+   *  framework text never reaches the browser. */
+  obligations: Record<string, Obligation[]>;
   nextHref: string;
 }) {
   const router = useRouter();
@@ -154,6 +160,8 @@ export function ObjectivesForm({
             <p className="gate-question">{objective.text}</p>
             {/* The authority that requires it, in its own words (§22.1). */}
             <WhyAsked questionId={objective.questionId} />
+            {/* And what satisfying it buys outside (FR-52). */}
+            <AlsoRequiredBy obligations={obligations[objective.id] ?? []} />
             <p className="help gate-help">
               What this control is for:{" "}
               {objective.objective.replace(/^Ensure /, "")}

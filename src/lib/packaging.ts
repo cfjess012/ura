@@ -27,6 +27,7 @@ import { asksNothingFurther } from "./severity";
 import { OBJECTIVES } from "./tier3";
 import { labelOf, type ReferenceAnswer } from "./reference";
 import type { Rating } from "./rating-of";
+import { CROSSWALK_VERSION, obligationsFor } from "./crosswalk";
 import { RATING } from "./rating";
 import type { FindingRow } from "./repo-review";
 import policies from "@/data/reference/policies.json";
@@ -67,6 +68,20 @@ export type PackagedAnswer = {
   attestedAt: string;
   /** approve | correct | not-applicable — the act, not just the outcome. */
   act: string;
+  /**
+   * The external obligations this control helps satisfy, frozen with the
+   * edition each reference came from. An auditor reading the export a year
+   * later needs to know which version of a framework the mapping was made
+   * against, and a screen-only crosswalk records nothing.
+   */
+  frameworks: Array<{
+    framework: string;
+    edition: string;
+    ref: string;
+    heading: string;
+    relationship: string;
+    because: string;
+  }>;
 };
 
 /** What was asked of this assessment, and why it was asked. */
@@ -444,6 +459,15 @@ export function assemblePackage(input: {
         attestedBy: who(signed.attestedBy),
         attestedAt: signed.attestedAt.toISOString(),
         act: signed.act,
+        // The obligation and the edition it was read from, frozen together.
+        frameworks: obligationsFor(objective.id).map((o) => ({
+          framework: o.frameworkName,
+          edition: o.edition,
+          ref: o.ref,
+          heading: o.heading,
+          relationship: o.relationship,
+          because: o.because,
+        })),
       };
     })
     .filter((a): a is NonNullable<typeof a> => a !== null)
@@ -533,8 +557,14 @@ export function assemblePackage(input: {
       // to remember: a replayer could otherwise not tell which rules
       // produced the frozen bands.
       instrumentVersions: [
-        ...input.instrumentVersions.filter((v) => v.slug !== RATING.slug),
+        ...input.instrumentVersions.filter(
+          (v) => v.slug !== RATING.slug && v.slug !== CROSSWALK_VERSION.split("@")[0],
+        ),
         { slug: RATING.slug, version: RATING.version },
+        {
+          slug: CROSSWALK_VERSION.split("@")[0]!,
+          version: CROSSWALK_VERSION.split("@")[1]!,
+        },
       ],
       policyVersion:
         (policies as { version?: string }).version ??

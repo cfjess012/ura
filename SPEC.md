@@ -867,7 +867,14 @@ it is only worth having if every reference in it is real.
    control addresses, and the controls citing no obligation. Both derive
    from the mappings on read, like every other count in this product.
 
-7. **Staleness is a red build.** Every framework carries a review window.
+7. **Not reached is not the same as a gap.** A regulation also defines
+   terms, sets its own scope and creates institutions, and no control can
+   satisfy an article like that. Which requirements are capable of being
+   satisfied by a control is a judgement, and it is recorded as one or the
+   coverage report overstates the gap. **Owed:** that scoping is not made
+   yet, and until it is the report says so on its face.
+
+8. **Staleness is a red build.** Every framework carries a review window.
    Past it, the build fails and names the command that re-transcribes it. A
    crosswalk that was right in one year is quietly wrong in the next unless
    something asks.

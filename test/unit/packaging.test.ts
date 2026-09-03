@@ -338,6 +338,39 @@ describe("the rating a package freezes", () => {
     expect(breaches[1]).toMatchObject({ band: "High", max: "Medium" });
   });
 
+  it("carries each attested control's external obligations, with the edition read from", () => {
+    // A crosswalk shown only on a screen has recorded nothing. An auditor
+    // reading the export a year later needs the edition the mapping was
+    // made against, not just the reference.
+    const p = assemblePackage({
+      project: { id: "p1", projectName: "Sable", submittedAt: new Date("2026-09-01"), submittedBy: "u1" },
+      intake: {},
+      stored: { "t3.t3_iam_02": { value: { answer: "Yes", note: "" } } },
+      required: [{ id: "T3-IAM-02", questionId: "t3.t3_iam_02", name: "Multi-Factor Authentication" }],
+      recorded: [],
+      rating,
+      latest: new Map([[
+        "t3.t3_iam_02",
+        { act: "approve", note: "seen", attestedBy: "u1", attestedAt: new Date("2026-09-02"), correctedAnswer: null },
+      ]]),
+      findings: [],
+      settlements: new Map(),
+      everyone: [{ id: "u1", name: "Isabelle Withers" }],
+      by: "Alex Security",
+      now: new Date("2026-09-03T12:00:00Z"),
+      instrumentVersions: [],
+    });
+    const answer = p.answers.find((a) => a.objective === "T3-IAM-02")!;
+    expect(answer.frameworks.length).toBeGreaterThan(0);
+    const csf = answer.frameworks.find((f) => f.ref === "PR.AA-03")!;
+    expect(csf.framework).toBe("NIST Cybersecurity Framework");
+    expect(csf.edition).toBe("2.0");
+    expect(csf.relationship).toBe("partial");
+    expect(csf.because.length).toBeGreaterThan(20);
+    // And the crosswalk's own edition sits beside the instrument's.
+    expect(p.provenance.instrumentVersions.map((v) => v.slug)).toContain("control-crosswalk");
+  });
+
   it("names the edition whose rules produced it, in the provenance a replayer reads", () => {
     const p = payload();
     expect(p.rating.edition).toBe(RATING_EDITION);
