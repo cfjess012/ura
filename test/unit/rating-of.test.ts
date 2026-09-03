@@ -57,14 +57,15 @@ describe("rating an assessment from its record", () => {
     const rated = rateAssessment({ stored, intake: {}, findings: [], dispositions: [], attestations: [], now });
     expect(rated.inherent.band).toBe("High");
     expect(rated.edition).toBe(RATING_EDITION);
-    expect(rated.edition).toBe("risk-rating@2026-09-03.2");
+    expect(rated.edition).toBe("risk-rating@2026-09-03.5");
     expect(rated.areas["third-party"]?.band).toBe("High");
   });
 
-  it("moves the residual for an open gap on a high-weight control, and holds under a live acceptance", () => {
+  it("names an open gap on a high-weight control without exceeding the inherent band, and holds under a live acceptance", () => {
     const finding = { id: "f1", objective: mfa.id, kind: "gap" as const };
     const open = rateAssessment({ stored, intake: {}, findings: [finding], dispositions: [], attestations: [], now });
-    expect(open.residual.band).toBe("Critical");
+    expect(open.residual.band).toBe("High");
+    expect(open.residual.because).toContain("a high-weight control is not in place and nothing has settled it");
     const accepted = rateAssessment({
       stored,
       intake: {},
@@ -74,7 +75,7 @@ describe("rating an assessment from its record", () => {
       now,
     });
     expect(accepted.residual.band).toBe("High");
-    expect(accepted.residual.because).toContain("a risk is accepted for now — the rating holds until the acceptance lapses");
+    expect(accepted.residual.because).toContain("a risk is accepted for now — the acceptance is recorded and does not lower the rating, and it lapses on its date");
   });
 
   it("reopens with the acceptance, and takes the newest settlement", () => {
@@ -87,7 +88,11 @@ describe("rating an assessment from its record", () => {
       attestations: [],
       now,
     });
-    expect(lapsed.residual.band).toBe("Critical");
+    expect(lapsed.residual.band).toBe("High");
+    // The lapsed acceptance is open again, so it is named as a reason and
+    // the acceptance line is gone.
+    expect(lapsed.residual.because).toContain("a high-weight control is not in place and nothing has settled it");
+    expect(lapsed.residual.because).not.toContain("a risk is accepted for now — the acceptance is recorded and does not lower the rating, and it lapses on its date");
     const reSettled = rateAssessment({
       stored,
       intake: {},
@@ -113,15 +118,29 @@ describe("rating an assessment from its record", () => {
     );
     const rated = rateAssessment({ stored, intake: {}, findings: [], dispositions: [], attestations, now });
     expect(rated.residual.band).toBe("Medium");
-    expect(rated.residual.because).toContain("every required control is attested and the high-weight ones are in place");
+    expect(rated.residual.because).toContain("every required control is attested, and the high-weight ones are in place or none applies here");
     // One signature short, and it holds at the inherent band.
     const short = rateAssessment({ stored, intake: {}, findings: [], dispositions: [], attestations: attestations.slice(1), now });
     expect(short.residual.band).toBe("High");
   });
 
   it("flags appetite on the assessment and on an area", () => {
-    const finding = { id: "f1", objective: mfa.id, kind: "non-compliance" as const };
-    const rated = rateAssessment({ stored, intake: {}, findings: [finding], dispositions: [], attestations: [], now });
+    // Two areas at High reaches Critical, which is above the line the
+    // edition draws for an assessment. A finding can no longer put it there:
+    // the residual cannot exceed the inherent band (G-79).
+    // The security area has to be lit for its answer to count at all — the
+    // rating reads only what the assessment is asking.
+    const security = CATEGORIES.find((c) => c.key === "security-resilience")!;
+    const exposure = SEVERITY_QUESTIONS.find((q) => q.path === "SR_EXT")!.questionId;
+    const wide = {
+      ...stored,
+      [security.questionId]: said("Yes"),
+      [security.pathQuestion!.questionId]: said(["SR_EXT"]),
+      [exposure]: said("High"),
+    };
+    const rated = rateAssessment({ stored: wide, intake: {}, findings: [], dispositions: [], attestations: [], now });
+    expect(rated.inherent.band).toBe("Critical");
+    expect(rated.residual.band).toBe("Critical");
     expect(rated.breaches.map((b) => b.scope)).toContain("assessment");
   });
 });

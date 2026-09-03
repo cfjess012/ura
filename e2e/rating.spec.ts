@@ -53,7 +53,7 @@ test("the rating follows the severity answers, and stops reading a part that is 
   await expect(chip).not.toContainText(/\d/);
   await chip.click();
   const reasons = page.locator(".rating-reasons").first();
-  await expect(reasons).toContainText("at least one severity answer is High");
+  await expect(reasons).toContainText("a whole risk area sits at High");
   await expect(reasons).not.toContainText(/sev\.|T[0-9]-[A-Z]{2,5}-[0-9]/);
 
   // Untick the part. The answer stays on record (insert-only), but the

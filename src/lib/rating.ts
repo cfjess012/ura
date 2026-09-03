@@ -77,6 +77,17 @@ for (const q of SEVERITY_QUESTIONS) {
   const area = q.path ? AREA_OF_PATH.get(q.path) : undefined;
   if (area) AREA_OF_QUESTION.set(q.questionId, area);
 }
+/**
+ * The severity questions asked of every assessment — how critical the
+ * activity is, how widely it is deployed, who can reach its output. They
+ * belong to no risk area, so once the roll-up became area-based they could
+ * not move the band at all, and a business-critical, enterprise-wide,
+ * customer-facing activity rated Medium. Consequence is first-class in ISO
+ * 31000 and COSO, so it gets its own reading rather than borrowing an area's.
+ */
+const ACTIVITY_QUESTIONS = new Set(
+  SEVERITY_QUESTIONS.filter((q) => q.path === null).map((q) => q.questionId),
+);
 
 const worst = worstBand;
 
@@ -105,6 +116,13 @@ export function inherentNamespace(
   }
   out["areas.atHigh"] = String(atHigh);
   out["areas.atMedium"] = String(atMedium);
+  const activity: Band[] = [];
+  for (const [questionId, band] of Object.entries(severities)) {
+    if (band && ACTIVITY_QUESTIONS.has(questionId)) activity.push(band);
+  }
+  const activityWorst = worst(activity);
+  if (activityWorst) out["activity.severity"] = activityWorst;
+  out["activity.atHigh"] = String(activity.filter((b) => b === "High").length);
   return out;
 }
 
@@ -147,7 +165,31 @@ export function residualNamespace(input: {
       input.findings.filter((f) => f.standing === "settled" && f.settlementKind === "risk-accepted").length,
     ),
     "findings.overdue": n(input.findings.filter((f) => f.standing === "overdue").length),
+    // A remediation still inside its date: the gap is acknowledged and a fix
+    // is agreed, but nothing has changed on the ground yet. Counting it as a
+    // clean control environment lets a plan earn what only an implemented
+    // control should. A reviewer records the fix by settling the finding
+    // again — "the answer was wrong, it has been corrected" — which
+    // supersedes the remediation and releases the reduction.
+    "findings.remediating": n(
+      input.findings.filter(
+        (f) => f.standing === "settled" && f.settlementKind === "remediation",
+      ).length,
+    ),
+    "controls.required.any": n(input.controls.length),
     "controls.required.unattested": n(input.controls.filter((c) => !c.attested).length),
+    // How many required controls carry high weight. Without this a rule
+    // cannot say "or none applies here", and an activity needing none of
+    // them could never earn a reduction however well it was run.
+    // A high-weight control a reviewer has formally ruled Not applicable is
+    // not one this assessment requires — counting it left such an assessment
+    // unable to earn a reduction however well it was run, which is the very
+    // defect G-79 set out to fix (delta verification, S3).
+    "controls.required.highWeight": n(
+      input.controls.filter(
+        (c) => weightOf(c.objective) === "High" && !(c.attested && c.answer === "N-A"),
+      ).length,
+    ),
     "controls.attested.highWeightYes": n(
       input.controls.filter((c) => c.attested && c.answer === "Yes" && weightOf(c.objective) === "High").length,
     ),
@@ -181,11 +223,17 @@ export function residualRating(
   input: { findings: RatedFinding[]; controls: RatedControl[] },
 ): Rated {
   const lookup = residualNamespace(input);
-  let at = rank(inherent.band);
+  const ceiling = rank(inherent.band);
+  let at = ceiling;
   const because = [`inherent rating ${inherent.band}`];
   for (const step of RATING.residual.rules) {
     if (!matches(step.when, lookup)) continue;
-    at = Math.max(0, Math.min(RATING_BANDS.length - 1, at + step.step));
+    // Never above the inherent band. Controls reduce risk; they do not
+    // create it, and a residual above its inherent is a contradiction a
+    // risk reviewer would reject on sight. The edition cannot express an
+    // increase either — validate() refuses a positive step — so this is
+    // the belt to that brace.
+    at = Math.max(0, Math.min(ceiling, at + step.step));
     because.push(step.because);
   }
   return { band: RATING_BANDS[at]!, because };
@@ -260,8 +308,9 @@ export function ratingFields(): KnownFields {
   });
   const areaKeys = new Set(CATEGORIES.map((c) => c.key));
   const derived = (field: string): FieldKind | null => {
-    if (field === "worst.severity") return "severity";
+    if (field === "worst.severity" || field === "activity.severity") return "severity";
     if (field === "areas.atHigh" || field === "areas.atMedium") return "number";
+    if (field === "activity.atHigh") return "number";
     const m = /^area\.(.+)\.severity$/.exec(field);
     if (m) return areaKeys.has(m[1]!) ? "severity" : "unknown";
     if (field.startsWith("findings.") || field.startsWith("controls.")) {
@@ -306,8 +355,8 @@ export function validate(candidate: RatingDoc): RatingDoc {
     }
     if ("step" in rule) {
       const step = rule.step;
-      if (typeof step !== "number" || !Number.isInteger(step) || Math.abs(step) > furthest) {
-        problems.push(`${rule.where}: step must be a whole number of bands, between -${furthest} and ${furthest} — got ${JSON.stringify(step)}`);
+      if (typeof step !== "number" || !Number.isInteger(step) || step > 0 || step < -furthest) {
+        problems.push(`${rule.where}: step must be a whole number of bands between -${furthest} and 0 — a residual may never exceed its inherent band — got ${JSON.stringify(step)}`);
       }
     }
     problems.push(...lintCondition(rule.when, rule.where, known));

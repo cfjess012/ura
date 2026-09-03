@@ -23,7 +23,8 @@ import { SEVERITY_QUESTIONS } from "@/lib/severity";
 
 const privacy = SEVERITY_QUESTIONS.find((q) => q.path === "PRIV")!.questionId;
 const provider = SEVERITY_QUESTIONS.find((q) => q.path === "TPR_LA")!.questionId;
-const criticality = SEVERITY_QUESTIONS.find((q) => q.path === null)!.questionId;
+const activity = SEVERITY_QUESTIONS.filter((q) => q.path === null).map((q) => q.questionId);
+const criticality = activity[0]!;
 
 describe("the edition", () => {
   it("is versioned, bands worst last, and every rule carries a reason", () => {
@@ -79,8 +80,12 @@ describe("the edition", () => {
     delete (noStep.residual.rules[0] as { step?: number }).step;
     expect(() => validate(noStep)).toThrow(/step must be a whole number/);
     const leap = clone();
-    leap.residual.rules[0]!.step = 7;
-    expect(() => validate(leap)).toThrow(/between -3 and 3 — got 7/);
+    leap.residual.rules[0]!.step = -7;
+    expect(() => validate(leap)).toThrow(/between -3 and 0/);
+    // The structural guarantee behind G-79: no edition can raise a residual.
+    const raises = clone();
+    raises.residual.rules[0]!.step = 1;
+    expect(() => validate(raises)).toThrow(/may never exceed its inherent band/);
     const half = clone();
     half.residual.rules[0]!.step = 0.5;
     expect(() => validate(half)).toThrow(/whole number/);
@@ -98,14 +103,58 @@ describe("the inherent rating", () => {
     expect(inherentRating({}, {})).toEqual({ band: "Low", because: [RATING.inherent.default.because] });
   });
 
-  it("follows the worst severity answer, keeping every reason that matched", () => {
+  it("reads the profile, not the single worst answer, and keeps every reason that matched", () => {
     const medium = inherentRating({}, { [criticality]: "Medium" });
     expect(medium.band).toBe("Medium");
     const high = inherentRating({}, { [criticality]: "Medium", [provider]: "High" });
     expect(high.band).toBe("High");
     expect(high.because).toEqual(
-      expect.arrayContaining(["at least one severity answer is Medium or higher", "at least one severity answer is High"]),
+      expect.arrayContaining(["at least one severity answer is Medium or higher", "a whole risk area sits at High"]),
     );
+  });
+
+  it("does not let one answer outside every risk area carry the assessment (G-79)", () => {
+    // Business criticality, breadth and audience are asked of everyone and
+    // belong to no area. Under the first edition a single High here made the
+    // whole assessment High, which is how a max-of rule collapses as the
+    // instrument grows: every question added raises the chance that one of
+    // them is High. The unit of judgement is now the risk area.
+    const alone = inherentRating({}, { [criticality]: "High" });
+    expect(alone.band).toBe("Medium");
+    expect(alone.because).not.toContain("a whole risk area sits at High");
+  });
+
+  it("reaches High on breadth alone — two areas elevated, neither at High", () => {
+    const wide = inherentRating({}, { [provider]: "Medium", [privacy]: "Medium" });
+    expect(wide.band).toBe("High");
+    expect(wide.because).toContain("two or more risk areas are elevated");
+  });
+
+  it("lets the activity's own profile carry the band, on corroboration not on one answer", () => {
+    // Business criticality, breadth and audience are asked of everyone and
+    // belong to no risk area. One High among them is a single signal and
+    // stays Medium; two is a consequence profile and reaches High. Without
+    // this an activity that is business-critical, enterprise-wide and
+    // customer-facing rated Medium, and consequence is first-class in
+    // ISO 31000 and COSO.
+    const one = inherentRating({}, { [activity[0]!]: "High" });
+    expect(one.band).toBe("Medium");
+    const two = inherentRating({}, { [activity[0]!]: "High", [activity[1]!]: "High" });
+    expect(two.band).toBe("High");
+    expect(two.because).toContain(
+      "the activity is High on two or more of how critical it is, how widely it is deployed and who can reach it",
+    );
+    const ns = inherentNamespace({ [activity[0]!]: "High", [activity[1]!]: "High", [activity[2]!]: "Medium" });
+    expect(ns["activity.atHigh"]).toBe("2");
+    expect(ns["activity.severity"]).toBe("High");
+    // The activity never counts as a risk area.
+    expect(ns["areas.atHigh"]).toBe("0");
+  });
+
+  it("reaches Critical when a severe activity also has a risk area at High", () => {
+    const rated = inherentRating({}, { [activity[0]!]: "High", [activity[1]!]: "High", [provider]: "High" });
+    expect(rated.band).toBe("Critical");
+    expect(rated.because).toContain("a risk area at High in an activity that is itself High on two or more counts");
   });
 
   it("reaches Critical only by a rule in the edition — two areas at High", () => {
@@ -131,7 +180,7 @@ describe("the inherent rating", () => {
 });
 
 describe("the residual rating", () => {
-  const inherent = { band: "High" as const, because: ["at least one severity answer is High"] };
+  const inherent = { band: "High" as const, because: ["a whole risk area sits at High"] };
   const finding = (over: Partial<RatedFinding>): RatedFinding => ({
     objective: "T3-IAM-02",
     kind: "gap",
@@ -153,29 +202,42 @@ describe("the residual rating", () => {
     expect(rated.because[0]).toBe("inherent rating High");
   });
 
-  it("rises by a band for an open non-compliance, and for an open gap on a high-weight control", () => {
-    expect(controlWeight("T3-IAM-02")).toBe("High");
-    const breach = residualRating(inherent, { findings: [finding({ kind: "non-compliance" })], controls: [] });
-    expect(breach.band).toBe("Critical");
-    expect(breach.because).toContain("an answer contradicts a policy clause and nothing has settled it");
-    const gap = residualRating({ band: "Medium", because: [] }, { findings: [finding({})], controls: [] });
-    expect(gap.band).toBe("High");
-    // A gap on an ordinary control moves nothing by itself.
-    expect(residualRating({ band: "Medium", because: [] }, { findings: [finding({ objective: "T3-NB-05" })], controls: [] }).band).toBe("Medium");
+  it("does not hand a reduction to an assessment that required no control", () => {
+    // Nothing open and nothing attested is not a clean control environment,
+    // it is an absence of evidence — and it was earning a band.
+    const nothing = residualRating(inherent, { findings: [], controls: [] });
+    expect(nothing.band).toBe("High");
+    expect(nothing.because).toHaveLength(1);
   });
 
-  it("holds under an acceptance, names it, and rises again when a fix is overdue", () => {
+  it("never exceeds the inherent band, whatever is open against it (G-79)", () => {
+    // Controls reduce risk; they do not create it. An open finding says the
+    // control environment earns nothing back, not that the activity became
+    // more dangerous than it is before any control exists.
+    expect(controlWeight("T3-IAM-02")).toBe("High");
+    const breach = residualRating(inherent, { findings: [finding({ kind: "non-compliance" })], controls: [] });
+    expect(breach.band).toBe("High");
+    expect(breach.because).toContain("an answer contradicts a policy clause and nothing has settled it");
+    const gap = residualRating({ band: "Medium", because: [] }, { findings: [finding({})], controls: [] });
+    expect(gap.band).toBe("Medium");
+    expect(gap.because).toContain("a high-weight control is not in place and nothing has settled it");
+    // Every step in the edition is zero or negative, so no edition can raise one.
+    for (const step of RATING.residual.rules) expect(step.step).toBeLessThanOrEqual(0);
+  });
+
+  it("holds under an acceptance, names it, and stays held when a fix is overdue", () => {
     const accepted = residualRating(inherent, {
       findings: [finding({ standing: "settled", settlementKind: "risk-accepted" })],
       controls: [],
     });
     expect(accepted.band).toBe("High");
-    expect(accepted.because).toContain("a risk is accepted for now — the rating holds until the acceptance lapses");
+    expect(accepted.because).toContain("a risk is accepted for now — the acceptance is recorded and does not lower the rating, and it lapses on its date");
     const overdue = residualRating(inherent, {
       findings: [finding({ standing: "overdue", settlementKind: "remediation" })],
       controls: [],
     });
-    expect(overdue.band).toBe("Critical");
+    expect(overdue.band).toBe("High");
+    expect(overdue.because).toContain("a promised fix is past its date");
   });
 
   it("falls by a band only when everything required is attested and the high-weight controls are in place", () => {
@@ -184,15 +246,84 @@ describe("the residual rating", () => {
       controls: [control({}), control({ objective: "T3-NB-05", questionId: "t3.t3_nb_05" })],
     });
     expect(done.band).toBe("Medium");
-    expect(done.because).toContain("every required control is attested and the high-weight ones are in place");
+    expect(done.because).toContain("every required control is attested, and the high-weight ones are in place or none applies here");
     // One unattested answer, and it holds.
     const waiting = residualRating(inherent, {
       findings: [],
       controls: [control({}), control({ objective: "T3-NB-05", questionId: "t3.t3_nb_05", attested: false })],
     });
     expect(waiting.band).toBe("High");
+    // An overdue fix stops the fall outright, rather than cancelling it
+    // silently against a step in the other direction (verifier N1).
+    const late = residualRating(inherent, {
+      findings: [finding({ standing: "overdue", settlementKind: "remediation" })],
+      controls: [control({}), control({ objective: "T3-NB-05", questionId: "t3.t3_nb_05" })],
+    });
+    expect(late.band).toBe("High");
+    expect(late.because).not.toContain("every required control is attested, and the high-weight ones are in place or none applies here");
+    // And an activity that requires none of the high-weight controls can
+    // still earn its reduction, which the first edition made impossible.
+    const noneHeavy = residualRating(inherent, {
+      findings: [],
+      controls: [control({ objective: "T3-NB-05", questionId: "t3.t3_nb_05" })],
+    });
+    expect(noneHeavy.band).toBe("Medium");
     // A reopened acceptance is open again.
     expect(residualNamespace({ findings: [finding({ standing: "reopened", settlementKind: "risk-accepted" })], controls: [] })["findings.open.any"]).toBe("1");
+  });
+
+  it("does not let a promised fix earn what only a made one should", () => {
+    // A remediation inside its date is a plan: the gap is acknowledged and
+    // nothing has changed on the ground. The reviewer releases it by
+    // settling the finding again once the fix is real.
+    const promised = residualRating(inherent, {
+      findings: [finding({ standing: "settled", settlementKind: "remediation" })],
+      controls: [control({})],
+    });
+    expect(promised.band).toBe("High");
+    expect(promised.because).toContain("a fix is promised but not yet made, so nothing is earned back");
+    // Settled another way — the answer was corrected — and the fall is earned.
+    const done = residualRating(inherent, {
+      findings: [finding({ standing: "settled", settlementKind: "answer-corrected" })],
+      controls: [control({})],
+    });
+    expect(done.band).toBe("Medium");
+  });
+
+  it("says why nothing was earned back while a control waits for a signature", () => {
+    // The commonest state in a live review, and the second edition left the
+    // screen silent about it (delta verification, S4).
+    const waiting = residualRating(inherent, {
+      findings: [],
+      controls: [control({}), control({ objective: "T3-NB-05", questionId: "t3.t3_nb_05", attested: false })],
+    });
+    expect(waiting.band).toBe("High");
+    expect(waiting.because).toContain("a required control has not been signed off yet, so nothing is earned back");
+  });
+
+  it("treats a high-weight control ruled Not applicable as one that does not apply", () => {
+    // A reviewer's N-A is the formal way to say a control does not apply
+    // here; counting it as required left the assessment unable to improve
+    // (delta verification, S3).
+    const na = residualRating(inherent, {
+      findings: [],
+      controls: [control({ answer: "N-A" }), control({ objective: "T3-NB-05", questionId: "t3.t3_nb_05" })],
+    });
+    expect(na.band).toBe("Medium");
+    expect(na.because).toContain("every required control is attested, and the high-weight ones are in place or none applies here");
+  });
+
+  it("does not claim the rating held when it fell", () => {
+    // A live acceptance is settled, so it never blocks the reduction; the
+    // old sentence printed "the rating holds" directly above the reason it
+    // had just fallen (delta verification, S5).
+    const both = residualRating(inherent, {
+      findings: [finding({ standing: "settled", settlementKind: "risk-accepted" })],
+      controls: [control({})],
+    });
+    expect(both.band).toBe("Medium");
+    expect(both.because).toContain("a risk is accepted for now — the acceptance is recorded and does not lower the rating, and it lapses on its date");
+    expect(JSON.stringify(both.because)).not.toContain("the rating holds until");
   });
 
   it("never leaves the band scale", () => {
@@ -201,6 +332,8 @@ describe("the residual rating", () => {
       controls: [],
     });
     expect(top.band).toBe("Critical");
+    // The ceiling is the inherent band, not the top of the scale.
+    expect(residualRating({ band: "Low", because: [] }, { findings: [finding({ kind: "non-compliance" })], controls: [] }).band).toBe("Low");
     const bottom = residualRating({ band: "Low", because: [] }, { findings: [], controls: [control({})] });
     expect(bottom.band).toBe("Low");
   });

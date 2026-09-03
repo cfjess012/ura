@@ -1,15 +1,93 @@
 {
   "slug": "risk-rating",
-  "version": "2026-09-03.2",
-  "note": "First edition, to be ratified by the owner (G-78). Every rule is a condition the one engine evaluates over a derived namespace: worst.severity, areas.atHigh, areas.atMedium, area.<key>.severity, findings.*, controls.* — plus every intake field, gate and part. A rating is a band with its reasons; no number is ever shown.",
-  "bands": ["Low", "Medium", "High", "Critical"],
+  "version": "2026-09-03.5",
+  "note": "Fourth edition (G-79, closing the two gaps its verification named). Two changes of substance over .2, both from a risk-management review. First, the residual can never exceed the inherent band: controls reduce risk, they do not create it, so every residual step is zero or negative and the engine clamps at the inherent band. What used to raise the band now says, in the same words, why nothing was earned back. Second, the inherent band reads the profile rather than the single worst answer: a whole risk area must reach High, or two areas must be elevated. The unit of judgement is the risk area, not any one of the twenty-six answers, so adding questions no longer drags every assessment upward.",
+  "bands": [
+    "Low",
+    "Medium",
+    "High",
+    "Critical"
+  ],
   "inherent": {
-    "default": { "band": "Low", "because": "nothing answered so far rates higher" },
+    "default": {
+      "band": "Low",
+      "because": "nothing answered so far rates higher"
+    },
     "rules": [
-      { "band": "Medium", "when": { "field": "worst.severity", "severityAtLeast": "Medium" }, "because": "at least one severity answer is Medium or higher" },
-      { "band": "High", "when": { "field": "worst.severity", "severityAtLeast": "High" }, "because": "at least one severity answer is High" },
-      { "band": "Critical", "when": { "field": "areas.atHigh", "atLeast": 2 }, "because": "two or more risk areas are at High" },
-      { "band": "Critical", "when": { "all": [ { "field": "area.data-privacy.severity", "severityAtLeast": "High" }, { "field": "gate.ai", "equalsAny": ["Yes"] } ] }, "because": "personal data at High severity in an activity that uses AI" }
+      {
+        "band": "Medium",
+        "when": {
+          "field": "worst.severity",
+          "severityAtLeast": "Medium"
+        },
+        "because": "at least one severity answer is Medium or higher"
+      },
+      {
+        "band": "High",
+        "when": {
+          "field": "areas.atHigh",
+          "atLeast": 1
+        },
+        "because": "a whole risk area sits at High"
+      },
+      {
+        "band": "High",
+        "when": {
+          "field": "areas.atMedium",
+          "atLeast": 2
+        },
+        "because": "two or more risk areas are elevated"
+      },
+      {
+        "band": "High",
+        "when": {
+          "field": "activity.atHigh",
+          "atLeast": 2
+        },
+        "because": "the activity is High on two or more of how critical it is, how widely it is deployed and who can reach it"
+      },
+      {
+        "band": "Critical",
+        "when": {
+          "field": "areas.atHigh",
+          "atLeast": 2
+        },
+        "because": "two or more risk areas are at High"
+      },
+      {
+        "band": "Critical",
+        "when": {
+          "all": [
+            {
+              "field": "area.data-privacy.severity",
+              "severityAtLeast": "High"
+            },
+            {
+              "field": "gate.ai",
+              "equalsAny": [
+                "Yes"
+              ]
+            }
+          ]
+        },
+        "because": "personal data at High severity in an activity that uses AI"
+      },
+      {
+        "band": "Critical",
+        "when": {
+          "all": [
+            {
+              "field": "activity.atHigh",
+              "atLeast": 2
+            },
+            {
+              "field": "areas.atHigh",
+              "atLeast": 1
+            }
+          ]
+        },
+        "because": "a risk area at High in an activity that is itself High on two or more counts"
+      }
     ]
   },
   "controls": {
@@ -22,17 +100,110 @@
     }
   },
   "residual": {
-    "note": "Starts from the inherent band and moves by whole bands, never above Critical or below Low; every step names its reason.",
+    "note": "Starts at the inherent band and can only fall. A step is never positive — the engine refuses an edition that tries — because a control cannot make an activity riskier than it is before any control exists. A fall has to be earned by evidence: an assessment that required no control at all has demonstrated nothing and stays where it is. A promised fix is a plan, not a control, and earns nothing until a reviewer settles the finding again to say it is done. The zero steps are the reasons nothing was earned back, and they are shown as such — including the commonest one of all, a control still waiting for a signature, which the second edition left the screen silent about.",
     "rules": [
-      { "step": 1, "when": { "field": "findings.open.nonCompliance", "atLeast": 1 }, "because": "an answer contradicts a policy clause and nothing has settled it" },
-      { "step": 1, "when": { "field": "findings.open.gapOnHighWeight", "atLeast": 1 }, "because": "a high-weight control is not in place and nothing has settled it" },
-      { "step": 1, "when": { "field": "findings.overdue", "atLeast": 1 }, "because": "a promised fix is past its date" },
-      { "step": 0, "when": { "field": "findings.accepted", "atLeast": 1 }, "because": "a risk is accepted for now — the rating holds until the acceptance lapses" },
-      { "step": -1, "when": { "all": [ { "field": "findings.open.any", "atMost": 0 }, { "field": "controls.required.unattested", "atMost": 0 }, { "field": "controls.attested.highWeightYes", "atLeast": 1 } ] }, "because": "every required control is attested and the high-weight ones are in place" }
+      {
+        "step": 0,
+        "when": {
+          "field": "findings.open.nonCompliance",
+          "atLeast": 1
+        },
+        "because": "an answer contradicts a policy clause and nothing has settled it"
+      },
+      {
+        "step": 0,
+        "when": {
+          "field": "findings.open.gapOnHighWeight",
+          "atLeast": 1
+        },
+        "because": "a high-weight control is not in place and nothing has settled it"
+      },
+      {
+        "step": 0,
+        "when": {
+          "field": "findings.overdue",
+          "atLeast": 1
+        },
+        "because": "a promised fix is past its date"
+      },
+      {
+        "step": 0,
+        "when": {
+          "field": "findings.accepted",
+          "atLeast": 1
+        },
+        "because": "a risk is accepted for now — the acceptance is recorded and does not lower the rating, and it lapses on its date"
+      },
+      {
+        "step": 0,
+        "when": {
+          "field": "controls.required.unattested",
+          "atLeast": 1
+        },
+        "because": "a required control has not been signed off yet, so nothing is earned back"
+      },
+      {
+        "step": 0,
+        "when": {
+          "field": "findings.remediating",
+          "atLeast": 1
+        },
+        "because": "a fix is promised but not yet made, so nothing is earned back"
+      },
+      {
+        "step": -1,
+        "when": {
+          "all": [
+            {
+              "field": "findings.open.any",
+              "atMost": 0
+            },
+            {
+              "field": "findings.overdue",
+              "atMost": 0
+            },
+            {
+              "field": "findings.remediating",
+              "atMost": 0
+            },
+            {
+              "field": "controls.required.any",
+              "atLeast": 1
+            },
+            {
+              "field": "controls.required.unattested",
+              "atMost": 0
+            },
+            {
+              "any": [
+                {
+                  "field": "controls.attested.highWeightYes",
+                  "atLeast": 1
+                },
+                {
+                  "field": "controls.required.highWeight",
+                  "atMost": 0
+                }
+              ]
+            }
+          ]
+        },
+        "because": "every required control is attested, and the high-weight ones are in place or none applies here"
+      }
     ]
   },
   "appetite": [
-    { "scope": "assessment", "max": "High", "because": "a Critical residual rating is outside the stated appetite", "escalateTo": "role:admin" },
-    { "scope": "area:data-privacy", "max": "Medium", "because": "personal data above Medium needs the privacy office", "escalateTo": "domain:data-privacy" }
+    {
+      "scope": "assessment",
+      "max": "High",
+      "because": "a Critical residual rating is outside the stated appetite",
+      "escalateTo": "role:admin"
+    },
+    {
+      "scope": "area:data-privacy",
+      "max": "Medium",
+      "because": "personal data above Medium needs the privacy office",
+      "escalateTo": "domain:data-privacy"
+    }
   ]
 }

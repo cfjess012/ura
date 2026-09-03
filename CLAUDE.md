@@ -51,8 +51,11 @@ implementation, stop on ambiguity.
   condition language with nesting, the English renderer, the lint at every
   validator's import. Verifier FAIL then fixed — see uat/S14.md)
 - S15 Risk rating — DONE 2026-09-03 (FR-50/FR-51, G-78: bands with reasons
-  from rating.json, on every summary screen and frozen into the package;
-  edition .2 after the verifier FAILed the first — see uat/S15.md)
+  from rating.json, on every summary screen and frozen into the package).
+  **Live edition is `risk-rating@2026-09-03.5` (G-79)**, not the `.2` that
+  uat/S15.md was verified against: a residual may never exceed its inherent
+  band, and the inherent reads the risk-area profile, not the worst single
+  answer. Both passed a delta verification — see the note atop uat/S15.md.
 - S10 Harden — not started (do not scaffold ahead; SPEC §0 rule 5)
 - 2026-08-23 level set: SPEC rewritten to the official mission (G-51..G-55);
   agentic on Bedrock/AgentCore was the Phase-2 epic and shipped as S11/S12.

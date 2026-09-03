@@ -1,6 +1,7 @@
 "use server";
 import { findingStanding } from "@/lib/submission";
 import { rateAssessment, type Rating } from "@/lib/rating-of";
+import { RATING, RATING_VERSION } from "@/lib/rating";
 
 /**
  * Assembling and recording a package (SPEC §4.5).
@@ -133,7 +134,13 @@ export async function packageState(projectId: string): Promise<
     });
     const payload = assemble({
       rating,
-      instrumentVersions: await packageStore().instrumentVersionsFor(projectId),
+      // The rating edition belongs with the editions that asked the
+      // questions: a replayer reading provenance could otherwise not tell
+      // which rules produced the frozen bands (delta verification, N3).
+      instrumentVersions: [
+        ...(await packageStore().instrumentVersionsFor(projectId)),
+        { slug: RATING.slug, version: RATING_VERSION },
+      ],
       project,
       intake,
       stored,
