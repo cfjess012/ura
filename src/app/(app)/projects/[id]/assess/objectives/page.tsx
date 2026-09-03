@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CATEGORIES, gateStates } from "@/lib/instrument";
-import { litPaths } from "@/lib/engine";
+import { litPaths, pathSelectionsFrom } from "@/lib/engine";
 import {
   accumulatedFor,
   severityQuestionsFor,
@@ -59,13 +59,7 @@ export default async function ObjectivesPage({
   const stored = await answerStore().current(id);
   const journey = assessJourney(stored, intake);
   const gates = journey.gates;
-  const selections: Record<string, string[]> = {};
-  for (const category of CATEGORIES) {
-    const value = category.pathQuestion
-      ? stored[category.pathQuestion.questionId]?.value
-      : undefined;
-    if (Array.isArray(value)) selections[category.key] = value;
-  }
+  const selections = pathSelectionsFrom(CATEGORIES, stored);
   const lit = litPaths(CATEGORIES, gates, selections, intake);
   const severityQuestions = severityQuestionsFor(lit.map((p) => p.id));
   const bands: Record<string, Band | undefined> = {};

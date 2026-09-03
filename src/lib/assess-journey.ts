@@ -15,7 +15,7 @@
  * recomputed on every render like everything else derived (NFR-4).
  */
 import type { AnswerLookup } from "./conditions";
-import { litPaths } from "./engine";
+import { litPaths, pathSelectionsFrom } from "./engine";
 import {
   askableCategories,
   CATEGORIES,
@@ -76,13 +76,7 @@ export function assessJourney(
   const walk = gates.filter((g) => !g.settled);
   const gatesRemaining = unansweredCount(gates);
 
-  const selections: Record<string, string[]> = {};
-  for (const category of CATEGORIES) {
-    const value = category.pathQuestion
-      ? stored[category.pathQuestion.questionId]?.value
-      : undefined;
-    if (Array.isArray(value)) selections[category.key] = value as string[];
-  }
+  const selections = pathSelectionsFrom(CATEGORIES, stored);
 
   const parts: JourneyPart[] = askableCategories()
     .filter(

@@ -7,7 +7,7 @@ import {
   gateProgressHeadline,
   unansweredCount,
 } from "@/lib/instrument";
-import { litPaths } from "@/lib/engine";
+import { litPaths, pathSelectionsFrom } from "@/lib/engine";
 import {
   accumulateControls,
   asksNothingFurther,
@@ -63,13 +63,7 @@ export default async function GatesCompletePage({
   const asked = askableCategories();
   const settled = states.filter((s) => s.settled);
   // Recomputed here, never read from a stored "derived" column (NFR-3).
-  const selections: Record<string, string[]> = {};
-  for (const category of CATEGORIES) {
-    const value = category.pathQuestion
-      ? stored[category.pathQuestion.questionId]?.value
-      : undefined;
-    if (Array.isArray(value)) selections[category.key] = value;
-  }
+  const selections = pathSelectionsFrom(CATEGORIES, stored);
   const lit = litPaths(CATEGORIES, states, selections, intake);
   // Recomputed from the answers, never stored (NFR-3). Change a severity
   // upstream and the workplan below changes with it.

@@ -6,7 +6,7 @@ import {
   gateStates,
   unansweredCount,
 } from "@/lib/instrument";
-import { litPathsFor, litPaths, assessmentLookup } from "@/lib/engine";
+import { litPathsFor, litPaths, assessmentLookup, pathSelectionsFrom } from "@/lib/engine";
 import { severityQuestionsFor } from "@/lib/severity";
 import { groupsFor } from "../severity/severity-rail";
 import { firstIncompleteSection } from "@/lib/intake";
@@ -57,13 +57,7 @@ export default async function PathsPage({
     redirect(`/projects/${id}/assess/${next.category.key}`);
   }
 
-  const selections: Record<string, string[]> = {};
-  for (const category of CATEGORIES) {
-    const answer = category.pathQuestion
-      ? stored[category.pathQuestion.questionId]?.value
-      : undefined;
-    if (Array.isArray(answer)) selections[category.key] = answer;
-  }
+  const selections = pathSelectionsFrom(CATEGORIES, stored);
   const lookup = assessmentLookup({
     intake,
     gates,

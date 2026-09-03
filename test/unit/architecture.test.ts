@@ -572,3 +572,32 @@ describe("S13 · a rule with one definition is only worth what reaches it", () =
     expect(offenders).toEqual([]);
   });
 });
+
+describe("one definition of what the record lights", () => {
+  const SRC = join(__dirname, "..", "..", "src");
+  const files = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? files(join(dir, e.name)) : join(dir, e.name),
+    );
+
+  it("nobody re-derives which parts an area has ticked", () => {
+    // This loop existed in ten places and two of them came apart: the
+    // rating read a severity answer whose part had been unticked while the
+    // ledger did not. `pathSelectionsFrom` is the one definition, and
+    // engine.ts is the only file allowed to contain the loop.
+    const offenders = files(SRC)
+      .filter((f) => /\.tsx?$/.test(f) && !f.endsWith(join("lib", "engine.ts")))
+      .filter((f) => readFileSync(f, "utf8").includes("pathQuestion.questionId]?.value"))
+      .map((f) => f.slice(SRC.length + 1));
+    expect(offenders, "call pathSelectionsFrom(CATEGORIES, stored) instead").toEqual([]);
+  });
+
+  it("the package payload is assembled in the pure layer, where it can be tested", () => {
+    // It lived inside "use server", so no unit test could reach it and the
+    // frozen rating shipped to six screens unchecked (S15 delta pass).
+    const packaging = readFileSync(join(SRC, "lib", "packaging.ts"), "utf8");
+    expect(packaging).toContain("export function assemblePackage(");
+    const action = readFileSync(join(SRC, "app", "package-actions.ts"), "utf8");
+    expect(action).not.toMatch(/^function assemble\(/m);
+  });
+});

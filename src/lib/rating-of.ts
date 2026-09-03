@@ -10,7 +10,7 @@
  *
  * Pure: the caller fetches, this decides. Nothing is stored (NFR-3).
  */
-import { assessmentLookup, litPaths } from "./engine";
+import { assessmentLookup, litPaths, pathSelectionsFrom } from "./engine";
 import { CATEGORIES, gateStates } from "./instrument";
 import { BANDS, type AnswerLookup, type Band } from "./conditions";
 import {
@@ -42,13 +42,7 @@ type Stored = Record<string, { value: unknown; source: string; confirmed: boolea
 /** What the record lights: the gates, the ticked parts, and the paths lit. */
 function litFor(stored: Stored, intake: AnswerLookup) {
   const gates = gateStates(stored, intake);
-  const selections: Record<string, string[]> = {};
-  for (const category of CATEGORIES) {
-    const value = category.pathQuestion
-      ? stored[category.pathQuestion.questionId]?.value
-      : undefined;
-    if (Array.isArray(value)) selections[category.key] = value as string[];
-  }
+  const selections = pathSelectionsFrom(CATEGORIES, stored);
   const paths = litPaths(CATEGORIES, gates, selections, intake).map((p) => p.id);
   return { gates, selections, paths };
 }

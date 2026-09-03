@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CATEGORIES, gateStates } from "@/lib/instrument";
 import { destinationFor } from "@/lib/destination";
-import { litPaths } from "@/lib/engine";
+import { litPaths, pathSelectionsFrom } from "@/lib/engine";
 import { questionLabelFor } from "@/lib/question-label";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
@@ -76,13 +76,7 @@ export default async function SubmitPage({
   // The same earlier-tier gaps the action counts, so the screen and the
   // server cannot disagree about what is missing (verifier B1).
   const gates = gateStates(stored, intake);
-  const selections: Record<string, string[]> = {};
-  for (const category of CATEGORIES) {
-    const value = category.pathQuestion
-      ? stored[category.pathQuestion.questionId]?.value
-      : undefined;
-    if (Array.isArray(value)) selections[category.key] = value as string[];
-  }
+  const selections = pathSelectionsFrom(CATEGORIES, stored);
   const lit = litPaths(CATEGORIES, gates, selections, intake);
   const severityQuestions = severityQuestionsFor(lit.map((path) => path.id));
   const openHandoffs = (await handoffStore().forProject(id)).filter(

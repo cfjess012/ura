@@ -28,7 +28,7 @@ import {
   type SubmittedEntries,
 } from "@/lib/intake-values";
 import { CATEGORIES, INSTRUMENT, gateStates } from "@/lib/instrument";
-import { litPaths, pathSubmissionProblems } from "@/lib/engine";
+import { litPaths, pathSelectionsFrom, pathSubmissionProblems } from "@/lib/engine";
 import { questionLabelFor } from "@/lib/question-label";
 import type { AnswerLookup } from "@/lib/conditions";
 import {
@@ -337,13 +337,7 @@ async function earlierGapsFor(
   stored: Awaited<ReturnType<ReturnType<typeof answerStore>["current"]>>,
 ): Promise<Gap[]> {
   const gates = gateStates(stored, intake);
-  const selections: Record<string, string[]> = {};
-  for (const category of CATEGORIES) {
-    const value = category.pathQuestion
-      ? stored[category.pathQuestion.questionId]?.value
-      : undefined;
-    if (Array.isArray(value)) selections[category.key] = value as string[];
-  }
+  const selections = pathSelectionsFrom(CATEGORIES, stored);
   const lit = litPaths(CATEGORIES, gates, selections, intake);
   const severity = severityQuestionsFor(lit.map((path) => path.id)).map(
     (question) => ({

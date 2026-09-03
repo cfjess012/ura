@@ -22,6 +22,14 @@
  * Pure: no framework, no driver, no environment (§26.1).
  */
 import { findingIsOpen, findingStanding, type FindingKind } from "./submission";
+import { gateStates } from "./instrument";
+import { asksNothingFurther } from "./severity";
+import { OBJECTIVES } from "./tier3";
+import { labelOf, type ReferenceAnswer } from "./reference";
+import type { Rating } from "./rating-of";
+import { RATING } from "./rating";
+import type { FindingRow } from "./repo-review";
+import policies from "@/data/reference/policies.json";
 
 /** Why an assessment cannot be packaged yet, in a person's words. */
 export type Blocker = {
@@ -298,4 +306,241 @@ export function packageFilename(name: string, at: Date): string {
       .slice(0, 60) || "assessment";
   const day = at.toISOString().slice(0, 10);
   return `${slug}-${day}.json`;
+}
+
+/** An objective by its question id, for answers outside the required set. */
+function objectiveByQuestion(questionId: string) {
+  return OBJECTIVES.find((o) => o.questionId === questionId) ?? null;
+}
+
+export function nameIn(
+  everyone: Array<{ id: string; name: string }>,
+  id: string,
+): string {
+  return everyone.find((p) => p.id === id)?.name ?? id;
+}
+
+/** A reference answer renders as the label it was chosen by (NFR-22). */
+function shown(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (Array.isArray(value)) return value.map(shown).join(", ");
+  if (typeof value === "object" && value !== null && "label" in value) {
+    return labelOf(value as ReferenceAnswer);
+  }
+  return String(value);
+}
+
+/**
+ * The package payload, assembled from what the caller has already fetched.
+ *
+ * Pure, and here rather than in the action, because a payload nobody can
+ * test is a payload nobody has checked: the frozen rating block reached the
+ * screen with no test at any tier while this lived inside `"use server"`
+ * (S15 delta verification). The executor fetches; this decides.
+ */
+export function assemblePackage(input: {
+  project: {
+    id: string;
+    projectName: string;
+    submittedAt: Date | null;
+    submittedBy: string | null;
+  };
+  intake: Record<string, unknown>;
+  stored: Record<string, { value: unknown }>;
+  required: Array<{ id: string; questionId: string; name: string }>;
+  recorded: Array<{ objective: string; name: string; because: string[] }>;
+  rating: Rating;
+  latest: Map<
+    string,
+    {
+      act: string;
+      note: string;
+      attestedBy: string;
+      attestedAt: Date;
+      correctedAnswer: string | null;
+    }
+  >;
+  findings: FindingRow[];
+  /**
+   * The settlement in force per finding. A Map rather than the raw rows:
+   * dispositions are insert-only and a finding settled twice has two, and
+   * keying the array by findingId kept whichever happened to come last —
+   * the oldest, since they arrive newest first.
+   */
+  settlements: Map<
+    string,
+    {
+      findingId: string;
+        kind: string;
+      note: string;
+      resolvedBy: string;
+      resolvedAt: Date;
+      remediationOwner: string | null;
+      remediationDue: Date | null;
+      acceptedBy: string | null;
+      expiresAt: Date | null;
+    }
+  >;
+  everyone: Array<{ id: string; name: string }>;
+  by: string;
+  now: Date;
+  instrumentVersions: Array<{ slug: string; version: string }>;
+}): Package {
+  const {
+    project,
+    intake,
+    stored,
+    required,
+    latest,
+    findings,
+    settlements,
+    everyone,
+  } = input;
+  const who = (id: string | null) => (id ? nameIn(everyone, id) : "");
+
+  const states = gateStates(stored as never, intake as never);
+  const coverage = states.map((s) => ({
+    area: s.category.name,
+    standing: (!(s.settled || s.answer === "Yes")
+      ? "closed"
+      : asksNothingFurther(s.category.key)
+        ? "recorded"
+        : "applies") as "applies" | "closed" | "recorded",
+    because:
+      s.because ??
+      (s.answer === "Yes" ? "it applies to this activity" : "it was ruled out"),
+  }));
+
+  /**
+   * Every attested value (§4.5), not only the currently-required ones.
+   *
+   * The gate is about the required set — nothing may be packaged while a
+   * required answer is unsigned. What goes IN is a different question, and
+   * the spec answers it differently: "every attested value". An assessment
+   * whose severity later narrowed can hold a signed answer that is no
+   * longer required, and dropping it would publish a finding whose answer
+   * is missing from the same file.
+   */
+  const named = new Map(required.map((o) => [o.questionId, o]));
+  const answers = [...latest.entries()]
+    .map(([questionId, signed]) => {
+      const objective =
+        named.get(questionId) ?? objectiveByQuestion(questionId);
+      if (!objective) return null;
+      const given = stored[questionId]?.value as
+        { answer?: string; note?: string } | undefined;
+      // The attested value, not the submitted one: a correction replaces
+      // what the record says, and an N-A is the string, never an omission.
+      const value =
+        signed.act === "not-applicable"
+          ? "N-A"
+          : (signed.correctedAnswer ?? given?.answer ?? "");
+      return {
+        questionId,
+        objective: objective.id,
+        label: objective.name,
+        value,
+        note: signed.note || given?.note || "",
+        attestedBy: who(signed.attestedBy),
+        attestedAt: signed.attestedAt.toISOString(),
+        act: signed.act,
+      };
+    })
+    .filter((a): a is NonNullable<typeof a> => a !== null)
+    .sort((a, b) => a.objective.localeCompare(b.objective));
+
+  const packagedFindings = findings.map((f) => {
+    const d = settlements.get(f.id);
+    return {
+      objective: f.objective,
+      objectiveName: f.objectiveName,
+      kind: f.kind as Package["findings"][number]["kind"],
+      note: f.note,
+      // Present exactly when the finding cited a clause — the same
+      // invariant the findings table enforces with a CHECK.
+      ...(f.citation
+        ? {
+            clause: {
+              reference: f.citation.policyRef,
+              clauseId: f.citation.clauseId,
+              version: f.citation.policyVersion,
+              text: f.citation.clauseText,
+            },
+          }
+        : {}),
+      settlement: {
+        kind: d?.kind ?? "",
+        standing:
+          findingStanding(d ?? null, input.now) === "overdue"
+            ? ("overdue" as const)
+            : ("settled" as const),
+        note: d?.note ?? "",
+        resolvedBy: who(d?.resolvedBy ?? null),
+        resolvedAt: d?.resolvedAt?.toISOString() ?? "",
+        ...(d?.remediationOwner ? { owner: who(d.remediationOwner) } : {}),
+        ...(d?.remediationDue ? { due: d.remediationDue.toISOString() } : {}),
+        ...(d?.acceptedBy ? { acceptedBy: who(d.acceptedBy) } : {}),
+        ...(d?.expiresAt ? { expiresAt: d.expiresAt.toISOString() } : {}),
+      },
+    };
+  });
+
+  return {
+    assessment: {
+      id: project.id,
+      name: project.projectName,
+      submittedBy: who(project.submittedBy),
+      submittedAt: project.submittedAt?.toISOString() ?? "",
+      classification: shown(intake.dataClassification),
+    },
+    coverage,
+    answers,
+    controlsRecorded: input.recorded.map((c) => ({
+      objective: c.objective,
+      name: c.name,
+      because: c.because,
+    })),
+    findings: packagedFindings,
+    rating: {
+      inherent: input.rating.inherent,
+      residual: input.rating.residual,
+      // The whole breach, including where it was routed — a replayable record
+      // has to say who the breach went to, not only that it happened.
+      exceedsAppetite: input.rating.breaches.map((b) => ({
+        scope: b.scope,
+        label: b.label,
+        band: b.band,
+        max: b.max,
+        because: b.because,
+        escalateTo: b.escalateTo,
+      })),
+      edition: input.rating.edition,
+    },
+    provenance: {
+      packagedAt: new Date().toISOString(),
+      packagedBy: input.by,
+      // Which edition of the instrument asked these questions. A replay
+      // against a different one is a different question, and a reader has
+      // to be able to tell.
+      // What asked these questions, from what the answers pinned. This read
+      // the *currently activated* editions, which is the same answer right
+      // up until the instrument is re-versioned — and a replayable record
+      // that changes its own provenance when the instrument moves is the
+      // one thing it must not do. The screen promised what the code did
+      // not (§24: copy is a claim).
+      // The rating edition belongs with the editions that asked the
+      // questions, and the payload names it rather than trusting a caller
+      // to remember: a replayer could otherwise not tell which rules
+      // produced the frozen bands.
+      instrumentVersions: [
+        ...input.instrumentVersions.filter((v) => v.slug !== RATING.slug),
+        { slug: RATING.slug, version: RATING.version },
+      ],
+      policyVersion:
+        (policies as { version?: string }).version ??
+        (policies as { policies?: Array<{ version?: string }> }).policies?.[0]
+          ?.version ??
+        null,
+    },
+  };
 }
