@@ -1,0 +1,267 @@
+{
+  "slug": "control-provision",
+  "version": "2026-09-03.1",
+  "note": "Who can answer each control (G-83). NIST's model, in this product's words: a COMMON control is provided centrally and inherited by everything that uses the provider — nobody's project decides whether multi-factor authentication is enforced. A SYSTEM-SPECIFIC control is about this activity and only the people doing it can answer. A HYBRID control is both: the platform provides part and the activity provides the rest. This decides who is asked, and it is the reason a requester was answering ten questions about the enterprise estate that they had no way to answer. The reasons are the owner's to ratify; they encode assumptions about which teams run what.",
+  "provisions": [
+    "common",
+    "hybrid",
+    "system-specific"
+  ],
+  "controls": [
+    {
+      "objective": "T3-IAM-01",
+      "provision": "common",
+      "because": "an enterprise identity service defines and enforces entitlements; a project consumes them"
+    },
+    {
+      "objective": "T3-IAM-02",
+      "provision": "common",
+      "because": "multi-factor authentication is switched on for the estate or it is not"
+    },
+    {
+      "objective": "T3-IAM-03",
+      "provision": "common",
+      "because": "privileged access is separated and monitored centrally, not per activity"
+    },
+    {
+      "objective": "T3-IAM-05",
+      "provision": "common",
+      "because": "recertification campaigns run against the directory, across everything in it"
+    },
+    {
+      "objective": "T3-IAM-06",
+      "provision": "common",
+      "because": "joiners, movers and leavers are handled once for the organisation"
+    },
+    {
+      "objective": "T3-IAM-10",
+      "provision": "common",
+      "because": "remote entry is governed by the same identity and network estate for everyone"
+    },
+    {
+      "objective": "T3-NB-01",
+      "provision": "common",
+      "because": "segmentation and boundary protection belong to the network estate"
+    },
+    {
+      "objective": "T3-NB-02",
+      "provision": "common",
+      "because": "an edge or application firewall protects everything published through it"
+    },
+    {
+      "objective": "T3-NB-05",
+      "provision": "common",
+      "because": "denial-of-service absorption sits at the edge, ahead of any one service"
+    },
+    {
+      "objective": "T3-NB-03",
+      "provision": "hybrid",
+      "because": "the platform secures the transport and the gateway; the activity secures its own interface design and authorisation"
+    },
+    {
+      "objective": "T3-DP-01",
+      "provision": "hybrid",
+      "because": "disk and transport encryption come from the platform; field-level encryption and key custody choices belong to the activity"
+    },
+    {
+      "objective": "T3-DP-06",
+      "provision": "hybrid",
+      "because": "a secrets manager is central; what an activity puts in it, and rotates, is its own"
+    },
+    {
+      "objective": "T3-DP-07",
+      "provision": "common",
+      "because": "media handling and destruction is a facilities and endpoint matter for the whole estate"
+    },
+    {
+      "objective": "T3-DP-04",
+      "provision": "system-specific",
+      "because": "what data an activity collects and how far it can be reduced is a design choice only it can make"
+    },
+    {
+      "objective": "T3-DP-05",
+      "provision": "system-specific",
+      "because": "how long this activity's data must be kept, and why, depends on what it is for"
+    },
+    {
+      "objective": "T3-LOG-01",
+      "provision": "common",
+      "because": "log collection and retention are provided by the central logging service"
+    },
+    {
+      "objective": "T3-LOG-02",
+      "provision": "common",
+      "because": "continuous monitoring and alerting run across the estate, not per project"
+    },
+    {
+      "objective": "T3-SDLC-03",
+      "provision": "common",
+      "because": "scanning and remediation service levels are set and run centrally"
+    },
+    {
+      "objective": "T3-SDLC-05",
+      "provision": "common",
+      "because": "malicious code protection is deployed to the estate"
+    },
+    {
+      "objective": "T3-SDLC-06",
+      "provision": "common",
+      "because": "patch cadence is an estate-wide programme"
+    },
+    {
+      "objective": "T3-SDLC-04",
+      "provision": "hybrid",
+      "because": "the testing programme and its cadence are central; scoping this activity into it is the activity's own"
+    },
+    {
+      "objective": "T3-RES-01",
+      "provision": "hybrid",
+      "because": "backup infrastructure is central; the recovery objective for this activity is its own decision"
+    },
+    {
+      "objective": "T3-RES-02",
+      "provision": "hybrid",
+      "because": "the incident response capability is central; this activity's escalation path and severity criteria are its own"
+    },
+    {
+      "objective": "T3-RES-03",
+      "provision": "hybrid",
+      "because": "continuity arrangements are provided; which tier this activity needs is its own"
+    },
+    {
+      "objective": "T3-HR-01",
+      "provision": "common",
+      "because": "screening standards are set once and applied on hire"
+    },
+    {
+      "objective": "T3-HR-02",
+      "provision": "common",
+      "because": "security awareness training is an organisation-wide programme"
+    },
+    {
+      "objective": "T3-TPR-05",
+      "provision": "common",
+      "because": "supplier physical access to our sites is governed by facilities for all suppliers"
+    },
+    {
+      "objective": "T3-TPR-02",
+      "provision": "hybrid",
+      "because": "the assurance programme is central; obtaining and reading this supplier's evidence is the activity's own"
+    },
+    {
+      "objective": "T3-TPR-01",
+      "provision": "system-specific",
+      "because": "the contract and its flow-down terms are specific to this engagement"
+    },
+    {
+      "objective": "T3-TPR-03",
+      "provision": "system-specific",
+      "because": "which subcontractors this supplier uses, and whether that is acceptable here, is specific"
+    },
+    {
+      "objective": "T3-TPR-04",
+      "provision": "system-specific",
+      "because": "what this supplier may reach in this activity is decided here"
+    },
+    {
+      "objective": "T3-AI-01",
+      "provision": "system-specific",
+      "because": "how this model was validated, and against what, cannot be answered centrally"
+    },
+    {
+      "objective": "T3-AI-02",
+      "provision": "system-specific",
+      "because": "who oversees this system's output, and how they intervene, is designed here"
+    },
+    {
+      "objective": "T3-AI-03",
+      "provision": "system-specific",
+      "because": "bias testing is against this use and this population"
+    },
+    {
+      "objective": "T3-AI-05",
+      "provision": "system-specific",
+      "because": "the documentation is of this system and its decisions"
+    },
+    {
+      "objective": "T3-AI-06",
+      "provision": "system-specific",
+      "because": "output quality is judged against what this activity is for"
+    },
+    {
+      "objective": "T3-AI-07",
+      "provision": "system-specific",
+      "because": "what personal information reaches prompts and outputs depends on this design"
+    },
+    {
+      "objective": "T3-AI-08",
+      "provision": "system-specific",
+      "because": "what this agent may act on is a boundary drawn for this activity"
+    },
+    {
+      "objective": "T3-AI-09",
+      "provision": "hybrid",
+      "because": "the platform enforces retrieval against the signed-in person permissions; whether this index is permissioned correctly in the first place is the activity own"
+    },
+    {
+      "objective": "T3-AI-10",
+      "provision": "system-specific",
+      "because": "the provenance of this model's training data is particular to it"
+    },
+    {
+      "objective": "T3-AI-11",
+      "provision": "system-specific",
+      "because": "how an affected person challenges this system's output is designed here"
+    },
+    {
+      "objective": "T3-PRIV-02",
+      "provision": "system-specific",
+      "because": "the lawful basis is for this processing, not for the organisation in general"
+    },
+    {
+      "objective": "T3-PRIV-03",
+      "provision": "system-specific",
+      "because": "serving a data-subject request depends on what this activity holds and where"
+    },
+    {
+      "objective": "T3-PRIV-04",
+      "provision": "system-specific",
+      "because": "the notice describes this processing"
+    },
+    {
+      "objective": "T3-PRIV-05",
+      "provision": "system-specific",
+      "because": "special-category handling and profiling safeguards are particular to this use"
+    },
+    {
+      "objective": "T3-CMP-02",
+      "provision": "system-specific",
+      "because": "what this activity communicates, and to whom, is reviewed for this activity"
+    },
+    {
+      "objective": "T3-CMP-03",
+      "provision": "system-specific",
+      "because": "which borders this activity's data crosses is a fact about this activity"
+    },
+    {
+      "objective": "T3-CMP-04",
+      "provision": "system-specific",
+      "because": "the statutory and reporting obligations follow from what this activity does"
+    },
+    {
+      "objective": "T3-GOV-02",
+      "provision": "system-specific",
+      "because": "the approval and any risk acceptance are for this activity"
+    },
+    {
+      "objective": "T3-GOV-03",
+      "provision": "system-specific",
+      "because": "who oversees this activity, and reports on it, is set here"
+    },
+    {
+      "objective": "T3-OPS-04",
+      "provision": "system-specific",
+      "because": "the procedures describe how this activity is run"
+    }
+  ]
+}

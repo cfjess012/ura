@@ -52,7 +52,7 @@ implementation, stop on ambiguity.
   validator's import. Verifier FAIL then fixed — see uat/S14.md)
 - S15 Risk rating — DONE 2026-09-03 (FR-50/FR-51, G-78: bands with reasons
   from rating.json, on every summary screen and frozen into the package).
-  **Live edition is `risk-rating@2026-09-03.5` (G-79)**, not the `.2` that
+  **Live edition is `risk-rating@2026-09-03.6` (G-79, G-81)**, not the `.2` that
   uat/S15.md was verified against: a residual may never exceed its inherent
   band, and the inherent reads the risk-area profile, not the worst single
   answer. Both passed a delta verification — see the note atop uat/S15.md.
@@ -115,6 +115,7 @@ work, not after:
 | write anything to the owner | `owner-brief` |
 | answer design feedback or a screenshot | `design-mock` |
 | finish a review, prep UAT, or write down a claim | `demo-truth` |
+| change a rule, an edition, a derivation or a gate | `impact-analysis` |
 | audit the repo, the spec, code quality, dead code, or skills | `repository-audit` |
 
 Law lives in SPEC and is always true; procedure lives in skills and is
