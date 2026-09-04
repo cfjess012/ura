@@ -25,7 +25,15 @@ import type { Person } from "./people";
 type DomainMap = {
   slug: string;
   version: string;
-  families: { family: string; domain: string; because: string }[];
+  families: {
+    family: string;
+    domain: string;
+    because: string;
+    /** What to call it on a screen — the code never appears (NFR-9). */
+    name: string;
+    /** Where it sits in the register, most assessments' first areas first. */
+    order: number;
+  }[];
 };
 
 const MAP: DomainMap = (() => {
@@ -48,6 +56,29 @@ const MAP: DomainMap = (() => {
       );
     }
   }
+  // A family with no readable name would put its code on a screen, which is
+  // the one thing NFR-9 forbids outright — and a name that IS the code is
+  // the same defect wearing a different field.
+  const orders = new Set<number>();
+  for (const entry of candidate.families) {
+    const name = String(entry.name ?? "").trim();
+    if (name.length < 4 || name === entry.family) {
+      throw new Error(
+        `control-domains.json: the "${entry.family}" family needs a name a business reader recognises, not its code`,
+      );
+    }
+    if (!Number.isInteger(entry.order) || entry.order < 0) {
+      throw new Error(
+        `control-domains.json: the "${entry.family}" family needs a whole-number order`,
+      );
+    }
+    if (orders.has(entry.order)) {
+      throw new Error(
+        `control-domains.json: two families both claim position ${entry.order}, so the register's order is undefined`,
+      );
+    }
+    orders.add(entry.order);
+  }
   return candidate;
 })();
 
@@ -55,6 +86,24 @@ export const CONTROL_DOMAIN_VERSION = MAP.version;
 
 const DOMAIN_OF = new Map(MAP.families.map((e) => [e.family, e.domain]));
 const BECAUSE_OF = new Map(MAP.families.map((e) => [e.family, e.because]));
+const NAME_OF = new Map(MAP.families.map((e) => [e.family, e.name]));
+const ORDER_OF = new Map(MAP.families.map((e) => [e.family, e.order]));
+
+/**
+ * What a control family is called on screen.
+ *
+ * Never the code. `IAM` tells a business reader nothing, and the validator
+ * above refuses a family whose name is its own code, so this cannot quietly
+ * fall back to one.
+ */
+export function familyName(family: string): string {
+  return NAME_OF.get(family) ?? family;
+}
+
+/** Where a family sits in the register — lower is met first. */
+export function familyOrder(family: string): number {
+  return ORDER_OF.get(family) ?? Number.MAX_SAFE_INTEGER;
+}
 
 /** Which risk area is accountable for a control objective's answers. */
 export function domainForObjective(objectiveId: string): string | null {
