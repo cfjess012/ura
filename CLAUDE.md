@@ -30,8 +30,10 @@ implementation, stop on ambiguity.
   once, with an accountable owner and an expiring attestation; an activity
   says what it runs on and the controls those platforms provide arrive with
   the provider and the date. An offer is not an answer — a control leaves
-  the question list only once its recorded answer is the inherited one.)
-  **Not finished: no uat/S19.md and no slice review.**
+  the question list only once its recorded answer is the inherited one.
+  G-86: /admin/platforms reads the estate — owner, attestation standing and
+  the blast radius — read-only, because nobody can attest without real
+  sign-in.) **Not finished: no uat/S19.md and no slice review.**
 - S3.5 Destinations — BUILT 2026-08-27 (FR-26/FR-27 · NFR-20: the offer with
   a computed count, and the assembled record in three parts with a real
   payload and no send that pretends). **Not finished: no uat/S3.5.md and no

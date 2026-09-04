@@ -94,6 +94,11 @@ export default async function AppLayout({
                 Coverage
               </Link>
             )}
+            {canAdminister(current.role) && (
+              <Link href="/admin/platforms" className="appbar-link">
+                Platforms
+              </Link>
+            )}
             <AlertBell
               toReview={toReview}
               obligations={waiting.map((h) => ({

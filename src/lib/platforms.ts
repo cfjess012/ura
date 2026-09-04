@@ -206,6 +206,18 @@ export function providedBy(
 const CLASSIFICATION_ORDER = ["Public", "Internal", "Confidential", "Restricted"];
 
 /**
+ * The most sensitive thing a platform may hold. One definition, because the
+ * compatibility warning and the platform's own record must never disagree
+ * about what it is cleared for.
+ */
+export function clearedUpTo(platform: Platform): string {
+  const ranks = platform.allowedData.classifications.map((c) =>
+    CLASSIFICATION_ORDER.indexOf(c),
+  );
+  return CLASSIFICATION_ORDER[Math.max(-1, ...ranks)] ?? "nothing";
+}
+
+/**
  * Where an activity wants to put data a platform is not cleared for.
  *
  * The cheapest strong control in the whole module: the platform already
@@ -224,17 +236,12 @@ export function dataMismatches(
     // A clearance is a ceiling, not a set. Putting Public data on a platform
     // cleared to Restricted is not a mismatch, and warning about it teaches
     // people to ignore the warning that matters.
-    const ceiling = Math.max(
-      -1,
-      ...allowed.classifications.map((c) => CLASSIFICATION_ORDER.indexOf(c)),
-    );
     const wanted = CLASSIFICATION_ORDER.indexOf(wants.classification);
-    if (wanted > ceiling) {
-      const highest = CLASSIFICATION_ORDER[ceiling] ?? "nothing";
+    if (wanted > CLASSIFICATION_ORDER.indexOf(clearedUpTo(platform))) {
       out.push({
         platform: platform.id,
         platformName: platform.name,
-        because: `${platform.name} is cleared up to ${highest}, and this activity involves ${wants.classification} data`,
+        because: `${platform.name} is cleared up to ${clearedUpTo(platform)}, and this activity involves ${wants.classification} data`,
       });
     }
     const unlisted = wants.elements.filter(
