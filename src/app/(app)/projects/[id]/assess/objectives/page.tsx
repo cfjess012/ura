@@ -28,6 +28,14 @@ import { FocusOnArrival } from "@/app/(app)/focus-on-arrival";
 import { assessJourney } from "@/lib/assess-journey";
 import { ObjectivesForm } from "./objectives-form";
 import { obligationsFor } from "@/lib/crosswalk";
+import { PlatformPanel } from "../platform-panel";
+import {
+  inheritanceFor,
+  inheritedAlready,
+  platformsChosen,
+} from "@/lib/inheritance";
+import { platformRoster } from "@/lib/platforms";
+import { isProvidable } from "@/lib/control-provision";
 
 export const dynamic = "force-dynamic";
 
@@ -82,8 +90,45 @@ export default async function ObjectivesPage({
     attestations: [],
     now: new Date(),
   });
-  const askable = objectivesFor(owed.map((c) => c.objective));
-  const recorded = withoutQuestions(owed.map((c) => c.objective));
+  // What the chosen platforms answer for this activity (G-83). Ten of the
+  // fifteen control questions are about the enterprise estate; this is how
+  // they stop being asked of someone who cannot know.
+  const now = new Date();
+  const inheritance = inheritanceFor({
+    stored,
+    intake,
+    project: project as unknown as Record<string, unknown>,
+    now,
+  });
+  // A control leaves the question list once its recorded answer IS the
+  // inherited one — not merely because a platform could provide it. Ticking
+  // a platform makes an offer; accepting it is a separate act, and without
+  // that distinction the question would vanish before anyone accepted,
+  // leaving the control neither asked nor answered.
+  const questionOf = new Map(
+    objectivesFor(inheritance.covered.map((c) => c.objective)).map((o) => [
+      o.id,
+      o.questionId,
+    ]),
+  );
+  const accepted = inheritance.covered.filter((c) => {
+    const questionId = questionOf.get(c.objective);
+    // A control with no question of its own cannot be answered, so the
+    // platform's coverage is the whole of what is known about it.
+    if (!questionId) return true;
+    return inheritedAlready(c, stored[questionId]?.value);
+  });
+  const coveredIds = new Set(accepted.map((c) => c.objective));
+  // Only worth asking where this runs if some control it needs is one a
+  // platform can hold centrally. Offering to discharge nothing is noise.
+  const inheritable = owed.some((c) => isProvidable(c.objective));
+  const covered = accepted.length;
+  const askable = objectivesFor(owed.map((c) => c.objective)).filter(
+    (o) => !coveredIds.has(o.id),
+  );
+  const recorded = withoutQuestions(
+    owed.map((c) => c.objective).filter((id) => !coveredIds.has(id)),
+  );
   const reasonFor = new Map(owed.map((c) => [c.objective, c.because]));
 
   // The severity answers this screen depends on. Nothing to ask about until
@@ -119,11 +164,11 @@ export default async function ObjectivesPage({
         name={project.projectName}
         status={stageOf(project.submittedAt)}
         nextLine={
-          askable.length === 0
+          askable.length + covered === 0
             ? "Nothing to answer here yet — the severity questions decide what this asks."
             : answered === askable.length
               ? "Every control has an answer — submission comes next."
-              : `Do the controls exist — ${askable.length - answered} of ${askable.length} still to answer.`
+              : `Do the controls exist — ${covered > 0 ? `${covered} covered by your platforms, ` : ""}${askable.length - answered} of ${askable.length + covered} still to answer.`
         }
         currentStage={1}
       />
@@ -154,10 +199,37 @@ export default async function ObjectivesPage({
             <RatingChip label="Inherent" rated={rating.inherent} />
           </div>
           <p className="help rating-gloss">
-            Inherent is how risky the activity is before anyone asks whether
-            the controls exist — read from your severity answers. The answers
-            below do not change it; they decide what a reviewer sees next.
+            Inherent is how risky the activity is before anyone asks whether the
+            controls exist — read from your severity answers. The answers below
+            do not change it; they decide what a reviewer sees next.
           </p>
+
+          {answeredSeverity > 0 && inheritable && (
+            <PlatformPanel
+              projectId={id}
+              roster={platformRoster(now).map((entry) => ({
+                id: entry.id,
+                name: entry.name,
+                purpose: entry.purpose,
+                owner: `${entry.owner.name}, ${entry.owner.title}`,
+                provides: entry.provides,
+                attestedOn: entry.attestedOn,
+                stale: entry.stale,
+              }))}
+              chosen={platformsChosen(stored)}
+              covered={inheritance.covered}
+              lapsed={inheritance.lapsed.map((l) => ({
+                name: l.platform.name,
+                because: l.because,
+              }))}
+              mismatches={inheritance.mismatches.map((m) => ({
+                platformName: m.platformName,
+                because: m.because,
+              }))}
+              accepted={accepted.map((c) => c.objective)}
+              unconfirmed={inheritance.covered.length - accepted.length}
+            />
+          )}
 
           {answeredSeverity === 0 ? (
             <div className="card card-upcoming">
@@ -201,7 +273,6 @@ export default async function ObjectivesPage({
               nextHref={`/projects/${id}/assess/complete`}
             />
           )}
-
 
           {recorded.length > 0 && (
             /* Where the pilot stops, it says so (FR-35's rule, one tier down).

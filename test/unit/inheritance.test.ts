@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import {
   PLATFORMS_QUESTION,
   inheritanceFor,
+  inheritedAlready,
   inheritedAnswer,
   platformsChosen,
   relief,
@@ -123,7 +124,7 @@ describe("what the platform is not cleared to hold", () => {
       now,
     });
     expect(result.mismatches).toHaveLength(2);
-    expect(result.mismatches[0]!.because).toMatch(/cleared for Public, Internal/);
+    expect(result.mismatches[0]!.because).toMatch(/cleared up to Internal/);
   });
 
   it("is silent when the activity fits, and when nothing was asked", () => {
@@ -136,5 +137,27 @@ describe("what the platform is not cleared to hold", () => {
       }).mismatches,
     ).toEqual([]);
     expect(inheritanceFor({ stored: on("PL_GH_COPILOT"), intake: {}, now }).mismatches).toEqual([]);
+  });
+});
+
+describe("an offer is not an answer", () => {
+  it("only counts a control as inherited once its own answer says so", () => {
+    const result = inheritanceFor({ stored: on("PL_ENTRA"), intake: {}, now });
+    const one = result.covered[0]!;
+    const answer = inheritedAnswer(one);
+
+    // The recorded inherited answer, exactly.
+    expect(inheritedAlready(one, answer)).toBe(true);
+    // Nothing recorded yet: still asked, so the question cannot vanish.
+    expect(inheritedAlready(one, undefined)).toBe(false);
+    // A person's own Yes is theirs, not the platform's.
+    expect(inheritedAlready(one, { answer: "Yes", note: "we already do this" })).toBe(
+      false,
+    );
+    // Somebody who disagreed with the platform keeps their disagreement.
+    expect(inheritedAlready(one, { answer: "No", note: answer.note })).toBe(false);
+    // And nothing shaped like an answer at all counts as one.
+    expect(inheritedAlready(one, "Yes")).toBe(false);
+    expect(inheritedAlready(one, null)).toBe(false);
   });
 });

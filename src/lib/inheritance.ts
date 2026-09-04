@@ -130,6 +130,24 @@ export function inheritedAnswer(covered: Covered): { answer: "Yes"; note: string
   };
 }
 
+/**
+ * Whether this control's recorded answer is the inherited one.
+ *
+ * The distinction the screen turns on. A control a platform *could* cover is
+ * still asked; a control whose recorded answer came from that platform is
+ * not. Without this, ticking a platform would take the question away before
+ * anyone accepted the offer, leaving the control neither asked nor answered
+ * — a silent gap, which is worse than either.
+ *
+ * It also keeps a person's own answer theirs: somebody who answers No to a
+ * control a platform provides has disagreed, and the question stays.
+ */
+export function inheritedAlready(covered: Covered, value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const held = value as { answer?: unknown; note?: unknown };
+  return held.answer === "Yes" && held.note === inheritedAnswer(covered).note;
+}
+
 /** How much of the burden a choice of platforms takes away, in words. */
 export function relief(inheritance: Inheritance): string {
   const covered = inheritance.covered.length;

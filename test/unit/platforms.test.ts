@@ -163,7 +163,7 @@ describe("what a platform is cleared to hold", () => {
       elements: ["Customer personal information"],
     });
     expect(wrong).toHaveLength(2);
-    expect(wrong[0]!.because).toMatch(/cleared for Public, Internal, and this activity involves Restricted/);
+    expect(wrong[0]!.because).toMatch(/cleared up to Internal, and this activity involves Restricted/);
     expect(wrong[1]!.because).toMatch(/not cleared to hold customer personal information/);
   });
 
@@ -188,5 +188,36 @@ describe("what a platform is cleared to hold", () => {
     // exercised by something rather than only by a test fixture.
     expect(lapsed.length).toBeGreaterThan(0);
     for (const entry of roster) expect(entry.because.length).toBeGreaterThan(20);
+  });
+});
+
+describe("a clearance is a ceiling, not a set", () => {
+  it("says nothing when the activity sits below what the platform holds", () => {
+    // Snowflake is cleared for Internal, Confidential and Restricted. Public
+    // data on it is not a mismatch, and warning about it would teach people
+    // to ignore the warning that matters.
+    expect(
+      dataMismatches(["PL_SNOWFLAKE"], { classification: "Public", elements: [] }),
+    ).toEqual([]);
+    expect(
+      dataMismatches(["PL_SNOWFLAKE"], { classification: "Internal", elements: [] }),
+    ).toEqual([]);
+  });
+
+  it("names the ceiling when the activity sits above it", () => {
+    // GitHub Copilot is cleared to Internal. Restricted is two steps above.
+    const [first] = dataMismatches(["PL_GH_COPILOT"], {
+      classification: "Restricted",
+      elements: [],
+    });
+    expect(first!.because).toBe(
+      "GitHub Copilot is cleared up to Internal, and this activity involves Restricted data",
+    );
+  });
+
+  it("ignores a classification it has never heard of", () => {
+    expect(
+      dataMismatches(["PL_SNOWFLAKE"], { classification: "Beyond Top Secret", elements: [] }),
+    ).toEqual([]);
   });
 });

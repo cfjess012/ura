@@ -26,6 +26,12 @@ implementation, stop on ambiguity.
   note is deferred to S8, see uat/S6.md)
 - S4.5 Reference data — PARTIAL: searchable vendor picker and
   provenance-on-accept (FR-33) remain
+- S19 Platform inheritance — BUILT 2026-09-04 (G-83/G-85: platforms assessed
+  once, with an accountable owner and an expiring attestation; an activity
+  says what it runs on and the controls those platforms provide arrive with
+  the provider and the date. An offer is not an answer — a control leaves
+  the question list only once its recorded answer is the inherited one.)
+  **Not finished: no uat/S19.md and no slice review.**
 - S3.5 Destinations — BUILT 2026-08-27 (FR-26/FR-27 · NFR-20: the offer with
   a computed count, and the assembled record in three parts with a real
   payload and no send that pretends). **Not finished: no uat/S3.5.md and no

@@ -199,6 +199,13 @@ export function providedBy(
 }
 
 /**
+ * The sensitivity scale, least to most, exactly as intake asks it. Order is
+ * the whole point: a clearance names a ceiling, and everything at or below
+ * it is fine.
+ */
+const CLASSIFICATION_ORDER = ["Public", "Internal", "Confidential", "Restricted"];
+
+/**
  * Where an activity wants to put data a platform is not cleared for.
  *
  * The cheapest strong control in the whole module: the platform already
@@ -214,11 +221,20 @@ export function dataMismatches(
     const platform = platformById(id);
     if (!platform) continue;
     const allowed = platform.allowedData;
-    if (wants.classification && !allowed.classifications.includes(wants.classification)) {
+    // A clearance is a ceiling, not a set. Putting Public data on a platform
+    // cleared to Restricted is not a mismatch, and warning about it teaches
+    // people to ignore the warning that matters.
+    const ceiling = Math.max(
+      -1,
+      ...allowed.classifications.map((c) => CLASSIFICATION_ORDER.indexOf(c)),
+    );
+    const wanted = CLASSIFICATION_ORDER.indexOf(wants.classification);
+    if (wanted > ceiling) {
+      const highest = CLASSIFICATION_ORDER[ceiling] ?? "nothing";
       out.push({
         platform: platform.id,
         platformName: platform.name,
-        because: `${platform.name} is cleared for ${allowed.classifications.join(", ")}, and this activity involves ${wants.classification} data`,
+        because: `${platform.name} is cleared up to ${highest}, and this activity involves ${wants.classification} data`,
       });
     }
     const unlisted = wants.elements.filter(
