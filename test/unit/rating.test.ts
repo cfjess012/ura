@@ -201,6 +201,55 @@ describe("the inherent rating", () => {
     expect(rated.because).toContain("a risk area at High in an activity that is itself High on two or more counts");
   });
 
+  it("does not lift a band for confidential data on its own (G-84)", () => {
+    // Nearly all enterprise work is confidential. A floor that fired on it
+    // alone lifted almost everything and stopped sorting anything.
+    const alone = inherentOf({ dataClassification: "Confidential" }, {});
+    expect(alone.band).toBe("Low");
+    // In combination it does, because that is a real signal.
+    const withAi = inherentOf({ dataClassification: "Confidential", "gate.ai": "Yes" }, {});
+    expect(withAi.band).toBe("Medium");
+    expect(withAi.because).toContain(
+      "confidential data in an activity that involves AI or a company outside ours",
+    );
+    // And the top classification stands on its own.
+    expect(inherentOf({ dataClassification: "Restricted" }, {}).band).toBe("Medium");
+  });
+
+  it("sees sensitive information that is not about people (G-84)", () => {
+    // Both sensitivity questions used to point at people, so a pricing
+    // algorithm had nowhere to go and the crown jewels rated as ordinary.
+    const inside = inherentOf(
+      { dataElements: ["Trade secrets, source code or proprietary methods"] },
+      {},
+    );
+    expect(inside.band).toBe("Medium");
+    expect(inside.because).toContain(
+      "information whose value depends on it staying inside — a proprietary method, privileged material or an unpublished filing",
+    );
+    // Leaving the boundary is the case that matters: a code assistant on
+    // the pricing engine reached High before only because its requester
+    // happened to tick Restricted rather than Confidential.
+    const leaving = inherentOf(
+      {
+        dataClassification: "Confidential",
+        dataElements: ["Trade secrets, source code or proprietary methods"],
+        "gate.third-party": "Yes",
+      },
+      {},
+    );
+    expect(leaving.band).toBe("High");
+    expect(leaving.because).toContain(
+      "information whose value depends on it staying inside is going somewhere outside our boundary",
+    );
+    for (const kind of [
+      "Legally privileged or litigation material",
+      "Unpublished financial results or filings",
+    ]) {
+      expect(inherentOf({ dataElements: [kind], "gate.ai": "Yes" }, {}).band, kind).toBe("High");
+    }
+  });
+
   it("reaches Critical only by a rule in the edition — two areas at High", () => {
     const ns = inherentNamespace({ [provider]: "High", [privacy]: "High" });
     expect(ns["areas.atHigh"]).toBe("2");

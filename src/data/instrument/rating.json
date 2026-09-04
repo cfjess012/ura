@@ -1,7 +1,7 @@
 {
   "slug": "risk-rating",
-  "version": "2026-09-03.6",
-  "note": "Fifth edition (G-81). The scale could not say \"nobody has assessed this\", so an assessment with nothing answered fell to the default band and read as Low on the screen a reviewer triages from. Two changes. A rating now carries its standing — rated, provisional, or unrated with no band at all — and intake alone can establish a floor, because what a person tells the front door is evidence: AI, a company outside ours, confidential data and information about identifiable people are known before a single risk question is answered. A floor can only rise; it is labelled as provisional wherever it is shown.",
+  "version": "2026-09-03.7",
+  "note": "Sixth edition (G-84). Two changes, both from running twenty-five real scenarios through the fifth and reading what came out. Confidential data on its own no longer lifts a band: nearly all enterprise work is confidential, so a floor that fires on it alone put fifteen of twenty-five scenarios at High and stopped sorting anything. It now lifts in combination — with AI, with a company outside ours, or at the top classification alone. And the floor can see sensitive information that is not about people: a pricing algorithm, privileged material or an unpublished filing leaving the boundary now rates the way customer data does. Before this an AI assistant on the pricing engine reached High only because its requester happened to tick Restricted rather than Confidential.",
   "bands": [
     "Low",
     "Medium",
@@ -89,17 +89,6 @@
         "because": "a risk area at High in an activity that is itself High on two or more counts"
       },
       {
-        "band": "Medium",
-        "when": {
-          "field": "dataClassification",
-          "equalsAny": [
-            "Confidential",
-            "Restricted"
-          ]
-        },
-        "because": "the most sensitive data involved is confidential or above"
-      },
-      {
         "band": "High",
         "when": {
           "all": [
@@ -141,6 +130,91 @@
           ]
         },
         "because": "the most sensitive data we hold is involved and a company outside ours is part of it"
+      },
+      {
+        "band": "Medium",
+        "when": {
+          "field": "dataClassification",
+          "equalsAny": [
+            "Restricted"
+          ]
+        },
+        "because": "the most sensitive data we hold is involved"
+      },
+      {
+        "band": "Medium",
+        "when": {
+          "all": [
+            {
+              "field": "dataClassification",
+              "equalsAny": [
+                "Confidential",
+                "Restricted"
+              ]
+            },
+            {
+              "any": [
+                {
+                  "field": "gate.ai",
+                  "equalsAny": [
+                    "Yes"
+                  ]
+                },
+                {
+                  "field": "gate.third-party",
+                  "equalsAny": [
+                    "Yes"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "because": "confidential data in an activity that involves AI or a company outside ours"
+      },
+      {
+        "band": "Medium",
+        "when": {
+          "field": "dataElements",
+          "includesAny": [
+            "Trade secrets, source code or proprietary methods",
+            "Legally privileged or litigation material",
+            "Unpublished financial results or filings"
+          ]
+        },
+        "because": "information whose value depends on it staying inside — a proprietary method, privileged material or an unpublished filing"
+      },
+      {
+        "band": "High",
+        "when": {
+          "all": [
+            {
+              "field": "dataElements",
+              "includesAny": [
+                "Trade secrets, source code or proprietary methods",
+                "Legally privileged or litigation material",
+                "Unpublished financial results or filings"
+              ]
+            },
+            {
+              "any": [
+                {
+                  "field": "gate.third-party",
+                  "equalsAny": [
+                    "Yes"
+                  ]
+                },
+                {
+                  "field": "gate.ai",
+                  "equalsAny": [
+                    "Yes"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "because": "information whose value depends on it staying inside is going somewhere outside our boundary"
       }
     ]
   },

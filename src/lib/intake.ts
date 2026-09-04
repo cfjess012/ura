@@ -339,7 +339,7 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
       },
       {
         id: "dataElements",
-        label: "Data Elements",
+        label: "What kinds of sensitive information are involved?",
         type: "multi",
         options: [
           "None / Unknown",
@@ -347,13 +347,24 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
           "Employee personal information",
           "Applicant personal information",
           "Partner/Vendor contact personal information",
+          "Trade secrets, source code or proprietary methods",
+          "Legally privileged or litigation material",
+          "Unpublished financial results or filings",
         ],
+        optionHelp: {
+          "Trade secrets, source code or proprietary methods":
+            "Anything whose value depends on competitors not having it — pricing models, algorithms, formulations, unreleased designs.",
+          "Legally privileged or litigation material":
+            "Advice from lawyers, or material gathered for a dispute. Sharing it in the wrong place can lose the privilege permanently.",
+          "Unpublished financial results or filings":
+            "Numbers before they are announced. Handling these carries obligations of their own.",
+        },
         conditional: {
           visibleWhen: "dataClassification",
           equalsAny: ["Internal", "Confidential", "Restricted"],
         },
         revealNote: "Shown because the data is not public.",
-        help: "High level only — the detailed data questions come later, and only if they apply.",
+        help: "Tick everything the activity touches, including copies in logs, exports and backups. Not all sensitive information is about people — a pricing algorithm or an unpublished filing can matter as much as a customer list. If none of these apply, say so rather than leaving it blank.",
       },
     ],
   },

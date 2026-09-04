@@ -77,7 +77,7 @@ describe("rating an assessment from its record", () => {
     const rated = rateAssessment({ stored, intake: {}, findings: [], dispositions: [], attestations: [], now });
     expect(rated.inherent.band).toBe("High");
     expect(rated.edition).toBe(RATING_EDITION);
-    expect(rated.edition).toBe("risk-rating@2026-09-03.6");
+    expect(rated.edition).toBe("risk-rating@2026-09-03.7");
     expect(rated.areas["third-party"]?.band).toBe("High");
   });
 

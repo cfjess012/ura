@@ -76,9 +76,9 @@ test("create → fill each section (conditionals reveal) → reopen → everythi
   await page.getByRole("button", { name: /Next: Compliance & Data/ }).click();
 
   // Compliance & Data — includesAny reveal.
-  await expect(page.getByLabel("Data Elements")).toBeHidden();
+  await expect(page.getByLabel("What kinds of sensitive information are involved?")).toBeHidden();
   await page.getByRole("radio", { name: /Confidential/ }).check();
-  await expect(page.getByLabel("Data Elements")).toBeVisible();
+  await expect(page.getByLabel("What kinds of sensitive information are involved?")).toBeVisible();
   await page
     .getByRole("checkbox", { name: "Employee personal information" })
     .check();

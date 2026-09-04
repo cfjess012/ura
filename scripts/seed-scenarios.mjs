@@ -175,8 +175,8 @@ const SCENARIOS = [
       description:
         "Engineering wants an AI coding assistant enabled on the pricing service repository. No customer data is involved. The repository is our rating algorithm, which is the closest thing we have to a trade secret.",
       aiUseCase: "Suggests and completes code inside the pricing service repository.",
-      ai: "Yes", thirdParty: "Yes", data: "Restricted",
-      elements: ["None / Unknown"],
+      ai: "Yes", thirdParty: "Yes", data: "Confidential",
+      elements: ["Trade secrets, source code or proprietary methods"],
       initiative: B, unit: "BU_ENG", vendors: ["V_MICROSOFT"], coupa: "Yes",
     }),
   },
@@ -189,7 +189,7 @@ const SCENARIOS = [
       description:
         "Litigation wants to use a hosted review platform to cut first-pass document review on a large matter. The set includes privileged material and board correspondence.",
       ai: "Yes", thirdParty: "Yes", data: "Restricted",
-      elements: ["Employee personal information"],
+      elements: ["Employee personal information", "Legally privileged or litigation material"],
       initiative: B, unit: "BU_LEG", vendors: ["V_DELOITTE"],
     }),
   },
