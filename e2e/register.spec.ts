@@ -127,3 +127,36 @@ test("a control the pilot cannot ask about says so, rather than going missing", 
   // No answer controls, because there is nothing here to answer.
   await expect(drawer.locator(".q3-answers")).toHaveCount(0);
 });
+
+test("answering a control raises no React error in the console", async ({
+  page,
+}) => {
+  // A save fired from inside a state updater — which runs during render —
+  // asked the router to redraw mid-render, and React refused: "cannot update
+  // a component while rendering a different component". It typechecked, every
+  // assertion passed, and it only appeared in the console. So the console is
+  // what this watches.
+  const shouted: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") shouted.push(message.text());
+  });
+  page.on("pageerror", (error) => shouted.push(String(error)));
+
+  const base = await startAssessment(page, `Console ${Date.now()}`);
+  await atRegister(page, base);
+
+  const card = await openControl(page, 0);
+  await card.locator("> .q3-answers").getByRole("radio", { name: "Yes" }).click();
+  await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
+  await card.locator("> .q3-answers").getByRole("radio", { name: "No" }).click();
+  await card.locator("> .q3-note textarea").fill("Nothing in place.");
+  await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
+
+  const react = shouted.filter(
+    (line) =>
+      /Cannot update a component/i.test(line) ||
+      /setState/i.test(line) ||
+      /Maximum update depth/i.test(line),
+  );
+  expect(react, `React complained: ${react.join(" | ")}`).toEqual([]);
+});

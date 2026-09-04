@@ -71,31 +71,47 @@ export function ObjectivesForm({
       "The server couldn't be reached, so nothing was saved. What you wrote is still on screen — try again in a moment.",
   });
 
+  /**
+   * The answers as of the last keystroke, which is not the same thing as the
+   * answers React has rendered.
+   *
+   * Saving used to happen inside the `setGiven` updater, and a state updater
+   * runs during render — so a save that failed asked the router to redraw
+   * mid-render, which React refuses ("cannot update a component while
+   * rendering a different one"). The ref sequences the edits; the state
+   * renders them.
+   */
+  const latest = React.useRef<Record<string, Tier3Value>>(values);
+
   const set = (questionId: string, next: Partial<Tier3Value>) => {
     autosave.touched.current.add(questionId);
-    setGiven((prev) => {
-      const merged: Record<string, Tier3Value> = {
-        ...prev,
-        [questionId]: {
-          answer: next.answer ?? prev[questionId]?.answer ?? "Yes",
-          note: next.note ?? prev[questionId]?.note ?? "",
+    const previous = latest.current;
+    const merged: Record<string, Tier3Value> = {
+      ...previous,
+      [questionId]: {
+        answer: next.answer ?? previous[questionId]?.answer ?? "Yes",
+        note: next.note ?? previous[questionId]?.note ?? "",
+      },
+    };
+    latest.current = merged;
+    setGiven(merged);
+
+    // An answer needing a note is not saved until it has one: writing it
+    // half-formed would record a No with no explanation, which is the thing
+    // §3.4 forbids. The note's own keystrokes then save it.
+    const value = merged[questionId]!;
+    if (noteProblem(value.answer, value.note) === null) {
+      // Revert on refusal: the children a Yes reveals, and the note field a
+      // No opens, are consequences of an answer that may not have been
+      // recorded (B5).
+      autosave.save(
+        () => write(merged),
+        () => {
+          latest.current = previous;
+          setGiven(previous);
         },
-      };
-      // An answer needing a note is not saved until it has one: writing it
-      // half-formed would record a No with no explanation, which is the
-      // thing §3.4 forbids. The note's own keystrokes then save it.
-      const value = merged[questionId]!;
-      if (noteProblem(value.answer, value.note) === null) {
-        // Revert on refusal: the children a Yes reveals, and the note field
-        // a No opens, are consequences of an answer that may not have been
-        // recorded (B5).
-        autosave.save(
-          () => write(merged),
-          () => setGiven(prev),
-        );
-      }
-      return merged;
-    });
+      );
+    }
   };
 
   /** Only what this person touched, and only what is on screen (G-42). */
