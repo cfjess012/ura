@@ -235,12 +235,12 @@ function assemble(rows: RegisterRow[]): Register {
     .map(([family, list]) => ({
       family,
       name: familyName(family),
-      // Within a family, what needs doing comes before what is settled.
-      rows: [...list].sort(
-        (a, b) =>
-          REGISTER_STATES.indexOf(a.state) - REGISTER_STATES.indexOf(b.state) ||
-          a.name.localeCompare(b.name),
-      ),
+      // By name, always. Sorting by state read well on a static screenshot
+      // and was wrong in use: answering a control changed its state, which
+      // moved it, which moved every row under it — the same "item jumps out
+      // from under the cursor" defect the platform picker avoids. The family
+      // heading carries how the family stands; the list holds still.
+      rows: [...list].sort((a, b) => a.name.localeCompare(b.name)),
     }))
     .sort((a, b) => familyOrder(a.family) - familyOrder(b.family));
 

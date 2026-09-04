@@ -218,3 +218,29 @@ describe("the line a person reads at the top", () => {
     expect(registerLine(build({}))).toMatch(/Nothing is required here yet/);
   });
 });
+
+describe("the list holds still", () => {
+  it("keeps a control in the same place after it is answered", () => {
+    // Sorting by state read well on a screenshot and was wrong in use:
+    // answering a control moved it, and every row under it. Found by a
+    // browser test that reopened "the first control" and got a different one.
+    const before = build(base);
+    const [first] = objectivesFor(before.rows.map((r) => r.objective));
+    const after = build({
+      ...base,
+      [first!.questionId]: said({ answer: "Yes", note: "" }),
+    });
+    expect(after.rows.map((r) => r.objective)).toEqual(
+      before.rows.map((r) => r.objective),
+    );
+
+    // And a gap does not jump to the top of its family either.
+    const gapped = build({
+      ...base,
+      [first!.questionId]: said({ answer: "No", note: "nothing yet" }),
+    });
+    expect(gapped.rows.map((r) => r.objective)).toEqual(
+      before.rows.map((r) => r.objective),
+    );
+  });
+});

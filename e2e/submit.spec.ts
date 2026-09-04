@@ -9,6 +9,7 @@ import {
   answerRemainingGates,
   scenarioIntake,
   startAssessment,
+  openControl,
 } from "./helpers";
 
 /** An assessment with one control answered No, ready to submit. */
@@ -34,7 +35,7 @@ async function readyToSubmit(page: Page, name: string): Promise<string> {
   await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
 
   await page.goto(`${base}/assess/objectives`);
-  const card = page.locator(".q3").first();
+  const card = await openControl(page, 0);
   await card
     .locator("> .q3-answers")
     .getByRole("radio", { name: "No" })
@@ -126,7 +127,7 @@ test("a submitted assessment cannot be edited, and says why", async ({
   ).toBeVisible();
 
   await page.goto(`${base}/assess/objectives`);
-  const card = page.locator(".q3").first();
+  const card = await openControl(page, 0);
   await card
     .locator("> .q3-answers")
     .getByRole("radio", { name: "Yes" })

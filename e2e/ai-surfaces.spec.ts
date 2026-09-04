@@ -13,6 +13,7 @@ import {
   scenarioIntake,
   startAssessment,
   completeIntake,
+  openControl,
 } from "./helpers";
 
 async function submitted(page: Page, name: string): Promise<string> {
@@ -36,7 +37,7 @@ async function submitted(page: Page, name: string): Promise<string> {
     .click();
   await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
   await page.goto(`${base}/assess/objectives`);
-  const card = page.locator(".q3").first();
+  const card = await openControl(page, 0);
   await card
     .locator("> .q3-answers")
     .getByRole("radio", { name: "No" })

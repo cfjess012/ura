@@ -5,15 +5,9 @@ import { litPaths, pathSelectionsFrom } from "@/lib/engine";
 import {
   accumulatedFor,
   severityQuestionsFor,
-  controlName,
   type Band,
 } from "@/lib/severity";
-import {
-  objectivesFor,
-  withoutQuestions,
-  isTier3Value,
-  type Tier3Value,
-} from "@/lib/tier3";
+import { objectivesFor, isTier3Value, type Tier3Value } from "@/lib/tier3";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
@@ -36,6 +30,7 @@ import {
 } from "@/lib/inheritance";
 import { platformRoster } from "@/lib/platforms";
 import { isProvidable } from "@/lib/control-provision";
+import { registerFor, registerLine } from "@/lib/control-register";
 
 export const dynamic = "force-dynamic";
 
@@ -118,17 +113,16 @@ export default async function ObjectivesPage({
     if (!questionId) return true;
     return inheritedAlready(c, stored[questionId]?.value);
   });
-  const coveredIds = new Set(accepted.map((c) => c.objective));
   // Only worth asking where this runs if some control it needs is one a
   // platform can hold centrally. Offering to discharge nothing is noise.
   const inheritable = owed.some((c) => isProvidable(c.objective));
-  const covered = accepted.length;
-  const askable = objectivesFor(owed.map((c) => c.objective)).filter(
-    (o) => !coveredIds.has(o.id),
-  );
-  const recorded = withoutQuestions(
-    owed.map((c) => c.objective).filter((id) => !coveredIds.has(id)),
-  );
+  // Every control this activity requires, in whatever state it is in — the
+  // one definition the whole screen reads from (G-87). It replaces three
+  // separate presentations that each worked this out for themselves.
+  const register = registerFor({ owed, stored, inheritance });
+  // The ones the pilot asks a question about — still needed, because the
+  // drawer renders a real question and the save path writes real answers.
+  const askable = objectivesFor(owed.map((c) => c.objective));
   const reasonFor = new Map(owed.map((c) => [c.objective, c.because]));
 
   // The severity answers this screen depends on. Nothing to ask about until
@@ -143,7 +137,6 @@ export default async function ObjectivesPage({
       values[questionId] = value.value;
     }
   }
-  const answered = askable.filter((o) => values[o.questionId]).length;
 
   const lookup: Record<string, string | string[]> = {};
   const paths: string[] = [];
@@ -159,17 +152,11 @@ export default async function ObjectivesPage({
   lookup.paths = paths;
 
   return (
-    <main>
+    <main className="main-wide">
       <ProjectHeader
         name={project.projectName}
         status={stageOf(project.submittedAt)}
-        nextLine={
-          askable.length + covered === 0
-            ? "Nothing to answer here yet — the severity questions decide what this asks."
-            : answered === askable.length
-              ? "Every control has an answer — submission comes next."
-              : `Do the controls exist — ${covered > 0 ? `${covered} covered by your platforms, ` : ""}${askable.length - answered} of ${askable.length + covered} still to answer.`
-        }
+        nextLine={registerLine(register)}
         currentStage={1}
       />
 
@@ -240,19 +227,18 @@ export default async function ObjectivesPage({
                 require appear here.
               </p>
               <Link className="btn" href={`/projects/${id}/assess/complete`}>
-                Back to where this stands →
+                Back to where this stands &rarr;
               </Link>
             </div>
-          ) : askable.length === 0 ? (
+          ) : register.total === 0 ? (
             /* Severity is answered but nothing crossed a threshold. The
                "nothing to ask yet" card above is the wrong sentence here —
                this is a finished state, not a waiting one (§23). */
             <div className="card">
               <h2>Nothing further to answer</h2>
               <p className="help">
-                {owed.length === 0
-                  ? "The answers so far require no controls, so there is nothing to check here. That is a complete answer, not a gap."
-                  : `The ${owed.length} control${owed.length === 1 ? "" : "s"} this activity requires ${owed.length === 1 ? "is" : "are"} recorded for a reviewer — the pilot has no detailed questions for ${owed.length === 1 ? "it" : "them"} yet.`}
+                The answers so far require no controls, so there is nothing to
+                check here. That is a complete answer, not a gap.
               </p>
               <Link className="btn" href={`/projects/${id}/assess/complete`}>
                 See where this stands &rarr;
@@ -264,41 +250,15 @@ export default async function ObjectivesPage({
                 askable.map((o) => [o.id, obligationsFor(o.id)]),
               )}
               projectId={id}
+              register={register}
               objectives={askable}
               values={values}
               lookup={lookup}
               reasons={Object.fromEntries(
-                askable.map((o) => [o.id, reasonFor.get(o.id) ?? []]),
+                register.rows.map((r) => [r.objective, reasonFor.get(r.objective) ?? []]),
               )}
               nextHref={`/projects/${id}/assess/complete`}
             />
-          )}
-
-          {recorded.length > 0 && (
-            /* Where the pilot stops, it says so (FR-35's rule, one tier down).
-               These controls are required and will be reviewed; the pilot
-               simply has no questions for them yet, and silence would read
-               as "nothing to do". */
-            <div className="card">
-              <h2>Recorded for a reviewer</h2>
-              <p className="help">
-                This activity requires {recorded.length} more control
-                {recorded.length === 1 ? "" : "s"}. The pilot asks its detailed
-                questions for {askable.length} of the {owed.length} it works out
-                — the rest are recorded and go to a reviewer as they are.
-              </p>
-              <ul className="summary-list">
-                {recorded.map((objective) => (
-                  <li key={objective}>
-                    <strong>{controlName(objective)}</strong>
-                    <span className="meta">
-                      {" "}
-                      — {(reasonFor.get(objective) ?? []).join("; and ")}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
           )}
         </section>
       </div>

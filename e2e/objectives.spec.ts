@@ -8,6 +8,7 @@ import {
   answerRemainingGates,
   scenarioIntake,
   startAssessment,
+  openControl,
 } from "./helpers";
 
 /** Walk to Tier 3 with one severity answer, so controls have accumulated. */
@@ -42,20 +43,19 @@ test("the controls asked about are the ones the answers required", async ({
   page,
 }) => {
   await atObjectives(page, `Objectives ${Date.now()}`);
-  const cards = page.locator(".q3");
-  await expect(cards.first()).toBeVisible();
-  // Every card says why it is being asked — the reason travels from
+  const rows = page.locator(".register-row");
+  await expect(rows.first()).toBeVisible();
+  // Every control says why it is here — the reason travels from
   // accumulation, it is not re-invented here.
-  await expect(
-    cards.first().getByText(/Level of Provider Access is High/),
-  ).toBeVisible();
+  const card = await openControl(page, 0);
+  await expect(card.getByText(/Level of Provider Access is High/)).toBeVisible();
 });
 
 test("children appear only on Yes, and vanish again (FR-13)", async ({
   page,
 }) => {
   await atObjectives(page, `Children ${Date.now()}`);
-  const card = page.locator(".q3").first();
+  const card = await openControl(page, 0);
   const answers = card.locator("> .q3-answers");
 
   await expect(card.locator(".q3-child")).toHaveCount(0);
@@ -70,7 +70,7 @@ test("anything but Yes has to be written down, and N-A asks a different question
   page,
 }) => {
   await atObjectives(page, `Notes ${Date.now()}`);
-  const card = page.locator(".q3").first();
+  const card = await openControl(page, 0);
   const answers = card.locator("> .q3-answers");
 
   await answers.getByRole("radio", { name: "Yes" }).click();
@@ -91,7 +91,7 @@ test("submitting without the note is refused, and says which one", async ({
   page,
 }) => {
   await atObjectives(page, `Refuse ${Date.now()}`);
-  const card = page.locator(".q3").first();
+  const card = await openControl(page, 0);
   await card
     .locator("> .q3-answers")
     .getByRole("radio", { name: "No" })
@@ -109,7 +109,7 @@ test("an answer survives leaving the screen and coming back", async ({
   page,
 }) => {
   const base = await atObjectives(page, `Persist ${Date.now()}`);
-  const card = page.locator(".q3").first();
+  const card = await openControl(page, 0);
   await card
     .locator("> .q3-answers")
     .getByRole("radio", { name: "No" })
@@ -123,7 +123,7 @@ test("an answer survives leaving the screen and coming back", async ({
   await page.waitForURL(/\/assess\/complete/);
 
   await page.goto(`${base}/assess/objectives`);
-  const again = page.locator(".q3").first();
+  const again = await openControl(page, 0);
   await expect(
     again.locator("> .q3-answers").getByRole("radio", { name: "No" }),
   ).toHaveAttribute("aria-checked", "true");
@@ -136,15 +136,19 @@ test("controls with no questions are declared, never silently dropped", async ({
   page,
 }) => {
   await atObjectives(page, `Boundary ${Date.now()}`);
-  const recorded = page.locator(".card", {
-    hasText: "Recorded for a reviewer",
-  });
+  const recorded = page
+    .locator(".register-row")
+    .filter({ hasText: "No question yet" })
+    .first();
   await expect(recorded).toBeVisible();
-  // It says how many, and why they are here — the boundary is stated, not
-  // left for someone to notice (G-50's rule, one tier down).
-  await expect(recorded).toContainText(
-    /The pilot asks its detailed questions for \d+ of the \d+/,
-  );
+  // Opening it says why it is here and why nobody can act on it — the
+  // boundary is stated, not left for someone to notice (G-50, one tier down).
+  await recorded.click();
+  const drawer = page.locator(".drawer");
+  await expect(drawer).toContainText("The pilot has no question for this one yet");
+  await expect(drawer).toContainText("goes to a reviewer as it stands");
+  // And it carries the reason the assessment requires it at all.
+  await expect(drawer.locator(".prefill")).toBeVisible();
 });
 
 test("an answer is saved when it is given, not when the form is submitted (G-40a)", async ({
@@ -154,7 +158,7 @@ test("an answer is saved when it is given, not when the form is submitted (G-40a
   // vanished on navigation with nothing said. That is the exact silent
   // discard G-40a forbids (verifier S6-4).
   const base = await atObjectives(page, `Autosave ${Date.now()}`);
-  const card = page.locator(".q3").first();
+  const card = await openControl(page, 0);
   await card
     .locator("> .q3-answers")
     .getByRole("radio", { name: "Yes" })
@@ -164,12 +168,9 @@ test("an answer is saved when it is given, not when the form is submitted (G-40a
   // Leave WITHOUT pressing the forward button.
   await page.goto(`${base}/assess/complete`);
   await page.goto(`${base}/assess/objectives`);
+  const reopened = await openControl(page, 0);
   await expect(
-    page
-      .locator(".q3")
-      .first()
-      .locator("> .q3-answers")
-      .getByRole("radio", { name: "Yes" }),
+    reopened.locator("> .q3-answers").getByRole("radio", { name: "Yes" }),
   ).toHaveAttribute("aria-checked", "true");
 });
 
@@ -179,7 +180,7 @@ test("an answer needing a note is not saved until it has one", async ({
   // Autosaving a bare "No" would record a gap with no explanation — the one
   // thing §3.4 forbids.
   await atObjectives(page, `Halfformed ${Date.now()}`);
-  const card = page.locator(".q3").first();
+  const card = await openControl(page, 0);
   await card
     .locator("> .q3-answers")
     .getByRole("radio", { name: "No" })

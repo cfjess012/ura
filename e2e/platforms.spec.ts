@@ -54,7 +54,12 @@ test("choosing a platform answers its controls, naming who attested (G-83)", asy
     "Nothing chosen yet",
   );
   await expect(panel.locator(".covered-list li")).toHaveCount(0);
-  const question = page.locator(".q3", { hasText: "Privileged Access Management" });
+  // The register keeps every required control as a row; what changes is the
+  // state it is in. A control that vanished on being inherited would take
+  // the whole point of the register with it.
+  const question = page.locator(".register-row", {
+    hasText: "Privileged Access Management",
+  });
   await expect(question).toBeVisible();
 
   await panel
@@ -74,14 +79,15 @@ test("choosing a platform answers its controls, naming who attested (G-83)", asy
   await expect(covered).toContainText("Microsoft Entra ID");
   await expect(covered).toContainText(/attested on \d{4}-\d{2}-\d{2}/);
   await expect(covered).toContainText("Offered");
-  // Still only an offer: the question stays until a person accepts it, or
-  // the control would be neither asked nor answered.
-  await expect(question).toBeVisible();
+  // Still only an offer: it is owed until a person accepts it, or the
+  // control would be neither asked nor answered.
+  await expect(question).toHaveAttribute("data-state", "to-answer");
 
   await panel.getByRole("button", { name: /this activity sits on those/ }).click();
   await expect(panel.locator(".platform-status")).toContainText("recorded");
-  // Now it has left the questions the person has to answer.
-  await expect(question).toHaveCount(0);
+  // Now it is answered by the platform, and says so with the provider.
+  await expect(question).toHaveAttribute("data-state", "inherited");
+  await expect(question).toContainText("Microsoft Entra ID");
   await expect(panel).toContainText("Recorded against this assessment");
   // And no internal identifier reached the screen on the way (NFR-9).
   await expect(panel).not.toContainText(/T[0-9]-[A-Z]{2,5}-[0-9]/);

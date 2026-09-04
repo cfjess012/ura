@@ -64,6 +64,11 @@ implementation, stop on ambiguity.
   uat/S15.md was verified against: a residual may never exceed its inherent
   band, and the inherent reads the risk-area profile, not the worst single
   answer. Both passed a delta verification — see the note atop uat/S15.md.
+- S17 Control register — BUILT 2026-09-04 (G-87/G-88: one table replacing
+  three presentations of the same controls, with a drawer beside it. Six
+  states, of which `gap` and `lapsed` were previously invisible. The 13
+  control families gained plain names and an owner's order.) **Not finished:
+  NIST 800-53 and its reference column are owed, and there is no uat/S17.md.**
 - S10 Harden — not started (do not scaffold ahead; SPEC §0 rule 5)
 - 2026-08-23 level set: SPEC rewritten to the official mission (G-51..G-55);
   agentic on Bedrock/AgentCore was the Phase-2 epic and shipped as S11/S12.

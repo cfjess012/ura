@@ -11,6 +11,7 @@ import {
   answerRemainingGates,
   scenarioIntake,
   startAssessment,
+  openControl,
 } from "./helpers";
 
 /** An assessment far enough in that control questions are being asked. */
@@ -46,7 +47,7 @@ test("with no agent connected the assistant is absent, not apologetic (§7)", as
   // On a screen we know renders, so the assertion is about the assistant
   // and not about where a half-finished intake happens to redirect.
   await atControls(page, `No agent ${Date.now()}`);
-  await expect(page.locator(".q3").first()).toBeVisible();
+  await expect(page.locator(".register-row").first()).toBeVisible();
   await expect(
     page.getByRole("button", { name: /Talk it through/ }),
   ).toHaveCount(0);
@@ -57,7 +58,8 @@ test("a control question says which clause requires it, in the policy's own word
   page,
 }) => {
   await atControls(page, `Authority ${Date.now()}`);
-  const why = page.locator(".why-asked").first();
+  const card = await openControl(page, 0);
+  const why = card.locator(".why-asked").first();
   await expect(why).toBeVisible();
   // Collapsed by default — an authority is worth having and is not worth
   // pushing the question down the page.
@@ -74,12 +76,12 @@ test("the authority never blocks an answer — it explains what follows", async 
   page,
 }) => {
   await atControls(page, `Not blocking ${Date.now()}`);
-  await page.locator(".why-asked").first().click();
-  await expect(page.locator(".why-asked").first()).toContainText(
+  const card = await openControl(page, 0);
+  await card.locator(".why-asked").first().click();
+  await expect(card.locator(".why-asked").first()).toContainText(
     /is not blocked/i,
   );
   // And the question is still answerable, which is the point.
-  const card = page.locator(".q3").first();
   await card
     .locator("> .q3-answers")
     .getByRole("radio", { name: "No" })
@@ -94,7 +96,7 @@ test("a policy-governed No reaches the reviewer as a breach with both quotes", a
   page,
 }) => {
   const base = await atControls(page, `Breach ${Date.now()}`);
-  const card = page.locator(".q3").first();
+  const card = await openControl(page, 0);
   await card
     .locator("> .q3-answers")
     .getByRole("radio", { name: "No" })
