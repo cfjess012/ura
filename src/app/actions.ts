@@ -13,7 +13,7 @@ import { currentPerson, PERSON_COOKIE } from "@/lib/current-person";
 import { failure, isFailure, type Failure, type Result } from "@/lib/errors";
 import { attestationProblem, attestationRefusal } from "@/lib/attestation";
 import { type DispositionKind, dispositionProblem } from "@/lib/disposition";
-import { ALL_FIELDS } from "@/lib/intake";
+import { ALL_FIELDS, firstIncompleteSection } from "@/lib/intake";
 import {
   canAnswer,
   canAttest,
@@ -103,7 +103,16 @@ export async function createProject(
     );
   }
   const { id } = await projectStore().create(name, person.id);
-  redirect(`/projects/${id}`);
+  // Straight to the first thing to answer, not to the project root — that
+  // route's whole body is another redirect, and it sits behind a loading
+  // state reading "Opening the assessment…". Starting an assessment went
+  // through two hops and a spinner to reach a form we already knew the
+  // address of, and anything that stalled on the second hop left a person
+  // on a blank page with nothing to act on (owner report, 2026-09-04).
+  const firstSection = firstIncompleteSection(intakeValuesFrom({}));
+  redirect(
+    firstSection ? `/projects/${id}/intake/${firstSection}` : `/projects/${id}`,
+  );
 }
 
 export async function saveIntake(

@@ -189,3 +189,20 @@ test("an answer needing a note is not saved until it has one", async ({
   await card.locator("> .q3-note textarea").fill("Nothing exists yet.");
   await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
 });
+
+test("starting an assessment lands on the first question, not a blank page", async ({
+  page,
+}) => {
+  // Creating one used to redirect to the project root — a route whose whole
+  // body is another redirect, behind a loading state reading "Opening the
+  // assessment…". An owner met that as a blank page and reasonably concluded
+  // the app had hung.
+  await page.goto("/projects");
+  await page.getByLabel("Start a new assessment").fill(`Straight ${Date.now()}`);
+  await page.getByRole("button", { name: "Start assessment" }).click();
+
+  await page.waitForURL(/\/intake\/description$/);
+  await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
+  // And no wait was shown on the way, because there is nothing to wait for.
+  await expect(page.locator(".loading-note")).toHaveCount(0);
+});
