@@ -59,7 +59,13 @@ export type AssessJourney = {
   partsRemaining: number;
   severity: JourneySeverity[];
   severityRemaining: number;
-  controls: { total: number; answered: number };
+  controls: {
+    /** Controls this assessment requires, whether or not the pilot asks. */
+    required: number;
+    /** Of those, the ones with a question a person can answer here. */
+    total: number;
+    answered: number;
+  };
   /**
    * Which steps can be opened now. A step is a link only once the ones
    * before it are answered — the screens redirect otherwise, and a link
@@ -108,10 +114,10 @@ export function assessJourney(
     0,
   );
 
-  const objectives = objectivesFor(
-    accumulatedFor(stored, intake).map((c) => c.objective),
-  );
+  const accumulated = accumulatedFor(stored, intake);
+  const objectives = objectivesFor(accumulated.map((c) => c.objective));
   const controls = {
+    required: accumulated.length,
     total: objectives.length,
     answered: objectives.filter((o) =>
       isTier3Value(stored[o.questionId]?.value),

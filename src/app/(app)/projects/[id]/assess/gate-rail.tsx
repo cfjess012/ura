@@ -37,9 +37,16 @@ export function GateRail({
       name="Risk areas"
       status={status}
       state={
+        // Counted over ALL the areas, and named as areas. The rail said
+        // "10 answered" — ten questions asked — while the standing page
+        // beside it said "8 of 11 apply". Two true numbers with no unit
+        // between them read as a contradiction (owner report, G-91). One
+        // denominator now, and "decided" covers both the ones a person
+        // answered and the one settled from what they already told us —
+        // which the line underneath names.
         answered === walk.length
-          ? `${walk.length} answered`
-          : `${answered} of ${walk.length} answered`
+          ? `all ${states.length} areas decided`
+          : `${answered + standing.length} of ${states.length} areas decided`
       }
       always={
         standing.length > 0 && (

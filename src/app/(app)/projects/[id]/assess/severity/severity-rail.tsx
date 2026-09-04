@@ -45,7 +45,7 @@ export function SeverityRail({
           : groups.length === 0
             ? "nothing to ask"
             : remaining === 0
-              ? `${groups.length} answered`
+              ? `${groups.length} area${groups.length === 1 ? "" : "s"} rated`
               : `${remaining} to answer`
       }
     >

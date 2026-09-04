@@ -182,6 +182,9 @@ select {
   gap: 0.5rem;
   align-items: center;
   white-space: nowrap;
+  /* Most of these are links. A filled button that is also underlined reads
+     as two affordances stacked on one control (SPEC §23). */
+  text-decoration: none;
   transition:
     background 0.15s var(--ease),
     transform 0.15s var(--ease);

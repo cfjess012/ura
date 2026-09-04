@@ -97,11 +97,22 @@ test("intake pre-answers gates; answers persist; No closes a category", async ({
     fresh.getByRole("link", { name: /Third party/ }).getByText("Applies"),
   ).toBeVisible();
 
-  // Walking to the end lands on an honest "still being built" state (§24.7).
+  // Walking to the end lands on an honest "still being built" state (§24.8).
+  // Both moved behind disclosure when that screen was cut from 1,067 words
+  // to 217 (G-91); the rules they carry did not change.
   await fresh.goto(url.replace(/assess\/.*$/, "assess/complete"));
-  await expect(
-    fresh.getByRole("heading", { name: /What happens after you submit/ }),
-  ).toBeVisible();
+  await fresh
+    .locator(".standing-detail-block", { hasText: "What happens after" })
+    .locator("summary")
+    .click();
+  // Apostrophe-agnostic: the copy uses a typographic one.
+  await expect(fresh.locator(".standing-detail-block[open]")).toContainText(
+    /isn.t connected yet/,
+  );
+  await fresh
+    .locator(".standing-detail-block", { hasText: "Which risk areas apply" })
+    .locator("summary")
+    .click();
   await expect(fresh.getByText("Solution Architecture")).toBeVisible();
 });
 

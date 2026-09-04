@@ -179,13 +179,21 @@ describe("every surface a person sees says it stops", () => {
   });
 
   it("the summary counts work separately from what is only recorded", () => {
+    // The rule, not the shape: an area that opens twelve questions and one
+    // that opens none must not read identically. It moved out of the page
+    // and into the standing derivation when the screen was cut from 1,067
+    // words to 205 (G-91) — and it had to stay on the FACE of that screen,
+    // because somebody who never expands a disclosure would never learn it.
+    const standing = read("src/lib/assess-standing.ts");
+    expect(standing).toMatch(/asksNothingFurther/);
+    expect(standing).toContain("recorded for a reviewer");
     const summary = read(
       "src/app/(app)/projects/[id]/assess/complete/page.tsx",
     );
-    expect(summary).toMatch(/const deep = applies\.filter/);
-    expect(summary).toMatch(/const quiet = applies\.filter/);
-    expect(summary).toContain("open detailed questions");
     expect(summary).toContain("recorded for a reviewer");
+    expect(summary, "the boundary must not be re-derived on the page").not.toMatch(
+      /const (deep|quiet) =/,
+    );
   });
 });
 
