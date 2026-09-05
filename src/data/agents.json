@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-04",
+  "generated": "2026-09-05",
   "groups": [
     {
       "group": "Subagents — independent reviewers with their own context",
@@ -405,6 +405,42 @@
           "gist": "Where a use-case record already exists for this application, the assessment pre-fills from it — the \"asked twice\" complaint answered from the other end.",
           "full": "WHAT IT WOULD DO\n\nWhere a use-case record already exists for this application, the assessment pre-fills from it — the \"asked twice\" complaint answered from the other end.\n\nGUARDRAILS BEYOND THE STANDING SET\n\nPre-filled values are visibly sourced to the external record with its id and date, unconfirmed until a person accepts them (FR-22), and never silently overwrite an answer a person gave.\n\nSTANDING GUARDRAILS (inherited by every registered feature)\n\n· It reads what the requester provided; it never invents facts.\n· It proposes; a human accepts. Nothing it produces is final on its own.\n· Any rewrite reorganises the requester's own words, never adds to them.\n· It speaks plain language: no internal identifiers, no scores as verdicts.\n· Its judgements are recorded with their basis, so a reviewer can tell what\n  was machine-suggested from what a human confirmed.",
           "where": "SPEC.md §22.1 · S3.5+"
+        }
+      ],
+      "side": "runtime"
+    },
+    {
+      "group": "Other",
+      "nodes": [
+        {
+          "name": "Platform feature watch",
+          "status": "dormant",
+          "what": "A platform owner is accountable for spotting new features, especially ones that add AI.",
+          "trigger": "Not built. Registered in SPEC §22.1 for S19; Phase 1 builds none of it and may foreclose none of it.",
+          "access": "Would read: a vendor's own published release notes for a platform we have assessed, and that platform's record. The only registered feature that reaches OUTSIDE the organisation — and the only thing that leaves is a public product name. No assessment content goes out, and a claim it cannot quote from the vendor is dropped rather than shown.",
+          "gist": "A platform owner is accountable for spotting new features, especially ones that add AI. The agent reads the vendor's published release notes and proposes that a platform's assessment has gone stale — \"Microsoft 365 Copilot shipped agent publishing on 12 August; this platform was last attested on 1 July.\" The owner decides whether to reassess.",
+          "full": "WHAT IT WOULD DO\n\nA platform owner is accountable for spotting new features, especially ones that add AI. The agent reads the vendor's published release notes and proposes that a platform's assessment has gone stale — \"Microsoft 365 Copilot shipped agent publishing on 12 August; this platform was last attested on 1 July.\" The owner decides whether to reassess.\n\nGUARDRAILS BEYOND THE STANDING SET\n\n**It may never assert a capability from memory.** Every proposal carries the vendor's own words verbatim with the date and the source, and a proposal it cannot quote is dropped rather than shown — the same rule the transcribed frameworks run under. It proposes a *reassessment*, never a control answer and never an extension: a model deciding an attestation still stands is a model attesting (§5.5), and inheritance that outlives its evidence is the exact failure the expiry mechanism exists to stop. The quarterly expiry fires with or without it. Unusual on egress (§22.3) and worth stating: what leaves is a public product name, and what returns is vendor text — no assessment content goes out.\n\nSTANDING GUARDRAILS (inherited by every registered feature)\n\n· It reads what the requester provided; it never invents facts.\n· It proposes; a human accepts. Nothing it produces is final on its own.\n· Any rewrite reorganises the requester's own words, never adds to them.\n· It speaks plain language: no internal identifiers, no scores as verdicts.\n· Its judgements are recorded with their basis, so a reviewer can tell what\n  was machine-suggested from what a human confirmed.",
+          "where": "SPEC.md §22.1 · S19"
+        },
+        {
+          "name": "Platform suggestion from the description",
+          "status": "dormant",
+          "what": "Reads what the requester already wrote and asks whether the activity runs on a platform we have assessed — \"you described a Snowflake pipeline; does this sit on Snowflake?\" Ticking one discharges the controls that platform provides.",
+          "trigger": "Not built. Registered in SPEC §22.1 for S19; Phase 1 builds none of it and may foreclose none of it.",
+          "access": "Would read: what the requester wrote about their activity, and the ratified platform roster. Would not read: another team's assessment, or anything about how the platform actually behaves — only what our own assessment of it records.",
+          "gist": "Reads what the requester already wrote and asks whether the activity runs on a platform we have assessed — \"you described a Snowflake pipeline; does this sit on Snowflake?\" Ticking one discharges the controls that platform provides.",
+          "full": "WHAT IT WOULD DO\n\nReads what the requester already wrote and asks whether the activity runs on a platform we have assessed — \"you described a Snowflake pipeline; does this sit on Snowflake?\" Ticking one discharges the controls that platform provides.\n\nGUARDRAILS BEYOND THE STANDING SET\n\nBeing wrong here is **silent**, which is what shapes the guardrail: a wrongly-ticked platform removes up to six control questions and writes a note naming a real person's attestation. So the proposal must **show what ticking it would discharge before the click** — never pre-selected is table stakes; making the consequence visible is the actual rule. It may suggest only platforms in the ratified roster, and it may never suggest one whose attestation has lapsed.\n\nSTANDING GUARDRAILS (inherited by every registered feature)\n\n· It reads what the requester provided; it never invents facts.\n· It proposes; a human accepts. Nothing it produces is final on its own.\n· Any rewrite reorganises the requester's own words, never adds to them.\n· It speaks plain language: no internal identifiers, no scores as verdicts.\n· Its judgements are recorded with their basis, so a reviewer can tell what\n  was machine-suggested from what a human confirmed.",
+          "where": "SPEC.md §22.1 · S19"
+        },
+        {
+          "name": "Gap-note assistance",
+          "status": "dormant",
+          "what": "Partial and No require a written note, and that note becomes the finding a reviewer acts on.",
+          "trigger": "Not built. Registered in SPEC §22.1 for S6, S17; Phase 1 builds none of it and may foreclose none of it.",
+          "access": "Would read: what this requester has already said on this assessment, and nothing else. Where they have said nothing it can use, it asks them a question rather than drafting from the control's name.",
+          "gist": "Partial and No require a written note, and that note becomes the finding a reviewer acts on. Where the requester has already described the situation elsewhere in the assessment, the agent offers to reorganize their own words into the note.",
+          "full": "WHAT IT WOULD DO\n\nPartial and No require a written note, and that note becomes the finding a reviewer acts on. Where the requester has already described the situation elsewhere in the assessment, the agent offers to reorganize their own words into the note.\n\nGUARDRAILS BEYOND THE STANDING SET\n\nIf there is nothing of theirs to draw on, it **asks a question rather than drafting from the control's name**. A gap description invented from a control title, accepted under time pressure, is a fabricated finding in the permanent record — worse than the blank it replaced. The note stays editable, the original text is retained, and the draft is never submitted on the person's behalf.\n\nSTANDING GUARDRAILS (inherited by every registered feature)\n\n· It reads what the requester provided; it never invents facts.\n· It proposes; a human accepts. Nothing it produces is final on its own.\n· Any rewrite reorganises the requester's own words, never adds to them.\n· It speaks plain language: no internal identifiers, no scores as verdicts.\n· Its judgements are recorded with their basis, so a reviewer can tell what\n  was machine-suggested from what a human confirmed.",
+          "where": "SPEC.md §22.1 · S6, S17"
         }
       ],
       "side": "runtime"
