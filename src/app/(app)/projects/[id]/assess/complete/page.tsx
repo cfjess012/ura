@@ -99,6 +99,29 @@ export default async function GatesCompletePage({
             ))}
           </div>
 
+          {/* Areas the system decided, on the face of the screen. An
+              assessment that answered itself in three places with no visible
+              reason has surprised somebody with their own record (§24.5,
+              §24.6). The full map stays in the disclosure below. */}
+          {standing.decided.length > 0 && (
+            <div className="decided">
+              <p className="decided-head">
+                {standing.decided.length === 1
+                  ? "One area was answered without asking you"
+                  : `${standing.decided.length} areas were answered without asking you`}
+              </p>
+              <ul>
+                {standing.decided.map((area) => (
+                  <li key={area.name}>
+                    <span className="decided-name">{area.name}</span>
+                    <span className="decided-from">{area.from}</span>
+                    <span className="decided-because">{area.because}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* One decision per screen (§24.2). Submission is always reachable
               — gaps are allowed and named, not a locked door (FR-14) — but it
               is the alternative until there is nothing left to do, at which

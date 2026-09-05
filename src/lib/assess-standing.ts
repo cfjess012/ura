@@ -29,12 +29,30 @@ export type StandingRow = {
   state: StandingState;
 };
 
+/** An area the system decided, and where that decision came from. */
+export type Decided = {
+  name: string;
+  /** "your intake", "your answers", or the rule that settles it outright. */
+  from: string;
+  because: string;
+};
+
 export type Standing = {
   /** The sentence at the top, answering "am I done?". */
   headline: string;
   /** One line under it. Never a recap of the rows. */
   lede: string;
   rows: StandingRow[];
+  /**
+   * Areas nobody was asked about, and why.
+   *
+   * On the face of the screen rather than behind the disclosure with the
+   * rest of the map: a person meeting an assessment that answered itself in
+   * three places, with no visible reason, has been surprised by their own
+   * record. §24.5 wants the reason where the effect is, and §24.6 wants it
+   * plain that we did not make them repeat what they had already said.
+   */
+  decided: Decided[];
   /**
    * The single thing to do next, or null once nothing is left — at which
    * point handing it over stops being the alternative and becomes the act.
@@ -148,11 +166,36 @@ export function standingFor(input: {
   );
 
   return {
+    decided: decidedFor(journey),
     headline: headlineFor(journey),
     lede: ledeFor(journey, { applies: applies.length, closed: closed.length, quiet: quiet.length }),
     rows,
     next: nextFor(journey, base),
   };
+}
+
+/**
+ * Every area that got its answer without the person giving one.
+ *
+ * Three ways that happens, and each says so in its own words: read from the
+ * identity record, worked out from another area's answer, or true of every
+ * assessment there is.
+ */
+function decidedFor(journey: AssessJourney): Decided[] {
+  const out: Decided[] = [];
+  for (const gate of journey.gates) {
+    if (!gate.because) continue;
+    if (gate.settled) {
+      out.push({ name: gate.category.name, from: "always applies", because: gate.because });
+    } else if (gate.fromIntake) {
+      out.push({
+        name: gate.category.name,
+        from: gate.origin === "answers" ? "from your answers" : "from your intake",
+        because: gate.because,
+      });
+    }
+  }
+  return out;
 }
 
 /**

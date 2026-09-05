@@ -180,3 +180,35 @@ describe("the words at the top", () => {
     expect(standing.lede).toContain(String(owed));
   });
 });
+
+describe("areas the system decided", () => {
+  it("names each one and where the decision came from", () => {
+    // An assessment that answers itself in five places with no visible
+    // reason has surprised somebody with their own record (§24.5, §24.6).
+    const decided = stand(owing).decided;
+    expect(decided.length).toBeGreaterThan(0);
+    for (const area of decided) {
+      expect(area.name.length).toBeGreaterThan(3);
+      expect(area.because.length).toBeGreaterThan(10);
+      expect(["from your intake", "from your answers", "always applies"]).toContain(
+        area.from,
+      );
+      // Plain language, no internal identifiers (NFR-9).
+      expect(area.because).not.toMatch(/T[0-9]-[A-Z]{2,5}-[0-9]|[a-z]+\.[a-z_]+/);
+    }
+  });
+
+  it("distinguishes an area settled outright from one read off the intake", () => {
+    const decided = stand(owing).decided;
+    // Governance applies to every assessment; nobody is ever asked.
+    const always = decided.find((a) => a.from === "always applies");
+    expect(always).toBeDefined();
+    expect(always!.because).toMatch(/every assessment/);
+  });
+
+  it("lists nothing when the person answered every area themselves", () => {
+    // allClosed answers each gate by hand, so only the settled one remains.
+    const decided = stand(allClosed).decided;
+    expect(decided.every((a) => a.from === "always applies")).toBe(true);
+  });
+});

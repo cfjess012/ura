@@ -148,3 +148,29 @@ test("the rail and the page share one denominator for the risk areas", async ({
   const pageTotal = Number(row.match(/of (\d+) apply/)![1]);
   expect(railTotal).toBe(pageTotal);
 });
+
+test("areas answered without asking are named on the face of the page", async ({
+  page,
+}) => {
+  // Provenance sat behind a disclosure for one commit; the owner asked for
+  // it back. An assessment that answers itself with no visible reason has
+  // surprised somebody with their own record (§24.5, §24.6).
+  const base = await startAssessment(page, `Provenance ${Date.now()}`);
+  await scenarioIntake(page, base);
+  await answerRemainingGates(page, base);
+  await page.goto(`${base}/assess/complete`);
+
+  const decided = page.locator(".decided");
+  await expect(decided).toBeVisible();
+  await expect(decided.locator(".decided-head")).toContainText(
+    /answered without asking you/,
+  );
+  // Every row names the area, the source and the reason — not just a count.
+  const rows = decided.locator("li");
+  expect(await rows.count()).toBeGreaterThan(0);
+  await expect(rows.first()).toContainText(
+    /from your intake|from your answers|always applies/,
+  );
+  // Visible without opening anything.
+  await expect(page.locator(".standing-detail-block[open]")).toHaveCount(0);
+});
