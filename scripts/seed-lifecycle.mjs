@@ -17,6 +17,8 @@
  *   settled      — every control answer attested by the domain that owns it,
  *                  every finding closed, with a different mix of the four
  *                  dispositions each time. (4)
+ *   news         — three questions Isabelle handed to a risk office, each
+ *                  answered, so the requester's bell has something in it.
  *
  * The same rules as the finished seed apply: findings are derived from the
  * control answers by the rule submission.ts uses, the breached clause is
@@ -39,7 +41,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import postgres from "postgres";
-import { DEEP, EARLY } from "./seed-lifecycle.data.mjs";
+import { DEEP, EARLY, NEWS } from "./seed-lifecycle.data.mjs";
 
 try {
   process.loadEnvFile(".env");
@@ -354,5 +356,41 @@ for (const scenario of DEEP) {
   console.log(`${scenario.name} — settled: ${scenario.settlements.map((s) => s.kind).join(", ")}`);
 }
 
-console.log(`\n${made} assessments created, ${skipped} already present.`);
+// ------------------------------------------------------------------- news
+
+let answered = 0;
+for (const item of NEWS) {
+  const projectId = await exists(item.project);
+  if (!projectId) {
+    console.log(`news for "${item.project}" skipped — that assessment is not seeded`);
+    continue;
+  }
+  const [already] = await sql`
+    select id from handoffs
+    where project_id = ${projectId} and question_id = ${item.questionId} and asked_by = ${item.askedBy}
+    limit 1`;
+  if (already) continue;
+  const [handoff] = await sql`insert into handoffs ${sql({
+    project_id: projectId,
+    question_id: item.questionId,
+    asked_by: item.askedBy,
+    to_domain: item.toDomain ?? null,
+    to_person_id: item.toPerson ?? null,
+    note: item.note,
+    created_at: daysAgo(item.askedDaysAgo),
+    resolved_at: item.resolved ? daysAgo(item.resolved.daysAgo) : null,
+    resolved_by: item.resolved?.by ?? null,
+  })} returning id`;
+  await sql`insert into handoff_replies ${sql({
+    handoff_id: handoff.id,
+    author_id: item.reply.by,
+    body: item.reply.body,
+    created_at: sql`now() - make_interval(hours => ${item.reply.hoursAgo})`,
+  })}`;
+  answered += 1;
+}
+
+console.log(
+  `\n${made} assessments created, ${skipped} already present, ${answered} hand-offs answered.`,
+);
 await sql.end();

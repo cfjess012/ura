@@ -113,6 +113,10 @@ const INTAKE = {
   data_elements: ["Commercial terms", "Counterparty contact details"],
   initiative_type: "Brand new",
   coupa_onboarded: "Yes",
+  // The business owner is a required intake field: without one the
+  // submitted view bounces back to intake asking for it.
+  business_owner: { id: "d.withers", label: "Isabelle Withers", version: "people" },
+  technical_owner: { id: "d.chen", label: "Wei Chen", version: "people" },
   business_unit: unit("BU_LEG"),
   other_units: [unit("BU_SUP")],
   collaborators: "Procurement operations, Legal technology",

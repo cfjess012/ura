@@ -26,6 +26,8 @@ const vendor = (id) => {
   if (!found) throw new Error(`no such vendor: ${id}`);
   return { id: found.id, label: found.label, version: VENDORS.version };
 };
+/** An owner picked from the directory; the business owner is required. */
+const person = (id, label) => ({ id, label, version: "people" });
 
 const B = "Brand new";
 const UPDATE = "An update or enhancement to something we already run";
@@ -47,6 +49,8 @@ export const EARLY = [
       business_purpose: "Reduce forklift incidents in the busiest warehouse before the peak season.",
       uses_ai: "Yes", third_party_involved: "Yes", data_classification: "Restricted",
       data_elements: ["Employee personal information"],
+      business_owner: person("d.osei", "Kwame Osei"),
+      technical_owner: person("d.brennan", "Marcus Brennan"),
       initiative_type: POC, business_unit: unit("BU_OPS"),
       coupa_onboarded: "I'm not sure",
     },
@@ -64,6 +68,8 @@ export const EARLY = [
       business_purpose: "Catch duplicate and out-of-policy claims before they are paid rather than in the annual audit.",
       uses_ai: "Yes", third_party_involved: "No", data_classification: "Confidential",
       data_elements: ["Employee personal information"],
+      business_owner: person("d.novak", "Petra Novak"),
+      technical_owner: person("d.chen", "Wei Chen"),
       initiative_type: B, business_unit: unit("BU_FIN"),
       coupa_onboarded: "No",
     },
@@ -81,6 +87,8 @@ export const EARLY = [
       business_purpose: "Shorten ramp time for new sales hires by showing them what good calls sound like.",
       uses_ai: "Yes", third_party_involved: "Yes", data_classification: "Confidential",
       data_elements: ["Customer personal information", "Employee personal information"],
+      business_owner: person("d.reyes", "Camila Reyes"),
+      technical_owner: person("d.imai", "Kenji Imai"),
       initiative_type: POC, business_unit: unit("BU_SALES"),
       vendor_names: [vendor("V_MICROSOFT")],
       coupa_onboarded: "Yes",
@@ -109,6 +117,8 @@ export const DEEP = [
       business_purpose: "Approve straightforward applications the same day and put underwriter time where it matters.",
       uses_ai: "Yes", third_party_involved: "Yes", data_classification: "Restricted",
       data_elements: ["Customer personal information", "Financial account information"],
+      business_owner: person("d.imai", "Kenji Imai"),
+      technical_owner: person("d.chen", "Wei Chen"),
       initiative_type: POC, business_unit: unit("BU_RISK"),
       other_units: [unit("BU_DATA")],
       vendor_names: [vendor("V_DATABRICKS")],
@@ -151,6 +161,8 @@ export const DEEP = [
       business_purpose: "Get the customers most likely to leave in front of an experienced agent within the hour.",
       uses_ai: "Yes", third_party_involved: "Yes", data_classification: "Confidential",
       data_elements: ["Customer personal information"],
+      business_owner: person("d.whitfield", "Grace Whitfield"),
+      technical_owner: person("d.brennan", "Marcus Brennan"),
       initiative_type: UPDATE, business_unit: unit("BU_CS"),
       vendor_names: [vendor("V_SALESFORCE")],
       coupa_onboarded: "Yes",
@@ -188,6 +200,8 @@ export const DEEP = [
       business_purpose: "Cut the time from brief to first draft from two days to one hour.",
       uses_ai: "Yes", third_party_involved: "Yes", data_classification: "Confidential",
       data_elements: ["Trade secrets, source code or proprietary methods"],
+      business_owner: person("d.chen", "Wei Chen"),
+      technical_owner: person("d.osei", "Kwame Osei"),
       initiative_type: UPDATE, business_unit: unit("BU_MKT"),
       vendor_names: [vendor("V_MICROSOFT")],
       coupa_onboarded: "Yes",
@@ -221,6 +235,8 @@ export const DEEP = [
       business_purpose: "Fit one more job a day into each technician's round without extending their hours.",
       uses_ai: "Yes", third_party_involved: "Yes", data_classification: "Confidential",
       data_elements: ["Customer personal information", "Employee personal information"],
+      business_owner: person("d.dube", "Thandiwe Dube"),
+      technical_owner: person("d.brennan", "Marcus Brennan"),
       initiative_type: POC, business_unit: unit("BU_OPS"),
       other_units: [unit("BU_ENG")],
       vendor_names: [vendor("V_GOOGLE")],
@@ -264,6 +280,8 @@ export const DEEP = [
       business_purpose: "Post the eighty percent of invoices that match cleanly without a person touching them.",
       uses_ai: "Yes", third_party_involved: "Yes", data_classification: "Confidential",
       data_elements: ["Partner/Vendor contact personal information", "Financial account information"],
+      business_owner: person("d.ferreira", "Rui Ferreira"),
+      technical_owner: person("d.novak", "Petra Novak"),
       initiative_type: B, business_unit: unit("BU_FIN"),
       other_units: [unit("BU_SUP")],
       vendor_names: [vendor("V_SAP")],
@@ -327,6 +345,8 @@ export const DEEP = [
       business_purpose: "Give the executive team a reliable read on why people leave, without HR summarising it by hand.",
       uses_ai: "Yes", third_party_involved: "Yes", data_classification: "Restricted",
       data_elements: ["Employee personal information"],
+      business_owner: person("d.grant", "Alison Grant"),
+      technical_owner: person("d.haddad", "Yusuf Haddad"),
       initiative_type: B, business_unit: unit("BU_HR"),
       vendor_names: [vendor("V_WORKDAY"), vendor("V_ANTHROPIC")],
       collaborators: "HR Business Partners",
@@ -388,6 +408,8 @@ export const DEEP = [
       business_purpose: "Replace bearings on a planned visit instead of after a failure that stops the line.",
       uses_ai: "Yes", third_party_involved: "Yes", data_classification: "Internal",
       data_elements: ["None / Unknown"],
+      business_owner: person("d.acosta", "Elena Acosta"),
+      technical_owner: person("d.brennan", "Marcus Brennan"),
       initiative_type: POC, business_unit: unit("BU_ENG"),
       other_units: [unit("BU_OPS")],
       vendor_names: [vendor("V_IBM")],
@@ -452,6 +474,8 @@ export const DEEP = [
       business_purpose: "Stop applicants spending three weeks on a full application that was never going to pass.",
       uses_ai: "Yes", third_party_involved: "Yes", data_classification: "Restricted",
       data_elements: ["Customer personal information", "Financial account information"],
+      business_owner: person("d.withers", "Isabelle Withers"),
+      technical_owner: person("d.imai", "Kenji Imai"),
       initiative_type: B, business_unit: unit("BU_RISK"),
       other_units: [unit("BU_PROD"), unit("BU_LEG")],
       vendor_names: [vendor("V_ORACLE")],
@@ -527,3 +551,55 @@ export const DEEP = [
   },
 ];
 
+
+/* ---------------------------------------------------------------- *
+ * News: questions Isabelle handed to a risk office, and what came back.
+ * The bell's "notifications" are replies on hand-offs you asked — so the
+ * requester persona opens the demo with three real answers waiting.
+ * Two of these sit on assessments other seeds create; each is skipped if
+ * its assessment is not there.
+ * ---------------------------------------------------------------- */
+
+export const NEWS = [
+  {
+    project: "Novara scheduling assistant",
+    questionId: "sev.priv_1",
+    askedBy: "d.withers",
+    toDomain: "data-privacy",
+    note: "Novara says the scheduling data is \"operational only\" but it has staff names and shift patterns in it — is that personal information for our purposes?",
+    askedDaysAgo: 2,
+    reply: {
+      by: "a.privacy",
+      hoursAgo: 3,
+      body: "Yes — names tied to shift patterns are personal information, and rota data can reveal health-related absence. Answer Medium here and note that Novara holds it; I'll pick up the retention question when it reaches me.",
+    },
+  },
+  {
+    project: "Loan application pre-screening model",
+    questionId: "t3.t3_nb_03",
+    askedBy: "d.withers",
+    toPerson: "a.security",
+    note: "The vendor says mutual TLS is \"on the roadmap\". Is API-key-only acceptable for go-live or do we wait?",
+    askedDaysAgo: 9,
+    resolved: { by: "a.security", daysAgo: 1 },
+    reply: {
+      by: "a.security",
+      hoursAgo: 24,
+      body: "Don't wait. I've recorded it as a risk acceptance with Tom as the second signature, 180 days, revisited at the vendor review. Your answer stands as written — it was accurate, which is the point.",
+    },
+  },
+  {
+    project: "Meridian contract intelligence",
+    questionId: "sev.tpr_la_1",
+    askedBy: "d.withers",
+    toDomain: "third-party",
+    note: "Meridian's support team can see uploaded contracts while a ticket is open. Does that count as provider access to our environment?",
+    askedDaysAgo: 12,
+    resolved: { by: "a.thirdparty", daysAgo: 5 },
+    reply: {
+      by: "a.thirdparty",
+      hoursAgo: 120,
+      body: "It counts as access to our data, not our environment — so Medium, not High. I've asked Procurement to get the support-access clause into the renewal. Nothing for you to change.",
+    },
+  },
+];
