@@ -47,6 +47,41 @@ pnpm demo:seed          # four curated assessments, one already with a reviewer
 pnpm dev                # http://localhost:3100
 ```
 
+### Cold start on a fresh machine, for a demo
+
+The block above gives you the product with four assessments. A demo wants the
+whole queue and the AI on. This is the sequence, in order, from a clone —
+everything else in this section is background to it:
+
+```sh
+git clone <repo> && cd ura
+pnpm install && pnpm agent:install
+cp .env.example .env    # set DATABASE_URL; set AGENT_TRANSPORT=local; paste your own ANTHROPIC_API_KEY
+
+# a reachable Postgres 16 (see the table below), then:
+createdb ura && createdb ura_e2e
+pnpm db:migrate && pnpm instrument:seed
+
+pnpm demo:reset                    # DESTRUCTIVE: rebuilds the database, then four curated + one finished
+node scripts/seed-scenarios.mjs    # twenty-five realistic shapes, so the queue is busy
+pnpm demo:lifecycle                # eleven more across the lifecycle: under review, settled, and the requester's bell
+
+pnpm agent:claude                  # terminal 1 — the agent on :8790; check: curl localhost:8790/healthz
+pnpm dev                           # terminal 2 — http://localhost:3100
+```
+
+Three things bite on a new machine, all of them silent until somebody clicks:
+
+- **Start the agent before the web app, and check `healthz`.** Availability
+  is read from `AGENT_TRANSPORT`, not by reaching the agent — `local` with
+  nothing on :8790 shows "Assistant on" and then apologises.
+- **The key is validated on first use, not at startup.** A stale or revoked
+  `ANTHROPIC_API_KEY` starts cleanly and fails on the first AI call with a
+  401 in the agent's terminal. Open one report page before the room does.
+- **Seeds skip what already exists, and answers are insert-only**, so the only
+  way back to clean is `pnpm demo:reset`. After it, the requester persona on
+  the front door is **Isabelle Withers**.
+
 **`pnpm db:up` publishes Postgres on 5433, not 5432** — deliberately, so the
 container cannot collide with a Postgres already running on the machine. If
 you use it, point `DATABASE_URL` and `E2E_DATABASE_URL` at 5433; `.env.example`
