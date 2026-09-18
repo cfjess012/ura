@@ -16,6 +16,7 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { Tier3Value } from "./tier3";
 
 export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -73,7 +74,10 @@ export const answers = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     projectId: uuid("project_id").notNull(),
     questionId: text("question_id").notNull(),
-    value: jsonb("value").$type<string | string[]>().notNull(),
+    // A gate or a severity holds a string, a path selection a list, and a
+    // Tier-3 answer the {answer, note} object. The type said the first two
+    // and the write cast the third through `unknown` (S13 audit, defect e).
+    value: jsonb("value").$type<string | string[] | Tier3Value>().notNull(),
     source: text("source").notNull(),
     confirmed: boolean("confirmed").notNull().default(false),
     // Provenance, present only on a drafted answer (migration 0023).
@@ -237,6 +241,10 @@ export const attestations = pgTable(
       .defaultNow(),
     act: text("act").notNull(),
     correctedAnswer: text("corrected_answer"),
+    /**
+     * Required for every act since migration 0031: a correction and an N-A
+     * always were, and an approval since the owner's call of 2026-08-25.
+     */
     note: text("note").notNull().default(""),
   },
   (t) => [index("attestations_by_project").on(t.projectId, t.attestedAt)],

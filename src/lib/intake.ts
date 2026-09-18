@@ -13,7 +13,9 @@
  *   lack visibility (FR-23) — the front door never manufactures certainty.
  */
 
-import { matches, type Condition } from "./conditions";
+import { matches, type AnswerLookup, type Condition } from "./conditions";
+import { knownFields } from "./condition-known";
+import { lintCondition } from "./condition-lint";
 
 /** Intake names its trigger `visibleWhen`; the rules are the shared ones,
  *  evaluated by the single predicate in conditions.ts (NFR-2). */
@@ -337,7 +339,7 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
       },
       {
         id: "dataElements",
-        label: "Data Elements",
+        label: "What kinds of sensitive information are involved?",
         type: "multi",
         options: [
           "None / Unknown",
@@ -345,41 +347,80 @@ export const INTAKE_SECTIONS: IntakeSection[] = [
           "Employee personal information",
           "Applicant personal information",
           "Partner/Vendor contact personal information",
+          "Trade secrets, source code or proprietary methods",
+          "Legally privileged or litigation material",
+          "Unpublished financial results or filings",
         ],
+        optionHelp: {
+          "Trade secrets, source code or proprietary methods":
+            "Anything whose value depends on competitors not having it — pricing models, algorithms, formulations, unreleased designs.",
+          "Legally privileged or litigation material":
+            "Advice from lawyers, or material gathered for a dispute. Sharing it in the wrong place can lose the privilege permanently.",
+          "Unpublished financial results or filings":
+            "Numbers before they are announced. Handling these carries obligations of their own.",
+        },
         conditional: {
           visibleWhen: "dataClassification",
           equalsAny: ["Internal", "Confidential", "Restricted"],
         },
         revealNote: "Shown because the data is not public.",
-        help: "High level only — the detailed data questions come later, and only if they apply.",
+        help: "Tick everything the activity touches, including copies in logs, exports and backups. Not all sensitive information is about people — a pricing algorithm or an unpublished filing can matter as much as a customer list. If none of these apply, say so rather than leaving it blank.",
       },
     ],
   },
 ];
 
-/** The one intake visibility rule: positive evidence only (SPEC §3.2.1). */
+/**
+ * The one intake visibility rule: positive evidence only (SPEC §3.2.1).
+ *
+ * It routes through `matches()` — the header of this file said so and the
+ * body re-implemented the three operators by hand (S13 audit, defect f).
+ * Two evaluators agree right up until one of them changes, and §3.3 calls a
+ * second one a defect by definition; the architecture test now holds this
+ * file to the single predicate.
+ */
 export function isFieldVisible(
   field: IntakeField,
   values: IntakeValues,
 ): boolean {
   if (!field.conditional) return true;
-  const condition = field.conditional;
-  const v = values[condition.visibleWhen];
-  if ("hasValue" in condition) {
-    return Array.isArray(v)
-      ? v.length > 0
-      : typeof v === "string" && v.trim().length > 0;
-  }
-  if ("equalsAny" in condition) {
-    return typeof v === "string" && condition.equalsAny.includes(v);
-  }
-  const selected = Array.isArray(v) ? v : [];
-  return condition.includesAny.some((o) => selected.includes(o));
+  const { visibleWhen, ...rule } = field.conditional;
+  return matches(
+    { field: visibleWhen, ...rule } as Condition,
+    values as AnswerLookup,
+  );
 }
 
 export const ALL_FIELDS: IntakeField[] = INTAKE_SECTIONS.flatMap(
   (s) => s.fields,
 );
+
+/**
+ * The intake's reveals, linted at import like every other authored rule
+ * (§6.3, NFR-23). The sections are a TypeScript literal rather than a JSON
+ * edition, so this is the validator they get: a reveal that reads a field
+ * that does not exist, or an option it never offers, fails the build with
+ * a sentence rather than hiding a question forever. `blank` is allowed
+ * here and nowhere else (G-77).
+ */
+export function validateReveals(fields: IntakeField[]): void {
+  const known = knownFields({
+    areas: [],
+    intake: fields,
+    severityQuestionIds: [],
+    canSeePaths: false,
+    allowsBlank: true,
+  });
+  const problems = fields.flatMap((field) => {
+    if (!field.conditional) return [];
+    const { visibleWhen, ...rule } = field.conditional;
+    return lintCondition({ field: visibleWhen, ...rule } as Condition, `intake ${field.id}`, known);
+  });
+  if (problems.length > 0) {
+    throw new Error(`Intake is invalid:\n- ${problems.join("\n- ")}`);
+  }
+}
+validateReveals(ALL_FIELDS);
 
 /** Required fields currently visible — the completeness meter's basis. */
 export function missingRequired(values: IntakeValues): string[] {

@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /**
  * Answer every required intake field for a project already open at its first
@@ -212,4 +212,34 @@ export async function plantDraft(input: {
   } finally {
     await sql.end();
   }
+}
+
+/**
+ * Open one control in the register and return its drawer (G-87).
+ *
+ * The controls screen used to be a stack of cards, so a test could reach a
+ * question by index. It is now a register whose rows open a drawer beside it,
+ * and the drawer is where every question, answer and note lives — so every
+ * journey through a control goes through here.
+ */
+export async function openControl(
+  page: Page,
+  which: number | RegExp,
+): Promise<Locator> {
+  const rows = page.locator(".register-row");
+  const row =
+    typeof which === "number"
+      ? rows.nth(which)
+      : rows.filter({ hasText: which }).first();
+  await row.click();
+  const drawer = page.locator(".drawer");
+  await drawer.waitFor({ state: "visible" });
+  return drawer;
+}
+
+/** Rows a person can still answer — the ones with a question behind them. */
+export function answerableRows(page: Page): Locator {
+  return page
+    .locator(".register-row")
+    .filter({ hasNot: page.locator('[data-state="no-question"]') });
 }

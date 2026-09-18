@@ -1,0 +1,669 @@
+{
+  "slug": "platforms",
+  "version": "2026-09-03.1",
+  "note": "The platforms an activity can sit on, each assessed in its own right and each with an accountable owner (G-83). Two kinds live here and the difference matters. A platform with entries in `provides` is a COMMON CONTROL PROVIDER: what it provides is inherited by everything that uses it, so an activity behind enterprise identity does not answer six identity questions. A platform with none is an ASSESSED SERVICE: it provides nothing, and its assessment says what may be put on it. Most carry some of both. `allowedData` is the sharper half either way — the mismatch between what an activity wants to place somewhere and what the platform is cleared for is a finding the product can raise on its own. Every platform carries an attestation with an expiry: past it the inherited answers stop counting, because inheritance that outlives its evidence is how control failures get laundered. Owners here are placeholders until real sign-in exists; they are the accountable person, not a persona.",
+  "platforms": [
+    {
+      "id": "PL_ENTRA",
+      "name": "Microsoft Entra ID",
+      "vendor": "V_MICROSOFT",
+      "purpose": "Enterprise identity. Single sign-on, conditional access and the directory every other system authenticates against.",
+      "owner": {
+        "name": "Priya Raghunathan",
+        "title": "Head of Identity & Access"
+      },
+      "allowedData": {
+        "classifications": [
+          "Public",
+          "Internal",
+          "Confidential",
+          "Restricted"
+        ],
+        "dataElements": [
+          "Employee personal information"
+        ],
+        "conditions": [
+          "Directory data stays in the EU and US tenants only."
+        ]
+      },
+      "provides": [
+        "T3-IAM-01",
+        "T3-IAM-02",
+        "T3-IAM-03",
+        "T3-IAM-05",
+        "T3-IAM-06",
+        "T3-IAM-10"
+      ],
+      "attestation": {
+        "lastAttested": "2026-07-01",
+        "expires": "2026-10-01",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_AUTHENTICATOR",
+      "name": "Microsoft Authenticator",
+      "vendor": "V_MICROSOFT",
+      "purpose": "The second factor. Push approval and one-time codes for everyone with a corporate identity.",
+      "owner": {
+        "name": "Priya Raghunathan",
+        "title": "Head of Identity & Access"
+      },
+      "allowedData": {
+        "classifications": [
+          "Public",
+          "Internal",
+          "Confidential",
+          "Restricted"
+        ],
+        "dataElements": [],
+        "conditions": [
+          "Enrolment is mandatory; exceptions are time-boxed and recorded."
+        ]
+      },
+      "provides": [
+        "T3-IAM-02"
+      ],
+      "attestation": {
+        "lastAttested": "2026-07-01",
+        "expires": "2026-10-01",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_OKTA",
+      "name": "Okta",
+      "vendor": "V_OKTA",
+      "purpose": "Identity for customer-facing and legacy applications not yet migrated to the enterprise directory.",
+      "owner": {
+        "name": "Priya Raghunathan",
+        "title": "Head of Identity & Access"
+      },
+      "allowedData": {
+        "classifications": [
+          "Public",
+          "Internal",
+          "Confidential"
+        ],
+        "dataElements": [
+          "Customer personal information"
+        ],
+        "conditions": [
+          "Migration to the enterprise directory is in progress; no new integrations without an exception."
+        ]
+      },
+      "provides": [
+        "T3-IAM-01",
+        "T3-IAM-02",
+        "T3-IAM-06"
+      ],
+      "attestation": {
+        "lastAttested": "2026-05-15",
+        "expires": "2026-08-15",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_AWS",
+      "name": "Amazon Web Services landing zone",
+      "vendor": "V_AWS",
+      "purpose": "The sanctioned cloud tenancy. Hardened accounts, baseline guardrails, network boundary and backup.",
+      "owner": {
+        "name": "Callum Whitfield",
+        "title": "Principal Platform Engineer"
+      },
+      "allowedData": {
+        "classifications": [
+          "Public",
+          "Internal",
+          "Confidential",
+          "Restricted"
+        ],
+        "dataElements": [
+          "Customer personal information",
+          "Employee personal information"
+        ],
+        "conditions": [
+          "Restricted data requires a dedicated account.",
+          "EU personal data stays in eu-west-1 or eu-central-1."
+        ]
+      },
+      "provides": [
+        "T3-NB-01",
+        "T3-NB-05",
+        "T3-DP-07",
+        "T3-DP-01",
+        "T3-RES-01",
+        "T3-LOG-01",
+        "T3-NB-03"
+      ],
+      "attestation": {
+        "lastAttested": "2026-08-12",
+        "expires": "2026-11-12",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_GCP",
+      "name": "Google Cloud",
+      "vendor": "V_GOOGLE",
+      "purpose": "Secondary cloud tenancy, used by analytics and a small number of legacy services.",
+      "owner": {
+        "name": "Callum Whitfield",
+        "title": "Principal Platform Engineer"
+      },
+      "allowedData": {
+        "classifications": [
+          "Public",
+          "Internal",
+          "Confidential"
+        ],
+        "dataElements": [],
+        "conditions": [
+          "No Restricted data. No new workloads without architecture review."
+        ]
+      },
+      "provides": [
+        "T3-NB-01",
+        "T3-NB-05",
+        "T3-DP-01",
+        "T3-LOG-01"
+      ],
+      "attestation": {
+        "lastAttested": "2026-06-20",
+        "expires": "2026-09-20",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_SNOWFLAKE",
+      "name": "Snowflake",
+      "vendor": "V_SNOWFLAKE",
+      "purpose": "The enterprise data warehouse. Governed analytics data, with role-based access and column masking.",
+      "owner": {
+        "name": "Ingrid Solberg",
+        "title": "Head of Data Platform"
+      },
+      "allowedData": {
+        "classifications": [
+          "Internal",
+          "Confidential",
+          "Restricted"
+        ],
+        "dataElements": [
+          "Customer personal information",
+          "Employee personal information"
+        ],
+        "conditions": [
+          "Restricted data requires column masking and a named data owner.",
+          "EU personal data stays in the EU deployment."
+        ]
+      },
+      "provides": [
+        "T3-DP-01",
+        "T3-RES-01",
+        "T3-LOG-01",
+        "T3-IAM-01"
+      ],
+      "attestation": {
+        "lastAttested": "2026-08-01",
+        "expires": "2026-11-01",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_DATABRICKS",
+      "name": "Databricks",
+      "vendor": "V_DATABRICKS",
+      "purpose": "Model development and feature engineering for the data science team.",
+      "owner": {
+        "name": "Ingrid Solberg",
+        "title": "Head of Data Platform"
+      },
+      "allowedData": {
+        "classifications": [
+          "Internal",
+          "Confidential"
+        ],
+        "dataElements": [
+          "Customer personal information"
+        ],
+        "conditions": [
+          "No Restricted data.",
+          "Production models are promoted through the sanctioned pipeline, not from a notebook."
+        ]
+      },
+      "provides": [
+        "T3-DP-01",
+        "T3-LOG-01"
+      ],
+      "attestation": {
+        "lastAttested": "2026-04-30",
+        "expires": "2026-07-30",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_GH_COPILOT",
+      "name": "GitHub Copilot",
+      "vendor": "V_MICROSOFT",
+      "purpose": "Code completion and suggestion inside the sanctioned development environment.",
+      "owner": {
+        "name": "Marcus Iheanacho",
+        "title": "Director of Developer Platform"
+      },
+      "allowedData": {
+        "classifications": [
+          "Public",
+          "Internal"
+        ],
+        "dataElements": [],
+        "conditions": [
+          "Source code only. No customer or employee personal information in prompts.",
+          "Repositories holding trade-secret algorithms are excluded by policy.",
+          "Contractual no-training term in force; telemetry disabled."
+        ]
+      },
+      "provides": [],
+      "attestation": {
+        "lastAttested": "2026-07-18",
+        "expires": "2026-10-18",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_M365_COPILOT",
+      "name": "Microsoft 365 Copilot",
+      "vendor": "V_MICROSOFT",
+      "purpose": "Drafting, summarising and retrieval across mail, documents and meetings, grounded in what the signed-in person can already reach.",
+      "owner": {
+        "name": "Danielle Ferreira-Boyd",
+        "title": "Head of Digital Workplace"
+      },
+      "allowedData": {
+        "classifications": [
+          "Public",
+          "Internal",
+          "Confidential"
+        ],
+        "dataElements": [
+          "Employee personal information",
+          "Customer personal information"
+        ],
+        "conditions": [
+          "Grounding honours the requester's own permissions; it does not widen them.",
+          "No Restricted data, and no special-category personal data.",
+          "Meeting transcription is off by default and enabled per team with a recorded reason."
+        ]
+      },
+      "provides": [
+        "T3-AI-09"
+      ],
+      "attestation": {
+        "lastAttested": "2026-08-20",
+        "expires": "2026-11-20",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_COPILOT_STUDIO",
+      "name": "Microsoft Copilot Studio",
+      "vendor": "V_MICROSOFT",
+      "purpose": "Low-code building of conversational agents by teams outside engineering.",
+      "owner": {
+        "name": "Danielle Ferreira-Boyd",
+        "title": "Head of Digital Workplace"
+      },
+      "allowedData": {
+        "classifications": [
+          "Public",
+          "Internal"
+        ],
+        "dataElements": [],
+        "conditions": [
+          "Agents may read only sources their publisher can already reach.",
+          "No agent may take an action against a system of record without a named approver.",
+          "No Confidential or Restricted data without a separate assessment."
+        ]
+      },
+      "provides": [],
+      "attestation": {
+        "lastAttested": "2026-08-20",
+        "expires": "2026-11-20",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_M365_AGENT_STUDIO",
+      "name": "Microsoft 365 Agent Studio",
+      "vendor": "V_MICROSOFT",
+      "purpose": "Building and publishing agents into the Microsoft 365 surface, including ones that act on a person's behalf.",
+      "owner": {
+        "name": "Danielle Ferreira-Boyd",
+        "title": "Head of Digital Workplace"
+      },
+      "allowedData": {
+        "classifications": [
+          "Public",
+          "Internal"
+        ],
+        "dataElements": [],
+        "conditions": [
+          "Agents that act, rather than only answer, need a bounded authority statement and a named owner.",
+          "No Confidential or Restricted data pending the first full assessment.",
+          "Newly released; the control set below is provisional."
+        ]
+      },
+      "provides": [],
+      "attestation": {
+        "lastAttested": "2026-09-01",
+        "expires": "2026-12-01",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_ANTHROPIC",
+      "name": "Anthropic Claude",
+      "vendor": "V_ANTHROPIC",
+      "purpose": "General-purpose model access for engineering and analysis, through the enterprise agreement.",
+      "owner": {
+        "name": "Marcus Iheanacho",
+        "title": "Director of Developer Platform"
+      },
+      "allowedData": {
+        "classifications": [
+          "Public",
+          "Internal",
+          "Confidential"
+        ],
+        "dataElements": [],
+        "conditions": [
+          "Contractual no-training term in force.",
+          "No Restricted data. No special-category personal data.",
+          "Prompts and outputs are retained for thirty days for abuse monitoring only."
+        ]
+      },
+      "provides": [],
+      "attestation": {
+        "lastAttested": "2026-08-05",
+        "expires": "2026-11-05",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_SALESFORCE",
+      "name": "Salesforce",
+      "vendor": "V_SALESFORCE",
+      "purpose": "Customer relationship management for sales and service.",
+      "owner": {
+        "name": "Rowan Achebe",
+        "title": "Head of Commercial Systems"
+      },
+      "allowedData": {
+        "classifications": [
+          "Internal",
+          "Confidential"
+        ],
+        "dataElements": [
+          "Customer personal information",
+          "Partner/Vendor contact personal information"
+        ],
+        "conditions": [
+          "No special-category personal data.",
+          "Predictive features are assessed separately before enablement."
+        ]
+      },
+      "provides": [
+        "T3-IAM-01",
+        "T3-LOG-01"
+      ],
+      "attestation": {
+        "lastAttested": "2026-06-10",
+        "expires": "2026-09-10",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_WORKDAY",
+      "name": "Workday",
+      "vendor": "V_WORKDAY",
+      "purpose": "The human resources system of record.",
+      "owner": {
+        "name": "Sofia Marchetti",
+        "title": "Head of People Systems"
+      },
+      "allowedData": {
+        "classifications": [
+          "Confidential",
+          "Restricted"
+        ],
+        "dataElements": [
+          "Employee personal information",
+          "Applicant personal information"
+        ],
+        "conditions": [
+          "Works-council consultation required before new analytics use.",
+          "EU employee data stays in the EU tenant."
+        ]
+      },
+      "provides": [
+        "T3-IAM-01",
+        "T3-HR-01"
+      ],
+      "attestation": {
+        "lastAttested": "2026-07-25",
+        "expires": "2026-10-25",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_SERVICENOW",
+      "name": "ServiceNow",
+      "vendor": "V_SERVICENOW",
+      "purpose": "Service management, change and the incident record.",
+      "owner": {
+        "name": "Tobias Lindqvist",
+        "title": "Head of Service Management"
+      },
+      "allowedData": {
+        "classifications": [
+          "Internal",
+          "Confidential"
+        ],
+        "dataElements": [
+          "Employee personal information"
+        ],
+        "conditions": [
+          "No customer personal data in ticket free text.",
+          "Generative agent features assessed separately."
+        ]
+      },
+      "provides": [
+        "T3-RES-02",
+        "T3-LOG-01"
+      ],
+      "attestation": {
+        "lastAttested": "2026-08-08",
+        "expires": "2026-11-08",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_COUPA",
+      "name": "Coupa",
+      "vendor": "V_COUPA",
+      "purpose": "Procurement, supplier onboarding and the contract record.",
+      "owner": {
+        "name": "Rowan Achebe",
+        "title": "Head of Commercial Systems"
+      },
+      "allowedData": {
+        "classifications": [
+          "Internal",
+          "Confidential"
+        ],
+        "dataElements": [
+          "Partner/Vendor contact personal information"
+        ],
+        "conditions": [
+          "Supplier risk scoring from external data sources is assessed separately."
+        ]
+      },
+      "provides": [],
+      "attestation": {
+        "lastAttested": "2026-05-30",
+        "expires": "2026-08-30",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_ZOOM",
+      "name": "Zoom",
+      "vendor": "V_ZOOM",
+      "purpose": "Video conferencing, including recorded client calls.",
+      "owner": {
+        "name": "Tobias Lindqvist",
+        "title": "Head of Service Management"
+      },
+      "allowedData": {
+        "classifications": [
+          "Internal",
+          "Confidential"
+        ],
+        "dataElements": [
+          "Customer personal information",
+          "Employee personal information"
+        ],
+        "conditions": [
+          "Recording requires all-party notice.",
+          "AI summarisation and any new sub-processor assessed before enablement."
+        ]
+      },
+      "provides": [],
+      "attestation": {
+        "lastAttested": "2026-07-11",
+        "expires": "2026-10-11",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_ATLASSIAN",
+      "name": "Atlassian",
+      "vendor": "V_ATLASSIAN",
+      "purpose": "Engineering planning and the internal knowledge base.",
+      "owner": {
+        "name": "Marcus Iheanacho",
+        "title": "Director of Developer Platform"
+      },
+      "allowedData": {
+        "classifications": [
+          "Internal",
+          "Confidential"
+        ],
+        "dataElements": [],
+        "conditions": [
+          "No personal data in issue free text.",
+          "Spaces holding Confidential material are permissioned, not open by default."
+        ]
+      },
+      "provides": [
+        "T3-IAM-01"
+      ],
+      "attestation": {
+        "lastAttested": "2026-06-28",
+        "expires": "2026-09-28",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_SAP",
+      "name": "SAP",
+      "vendor": "V_SAP",
+      "purpose": "Finance, the general ledger and statutory reporting.",
+      "owner": {
+        "name": "Sofia Marchetti",
+        "title": "Head of People Systems"
+      },
+      "allowedData": {
+        "classifications": [
+          "Confidential",
+          "Restricted"
+        ],
+        "dataElements": [],
+        "conditions": [
+          "Change to anything touching the ledger follows financial-reporting change control."
+        ]
+      },
+      "provides": [
+        "T3-IAM-01",
+        "T3-LOG-01",
+        "T3-RES-01"
+      ],
+      "attestation": {
+        "lastAttested": "2026-08-15",
+        "expires": "2026-11-15",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_ORACLE",
+      "name": "Oracle",
+      "vendor": "V_ORACLE",
+      "purpose": "Legacy database estate still hosting two regulated applications.",
+      "owner": {
+        "name": "Callum Whitfield",
+        "title": "Principal Platform Engineer"
+      },
+      "allowedData": {
+        "classifications": [
+          "Internal",
+          "Confidential"
+        ],
+        "dataElements": [],
+        "conditions": [
+          "Closed to new workloads; migration in progress."
+        ]
+      },
+      "provides": [
+        "T3-DP-01",
+        "T3-RES-01"
+      ],
+      "attestation": {
+        "lastAttested": "2026-03-20",
+        "expires": "2026-06-20",
+        "cadence": "quarterly"
+      }
+    },
+    {
+      "id": "PL_IBM",
+      "name": "IBM",
+      "vendor": "V_IBM",
+      "purpose": "Mainframe services underpinning claims settlement.",
+      "owner": {
+        "name": "Callum Whitfield",
+        "title": "Principal Platform Engineer"
+      },
+      "allowedData": {
+        "classifications": [
+          "Confidential",
+          "Restricted"
+        ],
+        "dataElements": [
+          "Customer personal information"
+        ],
+        "conditions": [
+          "Change windows are fixed and shared with the claims business."
+        ]
+      },
+      "provides": [
+        "T3-RES-01",
+        "T3-RES-03"
+      ],
+      "attestation": {
+        "lastAttested": "2026-08-18",
+        "expires": "2026-11-18",
+        "cadence": "quarterly"
+      }
+    }
+  ]
+}

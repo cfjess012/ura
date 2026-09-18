@@ -1,0 +1,159 @@
+/* The destination record (FR-27, SPEC §27) — what this assessment would
+   file into another system's inventory.
+
+   The screen's whole argument is that a value has a provenance, so the
+   provenance is set as part of the value rather than as a footnote: label,
+   then what it says, then where it came from, in one block the eye reads
+   downward. Three sections repeat that block with different substance, and
+   the third — what is still needed — is styled to be found, not buried,
+   because §27.3 makes it the honest part. */
+
+.note-provisional {
+  padding: 0.85rem 1rem;
+  margin: 0 0 1.75rem;
+  background: var(--surface-1);
+  border-left: 4px solid var(--brand);
+  box-shadow: none;
+  color: var(--neutral-800);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.record-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 2.25rem 0 0.25rem;
+  font-size: 1.12rem;
+  color: var(--navy);
+}
+
+/* The count is a fact about the section, not a badge: it sits in the
+   heading and reads as part of the sentence. `tabular-nums` so a number
+   that changes between two renders does not shift the heading. */
+.record-count {
+  min-width: 1.6rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--navy);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.record-head-owed .record-count {
+  background: var(--warning-bg);
+  color: var(--warning-strong);
+}
+
+.record-lede {
+  margin: 0 0 0.9rem;
+  color: var(--neutral-700);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.record-list {
+  margin: 0;
+  border-top: 1px solid var(--neutral-200);
+}
+
+.record-row {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  gap: 0 1.5rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--neutral-200);
+}
+
+.record-row dt {
+  font-weight: 600;
+  color: var(--navy);
+}
+
+/* Required is a word, never a colour or a mark alone (§23). */
+.record-req {
+  color: var(--neutral-600);
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.record-row dd {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.record-value {
+  color: var(--neutral-900);
+  /* A long free-text answer wraps here rather than widening the page. */
+  overflow-wrap: anywhere;
+}
+
+.record-from {
+  color: var(--neutral-600);
+  font-size: 0.87rem;
+  line-height: 1.45;
+}
+
+.record-from em {
+  font-style: normal;
+  color: var(--neutral-700);
+}
+
+.record-row-owed {
+  background: var(--warning-bg);
+  /* Indented rather than merely tinted, so the section reads as different
+     substance without state being carried by colour alone. */
+  padding-left: 0.85rem;
+  margin-left: -0.85rem;
+}
+
+.record-owed {
+  color: var(--warning-strong);
+  font-weight: 600;
+}
+
+.record-go {
+  align-self: start;
+  margin-top: 0.35rem;
+  color: var(--link);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.record-file {
+  margin-top: 2.25rem;
+}
+
+.record-file h3 {
+  margin: 0 0 0.5rem;
+  color: var(--navy);
+}
+
+.record-file p {
+  margin: 0 0 1rem;
+  color: var(--neutral-800);
+  line-height: 1.55;
+}
+
+/* A laptop is the smallest thing this is used on, but a narrow window is
+   not a broken one: the two-column row folds rather than crushing the
+   value into a sliver. */
+@media (max-width: 52rem) {
+  .record-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.3rem;
+  }
+}
+
+/* A field nothing here asks about is not the requester's work, so it is
+   stated plainly rather than in the warning tone that means "yours to do"
+   (§24.9). Weight and wording carry it; there is no tint. */
+.record-unasked {
+  color: var(--neutral-700);
+  font-weight: 600;
+}

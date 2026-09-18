@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { CATEGORIES, gateStates } from "@/lib/instrument";
-import { litPaths } from "@/lib/engine";
+import { litPaths, pathSelectionsFrom } from "@/lib/engine";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
@@ -20,7 +20,10 @@ import { mayResolve, recipientLabel } from "@/lib/handoff";
 import type { HandoffView, Recipient } from "../handoff-panel";
 import { FocusOnArrival } from "@/app/(app)/focus-on-arrival";
 import { SeverityForm, type SeverityItem } from "../severity-form";
-import { SeverityRail, groupKey, groupsFor } from "../severity-rail";
+import { groupKey, groupsFor } from "../severity-rail";
+import { AssessRail } from "../../assess-rail";
+import { assessJourney } from "@/lib/assess-journey";
+import { rateAssessment } from "@/lib/rating-of";
 
 export const dynamic = "force-dynamic";
 
@@ -49,20 +52,15 @@ export default async function SeverityPage({
   if (incomplete) redirect(`/projects/${id}/intake/${incomplete}?needed=1`);
 
   const stored = await answerStore().current(id);
-  const gates = gateStates(stored, intake);
+  const journey = assessJourney(stored, intake);
+  const gates = journey.gates;
   if (gates.some((g) => g.answer === null)) {
     redirect(
       `/projects/${id}/assess/${gates.find((g) => g.answer === null)!.category.key}`,
     );
   }
 
-  const selections: Record<string, string[]> = {};
-  for (const category of CATEGORIES) {
-    const value = category.pathQuestion
-      ? stored[category.pathQuestion.questionId]?.value
-      : undefined;
-    if (Array.isArray(value)) selections[category.key] = value;
-  }
+  const selections = pathSelectionsFrom(CATEGORIES, stored);
   const stillToNarrow = gates.some(
     (g) =>
       g.answer === "Yes" &&
@@ -185,16 +183,15 @@ export default async function SeverityPage({
       />
 
       <div className="assess-layout">
-        <SeverityRail
+        <AssessRail
           projectId={id}
-          groups={groups}
-          answered={stored}
-          currentKey={group}
+          journey={journey}
+          at={{ section: "severity", key: group }}
         />
 
         <section>
           <p className="eyebrow">
-            Step 3 · {index + 1} of {groups.length}
+            Step 2 · How severe · {index + 1} of {groups.length}
           </p>
           <h2 className="display gate-display">{here.name}</h2>
           <p
@@ -245,6 +242,16 @@ export default async function SeverityPage({
                   .filter(([, v]) => Array.isArray(v)),
               ) as Record<string, string[]>,
               totalAsked: asked.length,
+              // How risky this reads before the controls, from every band
+              // recorded so far (FR-50). Recomputed on every read.
+              rating: rateAssessment({
+                stored,
+                intake,
+                findings: [],
+                dispositions: [],
+                attestations: [],
+                now: new Date(),
+              }).inherent,
             }}
             nextHref={
               next

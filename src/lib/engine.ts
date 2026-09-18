@@ -166,6 +166,43 @@ export function litPaths(
   );
 }
 
+/**
+ * Which parts each risk area has ticked, read from the record.
+ *
+ * One definition, because ten drifted. This loop was copied into every
+ * screen and every derivation that needed it, and the S15 verification
+ * found the cost: the rating read a severity answer whose part had been
+ * unticked, because its copy and the ledger's had come apart. A shape
+ * repeated ten times is a defect waiting for its eleventh.
+ *
+ * Only an array counts. A part question that has never been answered is
+ * absent, not empty, and the difference decides whether an area is still
+ * waiting to be narrowed.
+ */
+export function pathSelectionsFrom(
+  categories: Category[],
+  stored: Record<string, { value: unknown } | undefined>,
+): Record<string, string[]> {
+  const selections: Record<string, string[]> = {};
+  for (const category of categories) {
+    const value = category.pathQuestion
+      ? stored[category.pathQuestion.questionId]?.value
+      : undefined;
+    if (Array.isArray(value)) selections[category.key] = value as string[];
+  }
+  return selections;
+}
+
+/** The paths a record lights, from the record — selections included. */
+export function litFrom(
+  categories: Category[],
+  stored: Record<string, { value: unknown } | undefined>,
+  gates: GateState[],
+  intake: AnswerLookup,
+): LitPath[] {
+  return litPaths(categories, gates, pathSelectionsFrom(categories, stored), intake);
+}
+
 /** What is wrong with a submitted set of path selections, if anything. */
 export type PathProblem =
   | { kind: "unknown-category"; categoryKey: string }

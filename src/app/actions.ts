@@ -13,7 +13,7 @@ import { currentPerson, PERSON_COOKIE } from "@/lib/current-person";
 import { failure, isFailure, type Failure, type Result } from "@/lib/errors";
 import { attestationProblem, attestationRefusal } from "@/lib/attestation";
 import { type DispositionKind, dispositionProblem } from "@/lib/disposition";
-import { ALL_FIELDS } from "@/lib/intake";
+import { ALL_FIELDS, firstIncompleteSection } from "@/lib/intake";
 import {
   canAnswer,
   canAttest,
@@ -28,7 +28,7 @@ import {
   type SubmittedEntries,
 } from "@/lib/intake-values";
 import { CATEGORIES, INSTRUMENT, gateStates } from "@/lib/instrument";
-import { litPaths, pathSubmissionProblems } from "@/lib/engine";
+import { litPaths, pathSelectionsFrom, pathSubmissionProblems } from "@/lib/engine";
 import { questionLabelFor } from "@/lib/question-label";
 import type { AnswerLookup } from "@/lib/conditions";
 import {
@@ -103,7 +103,16 @@ export async function createProject(
     );
   }
   const { id } = await projectStore().create(name, person.id);
-  redirect(`/projects/${id}`);
+  // Straight to the first thing to answer, not to the project root — that
+  // route's whole body is another redirect, and it sits behind a loading
+  // state reading "Opening the assessment…". Starting an assessment went
+  // through two hops and a spinner to reach a form we already knew the
+  // address of, and anything that stalled on the second hop left a person
+  // on a blank page with nothing to act on (owner report, 2026-09-04).
+  const firstSection = firstIncompleteSection(intakeValuesFrom({}));
+  redirect(
+    firstSection ? `/projects/${id}/intake/${firstSection}` : `/projects/${id}`,
+  );
 }
 
 export async function saveIntake(
@@ -337,13 +346,7 @@ async function earlierGapsFor(
   stored: Awaited<ReturnType<ReturnType<typeof answerStore>["current"]>>,
 ): Promise<Gap[]> {
   const gates = gateStates(stored, intake);
-  const selections: Record<string, string[]> = {};
-  for (const category of CATEGORIES) {
-    const value = category.pathQuestion
-      ? stored[category.pathQuestion.questionId]?.value
-      : undefined;
-    if (Array.isArray(value)) selections[category.key] = value as string[];
-  }
+  const selections = pathSelectionsFrom(CATEGORIES, stored);
   const lit = litPaths(CATEGORIES, gates, selections, intake);
   const severity = severityQuestionsFor(lit.map((path) => path.id)).map(
     (question) => ({
@@ -556,7 +559,7 @@ export async function answerObjectives(
       Object.entries(shaped).map(([questionId, value]) => ({
         projectId,
         questionId,
-        value: value as unknown as string,
+        value,
         source: "person",
         confirmed: true,
         instrumentVersionId: versionId,

@@ -9,6 +9,7 @@ import {
   answerRemainingGates,
   scenarioIntake,
   startAssessment,
+  openControl,
 } from "./helpers";
 
 /** An assessment with one control answered No, ready to submit. */
@@ -34,7 +35,7 @@ async function readyToSubmit(page: Page, name: string): Promise<string> {
   await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
 
   await page.goto(`${base}/assess/objectives`);
-  const card = page.locator(".q3").first();
+  const card = await openControl(page, 0);
   await card
     .locator("> .q3-answers")
     .getByRole("radio", { name: "No" })
@@ -67,7 +68,11 @@ test("gaps are named, and submitting with them takes a second confirmation (FR-1
   const gaps = page.locator(".gaps");
   await expect(gaps).toBeVisible();
   // Named in the questions' own words — never just a count.
-  await expect(gaps.locator("li").first()).toContainText(/\?$/);
+  await expect(gaps.locator("li .gap-row-q").first()).toContainText(/\?$/);
+  // And each one is a door to the thing itself (owner rule, 2026-08-22).
+  await expect(
+    gaps.locator("li").first().getByRole("link", { name: /Answer it/ }),
+  ).toHaveAttribute("href", /\?focus=/);
 
   const submit = page.getByRole("button", { name: /Declare and submit/ });
   await expect(submit).toBeDisabled();
@@ -122,7 +127,7 @@ test("a submitted assessment cannot be edited, and says why", async ({
   ).toBeVisible();
 
   await page.goto(`${base}/assess/objectives`);
-  const card = page.locator(".q3").first();
+  const card = await openControl(page, 0);
   await card
     .locator("> .q3-answers")
     .getByRole("radio", { name: "Yes" })

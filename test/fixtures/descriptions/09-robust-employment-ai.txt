@@ -1,0 +1,11 @@
+Lowell is an in-house workforce scheduling assistant for our contact centre operation, built by our own Digital team on a model we access through AWS Bedrock. No vendor is involved and nothing is bought in.
+
+What it does. Lowell forecasts call volume by half-hour interval, then proposes shift rosters for the following fortnight across our three contact centre sites. It also proposes who works which shift - taking account of skills, contracted hours, holiday already booked and each agent's recent shift pattern. A workforce planner reviews every proposed roster and publishes it; Lowell does not publish anything itself.
+
+Why this needs care. The roster proposals influence which agents get the unsocial-hours shifts, which get the weekend rotations, and by extension who is available for the overtime that a lot of our agents rely on. That makes this a system used in work management and one that affects working conditions, so we are treating it as employment-related decision support rather than a scheduling convenience.
+
+Data. Employee names and payroll numbers, contracted hours, skills and competency ratings, holiday and absence records including the reason codes for absence - which for some agents means sickness data - and historic shift and adherence performance. HR classifies this as Confidential, and the absence reason codes as Special Category.
+
+Who sees it. The nine workforce planners and the three site operations managers. Team leaders see the published roster only, not the underlying scoring. Nothing is shared outside the company, and everything sits in our own AWS account in eu-west-2.
+
+Where we are. Forecasting has been running in shadow mode since October and the roster proposal piece is what is new. We have not yet spoken to the works council or the union about it, and we do not currently have a route for an agent to challenge a roster they think is wrong. Target go-live is May 2027.

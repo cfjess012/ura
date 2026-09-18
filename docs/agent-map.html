@@ -88,7 +88,7 @@
   @media (prefers-reduced-motion:reduce){ *{transition:none!important;} }
 </style>
 <main>
-  <p class="kicker">Universal Risk Assessment · generated 2026-08-26</p>
+  <p class="kicker">Universal Risk Assessment · generated 2026-09-05</p>
   <h1>Agent Topology</h1>
   <p class="lede">
     Every agent in this project, what triggers it, what it can see, and its full instruction set.
@@ -148,11 +148,20 @@ requirements in §20, the acceptance criteria in §19, and the UI standard
 in §23. Read those first. Never accept a summary of the requirements —
 read the requirements.
 
+**If the brief carries a previous pass's verdict and findings, this is a
+delta pass.** Scope it as `.claude/skills/verify/SKILL.md` defines — the
+findings, regressions where the fixes landed, whatever the last pass could
+not verify, and a fresh verdict — instead of the full procedure below. The
+brief's account of what was fixed is a claim to be checked, never evidence.
+
 ## Procedure
 
 1. **Gate chain.** **Read `.claude/skills/verify/SKILL.md` first — it is the ONLY definition of the chain; never restate it here.** Run the chain it defines, in its order,
    (start the dev server first if it is not up). Record counts and any
    failures verbatim. A red gate is an immediate FAIL — stop and report.
+   Where the brief already carries the chain's counts, take them and spend
+   the time saved on the app; re-run any tier you have reason to doubt, and
+   say in the report which you ran and which you took.
 2. **Requirement-by-requirement UAT.** For each requirement ID the slice
    owns, drive the running app as a user would and confirm the behaviour
    with your own eyes, not by reading the source.
@@ -778,17 +787,22 @@ in code — that is §6.4 obligation 2 and it is checked in review.</pre>
         <span class="node-name">demo-truth</span>
         <span class="chip live">Live</span>
       </span>
-      <span class="node-what">Find claims the build does not back before a person repeats them in a room</span>
+      <span class="node-what">Find claims the build does not back before somebody repeats them</span>
     </button>
     <div class="detail hidden">
       <p><span class="label">How and when it runs</span>At slice review, before UAT, before demo day, and whenever a claim is written down.</p>
       <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
-      <p><span class="label">In its own words</span><span class="gist">demo script instructed the presenter to say &quot;five intake answers decided six of eleven areas&quot; — the real figure was four, and had been for days. A claim the product makes must be computed by the product, or it isn't a claim — it's a hope. A sentence a person is instructed to say in front of an audie</span></p>
+      <p><span class="label">In its own words</span><span class="gist">demo script instructed the presenter to say &quot;five intake answers decided six of eleven areas&quot; — the real figure was four, and had been for days. That run sheet is retired (G-74) and this skill is not: the room was never the point. A number in a README, a capability in a slice review, a sentence on a</span></p>
       <details class="full">
         <summary>Read the full instructions</summary>
         <pre>Implements SPEC §24 (honesty on screen), G-34, G-42 and G-50. The deal was struck 2026-08-23, after the
 demo script instructed the presenter to say &quot;five intake answers decided
 six of eleven areas&quot; — the real figure was four, and had been for days.
+
+That run sheet is retired (G-74) and this skill is not: **the room was never
+the point.** A number in a README, a capability in a slice review, a sentence
+on a screen and a figure in a UAT record are all claims somebody will repeat,
+and none of them has a presenter to catch it.
 
 ## The rule
 
@@ -798,13 +812,15 @@ an audience is a claim the product makes.
 
 ## The pass
 
-Walk every surface a person will see and every doc a presenter will hold
-(`demo/readiness.md` first), and for each statement of fact ask:
+Walk every surface a person will see and every doc that states a fact about
+this build — README, SPEC, slice reviews, `uat/`, `audits/` — and for each
+statement of fact ask:
 
 1. **Is it a number?** Then something must compute it, and the doc must cite
-   the test that asserts it (`prefill-reach.test.ts` is the pattern). The
-   Stop gate checks the citation exists; only this pass checks it is the
-   *right* test.
+   the test that asserts it (`prefill-reach.test.ts` is the pattern). Nothing
+   mechanical checks that citation any more — the Stop gate check went with
+   the run sheet — so this pass is now the only thing standing between a
+   stale number and somebody repeating it.
 2. **Is it a capability?** Then walk it end to end, today, in the running
    app. &quot;Built&quot; in a table is not evidence — every defect that mattered in
    this project was found by a person using the product.
@@ -973,6 +989,139 @@ asserts a Postgres constraint name can never reach a user-facing string.
 An untested error path is an untested feature.</pre>
       </details>
       <p class="where"><code>.claude/skills/error-handling/SKILL.md</code></p>
+    </div>
+  </article>
+  <article class="node live" data-status="live">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">impact-analysis</span>
+        <span class="chip live">Live</span>
+      </span>
+      <span class="node-what">Work out what a change does to the business outcomes, not just the code, and prove afterwards that nothing else moved</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>before changing any rule, instrument edition, derivation or gate, before re-rating a portfolio, and before calling a change safe.</p>
+      <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
+      <p><span class="label">In its own words</span><span class="gist">The suite was green all day on 2026-09-03. Typecheck clean, a thousand unit tests, seventy-six browser tests — through changes that altered what every assessment in the database said.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>Implements SPEC §0 (Build Rule 3), §5 and §19.
+
+The suite was green all day on 2026-09-03. Typecheck clean, a thousand unit
+tests, seventy-six browser tests — through changes that altered what every
+assessment in the database said. One of them made an unassessed AI system
+holding applicant data read **Low** on the reviewer's queue.
+
+Nothing failed, because nothing was wrong: the machine executed the rules
+exactly as written. **The tests verify that the machine works. They do not
+verify that the answers are right.** What caught it was opening the queue and
+reading it.
+
+That gap is what this skill is for.
+
+# What this is called elsewhere
+
+Use the enterprise words when writing to the owner; they land better than
+&quot;I checked some stuff&quot;.
+
+- **Impact analysis** — before the change: what could this affect. In change
+  management it is the assessment attached to a request for change.
+- **Regression testing** — after the change: does everything that worked
+  still work. Its business-process flavour is **business process testing**,
+  or end-to-end journey testing.
+- **Back-testing** / **outcomes analysis** — running new rules across the
+  existing portfolio and examining what moved. This is the one that fits a
+  rules engine, and it is what model risk management asks for.
+
+This product *is* a rules engine over a portfolio. Back-test it.
+
+# Before the change — trace the outcome, not the caller
+
+Find the call sites, then keep going. A call site tells you what *executes*;
+you need what a person will *read differently afterwards*.
+
+Ask, in this order:
+
+1. **Which stored answers does this read?** Anything reading intake, gates,
+   parts, severity or control answers touches every assessment ever made, not
+   only new ones — nothing derived is stored (NFR-3), so a rule change is
+   retroactive by construction.
+2. **What band, count or sentence changes on a screen?** Name the screens.
+   The rating alone renders in seven places.
+3. **What does it gate?** Packaging blocks on unattested controls and open
+   findings. Submission blocks on completeness. A change that alters what is
+   *required* silently alters what is *blocked*.
+4. **Who is told?** The queue, the bell and the reviewer's obligations all
+   derive from the same state. A change that alters findings alters who has
+   work.
+5. **What is frozen?** The package payload carries a snapshot. Anything
+   already exported keeps the old reading, so the export and the screen can
+   legitimately disagree — say so rather than treating it as drift.
+6. **Which editions are immutable?** An activated instrument version cannot
+   be edited. A change to what is asked or how it is rated is a **new
+   version**, and the old one still governs everything answered under it.
+
+## The dependency map, as it stands
+
+Ordered by how far the blast radius reaches. Verify rather than trust it —
+this rots.
+
+| Change this | And you have changed |
+|---|---|
+| Intake fields or their options | which risk areas open, the rating floor, every downstream count |
+| `rating.json` rules | the band on seven screens, appetite breaches, packaging, the frozen block |
+| Severity questions or thresholds | which controls accumulate → what is asked → what findings arise → what blocks packaging |
+| The control catalogue | accumulation, attestation authority, coverage reports, the crosswalk |
+| `control-provision.json` | who is asked a control at all, and what a platform may provide |
+| `platforms.json` | what is inherited, and every assessment leaning on it |
+| Conditions in `conditions.ts` | every instrument rule at once — this is the widest change available |
+| `submission.ts` finding rules | the reviewer's queue, dispositions, packaging |
+
+# After the change — back-test it
+
+**Re-run the portfolio and diff.** Twenty-five seeded scenarios live in the
+development database (`scripts/seed-scenarios.mjs`), chosen to span the shapes
+a real queue contains. Read each one's rating and reasons before and after,
+and account for every row that moved. A row you cannot explain is the finding.
+
+**Read the app, not the database.** Three times in one session a conclusion
+drawn from raw SQL was contradicted by the running product, because the store
+normalises what the driver returns. Fetch the page.
+
+**Look for the silent outcomes**, which are the dangerous ones:
+
+- an answer that produces *neither* a finding nor a gap — the assessment
+  declares itself complete and never reaches a reviewer
+- a band that stops being reachable at all
+- a rule that can no longer fire
+- something that used to block packaging and no longer does
+- a count that still adds up while meaning something different
+
+**Expect the distribution to be honest.** If most of the portfolio lands on
+one band, the change has stopped sorting anything, whatever the individual
+reasons say. Sixty per cent at High is a finding even when every one of them
+is defensible.
+
+# What belongs in a test rather than here
+
+This skill is loaded on demand, so it cannot be the safety net (G-18). Turn
+each finding into something with teeth:
+
+- an **outcome assertion** — this scenario must rate at least this, must
+  require these controls, must block packaging
+- an **architecture rule** where a derivation must not be copied again
+- a **validator refusal** where content could be authored wrongly
+
+A finding that leaves no test behind will be found again by hand, at full
+price, on a later change.
+
+# The report
+
+Say what you traced, what moved, and what you could not explain. Name the
+scenarios by their own names. If nothing moved, say what you ran that would
+have shown it had it moved — an unwitnessed change is not a verified one.</pre>
+      </details>
+      <p class="where"><code>.claude/skills/impact-analysis/SKILL.md</code></p>
     </div>
   </article>
   <article class="node live" data-status="live">
@@ -2139,17 +2288,10 @@ is not addressable yet — fix that rather than linking to the nearest page.</pr
     <div class="detail hidden">
       <p><span class="label">How and when it runs</span>Before any commit, when starting or finishing a slice, and before claiming anything is done.</p>
       <p><span class="label">What it can see</span>None of its own. A skill is instructions the assistant loads into the work it is already doing — it acts with exactly the access that session already had, and adds no new reach.</p>
-      <p><span class="label">In its own words</span><span class="gist">&gt; DEMO PUSH until 2026-08-26 (G-70). The chain below is suspended per &gt; change. Run pnpm typecheck &amp;&amp; pnpm test:unit — 35 seconds — and move on.</span></p>
+      <p><span class="label">In its own words</span><span class="gist">definition of the gate chain. The Stop gate runs a subset of it and says so; the slice-verifier agent runs it via this file; nothing else may restate it. sh pnpm typecheck            # strict tsc — fastest signal, run first pnpm test:unit            # pure logic; needs only Node pnpm test:integratio</span></p>
       <details class="full">
         <summary>Read the full instructions</summary>
-        <pre>&gt; **DEMO PUSH until 2026-08-26 (G-70).** The chain below is suspended per
-&gt; change. Run `pnpm typecheck &amp;&amp; pnpm test:unit` — 35 seconds — and move on.
-&gt; The full suite and the verifier run once at the end of the day, and
-&gt; `walk:demo` plus one `pnpm e2e` run before the demo. This note expires
-&gt; with the entry; after 2026-08-26 the chain below is the rule again.
-
-
-Implements SPEC §0 (Build Rule 3), §21 and §26.4. **This file is the only
+        <pre>Implements SPEC §0 (Build Rule 3), §21 and §26.4. **This file is the only
 definition of the gate chain.** The Stop gate runs a subset of it and says
 so; the slice-verifier agent runs it via this file; nothing else may
 restate it.
@@ -2234,6 +2376,55 @@ Critique is owed in both directions (Build Rule 15). Surface disagreements
 with the owner's instructions as readily as with your own work — agreeable
 implementation of a flawed instruction is a specification failure, not
 courtesy.
+
+## The verifier's passes — full once, delta after
+
+A slice gets **one full verification pass**. Every pass after it is a
+**delta pass** against the findings of the one before. Re-verifying a slice
+from scratch to confirm a list of named fixes is the most expensive way to
+learn nothing.
+
+**Full pass** — the slice-verifier's whole procedure: the chain, every owned
+requirement driven in the running app, the adversarial input pass, every
+prior slice's journey, §19, §23, §24, §25, the invariants, the scope check.
+
+**Delta pass** — brief it with the previous verdict's findings and exactly
+what changed, and scope it to four things:
+
+1. each finding, marked **confirmed fixed** or **not fixed**, on its own
+   evidence, never on the brief's word;
+2. regressions in what the fixes touched — the files, and the screens that
+   render them;
+3. anything the previous pass recorded as &quot;could not verify&quot; that the fixes
+   have now made reachable;
+4. a fresh verdict.
+
+Nothing else is re-driven. A second walk of a journey the last pass cleared,
+over code the fixes never touched, buys nothing.
+
+**Hand it the chain; don't make it re-run it.** Run the chain yourself and
+put the counts in the brief. A second run of the same deterministic tests is
+not independent verification — they are the same tests, and they answer the
+same way. The verifier's budget belongs where only an agent driving the
+product can go: the app as a person meets it, adversarial probes on the pure
+functions, and every claim in `uat/` read against what the product actually
+does. It may still run any tier it has reason to doubt, and it says so.
+
+**Every finding becomes a test before the delta pass runs.** A finding that
+leaves no test behind gets found again by hand, at full price, on a later
+slice. This is what makes each slice's verification cheaper than the last.
+
+**When a pass dies mid-run** — an outage, a rate limit, a crash — mine its
+transcript before relaunching. A dead run has usually already done the
+expensive part; its probes and their output are in the record, and restarting
+from zero pays for them twice.
+
+*Origin: S15, 2026-09-03. One full pass cost roughly 185,000 tokens and
+returned two blocking findings. The second was briefed to re-do the entire
+slice in order to confirm ten named fixes. Five other runs died to an API
+outage and returned no verdict at all; reading one dead run's transcript
+recovered two real defects — an appetite line that escalated to nobody, and
+a severity word off the scale reaching an area rating — for almost nothing.*
 
 # The owner's UAT
 
@@ -2432,16 +2623,6 @@ process.stdin.on(&quot;end&quot;, () =&gt; {
         &quot;Agent or skill changed → run `pnpm agent-map` so docs/agent-map.html and the in-app transparency page match. test/unit/agent-map.test.ts fails the build until you do.&quot;,
       );
     }
-    if (/^CLAUDE\.md$/.test(rel) &amp;&amp; /— DONE/.test(source)) {
-      notes.push(
-        &quot;Slice status changed → demo/readiness.md must cover it: which beat does this add or change, is it built, has a person walked it, what is the fallback if it breaks live. The stop gate refuses to finish until it does (G-44).&quot;,
-      );
-    }
-    if (/^demo\/readiness\.md$/.test(rel)) {
-      notes.push(
-        &quot;Demo readiness edited → say it to the owner in the reply, not just in the file. A beat nobody has walked is not ready, however green the tests are.&quot;,
-      );
-    }
     if (/^drizzle\//.test(rel)) {
       notes.push(
         &quot;Migration touched → SPEC §26.5: append a new file, never edit an applied one, and mirror it in src/lib/schema.ts.&quot;,
@@ -2589,7 +2770,7 @@ process.stdin.on(&quot;end&quot;, () =&gt; {
     </button>
     <div class="detail hidden">
       <p><span class="label">How and when it runs</span>Automatically, whenever a working session tries to finish.</p>
-      <p><span class="label">What it can see</span>Runs the type checker and the unit tests, regenerates the map into a scratch directory to compare it, and reads CLAUDE.md, every uat/ record and demo/readiness.md. It writes nothing.</p>
+      <p><span class="label">What it can see</span>Runs the type checker and the unit tests, regenerates the map into a scratch directory to compare it, and reads CLAUDE.md, SPEC.md and every uat/ record. It writes nothing.</p>
       <p><span class="label">In its own words</span><span class="gist">Stop gate (SPEC §0 Build Rule 3): work does not conclude on a red build,
 on a stale generated artifact, or on a slice that skipped its record.
 Everything here is mechanical. That is the point: three rounds of
@@ -2730,30 +2911,7 @@ try {
   problems.push(`could not check slice records: ${error.message}`);
 }
 
-// ---- 4. The demo conversation has been had ------------------------------
-// Build completeness is not demo readiness. This does not judge whether the
-// demo is good — it refuses to let a slice finish without someone saying
-// what it changed for the room (G-44).
-try {
-  const readiness = readFileSync(join(ROOT, &quot;demo&quot;, &quot;readiness.md&quot;), &quot;utf8&quot;);
-  const claude = readFileSync(join(ROOT, &quot;CLAUDE.md&quot;), &quot;utf8&quot;);
-  const done = doneSlices(claude).sort();
-  const covered = (readiness.match(/^slices-covered:\s*(.+)$/m)?.[1] ?? &quot;&quot;)
-    .split(&quot;,&quot;)
-    .map((s) =&gt; s.trim())
-    .filter(Boolean)
-    .sort();
-  const missing = done.filter((s) =&gt; !covered.includes(s));
-  if (missing.length &gt; 0) {
-    problems.push(
-      `demo/readiness.md does not cover ${missing.join(&quot;, &quot;)}. Before finishing: which beat does this slice add or change, is it built, has a person walked it, and what is the fallback if it breaks in front of the room? Update the file and say so out loud — this is the conversation, not the paperwork.`,
-    );
-  }
-} catch (error) {
-  problems.push(`could not read demo/readiness.md — the demo record is missing: ${error.message}`);
-}
-
-// ---- 5. No governance decision has disappeared ----------------------------
+// ---- 4. No governance decision has disappeared ----------------------------
 // The PreToolUse guard can only inspect an Edit's replacement text, so a
 // SPEC rewritten through Bash slipped past it. This compares the whole log
 // against the last commit and cannot be walked around by choosing a
@@ -2776,34 +2934,6 @@ try {
   if (!/unknown revision|does not exist/i.test(String(error.message))) {
     problems.push(`could not check the governance log against the last commit: ${error.message}`);
   }
-}
-
-// ---- 5. Stated measurements cite the test that asserts them ---------------
-// &quot;Five intake answers decided six of eleven areas&quot; sat in the demo script
-// after the instrument had moved on; the real number was four (G-50 era,
-// caught 2026-08-22). A number a presenter is told to SAY is a claim the
-// product makes: it must cite a test file, and the file must exist.
-try {
-  const readiness = readFileSync(join(ROOT, &quot;demo&quot;, &quot;readiness.md&quot;), &quot;utf8&quot;);
-  const measured = [...readiness.matchAll(/measured[^|]*?—\s*see\s+`([^`]+)`/g)].map((m) =&gt; m[1]);
-  const numeric = /\b(one|two|three|four|five|six|seven|eight|nine|ten|\d+) (?:of|out of) (?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|\d+)\b/;
-  const saysNumbers = readiness
-    .split(&quot;\n&quot;)
-    .filter((line) =&gt; line.startsWith(&quot;|&quot;) &amp;&amp; numeric.test(line) &amp;&amp; /say/i.test(line));
-  for (const line of saysNumbers) {
-    if (!/`[^`]*test[^`]*`/.test(line)) {
-      problems.push(
-        `demo/readiness.md tells the presenter to say a number without citing the test that asserts it: &quot;${line.slice(0, 100)}…&quot; — a stated measurement cites its test (demo-truth).`,
-      );
-    }
-  }
-  for (const cited of measured) {
-    if (!existsSync(join(ROOT, cited))) {
-      problems.push(`demo/readiness.md cites \`${cited}\` as the measurement's test, but the file does not exist.`);
-    }
-  }
-} catch (error) {
-  problems.push(`could not run the claim check on demo/readiness.md: ${error.message}`);
 }
 
 if (problems.length &gt; 0) {
@@ -3432,6 +3562,108 @@ STANDING GUARDRAILS (inherited by every registered feature)
   was machine-suggested from what a human confirmed.</pre>
       </details>
       <p class="where"><code>SPEC.md §22.1 · S3.5+</code></p>
+    </div>
+  </article><p class="group-label">Other</p>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Platform feature watch</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">A platform owner is accountable for spotting new features, especially ones that add AI.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S19; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: a vendor's own published release notes for a platform we have assessed, and that platform's record. The only registered feature that reaches OUTSIDE the organisation — and the only thing that leaves is a public product name. No assessment content goes out, and a claim it cannot quote from the vendor is dropped rather than shown.</p>
+      <p><span class="label">In its own words</span><span class="gist">A platform owner is accountable for spotting new features, especially ones that add AI. The agent reads the vendor's published release notes and proposes that a platform's assessment has gone stale — &quot;Microsoft 365 Copilot shipped agent publishing on 12 August; this platform was last attested on 1 July.&quot; The owner decides whether to reassess.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+A platform owner is accountable for spotting new features, especially ones that add AI. The agent reads the vendor's published release notes and proposes that a platform's assessment has gone stale — &quot;Microsoft 365 Copilot shipped agent publishing on 12 August; this platform was last attested on 1 July.&quot; The owner decides whether to reassess.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+**It may never assert a capability from memory.** Every proposal carries the vendor's own words verbatim with the date and the source, and a proposal it cannot quote is dropped rather than shown — the same rule the transcribed frameworks run under. It proposes a *reassessment*, never a control answer and never an extension: a model deciding an attestation still stands is a model attesting (§5.5), and inheritance that outlives its evidence is the exact failure the expiry mechanism exists to stop. The quarterly expiry fires with or without it. Unusual on egress (§22.3) and worth stating: what leaves is a public product name, and what returns is vendor text — no assessment content goes out.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S19</code></p>
+    </div>
+  </article>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Platform suggestion from the description</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">Reads what the requester already wrote and asks whether the activity runs on a platform we have assessed — &quot;you described a Snowflake pipeline; does this sit on Snowflake?&quot; Ticking one discharges the controls that platform provides.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S19; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: what the requester wrote about their activity, and the ratified platform roster. Would not read: another team's assessment, or anything about how the platform actually behaves — only what our own assessment of it records.</p>
+      <p><span class="label">In its own words</span><span class="gist">Reads what the requester already wrote and asks whether the activity runs on a platform we have assessed — &quot;you described a Snowflake pipeline; does this sit on Snowflake?&quot; Ticking one discharges the controls that platform provides.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+Reads what the requester already wrote and asks whether the activity runs on a platform we have assessed — &quot;you described a Snowflake pipeline; does this sit on Snowflake?&quot; Ticking one discharges the controls that platform provides.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+Being wrong here is **silent**, which is what shapes the guardrail: a wrongly-ticked platform removes up to six control questions and writes a note naming a real person's attestation. So the proposal must **show what ticking it would discharge before the click** — never pre-selected is table stakes; making the consequence visible is the actual rule. It may suggest only platforms in the ratified roster, and it may never suggest one whose attestation has lapsed.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S19</code></p>
+    </div>
+  </article>
+  <article class="node dormant" data-status="dormant">
+    <button type="button" class="node-head" aria-expanded="false">
+      <span class="node-top">
+        <span class="node-name">Gap-note assistance</span>
+        <span class="chip dormant">Registered</span>
+      </span>
+      <span class="node-what">Partial and No require a written note, and that note becomes the finding a reviewer acts on.</span>
+    </button>
+    <div class="detail hidden">
+      <p><span class="label">How and when it runs</span>Not built. Registered in SPEC §22.1 for S6, S17; Phase 1 builds none of it and may foreclose none of it.</p>
+      <p><span class="label">What it can see</span>Would read: what this requester has already said on this assessment, and nothing else. Where they have said nothing it can use, it asks them a question rather than drafting from the control's name.</p>
+      <p><span class="label">In its own words</span><span class="gist">Partial and No require a written note, and that note becomes the finding a reviewer acts on. Where the requester has already described the situation elsewhere in the assessment, the agent offers to reorganize their own words into the note.</span></p>
+      <details class="full">
+        <summary>Read the full instructions</summary>
+        <pre>WHAT IT WOULD DO
+
+Partial and No require a written note, and that note becomes the finding a reviewer acts on. Where the requester has already described the situation elsewhere in the assessment, the agent offers to reorganize their own words into the note.
+
+GUARDRAILS BEYOND THE STANDING SET
+
+If there is nothing of theirs to draw on, it **asks a question rather than drafting from the control's name**. A gap description invented from a control title, accepted under time pressure, is a fabricated finding in the permanent record — worse than the blank it replaced. The note stays editable, the original text is retained, and the draft is never submitted on the person's behalf.
+
+STANDING GUARDRAILS (inherited by every registered feature)
+
+· It reads what the requester provided; it never invents facts.
+· It proposes; a human accepts. Nothing it produces is final on its own.
+· Any rewrite reorganises the requester's own words, never adds to them.
+· It speaks plain language: no internal identifiers, no scores as verdicts.
+· Its judgements are recorded with their basis, so a reviewer can tell what
+  was machine-suggested from what a human confirmed.</pre>
+      </details>
+      <p class="where"><code>SPEC.md §22.1 · S6, S17</code></p>
     </div>
   </article>
     </section>

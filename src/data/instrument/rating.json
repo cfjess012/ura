@@ -1,0 +1,354 @@
+{
+  "slug": "risk-rating",
+  "version": "2026-09-03.7",
+  "note": "Sixth edition (G-84). Two changes, both from running twenty-five real scenarios through the fifth and reading what came out. Confidential data on its own no longer lifts a band: nearly all enterprise work is confidential, so a floor that fires on it alone put fifteen of twenty-five scenarios at High and stopped sorting anything. It now lifts in combination — with AI, with a company outside ours, or at the top classification alone. And the floor can see sensitive information that is not about people: a pricing algorithm, privileged material or an unpublished filing leaving the boundary now rates the way customer data does. Before this an AI assistant on the pricing engine reached High only because its requester happened to tick Restricted rather than Confidential.",
+  "bands": [
+    "Low",
+    "Medium",
+    "High",
+    "Critical"
+  ],
+  "inherent": {
+    "default": {
+      "band": "Low",
+      "because": "every risk area has an answer, and nothing recorded rates higher"
+    },
+    "rules": [
+      {
+        "band": "Medium",
+        "when": {
+          "field": "worst.severity",
+          "severityAtLeast": "Medium"
+        },
+        "because": "at least one severity answer is Medium or higher"
+      },
+      {
+        "band": "High",
+        "when": {
+          "field": "areas.atHigh",
+          "atLeast": 1
+        },
+        "because": "a whole risk area sits at High"
+      },
+      {
+        "band": "High",
+        "when": {
+          "field": "areas.atMedium",
+          "atLeast": 2
+        },
+        "because": "two or more risk areas are elevated"
+      },
+      {
+        "band": "High",
+        "when": {
+          "field": "activity.atHigh",
+          "atLeast": 2
+        },
+        "because": "the activity is High on two or more of how critical it is, how widely it is deployed and who can reach it"
+      },
+      {
+        "band": "Critical",
+        "when": {
+          "field": "areas.atHigh",
+          "atLeast": 2
+        },
+        "because": "two or more risk areas are at High"
+      },
+      {
+        "band": "Critical",
+        "when": {
+          "all": [
+            {
+              "field": "area.data-privacy.severity",
+              "severityAtLeast": "High"
+            },
+            {
+              "field": "gate.ai",
+              "equalsAny": [
+                "Yes"
+              ]
+            }
+          ]
+        },
+        "because": "personal data at High severity in an activity that uses AI"
+      },
+      {
+        "band": "Critical",
+        "when": {
+          "all": [
+            {
+              "field": "activity.atHigh",
+              "atLeast": 2
+            },
+            {
+              "field": "areas.atHigh",
+              "atLeast": 1
+            }
+          ]
+        },
+        "because": "a risk area at High in an activity that is itself High on two or more counts"
+      },
+      {
+        "band": "High",
+        "when": {
+          "all": [
+            {
+              "field": "dataElements",
+              "includesAny": [
+                "Customer personal information",
+                "Employee personal information",
+                "Applicant personal information",
+                "Partner/Vendor contact personal information"
+              ]
+            },
+            {
+              "field": "gate.ai",
+              "equalsAny": [
+                "Yes"
+              ]
+            }
+          ]
+        },
+        "because": "information about identifiable people is used in an activity that involves AI"
+      },
+      {
+        "band": "High",
+        "when": {
+          "all": [
+            {
+              "field": "dataClassification",
+              "equalsAny": [
+                "Restricted"
+              ]
+            },
+            {
+              "field": "gate.third-party",
+              "equalsAny": [
+                "Yes"
+              ]
+            }
+          ]
+        },
+        "because": "the most sensitive data we hold is involved and a company outside ours is part of it"
+      },
+      {
+        "band": "Medium",
+        "when": {
+          "field": "dataClassification",
+          "equalsAny": [
+            "Restricted"
+          ]
+        },
+        "because": "the most sensitive data we hold is involved"
+      },
+      {
+        "band": "Medium",
+        "when": {
+          "all": [
+            {
+              "field": "dataClassification",
+              "equalsAny": [
+                "Confidential",
+                "Restricted"
+              ]
+            },
+            {
+              "any": [
+                {
+                  "field": "gate.ai",
+                  "equalsAny": [
+                    "Yes"
+                  ]
+                },
+                {
+                  "field": "gate.third-party",
+                  "equalsAny": [
+                    "Yes"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "because": "confidential data in an activity that involves AI or a company outside ours"
+      },
+      {
+        "band": "Medium",
+        "when": {
+          "field": "dataElements",
+          "includesAny": [
+            "Trade secrets, source code or proprietary methods",
+            "Legally privileged or litigation material",
+            "Unpublished financial results or filings"
+          ]
+        },
+        "because": "information whose value depends on it staying inside — a proprietary method, privileged material or an unpublished filing"
+      },
+      {
+        "band": "High",
+        "when": {
+          "all": [
+            {
+              "field": "dataElements",
+              "includesAny": [
+                "Trade secrets, source code or proprietary methods",
+                "Legally privileged or litigation material",
+                "Unpublished financial results or filings"
+              ]
+            },
+            {
+              "any": [
+                {
+                  "field": "gate.third-party",
+                  "equalsAny": [
+                    "Yes"
+                  ]
+                },
+                {
+                  "field": "gate.ai",
+                  "equalsAny": [
+                    "Yes"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "because": "information whose value depends on it staying inside is going somewhere outside our boundary"
+      }
+    ]
+  },
+  "controls": {
+    "defaultWeight": "Medium",
+    "weight": {
+      "T3-IAM-02": "High",
+      "T3-IAM-03": "High",
+      "T3-DP-01": "High",
+      "T3-NB-02": "High"
+    }
+  },
+  "residual": {
+    "note": "Starts at the inherent band and can only fall. A step is never positive — the engine refuses an edition that tries — because a control cannot make an activity riskier than it is before any control exists. A fall has to be earned by evidence: an assessment that required no control at all has demonstrated nothing and stays where it is. An unfinished assessment earns nothing back either. A promised fix is a plan, not a control, and earns nothing until a reviewer settles the finding again to say it is done. The zero steps are the reasons nothing was earned back, and they are shown as such — including the commonest one of all, a control still waiting for a signature, which the second edition left the screen silent about.",
+    "rules": [
+      {
+        "step": 0,
+        "when": {
+          "field": "findings.open.nonCompliance",
+          "atLeast": 1
+        },
+        "because": "an answer contradicts a policy clause and nothing has settled it"
+      },
+      {
+        "step": 0,
+        "when": {
+          "field": "findings.open.gapOnHighWeight",
+          "atLeast": 1
+        },
+        "because": "a high-weight control is not in place and nothing has settled it"
+      },
+      {
+        "step": 0,
+        "when": {
+          "field": "findings.overdue",
+          "atLeast": 1
+        },
+        "because": "a promised fix is past its date"
+      },
+      {
+        "step": 0,
+        "when": {
+          "field": "findings.accepted",
+          "atLeast": 1
+        },
+        "because": "a risk is accepted for now — the acceptance is recorded and does not lower the rating, and it lapses on its date"
+      },
+      {
+        "step": 0,
+        "when": {
+          "field": "controls.required.unattested",
+          "atLeast": 1
+        },
+        "because": "a required control has not been signed off yet, so nothing is earned back"
+      },
+      {
+        "step": 0,
+        "when": {
+          "field": "findings.remediating",
+          "atLeast": 1
+        },
+        "because": "a fix is promised but not yet made, so nothing is earned back"
+      },
+      {
+        "step": 0,
+        "when": {
+          "field": "coverage.unanswered",
+          "atLeast": 1
+        },
+        "because": "not everything has been answered yet, so nothing is earned back"
+      },
+      {
+        "step": -1,
+        "when": {
+          "all": [
+            {
+              "field": "coverage.unanswered",
+              "atMost": 0
+            },
+            {
+              "field": "findings.open.any",
+              "atMost": 0
+            },
+            {
+              "field": "findings.overdue",
+              "atMost": 0
+            },
+            {
+              "field": "findings.remediating",
+              "atMost": 0
+            },
+            {
+              "field": "controls.required.any",
+              "atLeast": 1
+            },
+            {
+              "field": "controls.required.unattested",
+              "atMost": 0
+            },
+            {
+              "any": [
+                {
+                  "field": "controls.attested.highWeightYes",
+                  "atLeast": 1
+                },
+                {
+                  "field": "controls.required.highWeight",
+                  "atMost": 0
+                }
+              ]
+            }
+          ]
+        },
+        "because": "every required control is attested, and the high-weight ones are in place or none applies here"
+      }
+    ]
+  },
+  "appetite": [
+    {
+      "scope": "assessment",
+      "max": "High",
+      "because": "a Critical residual rating is outside the stated appetite",
+      "escalateTo": "role:admin"
+    },
+    {
+      "scope": "area:data-privacy",
+      "max": "Medium",
+      "because": "personal data above Medium needs the privacy office",
+      "escalateTo": "domain:data-privacy"
+    }
+  ],
+  "notYetRated": {
+    "inherent": "nothing that could rate this has been answered yet — the risk areas and the detail questions are still open",
+    "residual": "there is no inherent rating yet for the controls to reduce",
+    "provisional": "not everything has been answered yet, so this reading can still rise"
+  }
+}

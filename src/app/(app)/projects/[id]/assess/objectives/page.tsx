@@ -1,19 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CATEGORIES, gateStates } from "@/lib/instrument";
-import { litPaths } from "@/lib/engine";
+import { litPaths, pathSelectionsFrom } from "@/lib/engine";
 import {
   accumulatedFor,
   severityQuestionsFor,
-  controlName,
   type Band,
 } from "@/lib/severity";
-import {
-  objectivesFor,
-  withoutQuestions,
-  isTier3Value,
-  type Tier3Value,
-} from "@/lib/tier3";
+import { objectivesFor, isTier3Value, type Tier3Value } from "@/lib/tier3";
 import { firstIncompleteSection } from "@/lib/intake";
 import { intakeValuesFrom } from "@/lib/intake-values";
 import { openProject } from "@/lib/project-access";
@@ -21,8 +15,22 @@ import { answerStore } from "@/lib/repo-answers";
 import { NotYourAssessment } from "../../not-yours";
 import { stageOf } from "@/lib/submission";
 import { ProjectHeader } from "../../project-header";
-import { groupsFor } from "../severity/severity-rail";
+import { AssessRail } from "../assess-rail";
+import { RatingChip } from "@/app/(app)/rating-chip";
+import { rateAssessment } from "@/lib/rating-of";
+import { FocusOnArrival } from "@/app/(app)/focus-on-arrival";
+import { assessJourney } from "@/lib/assess-journey";
 import { ObjectivesForm } from "./objectives-form";
+import { obligationsFor } from "@/lib/crosswalk";
+import { PlatformPanel } from "../platform-panel";
+import {
+  inheritanceFor,
+  inheritedAlready,
+  platformsChosen,
+} from "@/lib/inheritance";
+import { platformRoster } from "@/lib/platforms";
+import { isProvidable } from "@/lib/control-provision";
+import { registerFor, registerLine } from "@/lib/control-register";
 
 export const dynamic = "force-dynamic";
 
@@ -53,14 +61,9 @@ export default async function ObjectivesPage({
   if (incomplete) redirect(`/projects/${id}/intake/${incomplete}?needed=1`);
 
   const stored = await answerStore().current(id);
-  const gates = gateStates(stored, intake);
-  const selections: Record<string, string[]> = {};
-  for (const category of CATEGORIES) {
-    const value = category.pathQuestion
-      ? stored[category.pathQuestion.questionId]?.value
-      : undefined;
-    if (Array.isArray(value)) selections[category.key] = value;
-  }
+  const journey = assessJourney(stored, intake);
+  const gates = journey.gates;
+  const selections = pathSelectionsFrom(CATEGORIES, stored);
   const lit = litPaths(CATEGORIES, gates, selections, intake);
   const severityQuestions = severityQuestionsFor(lit.map((p) => p.id));
   const bands: Record<string, Band | undefined> = {};
@@ -71,8 +74,55 @@ export default async function ObjectivesPage({
   // The same derivation the action authorises against — one definition, so
   // the screen and the server can never disagree about what is asked.
   const owed = accumulatedFor(stored, intake);
+  // Rated from the record, not stored (FR-50). Before submission there are
+  // no findings, so the residual would read as the inherent; only the
+  // inherent is shown here.
+  const rating = rateAssessment({
+    stored,
+    intake,
+    findings: [],
+    dispositions: [],
+    attestations: [],
+    now: new Date(),
+  });
+  // What the chosen platforms answer for this activity (G-83). Ten of the
+  // fifteen control questions are about the enterprise estate; this is how
+  // they stop being asked of someone who cannot know.
+  const now = new Date();
+  const inheritance = inheritanceFor({
+    stored,
+    intake,
+    project: project as unknown as Record<string, unknown>,
+    now,
+  });
+  // A control leaves the question list once its recorded answer IS the
+  // inherited one — not merely because a platform could provide it. Ticking
+  // a platform makes an offer; accepting it is a separate act, and without
+  // that distinction the question would vanish before anyone accepted,
+  // leaving the control neither asked nor answered.
+  const questionOf = new Map(
+    objectivesFor(inheritance.covered.map((c) => c.objective)).map((o) => [
+      o.id,
+      o.questionId,
+    ]),
+  );
+  const accepted = inheritance.covered.filter((c) => {
+    const questionId = questionOf.get(c.objective);
+    // A control with no question of its own cannot be answered, so the
+    // platform's coverage is the whole of what is known about it.
+    if (!questionId) return true;
+    return inheritedAlready(c, stored[questionId]?.value);
+  });
+  // Only worth asking where this runs if some control it needs is one a
+  // platform can hold centrally. Offering to discharge nothing is noise.
+  const inheritable = owed.some((c) => isProvidable(c.objective));
+  // Every control this activity requires, in whatever state it is in — the
+  // one definition the whole screen reads from (G-87). It replaces three
+  // separate presentations that each worked this out for themselves.
+  const register = registerFor({ owed, stored, inheritance });
+  // The ones the pilot asks a question about — still needed, because the
+  // drawer renders a real question and the save path writes real answers.
   const askable = objectivesFor(owed.map((c) => c.objective));
-  const recorded = withoutQuestions(owed.map((c) => c.objective));
   const reasonFor = new Map(owed.map((c) => [c.objective, c.because]));
 
   // The severity answers this screen depends on. Nothing to ask about until
@@ -80,7 +130,6 @@ export default async function ObjectivesPage({
   const answeredSeverity = severityQuestions.filter(
     (q) => bands[q.questionId],
   ).length;
-  const firstSeverityGroup = groupsFor(severityQuestions)[0]?.key ?? "";
 
   const values: Record<string, Tier3Value> = {};
   for (const [questionId, value] of Object.entries(stored)) {
@@ -88,7 +137,6 @@ export default async function ObjectivesPage({
       values[questionId] = value.value;
     }
   }
-  const answered = askable.filter((o) => values[o.questionId]).length;
 
   const lookup: Record<string, string | string[]> = {};
   const paths: string[] = [];
@@ -104,23 +152,24 @@ export default async function ObjectivesPage({
   lookup.paths = paths;
 
   return (
-    <main>
+    <main className="main-wide">
       <ProjectHeader
         name={project.projectName}
         status={stageOf(project.submittedAt)}
-        nextLine={
-          askable.length === 0
-            ? "Nothing to answer here yet — the severity questions decide what this asks."
-            : answered === askable.length
-              ? "Every control has an answer — submission comes next."
-              : `Do the controls exist — ${askable.length - answered} of ${askable.length} still to answer.`
-        }
+        nextLine={registerLine(register)}
         currentStage={1}
       />
 
-      <div className="assess-single">
+      <div className="assess-layout">
+        <AssessRail
+          projectId={id}
+          journey={journey}
+          at={{ section: "controls" }}
+        />
+
         <section>
-          <p className="eyebrow">Step 4 · Do the controls exist</p>
+          <FocusOnArrival />
+          <p className="eyebrow">Step 2 · Do the controls exist</p>
           <h2 className="display">What this activity requires</h2>
           <p
             className="lede"
@@ -131,6 +180,43 @@ export default async function ObjectivesPage({
             honestly — a gap named here is a finding a reviewer can act on, and
             a gap found later is a surprise.
           </p>
+          {/* How risky this is before the controls are asked about — the
+              reading the answers so far produce, with its reasons (FR-50). */}
+          <div className="rating-row">
+            <RatingChip label="Inherent" rated={rating.inherent} />
+          </div>
+          <p className="help rating-gloss">
+            Inherent is how risky the activity is before anyone asks whether the
+            controls exist — read from your severity answers. The answers below
+            do not change it; they decide what a reviewer sees next.
+          </p>
+
+          {answeredSeverity > 0 && inheritable && (
+            <PlatformPanel
+              projectId={id}
+              roster={platformRoster(now).map((entry) => ({
+                id: entry.id,
+                name: entry.name,
+                purpose: entry.purpose,
+                owner: `${entry.owner.name}, ${entry.owner.title}`,
+                provides: entry.provides,
+                attestedOn: entry.attestedOn,
+                stale: entry.stale,
+              }))}
+              chosen={platformsChosen(stored)}
+              covered={inheritance.covered}
+              lapsed={inheritance.lapsed.map((l) => ({
+                name: l.platform.name,
+                because: l.because,
+              }))}
+              mismatches={inheritance.mismatches.map((m) => ({
+                platformName: m.platformName,
+                because: m.because,
+              }))}
+              accepted={accepted.map((c) => c.objective)}
+              unconfirmed={inheritance.covered.length - accepted.length}
+            />
+          )}
 
           {answeredSeverity === 0 ? (
             <div className="card card-upcoming">
@@ -141,19 +227,18 @@ export default async function ObjectivesPage({
                 require appear here.
               </p>
               <Link className="btn" href={`/projects/${id}/assess/complete`}>
-                Back to where this stands →
+                Back to where this stands &rarr;
               </Link>
             </div>
-          ) : askable.length === 0 ? (
+          ) : register.total === 0 ? (
             /* Severity is answered but nothing crossed a threshold. The
                "nothing to ask yet" card above is the wrong sentence here —
                this is a finished state, not a waiting one (§23). */
             <div className="card">
               <h2>Nothing further to answer</h2>
               <p className="help">
-                {owed.length === 0
-                  ? "The answers so far require no controls, so there is nothing to check here. That is a complete answer, not a gap."
-                  : `The ${owed.length} control${owed.length === 1 ? "" : "s"} this activity requires ${owed.length === 1 ? "is" : "are"} recorded for a reviewer — the pilot has no detailed questions for ${owed.length === 1 ? "it" : "them"} yet.`}
+                The answers so far require no controls, so there is nothing to
+                check here. That is a complete answer, not a gap.
               </p>
               <Link className="btn" href={`/projects/${id}/assess/complete`}>
                 See where this stands &rarr;
@@ -161,59 +246,19 @@ export default async function ObjectivesPage({
             </div>
           ) : (
             <ObjectivesForm
+              obligations={Object.fromEntries(
+                askable.map((o) => [o.id, obligationsFor(o.id)]),
+              )}
               projectId={id}
+              register={register}
               objectives={askable}
               values={values}
               lookup={lookup}
               reasons={Object.fromEntries(
-                askable.map((o) => [o.id, reasonFor.get(o.id) ?? []]),
+                register.rows.map((r) => [r.objective, reasonFor.get(r.objective) ?? []]),
               )}
               nextHref={`/projects/${id}/assess/complete`}
             />
-          )}
-
-          {/* Not a dead end: every other assess screen offers a way back, and
-              this one offered only Save (verifier S6-4). */}
-          <p className="rail-back" style={{ marginTop: "1rem" }}>
-            <Link
-              className="rail-back-link"
-              href={`/projects/${id}/assess/severity/${firstSeverityGroup}`}
-            >
-              ← Back to the severity questions
-            </Link>
-            <Link
-              className="rail-back-link"
-              href={`/projects/${id}/assess/complete`}
-            >
-              Where this assessment stands
-            </Link>
-          </p>
-
-          {recorded.length > 0 && (
-            /* Where the pilot stops, it says so (FR-35's rule, one tier down).
-               These controls are required and will be reviewed; the pilot
-               simply has no questions for them yet, and silence would read
-               as "nothing to do". */
-            <div className="card">
-              <h2>Recorded for a reviewer</h2>
-              <p className="help">
-                This activity requires {recorded.length} more control
-                {recorded.length === 1 ? "" : "s"}. The pilot asks its detailed
-                questions for {askable.length} of the {owed.length} it works out
-                — the rest are recorded and go to a reviewer as they are.
-              </p>
-              <ul className="summary-list">
-                {recorded.map((objective) => (
-                  <li key={objective}>
-                    <strong>{controlName(objective)}</strong>
-                    <span className="meta">
-                      {" "}
-                      — {(reasonFor.get(objective) ?? []).join("; and ")}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
           )}
         </section>
       </div>

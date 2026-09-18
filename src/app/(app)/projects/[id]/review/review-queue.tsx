@@ -53,6 +53,8 @@ export type QueueItem = {
     } | null;
     /** Why an expired acceptance put it back, when that is what happened. */
     reopened: string | null;
+    /** A remediation past its promised date, said in words. */
+    overdue: string | null;
   }[];
 };
 
@@ -100,6 +102,25 @@ export function ReviewQueue({
     ref?: string;
   } | null>(null);
   const current = items[at];
+  // The queue's "Settle findings" and the bell's finding chips link to
+  // #findings. Landing on the first control in the rail handed the work
+  // back — the finding was three items down (S13 verifier F5, ui-craft
+  // pass 3: the destination is the thing itself). Once, on arrival.
+  React.useEffect(() => {
+    if (window.location.hash !== "#findings") return;
+    const first = items.findIndex((item) =>
+      item.findings.some((f) => f.open || f.overdue !== null),
+    );
+    if (first >= 0) {
+      // The thing itself, with focus on it (ui-craft pass 3). Focus has to
+      // wait for the re-render: marking `moved` here focused the panel of
+      // the control being left, which the re-render then unmounted, and
+      // focus fell back to the body.
+      landing.current = first;
+      setAt(first);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Tell the assistant which control is open. Without it the panel is on a
   // screen holding nine controls at one URL, and "explain this control"
   // has no referent — which is how it came back explaining a different one.
@@ -118,6 +139,13 @@ export function ReviewQueue({
   const panelRef = React.useRef<HTMLParagraphElement>(null);
   const noteRef = React.useRef<HTMLTextAreaElement>(null);
   const moved = React.useRef(false);
+  /** Which control the #findings arrival is landing on, until it has. */
+  const landing = React.useRef<number | null>(null);
+  React.useEffect(() => {
+    if (landing.current === null || landing.current !== at) return;
+    landing.current = null;
+    panelRef.current?.focus();
+  }, [at]);
 
   React.useEffect(() => {
     if (!moved.current) return;
@@ -322,7 +350,11 @@ export function ReviewQueue({
               )}
 
               {current.findings.length > 0 && (
-                <ul className="summary-list" style={{ marginTop: "0.7rem" }}>
+                <ul
+                  id="findings"
+                  className="summary-list"
+                  style={{ marginTop: "0.7rem" }}
+                >
                   {current.findings.map((finding) => (
                     <li key={finding.id}>
                       <span
@@ -367,7 +399,16 @@ export function ReviewQueue({
                       {finding.reopened && (
                         <p className="field-error">{finding.reopened}</p>
                       )}
-                      {finding.open && canAttest && current.mine && (
+                      {finding.overdue && (
+                        <p className="field-error">{finding.overdue}</p>
+                      )}
+                      {/* Open, or settled by a fix whose date has passed:
+                          either way the reviewer has a decision to make, and
+                          a queue that says "needs your decision" must offer
+                          one (S13 verifier F1, §24.4). */}
+                      {(finding.open || finding.overdue !== null) &&
+                        canAttest &&
+                        current.mine && (
                         <SettleFinding
                           projectId={projectId}
                           findingId={finding.id}

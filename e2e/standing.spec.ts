@@ -6,7 +6,12 @@
  * and which was empty. Rendered-DOM assertions only (NFR-7).
  */
 import { expect, test } from "@playwright/test";
-import { completeIntake, startAssessment } from "./helpers";
+import {
+  answerRemainingGates,
+  completeIntake,
+  scenarioIntake,
+  startAssessment,
+} from "./helpers";
 
 test("a fresh draft says which step it is on and which section owes answers", async ({
   page,
@@ -69,4 +74,103 @@ test("a submitted assessment leaves the requester's own group", async ({
   await expect(
     page.locator(".queue-row", { hasText: name }),
   ).toContainText("Step 3 of 4 · Review & attest");
+});
+
+test("the standing page is one screen with one thing to do (G-91)", async ({
+  page,
+}) => {
+  // It was 1,067 words, 45 bullets and three scrolls at the moment a person
+  // wants to finish — an owner recorded themselves scrolling it.
+  const base = await startAssessment(page, `Standing ${Date.now()}`);
+  await scenarioIntake(page, base);
+  await answerRemainingGates(page, base);
+  await page.goto(`${base}/assess/complete`);
+
+  await expect(page.locator(".standing-row")).toHaveCount(4);
+  // Exactly one thing carries a button's weight (§24.2).
+  await expect(page.locator(".btn-lead")).toHaveCount(1);
+  const next = await page.locator(".btn-lead").innerText();
+  expect(next).toMatch(/^(Answer|Narrow down|Read them)/);
+
+  // Nothing was deleted — it moved behind disclosure, closed on arrival.
+  const blocks = page.locator(".standing-detail-block");
+  expect(await blocks.count()).toBeGreaterThan(1);
+  await expect(page.locator(".standing-detail-block[open]")).toHaveCount(0);
+  const shut = await page.evaluate(() => document.body.scrollHeight);
+
+  await blocks.first().locator("summary").click();
+  await expect(page.locator(".standing-detail-block[open]")).toHaveCount(1);
+  expect(await page.evaluate(() => document.body.scrollHeight)).toBeGreaterThan(shut);
+
+  // And no internal identifier reached the screen (NFR-9).
+  await expect(page.locator("main")).not.toContainText(/T[0-9]-[A-Z]{2,5}-[0-9]/);
+});
+
+test("the standing and the rail never state the same count two ways", async ({
+  page,
+}) => {
+  // "5 answered" in the rail meant five areas; "19 rated" on the page meant
+  // nineteen questions. Side by side they read as a contradiction.
+  const base = await startAssessment(page, `Units ${Date.now()}`);
+  await scenarioIntake(page, base);
+  await answerRemainingGates(page, base);
+  await page.goto(`${base}/assess/complete`);
+
+  const severity = page.locator(".standing-row", { hasText: "How severe" });
+  const detail = await severity.innerText();
+  if (!/Nothing here needs rating/.test(detail)) {
+    expect(detail).toMatch(/question/);
+  }
+  await expect(page.locator(".rail")).toContainText(/areas? rated|after this/);
+});
+
+test("the rail and the page share one denominator for the risk areas", async ({
+  page,
+}) => {
+  // The rail counted the ten areas a person is ASKED; the page counted all
+  // eleven that exist. "10 answered" beside "8 of 11 apply" is two true
+  // numbers with no unit between them (G-91).
+  const base = await startAssessment(page, `Denominator ${Date.now()}`);
+  await scenarioIntake(page, base);
+  await answerRemainingGates(page, base);
+  await page.goto(`${base}/assess/complete`);
+
+  const railAreas = await page
+    .locator(".rail")
+    .innerText()
+    .then((t) => t.match(/(\d+) areas decided|all (\d+) areas decided/));
+  expect(railAreas, "the rail must name its unit").not.toBeNull();
+  const railTotal = Number(railAreas![1] ?? railAreas![2]);
+
+  const row = await page
+    .locator(".standing-row", { hasText: "Risk areas" })
+    .innerText();
+  const pageTotal = Number(row.match(/of (\d+) apply/)![1]);
+  expect(railTotal).toBe(pageTotal);
+});
+
+test("areas answered without asking are named on the face of the page", async ({
+  page,
+}) => {
+  // Provenance sat behind a disclosure for one commit; the owner asked for
+  // it back. An assessment that answers itself with no visible reason has
+  // surprised somebody with their own record (§24.5, §24.6).
+  const base = await startAssessment(page, `Provenance ${Date.now()}`);
+  await scenarioIntake(page, base);
+  await answerRemainingGates(page, base);
+  await page.goto(`${base}/assess/complete`);
+
+  const decided = page.locator(".decided");
+  await expect(decided).toBeVisible();
+  await expect(decided.locator(".decided-head")).toContainText(
+    /answered without asking you/,
+  );
+  // Every row names the area, the source and the reason — not just a count.
+  const rows = decided.locator("li");
+  expect(await rows.count()).toBeGreaterThan(0);
+  await expect(rows.first()).toContainText(
+    /from your intake|from your answers|always applies/,
+  );
+  // Visible without opening anything.
+  await expect(page.locator(".standing-detail-block[open]")).toHaveCount(0);
 });

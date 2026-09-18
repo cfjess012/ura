@@ -10,7 +10,7 @@ export type StageState = "done" | "current" | "upcoming";
 
 const STAGES: { label: string; sub: string }[] = [
   { label: "Tell us about it", sub: "the project's identity record" },
-  { label: "Assess", sub: "gates, severity, controls" },
+  { label: "Assess", sub: "areas, parts, severity, controls" },
   { label: "Review & attest", sub: "a Risk Assessor signs each answer" },
   { label: "Package", sub: "signed, replayable export" },
 ];

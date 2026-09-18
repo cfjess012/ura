@@ -10,6 +10,7 @@ import {
   dispositionProblem,
   dispositionSummary,
   reopenedBecause,
+  overdueBecause,
 } from "@/lib/disposition";
 
 const blank = {
@@ -334,5 +335,26 @@ describe("an expired acceptance says why it came back", () => {
       reopenedBecause({ kind: "remediation", expiresAt: null }, now),
     ).toBeNull();
     expect(reopenedBecause(null, now)).toBeNull();
+  });
+});
+
+describe("a fix past its date says so (S13)", () => {
+  const now = new Date("2026-09-02T12:00:00Z");
+
+  it("explains an overdue remediation in words, with the day that was promised", () => {
+    const said = overdueBecause(
+      { kind: "remediation", remediationDue: new Date("2026-06-30T00:00:00Z") },
+      now,
+    );
+    expect(said).toMatch(/due on .*6\/30\/2026|due on .*30\/06\/2026|due on .*2026/);
+    expect(said).toMatch(/overdue/);
+  });
+
+  it("stays silent while the date is ahead, and for every other kind", () => {
+    expect(
+      overdueBecause({ kind: "remediation", remediationDue: new Date("2027-01-01") }, now),
+    ).toBeNull();
+    expect(overdueBecause({ kind: "risk-accepted", remediationDue: null }, now)).toBeNull();
+    expect(overdueBecause(null, now)).toBeNull();
   });
 });

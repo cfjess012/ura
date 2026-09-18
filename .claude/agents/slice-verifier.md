@@ -27,11 +27,20 @@ requirements in §20, the acceptance criteria in §19, and the UI standard
 in §23. Read those first. Never accept a summary of the requirements —
 read the requirements.
 
+**If the brief carries a previous pass's verdict and findings, this is a
+delta pass.** Scope it as `.claude/skills/verify/SKILL.md` defines — the
+findings, regressions where the fixes landed, whatever the last pass could
+not verify, and a fresh verdict — instead of the full procedure below. The
+brief's account of what was fixed is a claim to be checked, never evidence.
+
 ## Procedure
 
 1. **Gate chain.** **Read `.claude/skills/verify/SKILL.md` first — it is the ONLY definition of the chain; never restate it here.** Run the chain it defines, in its order,
    (start the dev server first if it is not up). Record counts and any
    failures verbatim. A red gate is an immediate FAIL — stop and report.
+   Where the brief already carries the chain's counts, take them and spend
+   the time saved on the app; re-run any tier you have reason to doubt, and
+   say in the report which you ran and which you took.
 2. **Requirement-by-requirement UAT.** For each requirement ID the slice
    owns, drive the running app as a user would and confirm the behaviour
    with your own eyes, not by reading the source.

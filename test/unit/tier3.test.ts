@@ -6,6 +6,7 @@
  * becomes a wrong finding later.
  */
 import { describe, expect, it } from "vitest";
+import { leavesOf } from "@/lib/conditions";
 import {
   OBJECTIVES,
   TIER3,
@@ -89,11 +90,13 @@ describe("children fire only on Yes (FR-13)", () => {
     const without = childrenAsked(o, "Yes", {});
     expect(without.map((x) => x.id)).not.toContain(c.id);
     // Positive evidence only: it appears once the condition actually holds.
-    const field = c.when![0]!.field;
+    // A condition may nest since S14; the shipped follow-ups are leaves.
+    const leaf = leavesOf(c.when![0]!)[0]!;
+    const field = leaf.field;
     const lookup =
-      "includesAny" in c.when![0]!
-        ? { [field]: c.when![0]!.includesAny }
-        : { [field]: (c.when![0] as { equalsAny: string[] }).equalsAny[0]! };
+      "includesAny" in leaf
+        ? { [field]: leaf.includesAny }
+        : { [field]: (leaf as { equalsAny: string[] }).equalsAny[0]! };
     expect(childrenAsked(o, "Yes", lookup).map((x) => x.id)).toContain(c.id);
   });
 });

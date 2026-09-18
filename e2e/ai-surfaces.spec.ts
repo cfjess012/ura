@@ -13,6 +13,7 @@ import {
   scenarioIntake,
   startAssessment,
   completeIntake,
+  openControl,
 } from "./helpers";
 
 async function submitted(page: Page, name: string): Promise<string> {
@@ -36,7 +37,7 @@ async function submitted(page: Page, name: string): Promise<string> {
     .click();
   await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
   await page.goto(`${base}/assess/objectives`);
-  const card = page.locator(".q3").first();
+  const card = await openControl(page, 0);
   await card
     .locator("> .q3-answers")
     .getByRole("radio", { name: "No" })
@@ -169,7 +170,18 @@ test("the intake assistant fails open — it never blocks the way forward", asyn
   // With no agent it must say it could not check — never congratulate them
   // on a description nobody read. Failing open is required; asserting a
   // pass is not.
-  await expect(page.locator(".coherence")).toContainText(/couldn.t check/i);
+  //
+  // And it must say WHICH fault, loudly enough to be an outcome. This was
+  // one grey line in help text for every cause there is, and it was
+  // reported as the button doing nothing at all (§25, §24.4).
+  const stopped = page.locator(".check-stopped");
+  await expect(stopped).toContainText(/the check didn.t run/i);
+  await expect(stopped).toContainText(/assistant isn.t running/i);
+  await expect(stopped).toContainText(/saved and untouched/i);
+  // A stopped service is not a waiting problem, so it must not invite one.
+  await expect(stopped.getByRole("button", { name: /try again/i })).toHaveCount(
+    0,
+  );
   // Failing open is the requirement: the way forward stays available. On
   // the last section that is the button into the risk areas.
   await expect(

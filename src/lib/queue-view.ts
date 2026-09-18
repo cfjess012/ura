@@ -89,6 +89,8 @@ function sentenceFor(standing: StandingItem[]): string {
         return `${item.count} required control${item.count === 1 ? " is" : "s are"} not in place`;
       case "enhancement":
         return `${item.count} control${item.count === 1 ? " is" : "s are"} only partly in place`;
+      case "overdue":
+        return `${item.count} promised fix${item.count === 1 ? " is" : "es are"} past ${item.count === 1 ? "its" : "their"} due date`;
       case "unanswered":
         return `${item.count} question${item.count === 1 ? " was" : "s were"} left unanswered and declared`;
       case "elsewhere":
@@ -106,7 +108,10 @@ function blocking(standing: StandingItem[]): boolean {
       item.kind === "attest" ||
       item.kind === "violation" ||
       item.kind === "gap" ||
-      item.kind === "enhancement",
+      item.kind === "enhancement" ||
+      // A fix that was due and has not arrived is the reviewer's to chase
+      // or re-settle; nobody else is holding it.
+      item.kind === "overdue",
   );
 }
 

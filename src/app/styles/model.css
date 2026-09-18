@@ -1,0 +1,400 @@
+/* ---------- How an assessment moves: the process map (FR-48) ----------
+   A navy scene with a board in it, turned in three dimensions by CSS. The
+   lime accent is allowed here because everything it touches sits on navy
+   (§23.1). The signs and the artifacts counter-rotate so they always face
+   the viewer; in the flat view the same rule yields no rotation. */
+.model-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1.5rem 3rem;
+}
+.model-head {
+  margin: 1.6rem 0 1rem;
+}
+.model-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin: 0 0 0.9rem;
+}
+.model-lens {
+  display: inline-flex;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: var(--neutral-100);
+}
+.model-lens button {
+  border: 0;
+  background: transparent;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--neutral-700);
+  cursor: pointer;
+}
+.model-lens button[aria-pressed="true"] {
+  background: var(--navy);
+  color: var(--neutral-0);
+}
+.model-view {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+.model-view button {
+  min-width: 2.2rem;
+  height: 2.2rem;
+  padding: 0 0.6rem;
+  border: 1px solid var(--neutral-300);
+  border-radius: 8px;
+  background: var(--neutral-0);
+  font: inherit;
+  font-weight: 700;
+  color: var(--navy);
+  cursor: pointer;
+}
+.model-lens button:focus-visible,
+.model-view button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.model-view button[aria-pressed="true"] {
+  background: var(--surface-2);
+  border-color: var(--primary);
+}
+.model-hint {
+  margin: 0 0 0 auto;
+  font-size: 0.8rem;
+  color: var(--neutral-600);
+}
+.model-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(20rem, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+/* The scene. */
+.model-scene {
+  position: relative;
+  height: 640px;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(900px 520px at 28% 18%, #0d4488 0%, transparent 60%),
+    linear-gradient(160deg, var(--navy-2) 0%, var(--navy) 45%, #001633 100%);
+  box-shadow: var(--shadow-lift);
+  perspective: 1500px;
+  perspective-origin: 50% 32%;
+  cursor: grab;
+  outline: none;
+  touch-action: none;
+  user-select: none;
+}
+.model-scene:focus-visible {
+  box-shadow:
+    0 0 0 3px var(--focus-ring),
+    var(--shadow-lift);
+}
+.model-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.model-board {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin-left: calc(var(--w) / -2);
+  margin-top: calc(var(--h) / -2);
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%;
+  transition: transform 0.45s var(--ease);
+}
+.model-lane {
+  position: absolute;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+}
+.model-lane.empty {
+  background: rgba(255, 255, 255, 0.03);
+  border-style: dashed;
+}
+.model-lane.empty .model-lane-name {
+  color: rgba(255, 255, 255, 0.38);
+}
+.model-lane-name {
+  position: absolute;
+  left: 14px;
+  top: 8px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+.model-path {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  transform: translateZ(2px);
+}
+.model-path polyline {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: 12 9;
+  opacity: 0.85;
+}
+
+/* A stop: a slab on the board, a sign standing on it, artifacts beside. */
+.model-tile {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  outline: none;
+}
+.model-slab {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #e6f1fa 100%);
+  box-shadow:
+    0 12px 0 -3px #8fb6db,
+    0 26px 30px -12px rgba(0, 0, 0, 0.55);
+  transform: translateZ(14px);
+  transition:
+    transform 0.2s var(--ease),
+    box-shadow 0.2s var(--ease);
+}
+.model-tile:hover .model-slab,
+.model-tile:focus-visible .model-slab {
+  transform: translateZ(26px);
+}
+.model-tile:focus-visible .model-slab {
+  box-shadow:
+    0 12px 0 -3px #8fb6db,
+    0 0 0 3px var(--focus-ring),
+    0 26px 30px -12px rgba(0, 0, 0, 0.55);
+}
+.model-tile.selected .model-slab {
+  background: linear-gradient(180deg, #ffffff 0%, #f4fbd3 100%);
+  box-shadow:
+    0 12px 0 -3px #9dc41a,
+    0 0 0 3px var(--accent),
+    0 30px 34px -12px rgba(0, 0, 0, 0.6);
+  transform: translateZ(30px);
+}
+.model-tile-num {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--navy);
+  color: var(--neutral-0);
+  font-size: 0.78rem;
+  font-weight: 800;
+  transform: translateZ(36px);
+}
+.model-tile.selected .model-tile-num {
+  background: var(--accent);
+  color: var(--navy);
+}
+.model-sign,
+.model-artifacts {
+  position: absolute;
+  transform-origin: 50% 100%;
+  transform: translateZ(36px) rotateZ(calc(var(--turn) * -1))
+    rotateX(calc(var(--tilt) * -1));
+  transition: transform 0.45s var(--ease);
+}
+.model-sign {
+  left: 50%;
+  bottom: 34%;
+  width: 164px;
+  margin-left: -82px;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  background: var(--neutral-0);
+  border: 1px solid var(--surface-3);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+}
+.model-sign-title {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--navy);
+}
+.model-sign-count {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--neutral-600);
+}
+.model-artifacts {
+  left: 96%;
+  bottom: 34%;
+  transform-origin: 0 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.model-artifact {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--navy);
+  font-size: 0.64rem;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.35);
+}
+.model-artifact::before {
+  content: "\25A4\00a0";
+}
+
+/* The reading. */
+.model-detail {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 1.25rem 1.4rem 1.2rem;
+  background: var(--neutral-0);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+.model-detail h2 {
+  margin: 0.2rem 0 0.4rem;
+  font-size: 1.35rem;
+  line-height: 1.2;
+  color: var(--navy);
+}
+.model-detail h3 {
+  margin: 1rem 0 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--neutral-600);
+}
+.model-detail > p { margin: 0; }
+.model-detail p,
+.model-detail li {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--neutral-800);
+}
+.model-logic {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.model-artifact-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.model-artifact-list li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem;
+  align-items: start;
+  padding: 0.6rem 0.75rem;
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
+  border-radius: 10px;
+}
+.model-artifact-mark {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--navy);
+  color: var(--accent);
+  font-size: 0.8rem;
+}
+.model-where {
+  margin: 1rem 0 0 !important;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--neutral-200);
+  font-size: 0.85rem !important;
+  color: var(--neutral-700) !important;
+}
+.model-where span {
+  margin-right: 0.5rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--neutral-600);
+}
+.model-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+.model-everywhere {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--neutral-200);
+}
+.model-everywhere summary {
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--link);
+}
+@media (max-width: 1000px) {
+  .model-layout {
+    grid-template-columns: 1fr;
+  }
+  .model-scene {
+    height: 520px;
+  }
+  .model-detail {
+    position: static;
+    max-height: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .model-board,
+  .model-slab,
+  .model-sign,
+  .model-artifacts {
+    transition: none;
+  }
+}

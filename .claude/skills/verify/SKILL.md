@@ -3,13 +3,6 @@ name: verify
 description: The one definition of "done" — the gate chain, the slice review, and the owner's UAT script. Use before every commit, when starting or finishing any slice, and whenever asked whether the build is green.
 ---
 
-> **DEMO PUSH until 2026-08-26 (G-70).** The chain below is suspended per
-> change. Run `pnpm typecheck && pnpm test:unit` — 35 seconds — and move on.
-> The full suite and the verifier run once at the end of the day, and
-> `walk:demo` plus one `pnpm e2e` run before the demo. This note expires
-> with the entry; after 2026-08-26 the chain below is the rule again.
-
-
 Implements SPEC §0 (Build Rule 3), §21 and §26.4. **This file is the only
 definition of the gate chain.** The Stop gate runs a subset of it and says
 so; the slice-verifier agent runs it via this file; nothing else may
@@ -95,6 +88,55 @@ Critique is owed in both directions (Build Rule 15). Surface disagreements
 with the owner's instructions as readily as with your own work — agreeable
 implementation of a flawed instruction is a specification failure, not
 courtesy.
+
+## The verifier's passes — full once, delta after
+
+A slice gets **one full verification pass**. Every pass after it is a
+**delta pass** against the findings of the one before. Re-verifying a slice
+from scratch to confirm a list of named fixes is the most expensive way to
+learn nothing.
+
+**Full pass** — the slice-verifier's whole procedure: the chain, every owned
+requirement driven in the running app, the adversarial input pass, every
+prior slice's journey, §19, §23, §24, §25, the invariants, the scope check.
+
+**Delta pass** — brief it with the previous verdict's findings and exactly
+what changed, and scope it to four things:
+
+1. each finding, marked **confirmed fixed** or **not fixed**, on its own
+   evidence, never on the brief's word;
+2. regressions in what the fixes touched — the files, and the screens that
+   render them;
+3. anything the previous pass recorded as "could not verify" that the fixes
+   have now made reachable;
+4. a fresh verdict.
+
+Nothing else is re-driven. A second walk of a journey the last pass cleared,
+over code the fixes never touched, buys nothing.
+
+**Hand it the chain; don't make it re-run it.** Run the chain yourself and
+put the counts in the brief. A second run of the same deterministic tests is
+not independent verification — they are the same tests, and they answer the
+same way. The verifier's budget belongs where only an agent driving the
+product can go: the app as a person meets it, adversarial probes on the pure
+functions, and every claim in `uat/` read against what the product actually
+does. It may still run any tier it has reason to doubt, and it says so.
+
+**Every finding becomes a test before the delta pass runs.** A finding that
+leaves no test behind gets found again by hand, at full price, on a later
+slice. This is what makes each slice's verification cheaper than the last.
+
+**When a pass dies mid-run** — an outage, a rate limit, a crash — mine its
+transcript before relaunching. A dead run has usually already done the
+expensive part; its probes and their output are in the record, and restarting
+from zero pays for them twice.
+
+*Origin: S15, 2026-09-03. One full pass cost roughly 185,000 tokens and
+returned two blocking findings. The second was briefed to re-do the entire
+slice in order to confirm ten named fixes. Five other runs died to an API
+outage and returned no verdict at all; reading one dead run's transcript
+recovered two real defects — an appetite line that escalated to nobody, and
+a severity word off the scale reaching an area rating — for almost nothing.*
 
 # The owner's UAT
 

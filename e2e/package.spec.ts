@@ -17,6 +17,7 @@ import {
   becomePerson,
   scenarioIntake,
   startAssessment,
+  openControl,
 } from "./helpers";
 
 /**
@@ -46,18 +47,14 @@ async function submitted(page: Page, name: string): Promise<string> {
   await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");
 
   await page.goto(`${base}/assess/objectives`);
-  const breach = page.locator(".q3").nth(0);
+  const breach = await openControl(page, 0);
   await breach.locator("> .q3-answers").getByRole("radio", { name: "No" }).click();
   await breach
     .locator("> .q3-note textarea")
     .fill("No recertification process exists today.");
   for (let i = 1; i < 4; i++) {
-    await page
-      .locator(".q3")
-      .nth(i)
-      .locator("> .q3-answers")
-      .getByRole("radio", { name: "Yes" })
-      .click();
+    const other = await openControl(page, i);
+    await other.locator("> .q3-answers").getByRole("radio", { name: "Yes" }).click();
     await page.waitForTimeout(300);
   }
   await expect(page.locator(".savebar [role=status]")).toHaveText("Saved");

@@ -1,0 +1,124 @@
+/* ============================================================================
+   Administration: the assessed platforms, and one platform's record (G-83).
+
+   Split from platform.css because they dress different people's screens — a
+   requester picking what their activity runs on, and an administrator reading
+   what the estate is standing on — and because one sheet for both was over
+   the file budget (NFR-6).
+   ============================================================================ */
+.platform-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.2rem 0 1rem;
+  font-size: 14px;
+  background: var(--neutral-0);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.platform-table th,
+.platform-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--neutral-100);
+}
+
+.platform-table thead th {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--neutral-600);
+  background: var(--neutral-50);
+  border-bottom: 1px solid var(--neutral-200);
+  white-space: nowrap;
+}
+
+.platform-table tbody th {
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.platform-table tbody tr:last-child th,
+.platform-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.platform-table tbody tr[data-stale="true"] {
+  background: var(--warning-bg);
+}
+
+.platform-table .platform-purpose {
+  display: block;
+  margin-top: 0.15rem;
+  font-weight: 400;
+  max-width: 34rem;
+}
+
+.platform-number {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* In force reads as a word first, like its lapsed counterpart. */
+.platform-standing {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--rating-low-ink);
+  background: var(--rating-low-tint);
+  border: 1px solid var(--rating-low-ink);
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+}
+
+.platform-lapsed-line {
+  margin: 0.5rem 0 0;
+  padding: 0.6rem 0.75rem;
+  font-size: 13px;
+  color: var(--neutral-900);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+}
+
+.clearance-list,
+.dependents-list {
+  list-style: none;
+  margin: 0.6rem 0 0.9rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.clearance-list li {
+  padding: 0.5rem 0.7rem;
+  font-size: 14px;
+  color: var(--neutral-800);
+  background: var(--surface-1);
+  border: 1px solid var(--surface-3);
+  border-radius: 10px;
+}
+
+.dependents-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 14px;
+  background: var(--neutral-50);
+  border: 1px solid var(--neutral-200);
+  border-radius: 10px;
+}
+
+@media (max-width: 900px) {
+  .platform-table {
+    display: block;
+    overflow-x: auto;
+  }
+}

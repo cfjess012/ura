@@ -4768,3 +4768,71 @@
   border: 1px dashed var(--neutral-200);
   border-radius: 12px;
 }
+
+/* The check that did not run (SPEC §25, §24.4). This was a grey `help` line
+   in the same style as a hint, and it was reported as the button doing
+   nothing — so it is an outcome now: warm band, a mark beside the words,
+   and the retry only where retrying could work. Warning rather than error,
+   because nothing is broken for the person — the check is advisory and the
+   way forward is untouched. */
+.check-stopped {
+  margin: 0.75rem 0 0;
+  /* Clears the sticky save bar when this is scrolled into view. Without it
+     the panel lands under the bar, which is exactly the "I clicked and
+     nothing happened" this whole state exists to answer. */
+  scroll-margin-bottom: 6rem;
+  padding: 0.85rem 1rem;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning);
+  border-left: 3px solid var(--warning-strong);
+  border-radius: var(--radius);
+  max-width: 42rem;
+}
+.check-stopped-head {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--warning-strong);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.check-stopped-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--warning-strong);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.check-stopped-body {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--neutral-800);
+}
+.check-stopped-carry {
+  margin: 0.4rem 0 0;
+  font-size: 0.85rem;
+  color: var(--neutral-700);
+}
+.check-stopped-acts {
+  margin: 0.7rem 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.check-stopped-ref {
+  font-size: 0.8rem;
+  color: var(--neutral-700);
+}
+.check-stopped-ref strong {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}

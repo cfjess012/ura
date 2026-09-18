@@ -129,7 +129,7 @@ const HOOK_META = {
     name: "stop-gate",
     what: "Work cannot conclude on a red build, a stale generated artifact, a slice with no record, or a demo nobody has thought about",
     access:
-      "Runs the type checker and the unit tests, regenerates the map into a scratch directory to compare it, and reads CLAUDE.md, every uat/ record and demo/readiness.md. It writes nothing.",
+      "Runs the type checker and the unit tests, regenerates the map into a scratch directory to compare it, and reads CLAUDE.md, SPEC.md and every uat/ record. It writes nothing.",
   },
 };
 
@@ -241,6 +241,12 @@ const RUNTIME_ACCESS = {
     "Would read: attested answers and the policy version in force when they were attested. A later policy revision never rewrites a historical assessment.",
   "Instrument-to-obligation traceability":
     "Would read: the instrument and the obligation library, plus human-ratified mappings between them.",
+  "Platform feature watch":
+    "Would read: a vendor's own published release notes for a platform we have assessed, and that platform's record. The only registered feature that reaches OUTSIDE the organisation — and the only thing that leaves is a public product name. No assessment content goes out, and a claim it cannot quote from the vendor is dropped rather than shown.",
+  "Platform suggestion from the description":
+    "Would read: what the requester wrote about their activity, and the ratified platform roster. Would not read: another team's assessment, or anything about how the platform actually behaves — only what our own assessment of it records.",
+  "Gap-note assistance":
+    "Would read: what this requester has already said on this assessment, and nothing else. Where they have said nothing it can use, it asks them a question rather than drafting from the control's name.",
   "Document-assisted drafting":
     "Reads: one document this requester uploaded to this assessment, held as extracted text and never as a file, plus the intake fields and the values each accepts. Does not read: any other assessment, and no document outside this one.",
   "Handoff summary & risk scenarios":

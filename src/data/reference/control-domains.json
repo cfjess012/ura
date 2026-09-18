@@ -1,20 +1,98 @@
 {
   "slug": "control-domains",
-  "version": "2026-08-23.1",
-  "note": "Which risk area's assessor may attest an answer about a control family (FR-17). Versioned because it decides ACCOUNTABILITY — who is answerable for signing off what — and that is an owner decision, not a rendering choice. A family with no mapping falls to the generalist rather than to nobody.",
+  "version": "2026-09-04.1",
+  "note": "Which risk area's assessor may attest an answer about a control family (FR-17), and what to call that family on a screen. Versioned because it decides ACCOUNTABILITY — who is answerable for signing off what — and that is an owner decision, not a rendering choice. A family with no mapping falls to the generalist rather than to nobody. `name` and `order` were added for the control register (G-87): the codes are internal and may never reach a screen (NFR-9), and alphabetical order would put the rarest family above identity on every assessment.",
   "families": [
-    { "family": "AI", "domain": "ai", "because": "model governance, oversight, bias and explainability are the AI area's own subject" },
-    { "family": "CMP", "domain": "legal-regulatory", "because": "communications compliance, cross-border and statutory reporting are legal obligations" },
-    { "family": "DP", "domain": "data-privacy", "because": "encryption, minimisation, retention and secrets are how data is protected" },
-    { "family": "GOV", "domain": "governance", "because": "oversight and approval are governance's subject by name" },
-    { "family": "HR", "domain": "people-capacity", "because": "screening and training are about the people doing the work" },
-    { "family": "IAM", "domain": "security-resilience", "because": "who can reach what is a security control, not a privacy one" },
-    { "family": "LOG", "domain": "security-resilience", "because": "event logging and monitoring are detective security controls" },
-    { "family": "NB", "domain": "security-resilience", "because": "boundary protection, WAF, API security and availability are the perimeter" },
-    { "family": "OPS", "domain": "operational", "because": "documented procedures and quality control are operational discipline" },
-    { "family": "PRIV", "domain": "data-privacy", "because": "personal-information handling is the privacy office's subject" },
-    { "family": "RES", "domain": "operational", "because": "backup, incident response and continuity are about keeping it running" },
-    { "family": "SDLC", "domain": "solution-architecture", "because": "vulnerability management, pen testing and patching belong to how the thing is built" },
-    { "family": "TPR", "domain": "third-party", "because": "supplier access, contracts and fourth parties are the third-party area's own subject" }
+    {
+      "family": "IAM",
+      "domain": "security-resilience",
+      "because": "who can reach what is a security control, not a privacy one",
+      "name": "Identity & access",
+      "order": 0
+    },
+    {
+      "family": "DP",
+      "domain": "data-privacy",
+      "because": "encryption, minimisation, retention and secrets are how data is protected",
+      "name": "Data protection",
+      "order": 1
+    },
+    {
+      "family": "NB",
+      "domain": "security-resilience",
+      "because": "boundary protection, WAF, API security and availability are the perimeter",
+      "name": "Network & boundary",
+      "order": 2
+    },
+    {
+      "family": "LOG",
+      "domain": "security-resilience",
+      "because": "event logging and monitoring are detective security controls",
+      "name": "Logging & monitoring",
+      "order": 3
+    },
+    {
+      "family": "SDLC",
+      "domain": "solution-architecture",
+      "because": "vulnerability management, pen testing and patching belong to how the thing is built",
+      "name": "Build & change",
+      "order": 4
+    },
+    {
+      "family": "RES",
+      "domain": "operational",
+      "because": "backup, incident response and continuity are about keeping it running",
+      "name": "Resilience & recovery",
+      "order": 5
+    },
+    {
+      "family": "AI",
+      "domain": "ai",
+      "because": "model governance, oversight, bias and explainability are the AI area's own subject",
+      "name": "AI governance",
+      "order": 6
+    },
+    {
+      "family": "PRIV",
+      "domain": "data-privacy",
+      "because": "personal-information handling is the privacy office's subject",
+      "name": "Privacy",
+      "order": 7
+    },
+    {
+      "family": "TPR",
+      "domain": "third-party",
+      "because": "supplier access, contracts and fourth parties are the third-party area's own subject",
+      "name": "Third parties",
+      "order": 8
+    },
+    {
+      "family": "CMP",
+      "domain": "legal-regulatory",
+      "because": "communications compliance, cross-border and statutory reporting are legal obligations",
+      "name": "Compliance & reporting",
+      "order": 9
+    },
+    {
+      "family": "GOV",
+      "domain": "governance",
+      "because": "oversight and approval are governance's subject by name",
+      "name": "Oversight & approval",
+      "order": 10
+    },
+    {
+      "family": "HR",
+      "domain": "people-capacity",
+      "because": "screening and training are about the people doing the work",
+      "name": "People",
+      "order": 11
+    },
+    {
+      "family": "OPS",
+      "domain": "operational",
+      "because": "documented procedures and quality control are operational discipline",
+      "name": "Operating procedures",
+      "order": 12
+    }
   ]
 }

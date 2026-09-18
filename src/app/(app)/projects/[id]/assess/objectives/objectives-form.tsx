@@ -1,48 +1,64 @@
 "use client";
 
 import * as React from "react";
-import { WhyAsked } from "../why-asked";
+import type { Obligation } from "@/lib/crosswalk";
 import { useRouter } from "next/navigation";
 import { answerObjectives } from "@/app/actions";
 import { isFailure } from "@/lib/errors";
 import { SaveBar, useAutosave } from "../autosave";
+import { RegisterTable, PROVISION_HELP } from "./register-table";
+import { registerLine, type Register, type RegisterRow } from "@/lib/control-register";
+import { Detail } from "./control-detail";
 import {
-  TIER3_ANSWERS,
   childrenAsked,
   noteProblem,
-  noteRequired,
-  type Tier3Answer,
   type Tier3Objective,
   type Tier3Value,
 } from "@/lib/tier3";
 import type { AnswerLookup } from "@/lib/conditions";
 
 /**
- * Tier 3 in practice (FR-12, FR-13).
+ * Tier 3 in practice (FR-12, FR-13), as a register and a drawer (G-87).
  *
- * One card per control objective: the question, the four answers, and — on
- * anything but Yes — the note that becomes the finding a reviewer reads.
- * Children reveal only on Yes, and only where their own cross-tier
- * conditions hold; a suppressed child renders nothing at all, never a
- * greyed placeholder (§3.4).
+ * The register lists every control this activity requires, in one place, with
+ * what state each is in. Opening a row puts that control's question beside the
+ * list — the question, the four answers, and, on anything but Yes, the note
+ * that becomes the finding a reviewer reads. The list holds still while a
+ * person works down it, which is the whole reason it is a drawer rather than
+ * a row that expands and shifts everything under the cursor.
+ *
+ * Children reveal only on Yes, and only where their own cross-tier conditions
+ * hold; a suppressed child renders nothing at all, never a greyed placeholder
+ * (§3.4). Nothing about saving changed: an answer is saved when it is given.
  */
 export function ObjectivesForm({
   projectId,
+  register,
   objectives,
   values,
   lookup,
   reasons,
+  obligations,
   nextHref,
 }: {
   projectId: string;
+  /** Every control required, in whatever state it is in — the one definition. */
+  register: Register;
+  /** The ones the pilot actually asks a question about. */
   objectives: Tier3Objective[];
   values: Record<string, Tier3Value>;
   lookup: AnswerLookup;
   /** Why each objective is here — carried through from accumulation. */
   reasons: Record<string, string[]>;
+  /** What each control also satisfies outside — composed on the server so the
+   *  framework text never reaches the browser. */
+  obligations: Record<string, Obligation[]>;
   nextHref: string;
 }) {
   const router = useRouter();
+  const [open, setOpen] = React.useState<RegisterRow | null>(null);
+  const drawer = React.useRef<HTMLDivElement>(null);
+  const cameFrom = React.useRef<HTMLElement | null>(null);
   const [given, setGiven] = React.useState<Record<string, Tier3Value>>(values);
   const [flagged, setFlagged] = React.useState(false);
   // Every other assess screen autosaves. This one did not, so an answer
@@ -55,31 +71,47 @@ export function ObjectivesForm({
       "The server couldn't be reached, so nothing was saved. What you wrote is still on screen — try again in a moment.",
   });
 
+  /**
+   * The answers as of the last keystroke, which is not the same thing as the
+   * answers React has rendered.
+   *
+   * Saving used to happen inside the `setGiven` updater, and a state updater
+   * runs during render — so a save that failed asked the router to redraw
+   * mid-render, which React refuses ("cannot update a component while
+   * rendering a different one"). The ref sequences the edits; the state
+   * renders them.
+   */
+  const latest = React.useRef<Record<string, Tier3Value>>(values);
+
   const set = (questionId: string, next: Partial<Tier3Value>) => {
     autosave.touched.current.add(questionId);
-    setGiven((prev) => {
-      const merged: Record<string, Tier3Value> = {
-        ...prev,
-        [questionId]: {
-          answer: next.answer ?? prev[questionId]?.answer ?? "Yes",
-          note: next.note ?? prev[questionId]?.note ?? "",
+    const previous = latest.current;
+    const merged: Record<string, Tier3Value> = {
+      ...previous,
+      [questionId]: {
+        answer: next.answer ?? previous[questionId]?.answer ?? "Yes",
+        note: next.note ?? previous[questionId]?.note ?? "",
+      },
+    };
+    latest.current = merged;
+    setGiven(merged);
+
+    // An answer needing a note is not saved until it has one: writing it
+    // half-formed would record a No with no explanation, which is the thing
+    // §3.4 forbids. The note's own keystrokes then save it.
+    const value = merged[questionId]!;
+    if (noteProblem(value.answer, value.note) === null) {
+      // Revert on refusal: the children a Yes reveals, and the note field a
+      // No opens, are consequences of an answer that may not have been
+      // recorded (B5).
+      autosave.save(
+        () => write(merged),
+        () => {
+          latest.current = previous;
+          setGiven(previous);
         },
-      };
-      // An answer needing a note is not saved until it has one: writing it
-      // half-formed would record a No with no explanation, which is the
-      // thing §3.4 forbids. The note's own keystrokes then save it.
-      const value = merged[questionId]!;
-      if (noteProblem(value.answer, value.note) === null) {
-        // Revert on refusal: the children a Yes reveals, and the note field
-        // a No opens, are consequences of an answer that may not have been
-        // recorded (B5).
-        autosave.save(
-          () => write(merged),
-          () => setGiven(prev),
-        );
-      }
-      return merged;
-    });
+      );
+    }
   };
 
   /** Only what this person touched, and only what is on screen (G-42). */
@@ -137,66 +169,59 @@ export function ObjectivesForm({
         await saveAndGo();
       }}
     >
-      {objectives.map((objective) => {
-        const value = given[objective.questionId];
-        const children = childrenAsked(
-          objective,
-          value?.answer ?? null,
-          lookup,
-        );
-        return (
-          <div
-            className="card q3"
-            key={objective.id}
-            data-focus={objective.questionId}
-          >
-            <p className="q3-name">{objective.name}</p>
-            <p className="gate-question">{objective.text}</p>
-            {/* The authority that requires it, in its own words (§22.1). */}
-            <WhyAsked questionId={objective.questionId} />
-            <p className="help gate-help">
-              What this control is for:{" "}
-              {objective.objective.replace(/^Ensure /, "")}
-            </p>
-            {(reasons[objective.id] ?? []).length > 0 && (
-              <p className="prefill" role="note">
-                <span className="prefill-tag">Why you are asked</span>
-                <span>{(reasons[objective.id] ?? []).join("; and ")}</span>
+      <div className="register-layout">
+        <RegisterTable
+          register={register}
+          openId={open?.objective ?? null}
+          onOpen={(row) => {
+            cameFrom.current = document.activeElement as HTMLElement;
+            setOpen(row);
+          }}
+        />
+
+        <div
+          className="register-drawer"
+          ref={drawer}
+          role="region"
+          aria-label={open ? open.name : "Control detail"}
+          onKeyDown={(event) => {
+            // Escape closes and hands focus back to the row it came from —
+            // focus stranded after a panel closes is the defect §23 names.
+            if (event.key !== "Escape") return;
+            event.stopPropagation();
+            setOpen(null);
+            cameFrom.current?.focus();
+          }}
+        >
+          {open === null ? (
+            <div className="drawer-empty">
+              <p className="drawer-empty-head">Pick a control to answer it</p>
+              <p>
+                Everything this activity requires is on the left, with what
+                state each one is in. Choosing one opens its question here, and
+                the list stays where it is.
               </p>
-            )}
-
-            <Answers
-              questionId={objective.questionId}
-              label={objective.text}
-              value={value}
+              <p className="help">{PROVISION_HELP}</p>
+            </div>
+          ) : (
+            <Detail
+              row={open}
+              objective={objectives.find((o) => o.id === open.objective) ?? null}
+              given={given}
+              lookup={lookup}
               flagged={flagged}
-              onAnswer={(answer) => set(objective.questionId, { answer })}
-              onNote={(note) => set(objective.questionId, { note })}
+              reasons={reasons[open.objective] ?? []}
+              obligations={obligations[open.objective] ?? []}
+              projectId={projectId}
+              set={set}
+              onClose={() => {
+                setOpen(null);
+                cameFrom.current?.focus();
+              }}
             />
-
-            {children.length > 0 && (
-              <div className="q3-children">
-                <p role="note">
-                  Shown because the control exists — these ask what it covers.
-                </p>
-                {children.map((child) => (
-                  <div className="q3-child" key={child.id}>
-                    <p className="gate-question">{child.text}</p>
-                    <Answers
-                      questionId={child.questionId}
-                      label={child.text}
-                      value={given[child.questionId]}
-                      flagged={flagged}
-                      onAnswer={(answer) => set(child.questionId, { answer })}
-                      onNote={(note) => set(child.questionId, { note })}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
+          )}
+        </div>
+      </div>
 
       <SaveBar
         state={autosave}
@@ -204,88 +229,12 @@ export function ObjectivesForm({
         blocked={flagged && missingNotes.length > 0}
         status={
           missingNotes.length === 0
-            ? `${answered} of ${onScreen.length} answered.`
+            ? registerLine(register)
             : flagged
               ? `Write the ${missingNotes.length === 1 ? "note" : `${missingNotes.length} notes`} above — a reviewer reads them instead of the answer.`
               : `${answered} of ${onScreen.length} answered · ${missingNotes.length} still ${missingNotes.length === 1 ? "needs" : "need"} a note`
         }
       />
     </form>
-  );
-}
-
-/** The four answers, and the note that anything but Yes has to carry. */
-function Answers({
-  questionId,
-  label,
-  value,
-  flagged,
-  onAnswer,
-  onNote,
-}: {
-  questionId: string;
-  /**
-   * The question these answers belong to. Every group carried the same
-   * name — "Does this control exist?" — so a screen reader announced a
-   * child's four buttons as if they answered its parent (§23).
-   */
-  label: string;
-  value: Tier3Value | undefined;
-  flagged: boolean;
-  onAnswer: (answer: Tier3Answer) => void;
-  onNote: (note: string) => void;
-}) {
-  const problem = value ? noteProblem(value.answer, value.note) : null;
-  return (
-    <>
-      <div className="q3-answers" role="radiogroup" aria-label={label}>
-        {TIER3_ANSWERS.map((answer) => {
-          const chosen = value?.answer === answer;
-          return (
-            <button
-              type="button"
-              key={answer}
-              role="radio"
-              aria-checked={chosen}
-              className={`q3-answer${chosen ? " chosen" : ""} a-${answer.toLowerCase().replace(/[^a-z]/g, "")}`}
-              onClick={() => onAnswer(answer)}
-            >
-              {answer}
-              {chosen && (
-                <span aria-hidden="true" className="tick">
-                  ✓
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {value && noteRequired(value.answer) && (
-        <div className="q3-note">
-          <label htmlFor={`note-${questionId}`}>
-            {value.answer === "N-A"
-              ? "Why doesn't this apply?"
-              : "What exists today, and what is missing?"}
-          </label>
-          <textarea
-            id={`note-${questionId}`}
-            name={`note-${questionId}`}
-            rows={2}
-            value={value.note}
-            onChange={(event) => onNote(event.target.value)}
-            aria-invalid={flagged && problem !== null}
-            aria-describedby={
-              flagged && problem ? `note-problem-${questionId}` : undefined
-            }
-          />
-          {flagged && problem && (
-            <p id={`note-problem-${questionId}`} role="note">
-              {problem}
-            </p>
-          )}
-        </div>
-      )}
-    </>
   );
 }

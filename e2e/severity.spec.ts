@@ -157,7 +157,15 @@ test("the ledger counts the whole assessment, and agrees with the summary (FR-11
   const afterSecond = await owed.count();
   expect(afterSecond).toBeGreaterThan(afterFirst);
 
-  // The summary is the authority; the ledger must not disagree with it.
+  // The summary is the authority; the ledger must not disagree with it. The
+  // derivation moved behind disclosure when that screen was cut from 1,067
+  // words to 217 (G-91) — the invariant it guards did not.
   await page.goto(`${base}/assess/complete`);
-  await expect(page.locator(".owed li")).toHaveCount(afterSecond);
+  await page
+    .locator(".standing-detail-block", { hasText: "Why these controls" })
+    .locator("summary")
+    .click();
+  await expect(
+    page.locator(".standing-detail-block[open] .summary-list li"),
+  ).toHaveCount(afterSecond);
 });

@@ -90,6 +90,12 @@ export function PackageView({
     }
   }
 
+  const overdue = payload.findings.filter(
+
+    (f) => f.settlement.standing === "overdue",
+
+  ).length;
+
   const byKind = payload.findings.reduce<Record<string, number>>((all, f) => {
     all[f.settlement.kind] = (all[f.settlement.kind] ?? 0) + 1;
     return all;
@@ -130,8 +136,43 @@ export function PackageView({
                 {Object.entries(byKind)
                   .map(([k, n]) => `${n} ${readable(k)}`)
                   .join(", ")}
+                {/* Settled is not finished: a fix past its promised date is
+                    said here, on the screen read before recording, not only
+                    in the payload (S13 verifier, second pass). */}
+                {overdue > 0
+                  ? ` — ${overdue} remediation${overdue === 1 ? "" : "s"} past ${overdue === 1 ? "its" : "their"} due date`
+                  : ""}
               </span>
             )}
+          </li>
+          {payload.controlsRecorded.length > 0 && (
+            <li>
+              <strong>
+                {payload.controlsRecorded.length} control
+                {payload.controlsRecorded.length === 1 ? "" : "s"} required and
+                recorded for a reviewer
+              </strong>
+              <span className="meta">
+                {" "}
+                — the pilot asks no question about these, so they are named
+                with why they were required rather than left out. A reader
+                who counted the answers alone would conclude the record was
+                complete
+              </span>
+            </li>
+          )}
+          <li>
+            <strong>
+              Rated {payload.rating.inherent.band} inherent,{" "}
+              {payload.rating.residual.band} residual
+            </strong>
+            <span className="meta">
+              {" "}
+              — frozen at the moment of packaging, each band with its reasons
+              {payload.rating.exceedsAppetite.length > 0
+                ? `; exceeds the stated appetite (${payload.rating.exceedsAppetite.map((b) => b.label).join(", ")})`
+                : ""}
+            </span>
           </li>
           <li>
             <strong>Provenance</strong>

@@ -7,7 +7,15 @@
  * fails immediately and loudly rather than rendering a broken screen.
  */
 import gates from "@/data/instrument/gates.json";
-import { matches, type AnswerLookup, type Condition } from "./conditions";
+import {
+  fieldsOf,
+  leavesOf,
+  matches,
+  type AnswerLookup,
+  type Condition,
+} from "./conditions";
+import { knownFields } from "./condition-known";
+import { lintConditions } from "./condition-lint";
 import { ALL_FIELDS } from "./intake";
 
 /** Intake field ids a rule may legitimately read. */
@@ -127,7 +135,7 @@ export function validate(candidate: Instrument): Instrument {
         );
     }
     for (const rule of category.prefill ?? []) {
-      if (rule.when?.field === `gate.${category.key}`)
+      if (rule.when && fieldsOf(rule.when).includes(`gate.${category.key}`))
         problems.push(`${where}: a gate cannot pre-fill from its own answer`);
       if (rule.answer !== "Yes" && rule.answer !== "No")
         problems.push(`${where}: prefill answer must be Yes or No`);
@@ -147,7 +155,7 @@ export function validate(candidate: Instrument): Instrument {
   );
   for (const category of candidate.categories ?? []) {
     for (const derived of category.derivedPaths ?? []) {
-      for (const condition of derived.when ?? []) {
+      for (const condition of (derived.when ?? []).flatMap(leavesOf)) {
         if (!("includesAny" in condition)) continue;
         if (condition.field !== "paths" && !condition.field.startsWith("path."))
           continue;
@@ -192,24 +200,39 @@ export function validate(candidate: Instrument): Instrument {
       ? null
       : `${where}: reads "${field}", which is not an intake field, a gate, or a path`;
   };
+  // Beyond existence: an option the field never offers, a rule that
+  // contradicts itself, a negative read of an unanswered box, an empty
+  // group. Each is a rule that looks correct and cannot fire, or cannot
+  // fail — the silent no-op and its mirror (§6.3, NFR-23). Existence is
+  // reported by knownField above in the words its tests expect; the lint's
+  // own unknown-field sentence is dropped so a typo is said once.
+  const known = (canSeePaths: boolean) =>
+    knownFields({
+      areas: candidate.categories ?? [],
+      intake: ALL_FIELDS,
+      // A gate or a path is decided before any severity is answered.
+      severityQuestionIds: [],
+      canSeePaths,
+      allowsBlank: false,
+    });
+  const saidOnce = (found: string[]) =>
+    found.filter((p) => !p.includes("is not an intake field, a gate, a path, or a severity question"));
   for (const category of candidate.categories ?? []) {
     for (const rule of category.prefill ?? []) {
-      const problem = knownField(
-        rule.when?.field ?? "",
-        `${category.key} prefill`,
-        false,
-      );
-      if (problem) problems.push(problem);
-    }
-    for (const derived of category.derivedPaths ?? []) {
-      for (const condition of derived.when ?? []) {
-        const problem = knownField(
-          condition.field ?? "",
-          `${category.key} derived path ${derived.id}`,
-          true,
-        );
+      const where = `${category.key} prefill`;
+      for (const leaf of rule.when ? leavesOf(rule.when) : []) {
+        const problem = knownField(leaf.field ?? "", where, false);
         if (problem) problems.push(problem);
       }
+      if (rule.when) problems.push(...saidOnce(lintConditions([rule.when], where, known(false))));
+    }
+    for (const derived of category.derivedPaths ?? []) {
+      const where = `${category.key} derived path ${derived.id}`;
+      for (const leaf of (derived.when ?? []).flatMap(leavesOf)) {
+        const problem = knownField(leaf.field ?? "", where, true);
+        if (problem) problems.push(problem);
+      }
+      problems.push(...saidOnce(lintConditions(derived.when ?? [], where, known(true))));
     }
   }
 

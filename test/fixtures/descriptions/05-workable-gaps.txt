@@ -1,0 +1,5 @@
+Halyard is a triage queue for motor claims. When a claim comes in through the call centre or the customer portal, it lands in Halyard, gets ranked by how urgent and how complex it looks, and is routed to the right handler team - fast-track for straightforward windscreen and minor damage claims, and the specialist desks for anything involving injury or a disputed liability.
+
+The users are the roughly 180 claims handlers in Motor Operations at the Leeds and Bristol sites, plus their team leaders, who use the same screens to rebalance workload during the day. Nobody outside Claims Operations gets a login.
+
+We expect it to take about six weeks to bed in. The main benefit is that handlers stop picking work off a flat list and start getting the next thing that actually needs them.

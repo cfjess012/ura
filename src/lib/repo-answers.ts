@@ -9,6 +9,7 @@
  */
 import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { getDb, schema } from "./db";
+import type { Tier3Value } from "./tier3";
 
 /**
  * A recorded answer, in the shape the instrument stores it.
@@ -63,7 +64,7 @@ export type CurrentAnswer = {
 export type AnswerInput = {
   projectId: string;
   questionId: string;
-  value: string | string[];
+  value: string | string[] | Tier3Value;
   source: "person" | "intake";
   confirmed: boolean;
   instrumentVersionId: string;

@@ -1,102 +1,99 @@
 import Link from "next/link";
-import type { CurrentAnswer } from "@/lib/repo-answers";
-import { severityGroupKey, type SeverityQuestion } from "@/lib/severity";
+import type { JourneySeverity } from "@/lib/assess-journey";
+import { RailSection, type SectionStatus } from "../rail-section";
 
-export type SeverityGroup = {
-  key: string;
-  name: string;
-  questions: SeverityQuestion[];
-};
+// Callers of the old rail imported the grouping from here. It is pure
+// logic and lives in the library now; the name stays reachable so nothing
+// that only wanted the grouping has to know the rail changed.
+export {
+  groupsFor,
+  severityGroupKey as groupKey,
+  type SeverityGroup,
+} from "@/lib/severity";
 
-export { severityGroupKey as groupKey };
-
-/** Severity questions grouped by the area they belong to, in instrument order. */
-export function groupsFor(questions: SeverityQuestion[]): SeverityGroup[] {
-  const order: string[] = [];
-  const byName = new Map<string, SeverityQuestion[]>();
-  for (const q of questions) {
-    if (!byName.has(q.category)) {
-      byName.set(q.category, []);
-      order.push(q.category);
-    }
-    byName.get(q.category)!.push(q);
-  }
-  return order.map((name) => ({
-    key: severityGroupKey(name),
-    name,
-    questions: byName.get(name)!,
-  }));
-}
-
-/** Where the person is in Tier 2, and how much of each area is answered. */
+/**
+ * How severe, as the third step of the Assess rail: each area's questions
+ * and how many are answered. Rows are links only once the step can be
+ * opened — the screen redirects anyone who arrives early, and a link that
+ * bounces reads as broken (§24.4).
+ */
 export function SeverityRail({
   projectId,
   groups,
-  answered,
   currentKey,
+  step,
+  status,
+  reachable,
 }: {
   projectId: string;
-  groups: SeverityGroup[];
-  answered: Record<string, CurrentAnswer>;
+  groups: JourneySeverity[];
   currentKey: string;
+  step: number;
+  status: SectionStatus;
+  reachable: boolean;
 }) {
+  const remaining = groups.reduce((sum, g) => sum + (g.total - g.done), 0);
   return (
-    <nav className="rail" aria-label="Severity areas">
-      <p className="rail-title">How severe</p>
-      <ol>
-        {groups.map((group, index) => {
-          const done = group.questions.filter(
-            (q) => answered[q.questionId],
-          ).length;
-          const complete = done === group.questions.length;
-          const active = group.key === currentKey;
-          const status = complete
-            ? "open"
-            : done > 0
-              ? "prefilled"
-              : "unanswered";
-          return (
-            <li key={group.key}>
-              <Link
-                href={`/projects/${projectId}/assess/severity/${group.key}`}
-                className={`rail-item ${status}${active ? " current" : ""}`}
-                aria-current={active ? "step" : undefined}
-              >
+    <RailSection
+      label="Severity areas"
+      step={step}
+      name="How severe"
+      status={status}
+      state={
+        !reachable
+          ? "after this"
+          : groups.length === 0
+            ? "nothing to ask"
+            : remaining === 0
+              ? `${groups.length} area${groups.length === 1 ? "" : "s"} rated`
+              : `${remaining} to answer`
+      }
+    >
+      {groups.length > 0 && (
+        <ol>
+          {groups.map((group, index) => {
+            const complete = group.done === group.total;
+            const active = group.key === currentKey;
+            const kind = !reachable
+              ? "upcoming"
+              : complete
+                ? "open"
+                : group.done > 0
+                  ? "prefilled"
+                  : "unanswered";
+            const body = (
+              <>
                 <span className="rail-num" aria-hidden="true">
-                  {complete ? "✓" : index + 1}
+                  {reachable && complete ? "✓" : index + 1}
                 </span>
                 <span className="rail-name">{group.name}</span>
                 <span className="rail-state">
-                  {complete
-                    ? "Complete"
-                    : `${done} of ${group.questions.length}`}
+                  {!reachable
+                    ? `${group.total} question${group.total === 1 ? "" : "s"}`
+                    : complete
+                      ? "Complete"
+                      : `${group.done} of ${group.total}`}
                 </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ol>
-      {/*
-        A way back into the flow. Tier 2 replaced the risk-areas rail with
-        this one and offered no route up, so someone who realised mid-way
-        that they had ticked the wrong thread could only reach it through
-        the URL bar (S4 verification, F5). Changing a thread here changes
-        which severity questions exist, so this is not a nicety.
-      */}
-      <div className="rail-back">
-        <Link
-          href={`/projects/${projectId}/assess/paths`}
-          className="rail-back-link"
-        >
-          ← Change which parts apply
-        </Link>
-        <Link
-          href={`/projects/${projectId}/assess/complete`}
-          className="rail-back-link"
-        >
-          Where this assessment stands
-        </Link>
-      </div>
-    </nav>
+              </>
+            );
+            return (
+              <li key={group.key}>
+                {reachable ? (
+                  <Link
+                    href={`/projects/${projectId}/assess/severity/${group.key}`}
+                    className={`rail-item ${kind}${active ? " current" : ""}`}
+                    aria-current={active ? "step" : undefined}
+                  >
+                    {body}
+                  </Link>
+                ) : (
+                  <span className={`rail-item ${kind}`}>{body}</span>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </RailSection>
   );
 }

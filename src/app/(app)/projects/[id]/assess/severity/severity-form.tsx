@@ -23,6 +23,8 @@ import {
   type SeverityQuestion,
 } from "@/lib/severity";
 import { SaveBar, useAutosave } from "../autosave";
+import { RatingChip } from "@/app/(app)/rating-chip";
+import type { Rated } from "@/lib/rating";
 import {
   HandoffPanel,
   type HandoffView,
@@ -69,6 +71,8 @@ export function SeverityForm({
     /** Every detail selection recorded across the assessment. */
     details: Record<string, string[]>;
     totalAsked: number;
+    /** The inherent rating so far, with its reasons (FR-50). */
+    rating: Rated;
   };
 }) {
   const [bands, setBands] = React.useState<Record<string, Band | null>>(
@@ -458,6 +462,15 @@ export function SeverityForm({
         <p className="help">
           Recomputed from your answers every time you give one — nothing here is
           stored, so changing an answer changes this.
+        </p>
+        {/* The reading the bands so far produce. Server-computed from the
+            record; the bands on THIS screen catch up on the next save. */}
+        <div className="rating-row">
+          <RatingChip label="Inherent so far" rated={ledger.rating} compact />
+        </div>
+        <p className="help rating-gloss">
+          Inherent is how risky the activity is before anyone asks whether the
+          controls exist — the reading your bands so far produce.
         </p>
         <div className="ledger-cols">
           <section>

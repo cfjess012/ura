@@ -937,3 +937,260 @@
 .owed-blocked > h2 {
   color: var(--warning-strong);
 }
+
+/* ---------- The Assess rail: one map for the whole stage (2026-09-02) ----------
+   Four steps, one card. Each step is a nav with a numbered head, the rows
+   beneath it on a connector line, and the current step on a tint. The
+   parts step and the controls step were not on the old map at all, and the
+   severity step replaced it with a different rail — which is how "Next" on
+   the last risk area came to read as a random jump. */
+.rail {
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  background: var(--neutral-0);
+  border: 1px solid var(--neutral-200);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 0 0 0.35rem;
+}
+.rail-stage {
+  margin: 0;
+  padding: 0.8rem 1rem 0.5rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--neutral-500);
+}
+.rail-section {
+  padding: 0.6rem 0.75rem 0.65rem 1rem;
+  border-top: 1px solid var(--neutral-100);
+}
+.rail-section.current {
+  background: var(--surface-1);
+  border-top-color: var(--surface-3);
+}
+.rail-head {
+  display: grid;
+  grid-template-columns: 1.4rem 1fr auto;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0;
+}
+.rail-step {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  background: var(--neutral-0);
+  color: var(--neutral-600);
+  border: 1.5px solid var(--neutral-300);
+}
+.rail-section.current .rail-step {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+.rail-section.done .rail-step {
+  background: var(--success);
+  border-color: var(--success);
+  color: #fff;
+}
+.rail-section.upcoming .rail-step {
+  color: var(--neutral-500);
+  border-style: dashed;
+}
+.rail-head-name {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--navy);
+}
+.rail-section.upcoming .rail-head-name {
+  color: var(--neutral-500);
+}
+.rail-head-state {
+  font-size: 0.72rem;
+  color: var(--neutral-600);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.rail-section.current .rail-head-state {
+  color: var(--navy);
+  font-weight: 700;
+}
+.rail-section.done .rail-head-state {
+  color: var(--success);
+  font-weight: 700;
+}
+/* "↳ Shown because…" — the same idiom the forms use for a revealed
+   question (§24.5), so the reason reads as a reason. */
+.rail-why {
+  margin: 0.3rem 0 0.1rem 1.9rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--warning-strong);
+}
+.rail-why::before {
+  content: "\21B3\00a0";
+}
+/* Rows sit under the step's circle on a connector, so the eye can run down
+   the stage without reading a word. */
+.rail-section ol {
+  position: relative;
+  margin: 0.35rem 0 0;
+}
+.rail-section ol::before {
+  content: "";
+  position: absolute;
+  left: calc(0.7rem - 1px);
+  top: 0;
+  bottom: 0.4rem;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--neutral-200);
+}
+.rail-section.current ol::before {
+  background: var(--surface-3);
+}
+.rail-section .rail-item {
+  position: relative;
+  margin: 0 -0.4rem;
+  padding: 0.42rem 0.5rem 0.42rem 0.4rem;
+}
+.rail-section:not(.current) .rail-item {
+  padding-top: 0.32rem;
+  padding-bottom: 0.32rem;
+}
+.rail-section .rail-num {
+  position: relative;
+  outline: 2px solid var(--neutral-0);
+}
+.rail-section.current .rail-num {
+  outline-color: var(--surface-1);
+}
+.rail-item.upcoming {
+  opacity: 0.6;
+  cursor: default;
+}
+.rail-item.upcoming:hover {
+  background: transparent;
+}
+.rail-item.unanswered .rail-num {
+  background: var(--neutral-0);
+  border: 1.5px solid var(--neutral-300);
+  color: var(--neutral-600);
+}
+.rail-section .rail-standing {
+  margin-left: 1.9rem;
+}
+.rail-foot {
+  margin: 0.55rem 0.75rem 0.15rem 1rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--neutral-200);
+}
+.rail-foot a {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--link);
+  text-decoration: none;
+}
+.rail-foot a:hover {
+  text-decoration: underline;
+}
+@media (max-width: 900px) {
+  .rail {
+    position: static;
+    max-height: none;
+  }
+}
+
+/* Steps that are not the current one fold to one line per row — number,
+   name, state — so the current step is on screen without scrolling the
+   rail. Ten two-line risk-area rows pushed "Which parts apply" below the
+   fold on the very screen it was current on, which is the complaint the
+   rail exists to answer. Nothing is hidden: every row is still a link with
+   the same words, just on one line. */
+.rail-section:not(.current) .rail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+.rail-section:not(.current) .rail-num {
+  width: 1.15rem;
+  height: 1.15rem;
+  font-size: 0.62rem;
+  margin-left: 0.125rem;
+  flex: none;
+}
+.rail-section:not(.current) .rail-name {
+  font-size: 0.8rem;
+  flex: none;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rail-section:not(.current) .rail-state {
+  font-size: 0.7rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rail-section:not(.current) .rail-state::before {
+  content: "\00b7\00a0";
+  color: var(--neutral-300);
+}
+.rail-section:not(.current) .rail-state:empty::before {
+  content: none;
+}
+.rail-section:not(.current) .rail-standing {
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+}
+
+/* A finished step folds. The head is the toggle; the chevron says so. */
+.rail-fold > summary {
+  list-style: none;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.rail-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.rail-fold > summary::after {
+  content: "\203A";
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+  margin-left: 0.4rem;
+  color: var(--neutral-500);
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: transform 0.15s var(--ease);
+}
+.rail-fold > summary {
+  grid-template-columns: 1.4rem 1fr auto auto;
+}
+.rail-fold[open] > summary::after {
+  transform: rotate(90deg);
+}
+.rail-fold > summary:hover {
+  background: var(--neutral-50);
+}
+.rail-fold > summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rail-fold > summary::after {
+    transition: none;
+  }
+}

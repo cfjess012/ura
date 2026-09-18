@@ -12,6 +12,7 @@
 import { CATEGORIES } from "./instrument";
 import { SEVERITY_QUESTIONS, severityGroupKey } from "./severity";
 import { ALL_FIELDS, INTAKE_SECTIONS, sectionKey } from "./intake";
+import { OBJECTIVES } from "./tier3";
 
 /** The anchor every surface reads. One word, the same everywhere. */
 export const FOCUS = "focus";
@@ -51,6 +52,21 @@ export function destinationFor(
     return {
       href: `${base}/assess/paths${anchor}`,
       label: path.pathQuestion!.text,
+    };
+
+  // A control objective, or one of its follow-ups. A follow-up lands on
+  // its parent's card — that is where it is asked. These were the one kind
+  // of question with no destination, which left the submit screen naming
+  // an unanswered control and offering no way to it (owner rule, 08-22).
+  const objective = OBJECTIVES.find(
+    (o) =>
+      o.questionId === questionId ||
+      o.children.some((child) => child.questionId === questionId),
+  );
+  if (objective)
+    return {
+      href: `${base}/assess/objectives?${FOCUS}=${encodeURIComponent(objective.questionId)}`,
+      label: objective.name,
     };
 
   const gate = CATEGORIES.find((c) => c.questionId === questionId);

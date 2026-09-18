@@ -1,0 +1,609 @@
+{
+  "slug": "control-crosswalk",
+  "version": "2026-09-03.1",
+  "note": "Which external obligations each control objective helps satisfy (FR-52, G-80). A mapping is a reading, and it says which reading it is: EQUIVALENT where the two describe the same outcome, PARTIAL where the control carries part of a broader requirement or the requirement covers more than the control, SUPPORTS where the control makes the requirement achievable without being what it asks for. Partial is the common case and saying so is the point — a crosswalk that claimed equivalence everywhere would be flattering itself. Every entry names a control this instrument knows and a requirement the loaded framework contains, and the import refuses one that does not resolve at both ends. The reasons are the author's reading; the references are transcribed, not remembered.",
+  "mappings": [
+    {
+      "objective": "T3-IAM-01",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.AA-05",
+      "relationship": "equivalent",
+      "because": "both require access permissions and entitlements to be defined, managed and enforced on least privilege"
+    },
+    {
+      "objective": "T3-IAM-01",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 32",
+      "relationship": "supports",
+      "because": "restricting who can reach personal data is one of the measures a controller weighs under security of processing"
+    },
+    {
+      "objective": "T3-IAM-02",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.AA-03",
+      "relationship": "partial",
+      "because": "the framework requires users, services and hardware to be authenticated; multi-factor is one way of doing that, not the whole outcome"
+    },
+    {
+      "objective": "T3-IAM-03",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.AA-05",
+      "relationship": "partial",
+      "because": "privileged access is the sharpest case of the entitlement management this subcategory requires"
+    },
+    {
+      "objective": "T3-IAM-05",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.AA-05",
+      "relationship": "partial",
+      "because": "recertification is how the required management and review of entitlements is evidenced over time"
+    },
+    {
+      "objective": "T3-IAM-06",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.AA-01",
+      "relationship": "equivalent",
+      "because": "both cover identities and credentials being issued, managed, verified, revoked and audited"
+    },
+    {
+      "objective": "T3-IAM-10",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.IR-01",
+      "relationship": "partial",
+      "because": "remote access is one route by which networks must be protected from unauthorised logical access"
+    },
+    {
+      "objective": "T3-IAM-10",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.AA-05",
+      "relationship": "supports",
+      "because": "remote entry is governed by the same entitlement rules as any other access path"
+    },
+    {
+      "objective": "T3-DP-01",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.DS-01",
+      "relationship": "partial",
+      "because": "encryption at rest is one means of protecting the confidentiality of data-at-rest"
+    },
+    {
+      "objective": "T3-DP-01",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.DS-02",
+      "relationship": "partial",
+      "because": "encryption in transit is one means of protecting the confidentiality of data-in-transit"
+    },
+    {
+      "objective": "T3-DP-01",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 32",
+      "relationship": "partial",
+      "because": "encryption is named in the article as an example of an appropriate technical measure, not as a requirement in itself"
+    },
+    {
+      "objective": "T3-DP-04",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 5",
+      "relationship": "partial",
+      "because": "minimisation is one of the principles this article states; the control does not carry the others"
+    },
+    {
+      "objective": "T3-DP-04",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 25",
+      "relationship": "partial",
+      "because": "the article requires minimisation to be built in by design and by default"
+    },
+    {
+      "objective": "T3-DP-05",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 5",
+      "relationship": "partial",
+      "because": "storage limitation is one of the principles; the control implements it operationally"
+    },
+    {
+      "objective": "T3-DP-05",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 17",
+      "relationship": "supports",
+      "because": "a working deletion and disposal path is what makes erasure on request possible"
+    },
+    {
+      "objective": "T3-DP-05",
+      "framework": "nist-csf-2.0",
+      "ref": "ID.AM-08",
+      "relationship": "supports",
+      "because": "disposal is the last stage of the asset life cycle this subcategory covers"
+    },
+    {
+      "objective": "T3-DP-06",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.PS-01",
+      "relationship": "partial",
+      "because": "secret and configuration handling is part of the configuration management practices required"
+    },
+    {
+      "objective": "T3-DP-06",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.AA-04",
+      "relationship": "supports",
+      "because": "protecting credentials in configuration is how identity assertions stay protected in transit and at rest"
+    },
+    {
+      "objective": "T3-DP-07",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.DS-01",
+      "relationship": "supports",
+      "because": "media controls are one way the confidentiality of data-at-rest is protected"
+    },
+    {
+      "objective": "T3-DP-07",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.PS-03",
+      "relationship": "supports",
+      "because": "hardware retirement and destruction is part of maintaining and removing hardware commensurate with risk"
+    },
+    {
+      "objective": "T3-NB-01",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.IR-01",
+      "relationship": "equivalent",
+      "because": "both require networks and environments to be protected from unauthorised logical access and usage"
+    },
+    {
+      "objective": "T3-NB-02",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.IR-01",
+      "relationship": "partial",
+      "because": "an application firewall protects one class of exposed interface, not the whole environment"
+    },
+    {
+      "objective": "T3-NB-02",
+      "framework": "nist-csf-2.0",
+      "ref": "DE.CM-01",
+      "relationship": "supports",
+      "because": "an endpoint protection layer is also a place adverse network events are found"
+    },
+    {
+      "objective": "T3-NB-03",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.IR-01",
+      "relationship": "partial",
+      "because": "interface security covers the application-level entry points within the protected environment"
+    },
+    {
+      "objective": "T3-NB-03",
+      "framework": "nist-csf-2.0",
+      "ref": "ID.AM-03",
+      "relationship": "supports",
+      "because": "securing interfaces depends on the authorised communication and data flows being represented"
+    },
+    {
+      "objective": "T3-NB-05",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.IR-03",
+      "relationship": "partial",
+      "because": "denial-of-service protection is one mechanism for achieving resilience in adverse situations"
+    },
+    {
+      "objective": "T3-NB-05",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.IR-04",
+      "relationship": "partial",
+      "because": "absorbing load is how adequate resource capacity is maintained under attack"
+    },
+    {
+      "objective": "T3-LOG-01",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.PS-04",
+      "relationship": "equivalent",
+      "because": "both require log records to be generated and made available for monitoring"
+    },
+    {
+      "objective": "T3-LOG-02",
+      "framework": "nist-csf-2.0",
+      "ref": "DE.CM-09",
+      "relationship": "partial",
+      "because": "continuous monitoring covers computing assets and their data; the control also spans the wider estate"
+    },
+    {
+      "objective": "T3-LOG-02",
+      "framework": "nist-csf-2.0",
+      "ref": "DE.AE-03",
+      "relationship": "supports",
+      "because": "monitoring is what makes information from multiple sources available to correlate"
+    },
+    {
+      "objective": "T3-SDLC-03",
+      "framework": "nist-csf-2.0",
+      "ref": "ID.RA-01",
+      "relationship": "partial",
+      "because": "vulnerability management is how vulnerabilities in assets are identified, validated and recorded"
+    },
+    {
+      "objective": "T3-SDLC-03",
+      "framework": "nist-csf-2.0",
+      "ref": "ID.RA-08",
+      "relationship": "supports",
+      "because": "a disclosure intake is one source feeding the vulnerability process"
+    },
+    {
+      "objective": "T3-SDLC-04",
+      "framework": "nist-csf-2.0",
+      "ref": "ID.IM-02",
+      "relationship": "partial",
+      "because": "penetration testing is one of the security tests from which improvements are identified"
+    },
+    {
+      "objective": "T3-SDLC-05",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.PS-05",
+      "relationship": "partial",
+      "because": "malicious code protection is one way unauthorised software is prevented from executing"
+    },
+    {
+      "objective": "T3-SDLC-06",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.PS-02",
+      "relationship": "partial",
+      "because": "patching is how software is maintained commensurate with risk"
+    },
+    {
+      "objective": "T3-SDLC-06",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.PS-06",
+      "relationship": "supports",
+      "because": "release and patch discipline is part of secure development practice"
+    },
+    {
+      "objective": "T3-RES-01",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.DS-11",
+      "relationship": "equivalent",
+      "because": "both require backups to be created, protected, maintained and tested"
+    },
+    {
+      "objective": "T3-RES-01",
+      "framework": "nist-csf-2.0",
+      "ref": "RC.RP-03",
+      "relationship": "supports",
+      "because": "verifying backup integrity before restoring is what makes a backup a recovery capability"
+    },
+    {
+      "objective": "T3-RES-02",
+      "framework": "nist-csf-2.0",
+      "ref": "RS.MA-01",
+      "relationship": "partial",
+      "because": "the control covers the response capability; this subcategory covers executing the plan once an incident is declared"
+    },
+    {
+      "objective": "T3-RES-02",
+      "framework": "nist-csf-2.0",
+      "ref": "ID.IM-04",
+      "relationship": "supports",
+      "because": "an incident response plan has to exist and be exercised before it can be executed"
+    },
+    {
+      "objective": "T3-RES-02",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 33",
+      "relationship": "supports",
+      "because": "a working response process is what makes notification within seventy-two hours achievable"
+    },
+    {
+      "objective": "T3-RES-03",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.IR-03",
+      "relationship": "partial",
+      "because": "continuity arrangements are one mechanism for resilience in adverse situations"
+    },
+    {
+      "objective": "T3-RES-03",
+      "framework": "nist-csf-2.0",
+      "ref": "RC.RP-04",
+      "relationship": "partial",
+      "because": "continuity planning is where critical mission functions are established for recovery"
+    },
+    {
+      "objective": "T3-TPR-01",
+      "framework": "nist-csf-2.0",
+      "ref": "GV.SC-05",
+      "relationship": "partial",
+      "because": "flow-down clauses are how supply chain requirements are established and integrated into contracts"
+    },
+    {
+      "objective": "T3-TPR-01",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 28",
+      "relationship": "partial",
+      "because": "the article sets what a processor contract must contain; the control is the contracting practice that meets it"
+    },
+    {
+      "objective": "T3-TPR-02",
+      "framework": "nist-csf-2.0",
+      "ref": "GV.SC-07",
+      "relationship": "partial",
+      "because": "independent assurance is one input to understanding and monitoring supplier risk"
+    },
+    {
+      "objective": "T3-TPR-02",
+      "framework": "nist-csf-2.0",
+      "ref": "ID.RA-10",
+      "relationship": "supports",
+      "because": "assurance evidence is what a pre-acquisition assessment of a critical supplier rests on"
+    },
+    {
+      "objective": "T3-TPR-03",
+      "framework": "nist-csf-2.0",
+      "ref": "GV.SC-04",
+      "relationship": "supports",
+      "because": "knowing the subcontractor chain is part of knowing and prioritising suppliers"
+    },
+    {
+      "objective": "T3-TPR-03",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 28",
+      "relationship": "partial",
+      "because": "the article governs a processor engaging another processor, which is the fourth-party case"
+    },
+    {
+      "objective": "T3-TPR-04",
+      "framework": "nist-csf-2.0",
+      "ref": "GV.SC-02",
+      "relationship": "partial",
+      "because": "third-party access governance is one part of establishing supplier roles and responsibilities"
+    },
+    {
+      "objective": "T3-TPR-04",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.AA-05",
+      "relationship": "supports",
+      "because": "a supplier's access is governed by the same entitlement rules as anyone else's"
+    },
+    {
+      "objective": "T3-TPR-05",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.AA-06",
+      "relationship": "partial",
+      "because": "supplier site access is one case of physical access being managed, monitored and enforced"
+    },
+    {
+      "objective": "T3-GOV-02",
+      "framework": "nist-csf-2.0",
+      "ref": "GV.RM-04",
+      "relationship": "partial",
+      "because": "an approval and acceptance route is how the stated risk response options are exercised"
+    },
+    {
+      "objective": "T3-GOV-02",
+      "framework": "nist-csf-2.0",
+      "ref": "ID.RA-06",
+      "relationship": "supports",
+      "because": "acceptance is one of the risk responses that must be chosen, recorded and tracked"
+    },
+    {
+      "objective": "T3-GOV-03",
+      "framework": "nist-csf-2.0",
+      "ref": "GV.OV-01",
+      "relationship": "partial",
+      "because": "ongoing oversight is how risk management outcomes are reviewed to adjust strategy"
+    },
+    {
+      "objective": "T3-GOV-03",
+      "framework": "nist-csf-2.0",
+      "ref": "GV.OV-03",
+      "relationship": "supports",
+      "because": "reporting is how performance is evaluated and reviewed"
+    },
+    {
+      "objective": "T3-HR-01",
+      "framework": "nist-csf-2.0",
+      "ref": "GV.RR-04",
+      "relationship": "partial",
+      "because": "screening is one of the human resources practices in which cybersecurity must be included"
+    },
+    {
+      "objective": "T3-HR-02",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.AT-01",
+      "relationship": "equivalent",
+      "because": "both require personnel to be given the awareness and training their role needs"
+    },
+    {
+      "objective": "T3-HR-02",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.AT-02",
+      "relationship": "supports",
+      "because": "specialised roles need training beyond the general awareness programme"
+    },
+    {
+      "objective": "T3-OPS-04",
+      "framework": "nist-csf-2.0",
+      "ref": "GV.PO-01",
+      "relationship": "supports",
+      "because": "documented procedure is how policy becomes something people can follow and audit"
+    },
+    {
+      "objective": "T3-PRIV-02",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 6",
+      "relationship": "equivalent",
+      "because": "both require a lawful basis to be established before personal data is processed"
+    },
+    {
+      "objective": "T3-PRIV-02",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 7",
+      "relationship": "partial",
+      "because": "where the basis is consent, the article sets the conditions the control has to meet"
+    },
+    {
+      "objective": "T3-PRIV-03",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 12",
+      "relationship": "partial",
+      "because": "the article sets how requests are handled; the control is the capability to answer them"
+    },
+    {
+      "objective": "T3-PRIV-03",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 15",
+      "relationship": "supports",
+      "because": "access is the most exercised of the rights the control has to serve"
+    },
+    {
+      "objective": "T3-PRIV-03",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 17",
+      "relationship": "supports",
+      "because": "erasure is a right the control has to be able to carry out"
+    },
+    {
+      "objective": "T3-PRIV-04",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 13",
+      "relationship": "partial",
+      "because": "notice at collection is one half of the transparency obligation"
+    },
+    {
+      "objective": "T3-PRIV-04",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 14",
+      "relationship": "partial",
+      "because": "notice where data came from elsewhere is the other half"
+    },
+    {
+      "objective": "T3-PRIV-05",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 9",
+      "relationship": "partial",
+      "because": "special-category processing is prohibited unless a condition applies, which the control is how you evidence"
+    },
+    {
+      "objective": "T3-PRIV-05",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 22",
+      "relationship": "partial",
+      "because": "the article governs solely automated decisions with legal or similarly significant effect"
+    },
+    {
+      "objective": "T3-CMP-02",
+      "framework": "nist-csf-2.0",
+      "ref": "GV.OC-03",
+      "relationship": "supports",
+      "because": "communications review is one way legal and regulatory requirements are understood and managed"
+    },
+    {
+      "objective": "T3-CMP-03",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 44",
+      "relationship": "partial",
+      "because": "the control implements the general principle governing transfers out of the Union"
+    },
+    {
+      "objective": "T3-CMP-03",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 46",
+      "relationship": "partial",
+      "because": "appropriate safeguards are the usual route the control has to put in place"
+    },
+    {
+      "objective": "T3-AI-01",
+      "framework": "eu-ai-act-2024-1689",
+      "ref": "Article 9",
+      "relationship": "partial",
+      "because": "model governance carries the risk management system the article requires across the system's lifecycle"
+    },
+    {
+      "objective": "T3-AI-01",
+      "framework": "eu-ai-act-2024-1689",
+      "ref": "Article 17",
+      "relationship": "supports",
+      "because": "a quality management system is where model governance is documented and kept"
+    },
+    {
+      "objective": "T3-AI-02",
+      "framework": "eu-ai-act-2024-1689",
+      "ref": "Article 14",
+      "relationship": "equivalent",
+      "because": "both require human oversight designed so a person can understand, intervene and stop the system"
+    },
+    {
+      "objective": "T3-AI-03",
+      "framework": "eu-ai-act-2024-1689",
+      "ref": "Article 10",
+      "relationship": "partial",
+      "because": "the article requires training, validation and testing data to be examined for bias; the control is that testing"
+    },
+    {
+      "objective": "T3-AI-05",
+      "framework": "eu-ai-act-2024-1689",
+      "ref": "Article 11",
+      "relationship": "partial",
+      "because": "technical documentation is what explainability evidence is recorded in"
+    },
+    {
+      "objective": "T3-AI-05",
+      "framework": "eu-ai-act-2024-1689",
+      "ref": "Article 13",
+      "relationship": "partial",
+      "because": "the article requires the system to be transparent enough for a deployer to interpret its output"
+    },
+    {
+      "objective": "T3-AI-06",
+      "framework": "eu-ai-act-2024-1689",
+      "ref": "Article 15",
+      "relationship": "partial",
+      "because": "output quality is part of the accuracy and robustness the article requires"
+    },
+    {
+      "objective": "T3-AI-07",
+      "framework": "gdpr-2016-679",
+      "ref": "Article 5",
+      "relationship": "partial",
+      "because": "personal data in prompts and outputs is processing, and the principles apply to it"
+    },
+    {
+      "objective": "T3-AI-07",
+      "framework": "eu-ai-act-2024-1689",
+      "ref": "Article 10",
+      "relationship": "supports",
+      "because": "data governance covers what personal data enters the model's data sets"
+    },
+    {
+      "objective": "T3-AI-08",
+      "framework": "eu-ai-act-2024-1689",
+      "ref": "Article 14",
+      "relationship": "partial",
+      "because": "bounding what an agent may act on is one way the required oversight is made effective"
+    },
+    {
+      "objective": "T3-AI-09",
+      "framework": "nist-csf-2.0",
+      "ref": "PR.AA-05",
+      "relationship": "partial",
+      "because": "retrieval has to honour the same entitlements as any other route to the data"
+    },
+    {
+      "objective": "T3-AI-10",
+      "framework": "eu-ai-act-2024-1689",
+      "ref": "Article 10",
+      "relationship": "equivalent",
+      "because": "both govern the provenance, quality and governance of the data a model is trained on"
+    },
+    {
+      "objective": "T3-AI-11",
+      "framework": "eu-ai-act-2024-1689",
+      "ref": "Article 86",
+      "relationship": "partial",
+      "because": "the article gives an affected person the right to an explanation; the control is the route by which they get one"
+    },
+    {
+      "objective": "T3-AI-11",
+      "framework": "eu-ai-act-2024-1689",
+      "ref": "Article 85",
+      "relationship": "supports",
+      "because": "a working feedback and recourse path is what keeps a complaint from being the only option"
+    }
+  ]
+}

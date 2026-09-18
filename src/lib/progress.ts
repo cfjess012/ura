@@ -13,7 +13,7 @@
  * Pure: no framework, no driver, no environment (§26.1).
  */
 import { CATEGORIES, gateStates, unansweredCount } from "./instrument";
-import { litPaths } from "./engine";
+import { litPaths, pathSelectionsFrom } from "./engine";
 import { sectionProgress, type IntakeValues } from "./intake";
 import {
   accumulateControls,
@@ -99,13 +99,7 @@ function assessStanding(intake: IntakeValues, stored: Stored): OwnStanding {
   const gates = gateStates(stored, intake);
   const openGates = unansweredCount(gates);
 
-  const selections: Record<string, string[]> = {};
-  for (const category of CATEGORIES) {
-    const value = category.pathQuestion
-      ? stored[category.pathQuestion.questionId]?.value
-      : undefined;
-    if (Array.isArray(value)) selections[category.key] = value as string[];
-  }
+  const selections = pathSelectionsFrom(CATEGORIES, stored);
   const unnarrowed = gates.filter(
     (g) =>
       g.answer === "Yes" &&

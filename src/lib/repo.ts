@@ -204,21 +204,50 @@ export function postgresProjectStore(): ProjectStore {
           coalesce((select array_agg(distinct at.question_id) from attestations at
              where at.project_id = p.id), '{}')
                                   as "attestedIds",
+          -- "Open" has ONE definition — findingIsOpen in submission.ts —
+          -- and this SQL is that definition again, in the only place it
+          -- cannot be called. It used to count any disposition row as
+          -- settled, so an acceptance past its expiry vanished from the
+          -- queue and the bell while the review, the report and the
+          -- packaging gate all still showed it open (S13 audit, defect a).
+          -- The newest settlement decides; an expired acceptance is open.
           coalesce((select array_agg(f.objective) from findings f
-             left join dispositions d on d.finding_id = f.id
-             where f.project_id = p.id and d.id is null
-               and f.kind = 'gap'), '{}')
+             left join lateral (
+               select d.kind, d.expires_at from dispositions d
+               where d.finding_id = f.id order by d.resolved_at desc limit 1
+             ) d on true
+             where f.project_id = p.id and f.kind = 'gap'
+               and (d.kind is null or (d.kind = 'risk-accepted'
+                 and (d.expires_at is null or d.expires_at <= now())))), '{}')
                                   as "openGaps",
           coalesce((select array_agg(f.objective) from findings f
-             left join dispositions d on d.finding_id = f.id
-             where f.project_id = p.id and d.id is null
-               and f.kind = 'enhancement'), '{}')
+             left join lateral (
+               select d.kind, d.expires_at from dispositions d
+               where d.finding_id = f.id order by d.resolved_at desc limit 1
+             ) d on true
+             where f.project_id = p.id and f.kind = 'enhancement'
+               and (d.kind is null or (d.kind = 'risk-accepted'
+                 and (d.expires_at is null or d.expires_at <= now())))), '{}')
                                   as "openEnhancements",
           coalesce((select array_agg(f.objective) from findings f
-             left join dispositions d on d.finding_id = f.id
-             where f.project_id = p.id and d.id is null
-               and f.kind = 'non-compliance'), '{}')
+             left join lateral (
+               select d.kind, d.expires_at from dispositions d
+               where d.finding_id = f.id order by d.resolved_at desc limit 1
+             ) d on true
+             where f.project_id = p.id and f.kind = 'non-compliance'
+               and (d.kind is null or (d.kind = 'risk-accepted'
+                 and (d.expires_at is null or d.expires_at <= now())))), '{}')
                                   as "openViolations",
+          -- A remediation past its due date with nothing closing it. The
+          -- date was stored and never read anywhere (S13 audit, defect g).
+          coalesce((select array_agg(f.objective) from findings f
+             join lateral (
+               select d.kind, d.remediation_due from dispositions d
+               where d.finding_id = f.id order by d.resolved_at desc limit 1
+             ) d on true
+             where f.project_id = p.id and d.kind = 'remediation'
+               and d.remediation_due < now()), '{}')
+                                  as "overdueRemediations",
           -- jsonb_typeof guard, not decoration: one legacy row holds the
           -- string "[]" rather than an array, and jsonb_array_length
           -- throws on a scalar rather than returning null.
@@ -252,6 +281,8 @@ export function postgresProjectStore(): ProjectStore {
           openGaps: (row.openGaps as string[] | null) ?? [],
           openEnhancements: (row.openEnhancements as string[] | null) ?? [],
           openViolations: (row.openViolations as string[] | null) ?? [],
+          overdueRemediations:
+            (row.overdueRemediations as string[] | null) ?? [],
           declaredGaps: Number(row.declaredGaps ?? 0),
         },
       }));

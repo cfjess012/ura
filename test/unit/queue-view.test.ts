@@ -10,6 +10,7 @@ const NONE: ReviewCounts = {
   openGaps: [],
   openEnhancements: [],
   openViolations: [],
+  overdueRemediations: [],
   declaredGaps: 0,
 };
 
@@ -192,5 +193,17 @@ describe("the requester's own view", () => {
     expect(aged("draft")).toBe("untouched for 4 days");
     expect(aged("sent")).toBe("with a reviewer 4 days");
     expect(aged("done")).toBe("submitted 4 days ago");
+  });
+});
+
+describe("an overdue fix blocks, and says so (S13)", () => {
+  it("files it under the reviewer's decisions and names it in the sentence", () => {
+    const queue = reviewerQueue(
+      [submitted("late-fix", 3, { ...NONE, overdueRemediations: ["T3-IAM-02"] })],
+      NOW,
+    );
+    expect(queue.groups.map((g) => g.key)).toEqual(["blocked"]);
+    expect(queue.groups[0]!.entries[0]!.says).toMatch(/past its due date/);
+    expect(queue.blocking).toBe(1);
   });
 });

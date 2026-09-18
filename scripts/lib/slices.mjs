@@ -33,7 +33,15 @@ export function doneSlices(claudeMd) {
     // One line can carry several slices, separated by a middot.
     for (const entry of line.split("·")) {
       // DONE as a word, however it is decorated: **DONE**, `DONE`, DONE.
-      if (!/\bDONE\b/.test(entry.replace(/[*`_]/g, ""))) continue;
+      const plain = entry.replace(/[*`_]/g, "");
+      if (!/\bDONE\b/.test(plain)) continue;
+      // ...but "not DONE" is the opposite claim, and reading it as DONE
+      // makes the gate demand a UAT record for a slice that says, in the
+      // same breath, that it has none. Deliberately narrow: only the word
+      // immediately before DONE. A broader "contains not" rule would hide
+      // a genuinely finished slice behind a line like "DONE, not yet
+      // reviewed" — which is the failure that actually matters here.
+      if (/\bnot\s+DONE\b/i.test(plain)) continue;
       const id = entry.match(/\bS\d+(?:\.\d+)*/)?.[0];
       if (id && !found.includes(id)) found.push(id);
     }

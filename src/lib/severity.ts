@@ -18,7 +18,7 @@ import {
   type Band,
   type Condition,
 } from "./conditions";
-import { ALL_PATHS, SEVERITY_OF, assessmentLookup, litPaths } from "./engine";
+import { ALL_PATHS, SEVERITY_OF, assessmentLookup, litFrom, litPaths } from "./engine";
 import { CATEGORIES, gateStates, type GateState } from "./instrument";
 import { ALL_FIELDS } from "./intake";
 
@@ -564,15 +564,8 @@ export function accumulatedFor(
   intake: AnswerLookup,
 ): AccumulatedControl[] {
   const gates = gateStates(stored, intake);
-  const selections: Record<string, string[]> = {};
-  for (const category of CATEGORIES) {
-    const value = category.pathQuestion
-      ? stored[category.pathQuestion.questionId]?.value
-      : undefined;
-    if (Array.isArray(value)) selections[category.key] = value as string[];
-  }
   const questions = severityQuestionsFor(
-    litPaths(CATEGORIES, gates, selections, intake).map((p) => p.id),
+    litFrom(CATEGORIES, stored, gates, intake).map((p) => p.id),
   );
   const bands: Record<string, Band | undefined> = {};
   const details: Record<string, string[] | undefined> = {};
@@ -586,4 +579,28 @@ export function accumulatedFor(
     }
   }
   return accumulateControls(questions, bands, details);
+}
+
+/** Severity questions grouped by the area they belong to, in instrument order. */
+export type SeverityGroup = {
+  key: string;
+  name: string;
+  questions: SeverityQuestion[];
+};
+
+export function groupsFor(questions: SeverityQuestion[]): SeverityGroup[] {
+  const order: string[] = [];
+  const byName = new Map<string, SeverityQuestion[]>();
+  for (const q of questions) {
+    if (!byName.has(q.category)) {
+      byName.set(q.category, []);
+      order.push(q.category);
+    }
+    byName.get(q.category)!.push(q);
+  }
+  return order.map((name) => ({
+    key: severityGroupKey(name),
+    name,
+    questions: byName.get(name)!,
+  }));
 }

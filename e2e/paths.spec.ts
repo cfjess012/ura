@@ -9,6 +9,21 @@ import {
   startAssessment,
 } from "./helpers";
 
+/**
+ * Open the risk-area record on the standing page.
+ *
+ * The map, the parts and their provenance used to sit on the face of that
+ * screen, which is part of why it ran to 1,067 words (G-91). They are one
+ * click away now; the rules they carry are unchanged, so these journeys make
+ * the click a person would.
+ */
+async function openAreas(page: import("@playwright/test").Page) {
+  await page
+    .locator(".standing-detail-block", { hasText: "Which risk areas apply" })
+    .locator("summary")
+    .click();
+}
+
 test("open areas narrow down; the engine adds paths and says why", async ({
   page,
 }) => {
@@ -67,11 +82,10 @@ test("open areas narrow down; the engine adds paths and says why", async ({
   // The summary lists what will be asked, chosen and derived alike. The
   // journey now runs on into severity, so ask for the summary directly.
   await page.goto(`${base}/assess/complete`);
-  // The preview of what severity will ask now lives inside the severity
-  // card, beside its own button, rather than as a card three sections above
-  // the one that links to it.
-  await expect(page.getByText("What they cover")).toBeVisible();
+  await openAreas(page);
+  await expect(page.getByText("The parts in play")).toBeVisible();
   await expect(page.getByText(/Personal Information in AI/)).toBeVisible();
+  // A derived path still says what derived it (§24.5).
   await expect(
     page.getByText(/personal information is involved and that this uses AI/),
   ).toBeVisible();
@@ -91,10 +105,7 @@ test("changing an upstream answer re-derives the paths — nothing is stored", a
     .check();
   await page.getByRole("button", { name: /Next: how severe/ }).click();
   await page.goto(`${base}/assess/complete`);
-  // The preview of what severity will ask now lives inside the severity
-  // card, beside its own button, rather than as a card three sections above
-  // the one that links to it.
-  await expect(page.getByText("What they cover")).toBeVisible();
+  await openAreas(page);
   await expect(page.getByText(/Personal Information in AI/)).toHaveCount(0);
 
   // Now go back to intake and say the activity DOES use AI.
@@ -169,16 +180,16 @@ test("answering No to everything still reaches the summary (B2)", async ({
     .getByRole("link", { name: /See the summary|Continue to how severe/ })
     .click();
   await page.goto(`${base}/assess/complete`);
-  await expect(
-    page.getByRole("heading", { name: /whole map|areas answered/ }),
-  ).toBeVisible();
-  // And it must not claim they answered something they were never asked.
-  await expect(
-    page.getByText(/None of the areas that apply here ask a follow-up/),
-  ).toBeVisible();
+  // It must not claim they answered something they were never asked: the
+  // row says nobody was asked, never that they said "none apply".
+  const parts = page.locator(".standing-row", { hasText: "Which parts" });
+  await expect(parts).toContainText("None of the open areas asks a follow-up");
+  await expect(parts).toContainText("Nothing to do");
   await expect(
     page.getByText(/You told us none of the specific threads apply/),
   ).toHaveCount(0);
+  // And there is always a way on — the dead end this test was written for.
+  await expect(page.locator(".btn-lead")).toBeVisible();
 });
 
 test("one tick records one area, not four (N3)", async ({ page }) => {
@@ -196,9 +207,8 @@ test("one tick records one area, not four (N3)", async ({ page }) => {
   // The other open areas are still outstanding, and the summary says so
   // rather than presenting them as narrowed.
   await page.goto(`${base}/assess/complete`);
-  await expect(
-    page.getByRole("heading", { name: "Still to narrow down" }),
-  ).toBeVisible();
+  await expect(page.locator("h2.display")).toHaveText("Ready to narrow it down.");
+  await expect(page.locator(".btn-lead")).toContainText("Narrow down");
 });
 
 test("a gate answered by another gate does not claim to come from intake (N2)", async ({
@@ -237,6 +247,7 @@ test("a gate answered by another gate does not claim to come from intake (N2)", 
     "from your answers",
   );
   await page.goto(`${base}/assess/complete`);
+  await openAreas(page);
   await expect(
     page.getByText(/Security & Resilience.*answered from your answers/),
   ).toBeVisible();

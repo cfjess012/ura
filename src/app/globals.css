@@ -10,10 +10,17 @@
 @import "./styles/chrome.css";
 @import "./styles/forms.css";
 @import "./styles/assess.css";
+@import "./styles/standing.css";
 @import "./styles/controls.css";
+@import "./styles/register.css";
+@import "./styles/platform.css";
+@import "./styles/platform-admin.css";
 @import "./styles/review.css";
 @import "./styles/assistant.css";
 @import "./styles/report.css";
+@import "./styles/record.css";
 @import "./styles/admin.css";
+@import "./styles/model.css";
+@import "./styles/rating.css";
 @import "./styles/landing.css";
 @import "./styles/status.css";

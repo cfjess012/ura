@@ -14,6 +14,7 @@
  * area may sign a control is derived from the question being signed.
  */
 import { revalidatePath } from "next/cache";
+import { findingStanding } from "@/lib/submission";
 import { currentPerson } from "@/lib/current-person";
 import { failure, type Result } from "@/lib/errors";
 import { attestationProblem, attestationRefusal } from "@/lib/attestation";
@@ -225,6 +226,23 @@ export async function disposeFinding(
         "disposeFinding",
         new NotPermitted("settle a finding", person.role),
         refusal,
+        { retryable: false, expected: true },
+      );
+    }
+    // A finding that is settled and not past its date is not settled again.
+    // The screen offers the control only when there is a decision to make
+    // (open, or a fix past its promised date); the server states the same
+    // rule, because a stale form is not authority (S13 verifier F1).
+    const now = new Date();
+    const inForce =
+      (await reviewStore().dispositionsFor(projectId)).find(
+        (row) => row.findingId === input.findingId,
+      ) ?? null;
+    if (findingStanding(inForce, now) === "settled") {
+      return failure(
+        "disposeFinding",
+        new Error("already settled"),
+        "This finding is already settled. If the answer has changed, correct it through attestation — the finding follows.",
         { retryable: false, expected: true },
       );
     }

@@ -62,7 +62,45 @@ export type IntakeScoring = {
   scores: Array<{ id: string; score: 1 | 2 | 3 | 4; note?: string }>;
   conflicts: IntakeConflict[];
   summary: IntakeSummary | null;
+  /**
+   * Why nothing was scored, when nothing was. Absent on a real read.
+   *
+   * `describeIntake` and `rewriteIntake` have always named their trouble;
+   * this one returned an empty scoring for all of them, so a stopped agent
+   * and a rejected API key reached the screen as the same sentence. What a
+   * person does next differs — one is worth retrying and one needs somebody
+   * to fix a key — and that difference is the whole reason the vocabulary
+   * exists (`assistant-trouble.ts`).
+   */
+  why?: Trouble;
 };
+
+/**
+ * How long to wait for a score before giving up on it.
+ *
+ * The check reads a whole intake and runs 12–25 seconds, so this is
+ * deliberately far past typical. It exists for the case with no floor at
+ * all: a fetch with no signal waits as long as the tab stays open, and the
+ * button sits on "Reading it…" forever. The check is advisory and never
+ * blocks the way forward, so a bounded wait costs nothing.
+ */
+const SCORE_TIMEOUT_MS = 90_000;
+
+/**
+ * Which trouble a failed HTTP answer represents.
+ *
+ * The agent names its own where it can — it is the only side that knows
+ * whether Claude rejected the key or the rate limiter did — and this is the
+ * fallback for the answers that carry no name. The mapping is the one a
+ * person's next action turns on: waiting helps for 429 and 5xx, and never
+ * for 401.
+ */
+function troubleFromStatus(status: number): Trouble {
+  if (status === 401 || status === 403) return "auth";
+  if (status === 429) return "rate";
+  if (status >= 500) return "overloaded";
+  return "unavailable";
+}
 
 export type AgentTransport = {
   /** Which transport this is, for receipts and diagnostics. */
@@ -177,7 +215,12 @@ function notConfigured(): AgentTransport {
       return null;
     },
     async scoreIntake() {
-      return { scores: [], conflicts: [], summary: null };
+      return {
+        scores: [],
+        conflicts: [],
+        summary: null,
+        why: "unreachable" as const,
+      };
     },
     async explain() {
       return [];
@@ -224,6 +267,7 @@ function localTransport(baseUrl: string): AgentTransport {
       }
     },
     async scoreIntake(input) {
+      const nothing = { scores: [], conflicts: [], summary: null };
       try {
         const response = await fetch(`${url}/score-intake`, {
           method: "POST",
@@ -232,22 +276,40 @@ function localTransport(baseUrl: string): AgentTransport {
             "x-agent-contract": AGENT_CONTRACT_VERSION,
           },
           body: JSON.stringify(input),
+          signal: AbortSignal.timeout(SCORE_TIMEOUT_MS),
         });
-        if (!response.ok) return { scores: [], conflicts: [], summary: null };
-        const body = (await response.json()) as {
+        const body = (await response.json().catch(() => null)) as {
           scores?: unknown;
           conflicts?: unknown;
           summary?: unknown;
-        };
+          why?: unknown;
+        } | null;
+        // The agent's own name for the trouble beats anything read off a
+        // status code, whichever side of `ok` it arrives on.
+        if (typeof body?.why === "string" && isTrouble(body.why)) {
+          return { ...nothing, why: body.why };
+        }
+        if (!response.ok) {
+          return { ...nothing, why: troubleFromStatus(response.status) };
+        }
+        const scores = Array.isArray(body?.scores) ? body.scores : [];
+        // No scores is not a grade of nought. Something answered and said
+        // nothing usable, which is what `unavailable` means — and saying so
+        // is the difference between "try once more" and a silent shrug.
+        if (scores.length === 0) return { ...nothing, why: "unavailable" };
         return {
-          scores: Array.isArray(body.scores) ? body.scores : [],
-          conflicts: Array.isArray(body.conflicts) ? body.conflicts : [],
-          summary: (body.summary as IntakeSummary | null) ?? null,
+          scores,
+          conflicts: Array.isArray(body?.conflicts) ? body.conflicts : [],
+          summary: (body?.summary as IntakeSummary | null) ?? null,
         };
       } catch (cause) {
-        // Fails open, deliberately and visibly.
-        console.error("[agent] score-intake unreachable", cause);
-        return { scores: [], conflicts: [], summary: null };
+        // Fails open, deliberately and visibly — but it now says which
+        // failure it was. A timeout is the assistant running and being too
+        // slow, which is worth another go; a refused connection is not.
+        const timedOut = cause instanceof Error && cause.name === "TimeoutError";
+        const why: Trouble = timedOut ? "overloaded" : "unreachable";
+        console.error("[agent] score-intake", why, cause);
+        return { ...nothing, why };
       }
     },
     async explain(input) {

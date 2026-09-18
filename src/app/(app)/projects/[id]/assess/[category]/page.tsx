@@ -24,7 +24,8 @@ import {
 import { stageOf } from "@/lib/submission";
 import { ProjectHeader } from "../../project-header";
 import { GateForm } from "../gate-form";
-import { GateRail } from "../gate-rail";
+import { AssessRail } from "../assess-rail";
+import { afterAreas, assessJourney } from "@/lib/assess-journey";
 
 export const dynamic = "force-dynamic";
 
@@ -99,7 +100,8 @@ export default async function GatePage({
         })),
       }
     : null;
-  const states = gateStates(stored, intake);
+  const journey = assessJourney(stored, intake);
+  const states = journey.gates;
   const state = states.find((s) => s.category.key === key)!;
   // A proposal is only a proposal while nobody has answered: the moment a
   // person answers, theirs is the newest row and this is gone.
@@ -135,9 +137,12 @@ export default async function GatePage({
   };
   const next = index === -1 ? neighbour(1) : askable[index + 1];
   const previous = index === -1 ? neighbour(-1) : askable[index - 1];
+  // After the last area, the step after the areas — by name, and only the
+  // parts screen when some area asks for it.
+  const after = afterAreas(journey, Boolean(category.pathQuestion));
   const nextHref = next
     ? `/projects/${id}/assess/${next.key}`
-    : `/projects/${id}/assess/paths`;
+    : `/projects/${id}/assess/${after.path}`;
   const remaining = unansweredCount(states);
 
   return (
@@ -154,7 +159,11 @@ export default async function GatePage({
       />
 
       <div className="assess-layout">
-        <GateRail projectId={id} states={states} currentKey={key} />
+        <AssessRail
+          projectId={id}
+          journey={journey}
+          at={{ section: "areas", key }}
+        />
 
         <section>
           <p className="eyebrow">
@@ -253,7 +262,11 @@ export default async function GatePage({
               </Link>
             )}
             <Link className="btn ghost" href={nextHref}>
-              {state.settled || state.answer ? "Next →" : "Skip for now →"}
+              {state.settled || state.answer
+                ? next
+                  ? "Next →"
+                  : after.label
+                : "Skip for now →"}
             </Link>
           </div>
         </section>

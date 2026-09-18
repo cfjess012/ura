@@ -49,6 +49,18 @@
   --warning-strong: #d64205;
   --warning-bg: #fff0e5;
   --error: #e40c0c;
+  /* Risk rating bands (FR-50): ink on tint, each pair at or above 4.5:1 for
+     the 13px band word. The state is always the word — never the tint. */
+  --rating-low-ink: #00733a;
+  --rating-low-tint: #e6f6ec;
+  --rating-high-ink: #b83800;
+  --rating-high-tint: var(--warning-bg);
+  --rating-critical-ink: #c40000;
+  --rating-critical-tint: #fde8e8;
+  /* No reading yet. Deliberately not the Low green: an unassessed record
+     must never borrow the colour of a safe one (G-81). 5.9:1 on its tint. */
+  --rating-unrated-ink: #5b4a1f;
+  --rating-unrated-tint: #f3edda;
   /* The marker pen over a gap somebody still has to fill. Yellow because
      that is what a highlighter is, and it has to read as "unfinished"
      beside the orange the platform already uses for "wrong". */
@@ -97,4 +109,26 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* A wait that stopped being a wait (§24.4). It says what is safe and offers
+   the way out — a spinner that never resolves is indistinguishable from a
+   broken page, and that is what an owner met. */
+.loading-stalled {
+  max-width: 42rem;
+  margin: 1rem 0 1.2rem;
+  padding: 0.9rem 1rem;
+  font-size: 14px;
+  color: var(--neutral-900);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+}
+
+.loading-stalled p {
+  margin: 0 0 0.6rem;
+}
+
+.loading-stalled p:last-child {
+  margin-bottom: 0;
 }

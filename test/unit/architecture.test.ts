@@ -513,3 +513,91 @@ describe("every class a component uses is defined somewhere", () => {
     ).toEqual([]);
   });
 });
+
+describe("S13 · a rule with one definition is only worth what reaches it", () => {
+  const SRC = join(__dirname, "..", "..", "src");
+  const read = (rel: string) => readFileSync(join(SRC, rel), "utf8");
+  const filesUnder = (dir: string, out: string[] = []): string[] => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) filesUnder(full, out);
+      else if (/\.tsx?$/.test(entry)) out.push(full);
+    }
+    return out;
+  };
+
+  it("intake visibility calls the one predicate rather than re-implementing it", () => {
+    // The header said it routed through matches(); the body evaluated the
+    // three operators by hand. Two evaluators agree until one changes.
+    const intake = read("lib/intake.ts");
+    expect(intake).toMatch(/import \{[^}]*\bmatches\b[^}]*\} from "\.\/conditions"/);
+    expect(intake).not.toMatch(/"(hasValue|equalsAny|includesAny)" in /);
+  });
+
+  it("a reply is refused past the thread cap, in the action that writes it", () => {
+    // depthOf is unit-tested; this holds the executor to calling it before
+    // the write, with the cap it declares (§25.5 — every error path tested).
+    const action = read("app/handoff-actions.ts");
+    const reply = action.slice(action.indexOf("export async function replyToHandoff"));
+    const write = reply.indexOf("handoffStore().reply(");
+    expect(write).toBeGreaterThan(0);
+    const before = reply.slice(0, write);
+    expect(before).toMatch(/depthOf\(/);
+    expect(before).toMatch(/>= MAX_DEPTH/);
+    expect(before).toMatch(/expected: true/);
+  });
+
+  it("a settled finding is not settled again, in the action that writes it", () => {
+    const action = read("app/review-actions.ts");
+    const dispose = action.slice(action.indexOf("export async function disposeFinding"));
+    const write = dispose.indexOf("reviewStore().dispose(");
+    expect(write).toBeGreaterThan(0);
+    expect(dispose.slice(0, write)).toMatch(/findingStanding\([^)]*\) === "settled"/);
+  });
+
+  it("raw SQL that reads dispositions states the open rule findingIsOpen states", () => {
+    // The queue's SQL cannot call the pure function, so it must say the
+    // same thing: the newest settlement decides, and an acceptance past its
+    // expiry is open. It used to count any disposition row as settled.
+    const offenders: string[] = [];
+    let readers = 0;
+    for (const file of filesUnder(SRC)) {
+      const source = readFileSync(file, "utf8");
+      if (!/from dispositions d\b/.test(source)) continue;
+      readers += 1;
+      if (!source.includes("expires_at <= now()")) offenders.push(file.slice(SRC.length + 1));
+      if (!/order by d\.resolved_at desc limit 1/.test(source)) offenders.push(file.slice(SRC.length + 1) + " (not the newest)");
+    }
+    expect(readers).toBeGreaterThan(0);
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe("one definition of what the record lights", () => {
+  const SRC = join(__dirname, "..", "..", "src");
+  const files = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? files(join(dir, e.name)) : join(dir, e.name),
+    );
+
+  it("nobody re-derives which parts an area has ticked", () => {
+    // This loop existed in ten places and two of them came apart: the
+    // rating read a severity answer whose part had been unticked while the
+    // ledger did not. `pathSelectionsFrom` is the one definition, and
+    // engine.ts is the only file allowed to contain the loop.
+    const offenders = files(SRC)
+      .filter((f) => /\.tsx?$/.test(f) && !f.endsWith(join("lib", "engine.ts")))
+      .filter((f) => readFileSync(f, "utf8").includes("pathQuestion.questionId]?.value"))
+      .map((f) => f.slice(SRC.length + 1));
+    expect(offenders, "call pathSelectionsFrom(CATEGORIES, stored) instead").toEqual([]);
+  });
+
+  it("the package payload is assembled in the pure layer, where it can be tested", () => {
+    // It lived inside "use server", so no unit test could reach it and the
+    // frozen rating shipped to six screens unchecked (S15 delta pass).
+    const packaging = readFileSync(join(SRC, "lib", "packaging.ts"), "utf8");
+    expect(packaging).toContain("export function assemblePackage(");
+    const action = readFileSync(join(SRC, "app", "package-actions.ts"), "utf8");
+    expect(action).not.toMatch(/^function assemble\(/m);
+  });
+});

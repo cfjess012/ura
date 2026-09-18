@@ -34,6 +34,12 @@ export type ReviewCounts = {
   openGaps: string[];
   openEnhancements: string[];
   openViolations: string[];
+  /**
+   * Remediations whose due date has passed with nothing closing them, as
+   * the objectives they were raised against. Settled is not finished: a fix
+   * that was promised for June is a reviewer's business in July.
+   */
+  overdueRemediations: string[];
   /** Questions the requester left unanswered and declared as gaps. */
   declaredGaps: number;
 };
@@ -41,7 +47,13 @@ export type ReviewCounts = {
 /** One thing a reviewer can act on, and where to act on it. */
 export type StandingItem = {
   kind:
-    "attest" | "elsewhere" | "violation" | "gap" | "enhancement" | "unanswered";
+    | "attest"
+    | "elsewhere"
+    | "violation"
+    | "gap"
+    | "enhancement"
+    | "overdue"
+    | "unanswered";
   count: number;
   /** Written for somebody who has not opened the assessment yet. */
   label: string;
@@ -62,6 +74,7 @@ const ORDER: StandingItem["kind"][] = [
   "violation",
   "gap",
   "enhancement",
+  "overdue",
   "unanswered",
 ];
 
@@ -143,6 +156,15 @@ export function reviewStanding(
       href: `${review}#findings`,
     });
   }
+  const overdue = counts.overdueRemediations.filter(minesObjective);
+  if (overdue.length > 0) {
+    found.push({
+      kind: "overdue",
+      count: overdue.length,
+      label: `${plural(overdue.length, "remediation", "remediations")} past ${overdue.length === 1 ? "its" : "their"} due date`,
+      href: `${review}#findings`,
+    });
+  }
   if (counts.declaredGaps > 0) {
     found.push({
       kind: "unanswered",
@@ -174,6 +196,7 @@ export function needsReviewer(
     outstandingMine ||
     counts.openViolations.some(minesObjective) ||
     counts.openGaps.some(minesObjective) ||
-    counts.openEnhancements.some(minesObjective)
+    counts.openEnhancements.some(minesObjective) ||
+    counts.overdueRemediations.some(minesObjective)
   );
 }

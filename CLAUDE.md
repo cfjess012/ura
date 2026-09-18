@@ -26,8 +26,18 @@ implementation, stop on ambiguity.
   note is deferred to S8, see uat/S6.md)
 - S4.5 Reference data — PARTIAL: searchable vendor picker and
   provenance-on-accept (FR-33) remain
-- S3.5 Destinations — SPEC'd not built (§27) · S4.6 Attachments — blocked on
-  §3.6 retention
+- S19 Platform inheritance — BUILT 2026-09-04 (G-83/G-85: platforms assessed
+  once, with an accountable owner and an expiring attestation; an activity
+  says what it runs on and the controls those platforms provide arrive with
+  the provider and the date. An offer is not an answer — a control leaves
+  the question list only once its recorded answer is the inherited one.
+  G-86: /admin/platforms reads the estate — owner, attestation standing and
+  the blast radius — read-only, because nobody can attest without real
+  sign-in.) **Not finished: no uat/S19.md and no slice review.**
+- S3.5 Destinations — BUILT 2026-08-27 (FR-26/FR-27 · NFR-20: the offer with
+  a computed count, and the assembled record in three parts with a real
+  payload and no send that pretends). **Not finished: no uat/S3.5.md and no
+  slice review.** · S4.6 Attachments — blocked on §3.6 retention
 - S8 Review & attest — DONE 2026-08-23 (FR-16/FR-17/FR-18 · NFR-10: the
   reviewer queue, attestation with the keyboard loop, authority derived from
   the question server-side, and the four dispositions with four-eyes and
@@ -39,15 +49,34 @@ implementation, stop on ambiguity.
   companion, document drafting, policy authority and breach findings, the
   handoff report, intake scoring. Two verifier FAILs then fixed — see
   uat/S12.md)
-- S9 Package & export, S10 Harden — not started (do not scaffold ahead;
-  SPEC §0 rule 5)
+- S9 Package & export — DONE 2026-08-26 (FR-19/FR-20: packaging gates and
+  the insert-only replayable export; verifier FAIL then fixed — see uat/S9.md)
+- S13 Debts first — DONE 2026-09-03 (G-76: the seven defects the evaluation
+  found, fixed before anything is built on them. Verifier FAIL then fixed —
+  see uat/S13.md). The approved S13–S24 plan lives outside the repo, in the
+  owner's plan file; each slice adds its own §17 row and G-entry.
+- S14 Engine to §6.3 — DONE 2026-09-03 (FR-49/NFR-23, G-77: the full
+  condition language with nesting, the English renderer, the lint at every
+  validator's import. Verifier FAIL then fixed — see uat/S14.md)
+- S15 Risk rating — DONE 2026-09-03 (FR-50/FR-51, G-78: bands with reasons
+  from rating.json, on every summary screen and frozen into the package).
+  **Live edition is `risk-rating@2026-09-03.6` (G-79, G-81)**, not the `.2` that
+  uat/S15.md was verified against: a residual may never exceed its inherent
+  band, and the inherent reads the risk-area profile, not the worst single
+  answer. Both passed a delta verification — see the note atop uat/S15.md.
+- S17 Control register — BUILT 2026-09-04 (G-87/G-88: one table replacing
+  three presentations of the same controls, with a drawer beside it. Six
+  states, of which `gap` and `lapsed` were previously invisible. The 13
+  control families gained plain names and an owner's order.) **Not finished:
+  NIST 800-53 and its reference column are owed, and there is no uat/S17.md.**
+- S10 Harden — not started (do not scaffold ahead; SPEC §0 rule 5)
 - 2026-08-23 level set: SPEC rewritten to the official mission (G-51..G-55);
   agentic on Bedrock/AgentCore was the Phase-2 epic and shipped as S11/S12.
   **The three §6.1 seams exist in code.** The agent is a separate service
   and is off by default — `AGENT_TRANSPORT` decides.
-- `demo/readiness.md` = what the room sees; the stop gate blocks finishing
-  until it covers every DONE slice (G-44). `db:reset` held for demo-data
-  day. Audit C-6/7 open (`audits/instrument-2026-08-21.md`).
+- The demo shipped 2026-08-25 and its apparatus is retired (G-74): no run
+  sheet, no readiness artifact, no stop-gate check about the room. Audit
+  C-6/7 open (`audits/instrument-2026-08-21.md`).
 
 Instrument data lives in `src/data/instrument/*.json`, imported at build time
 (never from disk at runtime). After editing, `pnpm instrument:seed` activates
@@ -73,13 +102,12 @@ pnpm agent-map     # regenerates docs/agent-map.html from the repo itself
 pnpm uat:new S4    # UAT record skeleton for a slice (rows from SPEC §17/§20)
 ```
 
-## DEMO PUSH — until 2026-08-26 (G-70, read it there)
-
-Demo is 2026-08-25. Every change: `pnpm typecheck && pnpm test:unit` (35s).
-NOT per change: `pnpm e2e`, the slice verifier, per-slice UAT records.
-Before the demo, without exception: `pnpm walk:demo` and one `pnpm e2e`.
 One dev server and one agent — nothing else; a starved machine turned a
 9-second test into 17 minutes.
+
+**The full gate chain is the rule again.** Demo-push mode (G-70) expired
+2026-08-26: `pnpm verify`, the slice verifier and a per-slice UAT record are
+all back on, and one verifier pass is owed over everything built under it.
 
 ## Skills — load them at these moments (SPEC G-18)
 
@@ -99,7 +127,8 @@ work, not after:
 | change the intake rubric, its scoring, or how a score is shown | `intake-rubric` |
 | write anything to the owner | `owner-brief` |
 | answer design feedback or a screenshot | `design-mock` |
-| finish a review, prep UAT or the demo, or write down a claim | `demo-truth` |
+| finish a review, prep UAT, or write down a claim | `demo-truth` |
+| change a rule, an edition, a derivation or a gate | `impact-analysis` |
 | audit the repo, the spec, code quality, dead code, or skills | `repository-audit` |
 
 Law lives in SPEC and is always true; procedure lives in skills and is

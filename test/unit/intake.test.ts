@@ -11,7 +11,9 @@ import {
   INTAKE_SECTIONS,
   isFieldVisible,
   missingRequired,
+  sectionProgress,
 } from "../../src/lib/intake";
+import { intakeValuesFrom } from "../../src/lib/intake-values";
 
 const byId = (id: string) => ALL_FIELDS.find((f) => f.id === id)!;
 
@@ -366,5 +368,19 @@ describe("long-form fields say how to answer them well", () => {
     // risk, and "personally identifiable" is not how they would say it.
     expect(points).toMatch(/about people|health|money/); // sensitivity
     expect(points).toMatch(/supplier|outside|another system/); // access & flow
+  });
+});
+
+describe("where a brand-new assessment starts", () => {
+  it("has a first section, so creating one can address it directly", () => {
+    // `createProject` used to redirect to the project root, a route whose
+    // whole body is another redirect sitting behind an "Opening the
+    // assessment…" loading state. Two hops and a spinner to reach a form
+    // whose address was already known — and anything stalling on the second
+    // hop left a person on a blank page with nothing to act on.
+    const fresh = intakeValuesFrom({});
+    expect(firstIncompleteSection(fresh)).toBe("description");
+    // And it is a real section, not a key nothing serves.
+    expect(sectionProgress(fresh).map((s) => s.key)).toContain("description");
   });
 });

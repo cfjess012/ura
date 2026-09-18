@@ -225,6 +225,5 @@ as a second, optional service talking to Bedrock.
 ```sh
 pnpm verify        # typecheck, unit, integration
 pnpm e2e           # the full journey in a browser
-pnpm walk:demo     # asserts the demo run sheet still matches the product
 pnpm agent:test    # the gate, against fabricated model replies
 ```

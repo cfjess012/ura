@@ -1,0 +1,1 @@
+We are putting in a new tool to help the claims handlers deal with the backlog of first notification of loss calls. It should speed things up a lot. Rollout is planned for Q4 and the team is quite keen on it.

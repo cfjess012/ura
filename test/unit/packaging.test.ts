@@ -2,12 +2,15 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  assemblePackage,
   blockers,
   canPackage,
   editionsPinned,
   openFindingNames,
   packageFilename,
 } from "@/lib/packaging";
+import { FULLY_ANSWERED, RATING_EDITION } from "@/lib/rating";
+import type { Rating } from "@/lib/rating-of";
 
 const READY = {
   submitted: true,
@@ -23,6 +26,19 @@ describe("what stands between an assessment and a package", () => {
   it("lets a finished assessment through", () => {
     expect(blockers(READY)).toEqual([]);
     expect(canPackage(READY)).toBe(true);
+  });
+
+  it("refuses to package a record nothing has rated", () => {
+    // An assessment with no answers has no unattested control and no open
+    // finding, so it passed every other condition and exported a reading
+    // nobody made (G-81).
+    const empty = { submitted: true, required: [], attested: [], openFindings: [], rated: false };
+    expect(canPackage(empty)).toBe(false);
+    const [stop] = blockers(empty);
+    expect(stop!.kind).toBe("unrated");
+    expect(stop!.says).toMatch(/a reading nobody made/);
+    // And it does not stand in the way of one that has been answered.
+    expect(blockers({ ...empty, rated: true })).toEqual([]);
   });
 
   it("refuses an answer nobody signed, and says how many", () => {
@@ -248,10 +264,14 @@ describe("nothing decides 'open' for itself", () => {
       if (!source.includes("dispositionsFor(")) continue;
       if (file.endsWith("repo-review.ts")) continue; // it is the store itself
       readers += 1;
-      // Directly, or through the pure module that wraps it.
+      // Directly, or through a pure function that wraps it — findingStanding
+      // is findingIsOpen with one more word (S13).
       if (
         !source.includes("findingIsOpen") &&
-        !source.includes("openFindingNames")
+        !source.includes("openFindingNames") &&
+        !source.includes("findingStanding") &&
+        // rateAssessment reaches findingStanding for every finding (S15).
+        !source.includes("rateAssessment")
       ) {
         offenders.push(file.slice(SRC.length + 1));
       }
@@ -277,5 +297,97 @@ describe("the downloaded filename", () => {
     expect(packageFilename("///", new Date("2026-01-02T00:00:00Z"))).toBe(
       "assessment-2026-01-02.json",
     );
+  });
+});
+
+/**
+ * The frozen rating in the payload — untestable until `assemble` left the
+ * server action, which is why it reached six screens and an export with no
+ * test at any tier (S15 delta verification).
+ */
+describe("the rating a package freezes", () => {
+  const rating: Rating = {
+    inherent: { band: "Critical", because: ["two or more risk areas are at High"], standing: "rated" },
+    residual: { band: "Critical", because: ["inherent rating Critical", "a required control has not been signed off yet, so nothing is earned back"], standing: "rated" },
+    areas: { "data-privacy": { band: "High", because: ["the worst severity answer in this area is High"], standing: "rated" } },
+    breaches: [
+      { scope: "assessment", label: "the assessment", band: "Critical", max: "High", because: "a Critical residual rating is outside the stated appetite", escalateTo: "role:admin" },
+      { scope: "area:data-privacy", label: "Data & privacy", band: "High", max: "Medium", because: "personal data above Medium needs the privacy office", escalateTo: "domain:data-privacy" },
+    ],
+    edition: RATING_EDITION,
+    coverage: FULLY_ANSWERED,
+  };
+  const payload = () =>
+    assemblePackage({
+      project: { id: "p1", projectName: "Sable claims triage", submittedAt: new Date("2026-09-01"), submittedBy: "u1" },
+      intake: {},
+      stored: {},
+      required: [],
+      recorded: [],
+      rating,
+      latest: new Map(),
+      findings: [],
+      settlements: new Map(),
+      everyone: [{ id: "u1", name: "Isabelle Withers" }],
+      by: "Alex Security",
+      now: new Date("2026-09-03T12:00:00Z"),
+      instrumentVersions: [{ slug: "tier1-gates", version: "2026-08-21.7" }],
+    });
+
+  it("carries both bands with every reason, and never a number", () => {
+    const p = payload();
+    expect(p.rating.inherent).toEqual(rating.inherent);
+    expect(p.rating.residual.band).toBe("Critical");
+    expect(p.rating.residual.because).toContain("a required control has not been signed off yet, so nothing is earned back");
+    expect(JSON.stringify({ i: p.rating.inherent, r: p.rating.residual })).not.toMatch(/\d/);
+  });
+
+  it("keeps where each breach escalates, and names the scope in words", () => {
+    // A replayable record has to say who the breach went to, not only that
+    // one happened; and no export prints an internal key (NFR-9).
+    const breaches = payload().rating.exceedsAppetite;
+    expect(breaches).toHaveLength(2);
+    expect(breaches.map((b) => b.label)).toEqual(["the assessment", "Data & privacy"]);
+    expect(breaches.map((b) => b.escalateTo)).toEqual(["role:admin", "domain:data-privacy"]);
+    expect(breaches[1]).toMatchObject({ band: "High", max: "Medium" });
+  });
+
+  it("carries each attested control's external obligations, with the edition read from", () => {
+    // A crosswalk shown only on a screen has recorded nothing. An auditor
+    // reading the export a year later needs the edition the mapping was
+    // made against, not just the reference.
+    const p = assemblePackage({
+      project: { id: "p1", projectName: "Sable", submittedAt: new Date("2026-09-01"), submittedBy: "u1" },
+      intake: {},
+      stored: { "t3.t3_iam_02": { value: { answer: "Yes", note: "" } } },
+      required: [{ id: "T3-IAM-02", questionId: "t3.t3_iam_02", name: "Multi-Factor Authentication" }],
+      recorded: [],
+      rating,
+      latest: new Map([[
+        "t3.t3_iam_02",
+        { act: "approve", note: "seen", attestedBy: "u1", attestedAt: new Date("2026-09-02"), correctedAnswer: null },
+      ]]),
+      findings: [],
+      settlements: new Map(),
+      everyone: [{ id: "u1", name: "Isabelle Withers" }],
+      by: "Alex Security",
+      now: new Date("2026-09-03T12:00:00Z"),
+      instrumentVersions: [],
+    });
+    const answer = p.answers.find((a) => a.objective === "T3-IAM-02")!;
+    expect(answer.frameworks.length).toBeGreaterThan(0);
+    const csf = answer.frameworks.find((f) => f.ref === "PR.AA-03")!;
+    expect(csf.framework).toBe("NIST Cybersecurity Framework");
+    expect(csf.edition).toBe("2.0");
+    expect(csf.relationship).toBe("partial");
+    expect(csf.because.length).toBeGreaterThan(20);
+    // And the crosswalk's own edition sits beside the instrument's.
+    expect(p.provenance.instrumentVersions.map((v) => v.slug)).toContain("control-crosswalk");
+  });
+
+  it("names the edition whose rules produced it, in the provenance a replayer reads", () => {
+    const p = payload();
+    expect(p.rating.edition).toBe(RATING_EDITION);
+    expect(p.provenance.instrumentVersions).toContainEqual({ slug: "risk-rating", version: RATING_EDITION.split("@")[1] });
   });
 });

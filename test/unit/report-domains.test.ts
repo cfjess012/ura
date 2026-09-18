@@ -31,6 +31,7 @@ function reportWith(
     areasThatApply: [],
     severities: [],
     controls,
+    controlsRecorded: [],
     findings,
     unanswered: [],
     counts: {
@@ -38,6 +39,7 @@ function reportWith(
       areasClosed: 0,
       controlsRequired: controls.length,
       controlsAnswered: controls.length,
+      controlsRecorded: 0,
       findings: findings.length,
       breaches: 0,
     },
